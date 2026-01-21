@@ -1756,3 +1756,43 @@ h1, h2, h3, h4, h5, h6 {
 ::selection {
     background: rgba(255, 255, 255, 0.2);
 }
+
+/* ==================== MOBILE RESPONSIVE FIXES ==================== */
+@media (max-width: 768px) {
+    /* Card header stack on mobile */
+    .card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+
+    /* Buttons container full width */
+    .card-header > div:last-child {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* Buttons grow to fill space */
+    .card-header > div:last-child .btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* Card title full width */
+    .card-title {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Stack buttons vertically on very small screens */
+    .card-header > div:last-child {
+        flex-direction: column;
+    }
+
+    .card-header > div:last-child .btn {
+        width: 100%;
+    }
+}
