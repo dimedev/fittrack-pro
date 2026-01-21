@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitTrack Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="bg-grid"></div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="logo">FITTRACK</div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-section="dashboard">Dashboard</button>
+            <button class="nav-tab" data-section="nutrition">Nutrition</button>
+            <button class="nav-tab" data-section="training">Training</button>
+            <button class="nav-tab" data-section="progress">Progression</button>
+        </div>
+        <div class="nav-actions">
+            <span id="user-email" style="font-size: 0.8rem; color: var(--text-secondary); margin-right: 10px;"></span>
+            <button class="btn btn-sm btn-secondary" id="auth-btn" onclick="isLoggedIn() ? signOut() : showAuthModal()">Connexion</button>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav">
+        <div class="mobile-nav-items">
+            <button class="mobile-nav-item active" data-section="dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                <span>Dashboard</span>
+            </button>
+            <button class="mobile-nav-item" data-section="nutrition">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                <span>Nutrition</span>
+            </button>
+            <button class="mobile-nav-item" data-section="training">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M4 10v4"/><path d="M20 10v4"/><path d="M2 8v8"/><path d="M22 8v8"/><path d="M12 6v12"/></svg>
+                <span>Training</span>
+            </button>
+            <button class="mobile-nav-item" data-section="progress">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span>Progression</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <div class="grid grid-4">
+                    <div class="stat-card">
+                        <div class="stat-label">Calories Objectif</div>
+                        <div class="stat-value" id="stat-calories">--</div>
+                        <div class="stat-unit">kcal/jour</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Protéines</div>
+                        <div class="stat-value" id="stat-protein">--</div>
+                        <div class="stat-unit">g/jour</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Programme</div>
+                        <div class="stat-value" id="stat-program" style="font-size: 1.3rem;">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Séances/semaine</div>
+                        <div class="stat-value" id="stat-days">--</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-2" style="margin-top: 20px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">👤</span>
+                                Mon Profil
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="openProfileModal()">Modifier</button>
+                        </div>
+                        <div id="profile-summary">
+                            <p style="color: var(--text-secondary);">Configurez votre profil pour commencer</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">🎯</span>
+                                Macros du Jour
+                            </div>
+                        </div>
+                        <div id="daily-macros">
+                            <div class="macro-bar">
+                                <div class="macro-bar-header">
+                                    <span class="macro-bar-label">Protéines</span>
+                                    <span class="macro-bar-value" id="macro-protein-value">-- / --g</span>
+                                </div>
+                                <div class="macro-bar-track">
+                                    <div class="macro-bar-fill protein" id="macro-protein-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="macro-bar">
+                                <div class="macro-bar-header">
+                                    <span class="macro-bar-label">Glucides</span>
+                                    <span class="macro-bar-value" id="macro-carbs-value">-- / --g</span>
+                                </div>
+                                <div class="macro-bar-track">
+                                    <div class="macro-bar-fill carbs" id="macro-carbs-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="macro-bar">
+                                <div class="macro-bar-header">
+                                    <span class="macro-bar-label">Lipides</span>
+                                    <span class="macro-bar-value" id="macro-fat-value">-- / --g</span>
+                                </div>
+                                <div class="macro-bar-track">
+                                    <div class="macro-bar-fill fat" id="macro-fat-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-3" style="margin-top: 20px;">
+                    <div id="bodyweight-card-container"></div>
+                    <div id="goal-card-container"></div>
+                    <div id="streak-card-container"></div>
+                </div>
+
+                <div id="recommendations-card-container" style="margin-top: 20px;"></div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📈</span>
+                            Évolution du Poids
+                        </div>
+                    </div>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="bodyweight-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Nutrition Section -->
+            <section id="nutrition" class="section">
+                <div class="tabs">
+                    <button class="tab active" data-tab="menu">Menu du Jour</button>
+                    <button class="tab" data-tab="journal">Journal</button>
+                    <button class="tab" data-tab="aliments">Base d'Aliments</button>
+                </div>
+
+                <div id="tab-menu" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">🍽️</span>
+                                Menu du Jour
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn btn-sm btn-primary" onclick="document.querySelector('[data-tab=\'foods\']').click()">📋 Choisir mes aliments</button>
+                                <button class="btn btn-sm btn-primary" onclick="openAddFoodModal()">+ Ajouter</button>
+                            </div>
+                        </div>
+                        <div id="daily-menu">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🥗</div>
+                                <div class="empty-state-title">Aucun repas planifié</div>
+                                <p>Générez un menu ou ajoutez des aliments manuellement</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-journal" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📝</span>
+                                Journal Alimentaire
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="date" class="form-input" id="journal-date" style="width: auto;" onchange="loadJournalDay()">
+                                <button class="btn btn-sm btn-danger" onclick="clearJournalDay()" title="Vider le journal du jour">🗑️</button>
+                            </div>
+                        </div>
+
+                        <!-- Résumé des macros du journal -->
+                        <div id="journal-macros-summary" class="journal-summary">
+                            <div class="journal-summary-item">
+                                <span class="journal-summary-value" id="journal-calories">0</span>
+                                <span class="journal-summary-label">kcal</span>
+                            </div>
+                            <div class="journal-summary-item protein">
+                                <span class="journal-summary-value" id="journal-protein">0</span>
+                                <span class="journal-summary-label">Protéines (g)</span>
+                            </div>
+                            <div class="journal-summary-item carbs">
+                                <span class="journal-summary-value" id="journal-carbs">0</span>
+                                <span class="journal-summary-label">Glucides (g)</span>
+                            </div>
+                            <div class="journal-summary-item fat">
+                                <span class="journal-summary-value" id="journal-fat">0</span>
+                                <span class="journal-summary-label">Lipides (g)</span>
+                            </div>
+                        </div>
+
+                        <!-- Barre de progression des objectifs -->
+                        <div id="journal-progress-bars" style="margin-top: 20px; margin-bottom: 20px;">
+                            <div class="macro-bar">
+                                <div class="macro-bar-header">
+                                    <span class="macro-bar-label">Calories</span>
+                                    <span class="macro-bar-value" id="journal-cals-progress">0 / --</span>
+                                </div>
+                                <div class="macro-bar-track">
+                                    <div class="macro-bar-fill calories" id="journal-cals-bar" style="width: 0%; background: linear-gradient(90deg, #00ff88, #00cc6a);"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ajouter un aliment -->
+                        <div style="margin-bottom: 20px;">
+                            <div class="form-group" style="margin-bottom: 10px;">
+                                <input type="text" class="form-input" id="journal-food-search" placeholder="🔍 Rechercher un aliment à ajouter..." oninput="searchFoodsForJournal()">
+                            </div>
+                            <div class="food-search-results" id="journal-food-results" style="max-height: 200px;"></div>
+                        </div>
+
+                        <!-- Liste des aliments du journal -->
+                        <div id="journal-entries">
+                            <div class="empty-state" style="padding: 30px;">
+                                <div class="empty-state-icon">📋</div>
+                                <div class="empty-state-title">Journal vide</div>
+                                <p>Recherchez et ajoutez ce que vous avez mangé aujourd'hui</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-aliments" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">🥑</span>
+                                Base d'Aliments
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="openCustomFoodModal()">+ Ajouter Aliment</button>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-input" id="food-search" placeholder="Rechercher un aliment..." oninput="filterFoods()">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <button class="btn btn-sm btn-primary" onclick="resetToDefaultSelection()" style="width: 100%;">
+                                🔄 Réinitialiser avec 19 aliments recommandés
+                            </button>
+                        </div>
+                        <div id="foods-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Training Section -->
+            <section id="training" class="section">
+                <div class="tabs">
+                    <button class="tab active" data-tab="program">Programme</button>
+                    <button class="tab" data-tab="session">Séance du Jour</button>
+                    <button class="tab" data-tab="timer">Timer</button>
+                </div>
+
+                <div id="tab-program" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📋</span>
+                                Type de Programme
+                            </div>
+                        </div>
+                        <div class="grid grid-3" id="program-types"></div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📅</span>
+                                Jours d'Entraînement
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Combien de fois par semaine ?</label>
+                            <select class="form-select" id="training-days" onchange="updateTrainingDays()">
+                                <option value="3">3 jours</option>
+                                <option value="4">4 jours</option>
+                                <option value="5">5 jours</option>
+                                <option value="6">6 jours</option>
+                            </select>
+                        </div>
+                        <div id="weekly-schedule"></div>
+                    </div>
+                </div>
+
+                <div id="tab-session" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">💪</span>
+                                Séance du Jour
+                            </div>
+                            <select class="form-select" id="session-day-select" style="width: auto;" onchange="loadSessionDay()"></select>
+                        </div>
+                        <div id="session-exercises">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🏋️</div>
+                                <div class="empty-state-title">Sélectionnez un programme</div>
+                                <p>Choisissez d'abord un type de programme dans l'onglet Programme</p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px; display: none;" id="save-session-btn">
+                            <button class="btn btn-primary" onclick="saveSession()" style="width: 100%;">
+                                Enregistrer la Séance
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-timer" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">⏱️</span>
+                                Timer de Repos
+                            </div>
+                        </div>
+                        <div class="timer-display" id="timer-display">00:00</div>
+                        <div class="timer-controls">
+                            <button class="btn btn-secondary" onclick="resetTimer()">Reset</button>
+                            <button class="btn btn-primary" id="timer-toggle" onclick="toggleTimer()">Démarrer</button>
+                        </div>
+                        <div class="timer-preset">
+                            <button class="timer-preset-btn" onclick="setTimer(60)">1:00</button>
+                            <button class="timer-preset-btn" onclick="setTimer(90)">1:30</button>
+                            <button class="timer-preset-btn" onclick="setTimer(120)">2:00</button>
+                            <button class="timer-preset-btn" onclick="setTimer(180)">3:00</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress Section -->
+            <section id="progress" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📊</span>
+                            Évolution des Performances
+                        </div>
+                        <select class="form-select" id="progress-exercise" style="width: auto;" onchange="updateProgressChart()">
+                            <option value="">Sélectionner un exercice</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="progress-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📝</span>
+                            Historique des Séances
+                        </div>
+                    </div>
+                    <div id="session-history">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📅</div>
+                            <div class="empty-state-title">Aucune séance enregistrée</div>
+                            <p>Vos séances apparaîtront ici</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Profile Modal -->
+    <div class="modal-overlay" id="profile-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Mon Profil</div>
+                <button class="modal-close" onclick="closeModal('profile-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Âge</label>
+                        <input type="number" class="form-input" id="profile-age" placeholder="25">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sexe</label>
+                        <select class="form-select" id="profile-gender">
+                            <option value="male">Homme</option>
+                            <option value="female">Femme</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Poids (kg)</label>
+                        <input type="number" class="form-input" id="profile-weight" placeholder="75">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Taille (cm)</label>
+                        <input type="number" class="form-input" id="profile-height" placeholder="180">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Niveau d'Activité</label>
+                    <select class="form-select" id="profile-activity">
+                        <option value="1.2">Sédentaire (peu ou pas d'exercice)</option>
+                        <option value="1.375">Légèrement actif (1-3 jours/semaine)</option>
+                        <option value="1.55">Modérément actif (3-5 jours/semaine)</option>
+                        <option value="1.725">Très actif (6-7 jours/semaine)</option>
+                        <option value="1.9">Extrêmement actif (2x par jour)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Objectif</label>
+                    <select class="form-select" id="profile-goal">
+                        <option value="cut">Sèche (-500 kcal)</option>
+                        <option value="maintain">Maintien</option>
+                        <option value="lean-bulk">Prise de Masse Légère (+250 kcal)</option>
+                        <option value="bulk">Prise de Masse (+500 kcal)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('profile-modal')">Annuler</button>
+                <button class="btn btn-primary" onclick="saveProfile()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Food Modal -->
+    <div class="modal-overlay" id="add-food-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Ajouter un Aliment</div>
+                <button class="modal-close" onclick="closeModal('add-food-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Repas</label>
+                    <select class="form-select" id="add-food-meal">
+                        <option value="breakfast">Petit-déjeuner</option>
+                        <option value="lunch">Déjeuner</option>
+                        <option value="snack">Collation</option>
+                        <option value="dinner">Dîner</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Rechercher un aliment</label>
+                    <input type="text" class="form-input" id="add-food-search" placeholder="Tapez pour rechercher..." oninput="searchFoodsForAdd()">
+                </div>
+                <div class="food-search-results" id="add-food-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quantity Modal -->
+    <div class="modal-overlay" id="quantity-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Quantité</div>
+                <button class="modal-close" onclick="closeModal('quantity-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="quantity-food-info"></div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="form-label">Quantité (g)</label>
+                    <input type="number" class="form-input" id="food-quantity" value="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('quantity-modal')">Annuler</button>
+                <button class="btn btn-primary" onclick="confirmAddFood()">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Food Modal -->
+    <div class="modal-overlay" id="custom-food-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Ajouter un Aliment Personnalisé</div>
+                <button class="modal-close" onclick="closeModal('custom-food-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nom de l'aliment</label>
+                    <input type="text" class="form-input" id="custom-food-name" placeholder="Ex: Poulet grillé maison">
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">Valeurs pour 100g :</p>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Calories (kcal)</label>
+                        <input type="number" class="form-input" id="custom-food-calories" placeholder="165">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Protéines (g)</label>
+                        <input type="number" class="form-input" id="custom-food-protein" placeholder="31">
+                    </div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Glucides (g)</label>
+                        <input type="number" class="form-input" id="custom-food-carbs" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Lipides (g)</label>
+                        <input type="number" class="form-input" id="custom-food-fat" placeholder="3.6">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Catégorie</label>
+                    <select class="form-select" id="custom-food-category">
+                        <option value="protein">Protéines</option>
+                        <option value="carbs">Glucides</option>
+                        <option value="fat">Lipides</option>
+                        <option value="vegetable">Légumes</option>
+                        <option value="fruit">Fruits</option>
+                        <option value="dairy">Produits Laitiers</option>
+                        <option value="other">Autre</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('custom-food-modal')">Annuler</button>
+                <button class="btn btn-primary" onclick="saveCustomFood()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Swap Food Modal -->
+    <div class="modal-overlay" id="swap-food-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Échanger l'Aliment</div>
+                <button class="modal-close" onclick="closeModal('swap-food-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">
+                    Remplacer <strong id="swap-current-food"></strong> par :
+                </p>
+                <div class="form-group">
+                    <input type="text" class="form-input" id="swap-food-search" placeholder="Rechercher un aliment..." oninput="searchFoodsForSwap()">
+                </div>
+                <div class="food-search-results" id="swap-food-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove Food Modal -->
+    <div class="modal-overlay" id="remove-food-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Supprimer l'Aliment</div>
+                <button class="modal-close" onclick="closeModal('remove-food-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.95rem; margin-bottom: 8px;">
+                    Supprimer <strong id="remove-food-name"></strong> ?
+                </p>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">
+                    Cet aliment représente <strong id="remove-food-calories"></strong> kcal. Que voulez-vous faire ?
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="btn btn-primary" onclick="removeFoodAndReplace()" style="width: 100%; justify-content: center;">
+                        🔄 Remplacer par un aliment similaire
+                    </button>
+                    <button class="btn btn-secondary" onclick="removeFoodAndRedistribute()" style="width: 100%; justify-content: center;">
+                        ⚖️ Redistribuer les calories sur le repas
+                    </button>
+                    <button class="btn btn-danger" onclick="removeFoodOnly()" style="width: 100%; justify-content: center;">
+                        🗑️ Supprimer sans compensation
+                    </button>
+                </div>
+
+                <div id="remove-food-suggestion" style="margin-top: 20px; display: none;">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">Suggestion de remplacement :</p>
+                    <div id="remove-food-suggestion-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="handleImport(event)">
+
+    <!-- Swap Exercise Modal -->
+    <div class="modal-overlay" id="swap-exercise-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-title">Changer l'Exercice</div>
+                <button class="modal-close" onclick="closeModal('swap-exercise-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 5px;">
+                    Remplacer :
+                </p>
+                <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 15px;">
+                    <span id="swap-exercise-current"></span>
+                    <span id="swap-exercise-muscle" style="font-size: 0.8rem; color: var(--accent-primary); margin-left: 10px;"></span>
+                </p>
+
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <input type="text" class="form-input" id="swap-exercise-search" placeholder="Rechercher un exercice..." oninput="searchExercisesForSwap()">
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button class="btn btn-sm btn-secondary filter-equip active" data-equip="all" onclick="filterExercisesByEquipment('all')">Tous</button>
+                    <button class="btn btn-sm btn-secondary filter-equip" data-equip="barbell" onclick="filterExercisesByEquipment('barbell')">Barre</button>
+                    <button class="btn btn-sm btn-secondary filter-equip" data-equip="dumbbell" onclick="filterExercisesByEquipment('dumbbell')">Haltères</button>
+                    <button class="btn btn-sm btn-secondary filter-equip" data-equip="machine" onclick="filterExercisesByEquipment('machine')">Machine</button>
+                    <button class="btn btn-sm btn-secondary filter-equip" data-equip="cable" onclick="filterExercisesByEquipment('cable')">Poulie</button>
+                </div>
+
+                <div class="food-search-results" id="swap-exercise-results" style="max-height: 300px;"></div>
+
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                    <button class="btn btn-sm btn-secondary" onclick="openCustomExerciseModal()" style="width: 100%; justify-content: center;">
+                        ➕ Ajouter un exercice personnalisé
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Exercise Modal -->
+    <div class="modal-overlay" id="custom-exercise-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Ajouter un Exercice</div>
+                <button class="modal-close" onclick="closeModal('custom-exercise-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nom de l'exercice</label>
+                    <input type="text" class="form-input" id="custom-exercise-name" placeholder="Ex: Pec Deck Technogym">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Muscle ciblé</label>
+                    <select class="form-select" id="custom-exercise-muscle">
+                        <option value="chest">Pectoraux</option>
+                        <option value="back">Dos</option>
+                        <option value="shoulders">Épaules</option>
+                        <option value="rear-delts">Épaules Arrière</option>
+                        <option value="triceps">Triceps</option>
+                        <option value="biceps">Biceps</option>
+                        <option value="quads">Quadriceps</option>
+                        <option value="hamstrings">Ischio-jambiers</option>
+                        <option value="glutes">Fessiers</option>
+                        <option value="calves">Mollets</option>
+                        <option value="traps">Trapèzes</option>
+                        <option value="abs">Abdominaux</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Type d'équipement</label>
+                    <select class="form-select" id="custom-exercise-equipment">
+                        <option value="machine">Machine</option>
+                        <option value="barbell">Barre</option>
+                        <option value="dumbbell">Haltères</option>
+                        <option value="cable">Poulie</option>
+                        <option value="smith">Smith Machine</option>
+                        <option value="bodyweight">Poids du Corps</option>
+                        <option value="other">Autre</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('custom-exercise-modal')">Annuler</button>
+                <button class="btn btn-primary" onclick="saveCustomExercise()">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Connexion</div>
+            </div>
+            <div class="modal-body">
+                <div id="auth-tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" id="auth-tab-login" onclick="switchAuthTab('login')" style="flex: 1;">Connexion</button>
+                    <button class="btn btn-secondary" id="auth-tab-signup" onclick="switchAuthTab('signup')" style="flex: 1;">Inscription</button>
+                </div>
+
+                <div id="auth-form-login">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="login-email" placeholder="votre@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mot de passe</label>
+                        <input type="password" class="form-input" id="login-password" placeholder="••••••••">
+                    </div>
+                    <button class="btn btn-primary" onclick="handleLogin()" style="width: 100%; margin-top: 10px;">
+                        Se connecter
+                    </button>
+                </div>
+
+                <div id="auth-form-signup" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="signup-email" placeholder="votre@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mot de passe</label>
+                        <input type="password" class="form-input" id="signup-password" placeholder="Minimum 6 caractères">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirmer le mot de passe</label>
+                        <input type="password" class="form-input" id="signup-password-confirm" placeholder="••••••••">
+                    </div>
+                    <button class="btn btn-primary" onclick="handleSignup()" style="width: 100%; margin-top: 10px;">
+                        Créer un compte
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px;">ou continuer avec</p>
+                    <button class="btn btn-secondary" onclick="signInWithGoogle()" style="width: 100%;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right: 8px;"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                        Google
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color); text-align: center;">
+                    <button class="btn btn-sm btn-secondary" onclick="continueOffline()" style="font-size: 0.8rem;">
+                        Continuer sans compte (hors-ligne)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data/foods.js"></script>
+    <script src="js/data/exercises.js"></script>
+    <script src="js/data/programs.js"></script>
+    <script src="js/modules/state.js"></script>
+    <script src="js/modules/supabase.js"></script>
+    <script src="js/modules/profile.js"></script>
+    <script src="js/modules/nutrition.js"></script>
+    <script src="js/modules/training.js"></script>
+    <script src="js/modules/progress.js"></script>
+    <script src="js/modules/timer.js"></script>
+    <script src="js/modules/ui.js"></script>
+    <script src="js/modules/goals.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
