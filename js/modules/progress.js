@@ -2,6 +2,234 @@
 
 let progressChart = null;
 
+// ==================== PERSONAL RECORDS (PRs) ====================
+
+/**
+ * Calcule tous les PRs pour un exercice donné
+ * @param {string} exerciseName - Nom de l'exercice
+ * @returns {object|null} - Les différents PRs ou null si pas de données
+ */
+function getExercisePRs(exerciseName) {
+    const logs = state.progressLog[exerciseName];
+    if (!logs || logs.length === 0) return null;
+
+    let maxWeight = 0;
+    let maxWeightDate = null;
+    let maxVolume = 0;
+    let maxVolumeDate = null;
+    let max1RM = 0;
+    let max1RMDate = null;
+    let maxRepsAtWeight = {}; // { weight: { reps, date } }
+
+    logs.forEach(log => {
+        // PR de poids max (peu importe les reps)
+        if (log.weight > maxWeight) {
+            maxWeight = log.weight;
+            maxWeightDate = log.date;
+        }
+
+        // PR de volume (poids x reps total)
+        const volume = log.weight * (log.achievedReps || 0);
+        if (volume > maxVolume) {
+            maxVolume = volume;
+            maxVolumeDate = log.date;
+        }
+
+        // Calculer le 1RM estimé (formule Epley)
+        // 1RM = weight × (1 + reps/30)
+        if (log.setsDetail && log.setsDetail.length > 0) {
+            log.setsDetail.forEach(set => {
+                if (set.weight > 0 && set.reps > 0 && set.reps <= 12) {
+                    const estimated1RM = set.weight * (1 + set.reps / 30);
+                    if (estimated1RM > max1RM) {
+                        max1RM = estimated1RM;
+                        max1RMDate = log.date;
+                    }
+                }
+
+                // Tracker les max reps pour chaque poids
+                const weightKey = set.weight.toString();
+                if (!maxRepsAtWeight[weightKey] || set.reps > maxRepsAtWeight[weightKey].reps) {
+                    maxRepsAtWeight[weightKey] = { reps: set.reps, date: log.date };
+                }
+            });
+        } else {
+            // Fallback si pas de setsDetail
+            const avgRepsPerSet = log.sets > 0 ? (log.achievedReps || 0) / log.sets : 0;
+            if (log.weight > 0 && avgRepsPerSet > 0 && avgRepsPerSet <= 12) {
+                const estimated1RM = log.weight * (1 + avgRepsPerSet / 30);
+                if (estimated1RM > max1RM) {
+                    max1RM = estimated1RM;
+                    max1RMDate = log.date;
+                }
+            }
+        }
+    });
+
+    return {
+        maxWeight: { value: maxWeight, date: maxWeightDate },
+        maxVolume: { value: Math.round(maxVolume), date: maxVolumeDate },
+        estimated1RM: { value: Math.round(max1RM * 10) / 10, date: max1RMDate },
+        maxRepsAtWeight
+    };
+}
+
+/**
+ * Récupère tous les PRs de tous les exercices
+ * @returns {object} - { exerciseName: PRs }
+ */
+function getAllPRs() {
+    const allPRs = {};
+
+    Object.keys(state.progressLog).forEach(exerciseName => {
+        const prs = getExercisePRs(exerciseName);
+        if (prs && prs.maxWeight.value > 0) {
+            allPRs[exerciseName] = prs;
+        }
+    });
+
+    return allPRs;
+}
+
+/**
+ * Vérifie si une performance est un nouveau PR
+ * @param {string} exerciseName - Nom de l'exercice
+ * @param {number} weight - Poids utilisé
+ * @param {number} reps - Reps réalisées
+ * @returns {object} - { isNewPR: boolean, type: string[], message: string }
+ */
+function checkForNewPR(exerciseName, weight, reps) {
+    const currentPRs = getExercisePRs(exerciseName);
+    const newPRs = [];
+
+    if (!currentPRs) {
+        // Premier log pour cet exercice = automatiquement un PR
+        return {
+            isNewPR: true,
+            types: ['first'],
+            message: `Premier record pour ${exerciseName} ! 🎉`
+        };
+    }
+
+    // Check PR de poids
+    if (weight > currentPRs.maxWeight.value) {
+        newPRs.push('weight');
+    }
+
+    // Check PR de reps à ce poids
+    const weightKey = weight.toString();
+    if (currentPRs.maxRepsAtWeight[weightKey]) {
+        if (reps > currentPRs.maxRepsAtWeight[weightKey].reps) {
+            newPRs.push('reps');
+        }
+    } else if (reps > 0) {
+        // Nouveau poids avec des reps = PR pour ce poids
+        newPRs.push('reps');
+    }
+
+    // Check PR de 1RM estimé
+    if (weight > 0 && reps > 0 && reps <= 12) {
+        const new1RM = weight * (1 + reps / 30);
+        if (new1RM > currentPRs.estimated1RM.value) {
+            newPRs.push('1rm');
+        }
+    }
+
+    if (newPRs.length > 0) {
+        let message = '';
+        if (newPRs.includes('weight')) {
+            message = `🏆 NOUVEAU PR DE POIDS ! ${weight}kg`;
+        } else if (newPRs.includes('1rm')) {
+            const new1RM = Math.round(weight * (1 + reps / 30) * 10) / 10;
+            message = `🏆 NOUVEAU 1RM ESTIMÉ ! ${new1RM}kg`;
+        } else if (newPRs.includes('reps')) {
+            message = `🏆 PR de reps à ${weight}kg : ${reps} reps !`;
+        }
+
+        return {
+            isNewPR: true,
+            types: newPRs,
+            message
+        };
+    }
+
+    return { isNewPR: false, types: [], message: '' };
+}
+
+/**
+ * Affiche la section des PRs dans l'interface
+ */
+function renderPRsSection() {
+    const container = document.getElementById('prs-container');
+    if (!container) return;
+
+    const allPRs = getAllPRs();
+    const exerciseNames = Object.keys(allPRs);
+
+    if (exerciseNames.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="padding: 30px;">
+                <div class="empty-state-icon">🏆</div>
+                <div class="empty-state-title">Pas encore de records</div>
+                <p>Loguez vos séances pour voir vos PRs apparaître ici</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Trier par 1RM estimé (les plus impressionnants d'abord)
+    const sortedExercises = exerciseNames.sort((a, b) => {
+        return (allPRs[b].estimated1RM.value || 0) - (allPRs[a].estimated1RM.value || 0);
+    });
+
+    let html = '<div class="prs-grid">';
+
+    sortedExercises.forEach(exerciseName => {
+        const prs = allPRs[exerciseName];
+        const maxWeightDate = prs.maxWeight.date ? new Date(prs.maxWeight.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '-';
+
+        html += `
+            <div class="pr-card">
+                <div class="pr-card-header">
+                    <span class="pr-exercise-name">${exerciseName}</span>
+                </div>
+                <div class="pr-card-body">
+                    <div class="pr-stat">
+                        <div class="pr-stat-value">${prs.maxWeight.value}<span class="pr-stat-unit">kg</span></div>
+                        <div class="pr-stat-label">Max Poids</div>
+                        <div class="pr-stat-date">${maxWeightDate}</div>
+                    </div>
+                    <div class="pr-stat">
+                        <div class="pr-stat-value">${prs.estimated1RM.value}<span class="pr-stat-unit">kg</span></div>
+                        <div class="pr-stat-label">1RM Estimé</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/**
+ * Affiche le PR actuel dans la card d'exercice pendant la séance
+ * @param {string} exerciseName - Nom de l'exercice
+ * @returns {string} - HTML du badge PR
+ */
+function getPRBadgeHTML(exerciseName) {
+    const prs = getExercisePRs(exerciseName);
+    if (!prs || prs.maxWeight.value === 0) {
+        return '<span class="pr-badge pr-badge-empty">Pas de PR</span>';
+    }
+
+    return `
+        <span class="pr-badge" title="1RM estimé: ${prs.estimated1RM.value}kg">
+            🏆 PR: ${prs.maxWeight.value}kg
+        </span>
+    `;
+}
+
 function populateProgressExerciseSelect() {
     const select = document.getElementById('progress-exercise');
     const exercises = Object.keys(state.progressLog).sort();

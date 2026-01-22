@@ -18,13 +18,18 @@ const foodCategories = {
     'other': { name: 'Autre', icon: '📦' }
 };
 
-// Afficher la liste des aliments avec checkboxes et badges
+// Afficher la liste des aliments avec checkboxes et badges (accordéon par catégorie)
 function renderFoodsList() {
     const container = document.getElementById('foods-list');
     const searchTerm = document.getElementById('food-search')?.value?.toLowerCase() || '';
     
     // Initialiser la sélection par défaut si première fois
     initDefaultFoodSelection();
+    
+    // Initialiser l'état des accordéons si nécessaire
+    if (!state.foodAccordionState) {
+        state.foodAccordionState = {};
+    }
     
     const filteredFoods = state.foods.filter(food => 
         food.name.toLowerCase().includes(searchTerm)
@@ -34,43 +39,57 @@ function renderFoodsList() {
     Object.entries(foodCategories).forEach(([catId, cat]) => {
         const catFoods = filteredFoods.filter(f => f.category === catId);
         if (catFoods.length === 0) return;
+        
+        // Compter les aliments sélectionnés dans cette catégorie
+        const selectedInCat = catFoods.filter(f => selectedFoodsForMenu.has(f.id)).length;
+        
+        // État de l'accordéon (ouvert par défaut si recherche active ou si c'est la première catégorie)
+        const isOpen = searchTerm.length > 0 || state.foodAccordionState[catId] === true;
 
         html += `
-            <div style="margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4 style="color: var(--text-secondary);">${cat.icon} ${cat.name}</h4>
-                    <button class="btn btn-sm btn-secondary" onclick="selectAllCategory('${catId}')" style="padding: 4px 10px; font-size: 0.75rem;">
-                        Tout sélectionner
+            <div class="food-category-accordion" data-category="${catId}">
+                <div class="food-category-header" onclick="toggleFoodCategory('${catId}')">
+                    <div class="food-category-header-left">
+                        <span class="food-category-toggle">${isOpen ? '▼' : '▶'}</span>
+                        <span class="food-category-icon">${cat.icon}</span>
+                        <span class="food-category-name">${cat.name}</span>
+                        <span class="food-category-count">${catFoods.length} aliments</span>
+                        ${selectedInCat > 0 ? `<span class="food-category-selected">${selectedInCat} sélectionné${selectedInCat > 1 ? 's' : ''}</span>` : ''}
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); selectAllCategory('${catId}')" style="padding: 4px 10px; font-size: 0.75rem;">
+                        ${catFoods.every(f => selectedFoodsForMenu.has(f.id)) ? 'Désélectionner' : 'Tout'}
                     </button>
                 </div>
-                ${catFoods.map(food => {
-                    const isSelected = selectedFoodsForMenu.has(food.id);
-                    const mealBadges = getMealBadges(food);
-                    return `
-                        <div class="food-select-item ${isSelected ? 'selected' : ''}" onclick="toggleFoodSelection('${food.id}')">
-                            <div class="food-select-checkbox">
-                                <div class="checkbox ${isSelected ? 'checked' : ''}">
-                                    ${isSelected ? '✓' : ''}
+                <div class="food-category-content" style="display: ${isOpen ? 'block' : 'none'};">
+                    ${catFoods.map(food => {
+                        const isSelected = selectedFoodsForMenu.has(food.id);
+                        const mealBadges = getMealBadges(food);
+                        return `
+                            <div class="food-select-item ${isSelected ? 'selected' : ''}" onclick="toggleFoodSelection('${food.id}')">
+                                <div class="food-select-checkbox">
+                                    <div class="checkbox ${isSelected ? 'checked' : ''}">
+                                        ${isSelected ? '✓' : ''}
+                                    </div>
                                 </div>
+                                <div class="food-select-info">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                        <strong>${food.name}</strong>
+                                        ${mealBadges}
+                                    </div>
+                                    <div class="food-search-macros">
+                                        <span>🔥 ${food.calories} kcal</span>
+                                        <span>P: ${food.protein}g</span>
+                                        <span>G: ${food.carbs}g</span>
+                                        <span>L: ${food.fat}g</span>
+                                    </div>
+                                </div>
+                                ${!defaultFoods.find(df => df.id === food.id) ? `
+                                    <button class="food-btn" onclick="event.stopPropagation(); deleteCustomFood('${food.id}')" title="Supprimer">🗑️</button>
+                                ` : ''}
                             </div>
-                            <div class="food-select-info">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                    <strong>${food.name}</strong>
-                                    ${mealBadges}
-                                </div>
-                                <div class="food-search-macros">
-                                    <span>🔥 ${food.calories} kcal</span>
-                                    <span>P: ${food.protein}g</span>
-                                    <span>G: ${food.carbs}g</span>
-                                    <span>L: ${food.fat}g</span>
-                                </div>
-                            </div>
-                            ${!defaultFoods.find(df => df.id === food.id) ? `
-                                <button class="food-btn" onclick="event.stopPropagation(); deleteCustomFood('${food.id}')" title="Supprimer">🗑️</button>
-                            ` : ''}
-                        </div>
-                    `;
-                }).join('')}
+                        `;
+                    }).join('')}
+                </div>
             </div>
         `;
     });
@@ -79,6 +98,31 @@ function renderFoodsList() {
     
     // Mettre à jour le bouton de génération avec validation
     updateGenerateButtonWithValidation();
+}
+
+// Toggle accordéon de catégorie d'aliments
+function toggleFoodCategory(categoryId) {
+    if (!state.foodAccordionState) {
+        state.foodAccordionState = {};
+    }
+    
+    // Toggle l'état
+    state.foodAccordionState[categoryId] = !state.foodAccordionState[categoryId];
+    
+    // Mettre à jour l'UI directement sans re-render complet
+    const accordion = document.querySelector(`.food-category-accordion[data-category="${categoryId}"]`);
+    if (accordion) {
+        const content = accordion.querySelector('.food-category-content');
+        const toggle = accordion.querySelector('.food-category-toggle');
+        
+        if (state.foodAccordionState[categoryId]) {
+            content.style.display = 'block';
+            toggle.textContent = '▼';
+        } else {
+            content.style.display = 'none';
+            toggle.textContent = '▶';
+        }
+    }
 }
 
 function getMealBadges(food) {
@@ -693,7 +737,7 @@ function initDefaultFoodSelection() {
     }
 }
 
-// Affichage du menu quotidien
+// Affichage du menu quotidien avec accordéons
 function renderDailyMenu() {
     const container = document.getElementById('daily-menu');
     const meals = {
@@ -722,12 +766,19 @@ function renderDailyMenu() {
         const mealCalories = mealFoods.reduce((sum, item) => 
             sum + (item.food.calories * item.quantity / 100), 0
         );
+        const foodCount = mealFoods.length;
 
         html += `
-            <div class="meal-card">
-                <div class="meal-header">
-                    <span class="meal-name">${meal.icon} ${meal.name}</span>
-                    <span class="meal-calories">${Math.round(mealCalories)} kcal</span>
+            <div class="meal-card" data-meal="${mealId}">
+                <div class="meal-header" onclick="toggleMealAccordion('${mealId}')">
+                    <div class="meal-header-left">
+                        <span class="meal-toggle">▶</span>
+                        <span class="meal-name">${meal.icon} ${meal.name}</span>
+                    </div>
+                    <div class="meal-header-right">
+                        <span class="meal-count">${foodCount} aliment${foodCount > 1 ? 's' : ''}</span>
+                        <span class="meal-calories">${Math.round(mealCalories)} kcal</span>
+                    </div>
                 </div>
                 <div class="meal-foods">
                     ${mealFoods.length === 0 ? '<p style="color: var(--text-muted); font-size: 0.9rem;">Aucun aliment</p>' : ''}
@@ -775,6 +826,14 @@ function renderDailyMenu() {
     `;
 
     container.innerHTML = html;
+}
+
+// Toggle accordéon repas
+function toggleMealAccordion(mealId) {
+    const card = document.querySelector(`.meal-card[data-meal="${mealId}"]`);
+    if (card) {
+        card.classList.toggle('open');
+    }
 }
 
 // Ajustement des quantités avec redistribution intelligente

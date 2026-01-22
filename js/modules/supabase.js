@@ -334,6 +334,7 @@ function refreshAllUI() {
     renderProgramTypes();
     renderFoodsList();
     renderDailyMenu();
+    renderFavoritesList();
     updateDashboard();
     updateWeeklySchedule();
     populateSessionDaySelect();

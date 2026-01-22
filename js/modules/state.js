@@ -12,10 +12,14 @@ let state = {
         dinner: []
     },
     foodJournal: {}, // Journal alimentaire par date { "2025-01-21": [{ foodId, quantity }] }
+    favoriteMeals: [], // Repas favoris [{ id, name, icon, mealType, items: [{ foodId, quantity }], createdAt }]
     selectedProgram: null,
     trainingDays: 4,
     progressLog: {},
-    sessionHistory: []
+    sessionHistory: [],
+    progressionSuggestions: {}, // Suggestions de progression IA { exerciseName: suggestedWeight }
+    trainingModes: {}, // Configuration des modes d'entraînement (supersets, circuits)
+    foodAccordionState: {} // État des accordéons dans la base d'aliments
 };
 
 // Charger l'état depuis localStorage
@@ -26,15 +30,25 @@ function loadState() {
             const parsed = JSON.parse(saved);
             state = { ...state, ...parsed };
             // S'assurer que les aliments par défaut sont inclus
-            const customFoods = state.foods.filter(f => !defaultFoods.find(df => df.id === f.id));
+            const customFoods = (state.foods || []).filter(f => !defaultFoods.find(df => df.id === f.id));
             state.foods = [...defaultFoods, ...customFoods];
             // S'assurer que les exercices par défaut sont inclus
             const customExercises = (state.exercises || []).filter(e => !defaultExercises.find(de => de.id === e.id));
             state.exercises = [...defaultExercises, ...customExercises];
-            // Initialiser exerciseSwaps si non présent
+            // Initialiser les champs manquants
             if (!state.exerciseSwaps) state.exerciseSwaps = {};
+            if (!state.favoriteMeals) state.favoriteMeals = [];
+            if (!state.progressionSuggestions) state.progressionSuggestions = {};
+            if (!state.trainingModes) state.trainingModes = {};
+            if (!state.foodAccordionState) state.foodAccordionState = {};
+            if (!state.progressLog) state.progressLog = {};
+            if (!state.sessionHistory) state.sessionHistory = [];
+            if (!state.foodJournal) state.foodJournal = {};
+            if (!state.dailyMenu) state.dailyMenu = { breakfast: [], lunch: [], snack: [], dinner: [] };
         } catch (e) {
             console.error('Erreur lors du chargement des données:', e);
+            // Réinitialiser le state en cas d'erreur de parsing
+            localStorage.removeItem('fittrack-state');
         }
     }
 }

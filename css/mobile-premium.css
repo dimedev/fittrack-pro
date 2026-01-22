@@ -1,0 +1,549 @@
+/* ==================== MOBILE-FIRST PREMIUM OVERHAUL ==================== */
+/* FitTrack Pro - Pour une app 90% mobile */
+
+/* ===== iOS SAFE AREAS ===== */
+@supports (padding-top: env(safe-area-inset-top)) {
+    .nav {
+        padding-top: env(safe-area-inset-top);
+        height: calc(64px + env(safe-area-inset-top));
+    }
+    
+    .mobile-nav {
+        padding-bottom: env(safe-area-inset-bottom);
+        height: calc(70px + env(safe-area-inset-bottom));
+    }
+    
+    .main {
+        padding-top: calc(64px + env(safe-area-inset-top));
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+}
+
+/* ===== MOBILE STYLES (< 768px) ===== */
+@media (max-width: 768px) {
+    
+    /* --- Touch Optimizations --- */
+    .btn, .tab, .nav-tab, .mobile-nav-item, .card, 
+    .exercise-card, .food-select-item, .program-card {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* --- Touch Target Sizes (48px minimum) --- */
+    .btn {
+        min-height: 48px;
+        padding: 14px 20px;
+        font-size: 1rem;
+    }
+    
+    .btn-sm {
+        min-height: 40px;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .btn-icon {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .form-input,
+    .form-select {
+        min-height: 48px;
+        padding: 14px 16px;
+        font-size: 16px !important; /* Prevents iOS zoom */
+    }
+    
+    .set-check {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* --- Navigation --- */
+    .nav-tabs, .nav-actions {
+        display: none;
+    }
+    
+    .nav {
+        justify-content: center;
+        height: 56px;
+    }
+    
+    .logo {
+        font-size: 1.1rem;
+    }
+    
+    /* --- Enhanced Mobile Nav --- */
+    .mobile-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 70px;
+        background: rgba(10, 10, 10, 0.98);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid var(--border-color);
+        z-index: 100;
+        display: block;
+    }
+    
+    .mobile-nav-items {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        height: 100%;
+        padding: 0 8px;
+    }
+    
+    .mobile-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 8px 4px;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: relative;
+    }
+    
+    .mobile-nav-item svg {
+        width: 24px;
+        height: 24px;
+        stroke-width: 1.5;
+        transition: all 0.15s ease;
+    }
+    
+    .mobile-nav-item.active {
+        color: var(--text-primary);
+    }
+    
+    .mobile-nav-item.active svg {
+        color: var(--accent-brand);
+        transform: scale(1.1);
+    }
+    
+    .mobile-nav-item.active::after {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        width: 4px;
+        height: 4px;
+        background: var(--accent-brand);
+        border-radius: 50%;
+    }
+    
+    /* --- Container & Spacing --- */
+    .container {
+        padding: 16px;
+        padding-bottom: 100px;
+    }
+    
+    .card {
+        padding: 16px;
+        border-radius: 14px;
+    }
+    
+    .card-header {
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .card-title {
+        font-size: 0.9rem;
+    }
+    
+    .card-title .icon {
+        font-size: 1rem;
+    }
+    
+    /* No hover on touch devices */
+    .card:hover,
+    .stat-card:hover,
+    .program-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Active state instead */
+    .card:active,
+    .stat-card:active,
+    .program-card:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+        transition: transform 0.1s ease;
+    }
+    
+    /* --- Stats Grid --- */
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .grid-2 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .stat-card {
+        padding: 14px 16px;
+        border-radius: 14px;
+    }
+    
+    .stat-label {
+        font-size: 0.6rem;
+        margin-bottom: 4px;
+        letter-spacing: 0.8px;
+    }
+    
+    .stat-value {
+        font-size: 1.6rem;
+    }
+    
+    .stat-unit {
+        font-size: 0.65rem;
+    }
+    
+    /* --- Scrollable Tabs --- */
+    .tabs {
+        width: 100%;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 4px;
+        gap: 4px;
+        margin-bottom: 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .tabs::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .tab {
+        flex-shrink: 0;
+        padding: 12px 16px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+    
+    /* --- Exercise Cards --- */
+    .exercise-card {
+        border-radius: 14px;
+        margin-bottom: 12px;
+    }
+    
+    .exercise-card-header {
+        padding: 16px;
+        min-height: 60px;
+    }
+    
+    .exercise-name {
+        font-size: 0.95rem;
+    }
+    
+    .exercise-meta {
+        font-size: 0.7rem;
+    }
+    
+    .exercise-card-body {
+        padding: 0 16px 16px;
+    }
+    
+    .set-row {
+        padding: 10px 0;
+        gap: 8px;
+    }
+    
+    .set-number {
+        min-width: 28px;
+        font-size: 0.75rem;
+    }
+    
+    .set-input {
+        min-height: 44px;
+        font-size: 16px;
+        padding: 10px;
+        text-align: center;
+        border-radius: 10px;
+    }
+    
+    /* --- Food Items --- */
+    .food-select-item,
+    .food-search-item {
+        padding: 14px 16px;
+        min-height: 60px;
+        border-radius: 10px;
+    }
+    
+    .food-select-item:active,
+    .food-search-item:active {
+        background: var(--bg-hover);
+        transform: none;
+    }
+    
+    .food-item-name {
+        font-size: 0.9rem;
+    }
+    
+    .food-item-macros {
+        font-size: 0.7rem;
+    }
+    
+    /* --- Macro Bars --- */
+    .macro-bar {
+        margin-bottom: 12px;
+    }
+    
+    .macro-bar-header {
+        margin-bottom: 6px;
+    }
+    
+    .macro-bar-label,
+    .macro-bar-value {
+        font-size: 0.75rem;
+    }
+    
+    .macro-bar-track {
+        height: 8px;
+        border-radius: 4px;
+    }
+    
+    /* --- Timer --- */
+    .timer-display {
+        font-size: 4.5rem;
+        font-weight: 800;
+        letter-spacing: -3px;
+    }
+    
+    .timer-controls {
+        gap: 12px;
+    }
+    
+    .timer-controls .btn {
+        flex: 1;
+        min-height: 56px;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .timer-preset {
+        gap: 8px;
+        margin-top: 20px;
+    }
+    
+    .timer-preset-btn {
+        min-height: 48px;
+        font-size: 0.95rem;
+        flex: 1;
+        border-radius: 12px;
+    }
+    
+    /* --- Charts --- */
+    .chart-container {
+        height: 180px !important;
+        margin: 0 -8px;
+    }
+    
+    /* --- Empty States --- */
+    .empty-state {
+        padding: 40px 20px;
+    }
+    
+    .empty-state-icon {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
+    }
+    
+    .empty-state-title {
+        font-size: 1rem;
+        margin-bottom: 8px;
+    }
+    
+    .empty-state p {
+        font-size: 0.8rem;
+    }
+    
+    /* --- Toasts --- */
+    #toast-container {
+        bottom: 90px;
+        left: 16px;
+        right: 16px;
+        top: auto;
+    }
+    
+    .toast {
+        width: 100%;
+        max-width: none;
+        border-radius: 14px;
+        padding: 14px 16px;
+        font-size: 0.9rem;
+    }
+    
+    /* --- Profile Summary --- */
+    #profile-summary > div {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        font-size: 0.8rem;
+    }
+    
+    /* --- Program Cards --- */
+    .program-card {
+        padding: 16px;
+        border-radius: 14px;
+    }
+    
+    .program-icon {
+        font-size: 1.5rem;
+    }
+    
+    .program-name {
+        font-size: 0.9rem;
+    }
+    
+    .program-description {
+        font-size: 0.7rem;
+    }
+    
+    /* --- AI Options Grid --- */
+    .ai-options-grid.cols-4,
+    .ai-options-grid.cols-5 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .ai-option {
+        padding: 12px 8px;
+    }
+    
+    .ai-option-icon {
+        font-size: 1.3rem;
+    }
+    
+    .ai-option-name {
+        font-size: 0.8rem;
+    }
+    
+    .ai-option-desc {
+        font-size: 0.65rem;
+    }
+    
+    /* --- Journal --- */
+    .journal-summary {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .journal-summary-item {
+        padding: 12px;
+    }
+    
+    .journal-summary-value {
+        font-size: 1.3rem;
+    }
+    
+    .journal-summary-label {
+        font-size: 0.65rem;
+    }
+    
+    /* --- FAB Button --- */
+    .fab {
+        bottom: 85px;
+        right: 16px;
+        width: 52px;
+        height: 52px;
+    }
+}
+
+/* ===== LANDSCAPE MODE ===== */
+@media (max-width: 768px) and (orientation: landscape) {
+    .mobile-nav {
+        height: 50px;
+    }
+    
+    .mobile-nav-item span {
+        display: none;
+    }
+    
+    .mobile-nav-item svg {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .timer-display {
+        font-size: 3rem;
+    }
+    
+    .container {
+        padding-bottom: 70px;
+    }
+}
+
+/* ===== SMALL PHONES (< 375px) ===== */
+@media (max-width: 375px) {
+    .stat-value {
+        font-size: 1.4rem;
+    }
+    
+    .timer-display {
+        font-size: 3.5rem;
+    }
+    
+    .tab {
+        padding: 10px 12px;
+        font-size: 0.75rem;
+    }
+    
+    .btn {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ===== TRUE BLACK FOR OLED ===== */
+@media (prefers-color-scheme: dark) {
+    body, .card, .modal, .mobile-nav, .nav {
+        background-color: #000000;
+    }
+}
+
+/* ===== ACCESSIBILITY ===== */
+@media (max-width: 768px) {
+    :focus-visible {
+        outline: 2px solid var(--accent-brand);
+        outline-offset: 2px;
+    }
+    
+    .btn:focus-visible,
+    .form-input:focus-visible,
+    .form-select:focus-visible {
+        box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.3);
+    }
+}

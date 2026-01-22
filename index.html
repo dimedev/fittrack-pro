@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style-nike-shadcn.css">
+    <link rel="stylesheet" href="css/mobile-premium.css">
 
 
 
@@ -167,6 +168,7 @@
             <section id="nutrition" class="section">
                 <div class="tabs">
                     <button class="tab active" data-tab="menu">Menu du Jour</button>
+                    <button class="tab" data-tab="favoris">⭐ Favoris</button>
                     <button class="tab" data-tab="journal">Journal</button>
                     <button class="tab" data-tab="aliments">Base d'Aliments</button>
                 </div>
@@ -179,7 +181,7 @@
                                 Menu du Jour
                             </div>
                             <div style="display: flex; gap: 10px;">
-                                <button class="btn btn-sm btn-primary" onclick="document.querySelector('[data-tab=\'foods\']').click()">📋 Choisir mes aliments</button>
+                                <button class="btn btn-sm btn-secondary" onclick="openSaveMealAsFavoriteModal()" title="Sauvegarder ce menu">⭐ Sauvegarder</button>
                                 <button class="btn btn-sm btn-primary" onclick="openAddFoodModal()">+ Ajouter</button>
                             </div>
                         </div>
@@ -188,6 +190,25 @@
                                 <div class="empty-state-icon">🥗</div>
                                 <div class="empty-state-title">Aucun repas planifié</div>
                                 <p>Générez un menu ou ajoutez des aliments manuellement</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-favoris" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">⭐</span>
+                                Mes Repas Favoris
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="openCreateFavoriteModal()">+ Créer un favori</button>
+                        </div>
+                        <div id="favorites-list">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">⭐</div>
+                                <div class="empty-state-title">Aucun favori</div>
+                                <p>Sauvegardez vos combinaisons d'aliments préférées pour les réutiliser rapidement</p>
                             </div>
                         </div>
                     </div>
@@ -265,7 +286,12 @@
                                 <span class="icon">🥑</span>
                                 Base d'Aliments
                             </div>
-                            <button class="btn btn-sm btn-primary" onclick="openCustomFoodModal()">+ Ajouter Aliment</button>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-sm btn-secondary" onclick="openOFFSearchModal()" title="Rechercher dans Open Food Facts">
+                                    🔍 OFF
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="openCustomFoodModal()">+ Ajouter</button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <input type="text" class="form-input" id="food-search" placeholder="Rechercher un aliment..." oninput="filterFoods()">
@@ -295,6 +321,9 @@
                                 <span class="icon">📋</span>
                                 Type de Programme
                             </div>
+                            <button class="btn btn-sm btn-primary" onclick="applyAIProgram()" title="Générer un programme personnalisé">
+                                🤖 Programme IA
+                            </button>
                         </div>
                         <div class="grid grid-3" id="program-types"></div>
                     </div>
@@ -326,7 +355,12 @@
                                 <span class="icon">💪</span>
                                 Séance du Jour
                             </div>
-                            <select class="form-select" id="session-day-select" style="width: auto;" onchange="loadSessionDay()"></select>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="btn btn-sm btn-secondary" onclick="openTrainingModeModal()" title="Supersets & Circuits">
+                                    ⚡ Mode
+                                </button>
+                                <select class="form-select" id="session-day-select" style="width: auto;" onchange="loadSessionDay()"></select>
+                            </div>
                         </div>
                         <div id="session-exercises">
                             <div class="empty-state">
@@ -351,6 +385,29 @@
                                 Timer de Repos
                             </div>
                         </div>
+
+                        <!-- Toggle Auto-Timer -->
+                        <div class="auto-timer-toggle active" id="auto-timer-toggle" onclick="toggleAutoTimer()">
+                            <div class="auto-timer-toggle-info">
+                                <span class="auto-timer-toggle-title">⚡ Timer Automatique</span>
+                                <span class="auto-timer-toggle-desc">Lance le timer quand vous validez une série</span>
+                            </div>
+                            <div class="auto-timer-toggle-switch">
+                                <span class="toggle-status">ON</span>
+                            </div>
+                        </div>
+
+                        <!-- Temps recommandés -->
+                        <div style="margin-bottom: 20px; padding: 12px; background: var(--bg-tertiary); border-radius: var(--radius-md); font-size: 0.85rem;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">💡 Temps recommandés :</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: var(--text-secondary);">
+                                <span>🏋️ Force (1-5 reps) : <strong>3 min</strong></span>
+                                <span>💪 Hypertrophie (6-10) : <strong>2 min</strong></span>
+                                <span>🔥 Isolation (12+) : <strong>1:30</strong></span>
+                                <span>⚡ Circuits : <strong>1 min</strong></span>
+                            </div>
+                        </div>
+
                         <div class="timer-display" id="timer-display">00:00</div>
                         <div class="timer-controls">
                             <button class="btn btn-secondary" onclick="resetTimer()">Reset</button>
@@ -368,33 +425,124 @@
 
             <!-- Progress Section -->
             <section id="progress" class="section">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="icon">📊</span>
-                            Évolution des Performances
-                        </div>
-                        <select class="form-select" id="progress-exercise" style="width: auto;" onchange="updateProgressChart()">
-                            <option value="">Sélectionner un exercice</option>
-                        </select>
+                <div class="tabs">
+                    <button class="tab active" data-tab="stats" onclick="switchProgressTab('stats')">📊 Statistiques</button>
+                    <button class="tab" data-tab="photos" onclick="switchProgressTab('photos')">📸 Photos</button>
+                    <button class="tab" data-tab="prs" onclick="switchProgressTab('prs')">🏆 Records</button>
+                    <button class="tab" data-tab="history" onclick="switchProgressTab('history')">📝 Historique</button>
+                </div>
+
+                <!-- Tab Stats -->
+                <div id="tab-stats" class="tab-content">
+                    <!-- Sélecteur de période -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                        <button class="stats-period-btn active" data-period="7" onclick="setStatsPeriod(7)">7 jours</button>
+                        <button class="stats-period-btn" data-period="30" onclick="setStatsPeriod(30)">30 jours</button>
+                        <button class="stats-period-btn" data-period="90" onclick="setStatsPeriod(90)">90 jours</button>
                     </div>
-                    <div class="chart-container">
-                        <canvas id="progress-chart"></canvas>
+
+                    <!-- Résumé des stats -->
+                    <div id="stats-summary"></div>
+
+                    <!-- Graphiques -->
+                    <div class="grid grid-2" style="margin-top: 20px;">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">⚖️ Évolution du Poids</div>
+                            </div>
+                            <div class="chart-container" style="height: 250px;">
+                                <canvas id="weight-trend-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">🔥 Calories Journalières</div>
+                            </div>
+                            <div class="chart-container" style="height: 250px;">
+                                <canvas id="calories-trend-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">🥧 Répartition Moyenne des Macros</div>
+                        </div>
+                        <div class="chart-container" style="height: 250px; max-width: 300px; margin: 0 auto;">
+                            <canvas id="macros-avg-chart"></canvas>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card" style="margin-top: 20px;">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="icon">📝</span>
-                            Historique des Séances
+                <!-- Tab Photos -->
+                <div id="tab-photos" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📸</span>
+                                Photos de Progression
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="openAddPhotoModal()">+ Ajouter</button>
+                        </div>
+                        <div id="photos-gallery">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📸</div>
+                                <div class="empty-state-title">Aucune photo</div>
+                                <p>Prenez votre première photo de progression !</p>
+                            </div>
                         </div>
                     </div>
-                    <div id="session-history">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">📅</div>
-                            <div class="empty-state-title">Aucune séance enregistrée</div>
-                            <p>Vos séances apparaîtront ici</p>
+                </div>
+
+                <!-- Tab PRs -->
+                <div id="tab-prs" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">🏆</span>
+                                Mes Records Personnels
+                            </div>
+                        </div>
+                        <div id="prs-container">
+                            <div class="empty-state" style="padding: 30px;">
+                                <div class="empty-state-icon">🏆</div>
+                                <div class="empty-state-title">Pas encore de records</div>
+                                <p>Loguez vos séances pour voir vos PRs apparaître ici</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📊</span>
+                                Évolution des Performances
+                            </div>
+                            <select class="form-select" id="progress-exercise" style="width: auto;" onchange="updateProgressChart()">
+                                <option value="">Sélectionner un exercice</option>
+                            </select>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="progress-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab History -->
+                <div id="tab-history" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📝</span>
+                                Historique des Séances
+                            </div>
+                        </div>
+                        <div id="session-history">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📅</div>
+                                <div class="empty-state-title">Aucune séance enregistrée</div>
+                                <p>Vos séances apparaîtront ici</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -619,6 +767,158 @@
 
     <input type="file" id="import-file" accept=".json" style="display: none;" onchange="handleImport(event)">
 
+    <!-- Save Meal as Favorite Modal -->
+    <div class="modal-overlay" id="save-favorite-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">⭐ Sauvegarder comme Favori</div>
+                <button class="modal-close" onclick="closeModal('save-favorite-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Quel repas sauvegarder ?</label>
+                    <select class="form-select" id="save-favorite-meal-type" onchange="previewFavoriteToSave()">
+                        <option value="breakfast">🌅 Petit-déjeuner</option>
+                        <option value="lunch">☀️ Déjeuner</option>
+                        <option value="snack">🍌 Collation</option>
+                        <option value="dinner">🌙 Dîner</option>
+                        <option value="all">📋 Menu complet du jour</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nom du favori</label>
+                    <input type="text" class="form-input" id="save-favorite-name" placeholder="Ex: Mon petit-déj classique">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Icône</label>
+                    <div id="favorite-icon-picker" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="icon-picker-btn selected" data-icon="🍳" onclick="selectFavoriteIcon('🍳')">🍳</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥗" onclick="selectFavoriteIcon('🥗')">🥗</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🍗" onclick="selectFavoriteIcon('🍗')">🍗</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥣" onclick="selectFavoriteIcon('🥣')">🥣</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥪" onclick="selectFavoriteIcon('🥪')">🥪</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🍜" onclick="selectFavoriteIcon('🍜')">🍜</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥩" onclick="selectFavoriteIcon('🥩')">🥩</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🐟" onclick="selectFavoriteIcon('🐟')">🐟</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥤" onclick="selectFavoriteIcon('🥤')">🥤</button>
+                        <button type="button" class="icon-picker-btn" data-icon="💪" onclick="selectFavoriteIcon('💪')">💪</button>
+                    </div>
+                </div>
+                <div id="save-favorite-preview" style="margin-top: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Aperçu du repas...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('save-favorite-modal')">Annuler</button>
+                <button class="btn btn-primary" onclick="saveMealAsFavorite()">⭐ Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Favorite Modal -->
+    <div class="modal-overlay" id="create-favorite-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-title">Créer un Repas Favori</div>
+                <button class="modal-close" onclick="closeModal('create-favorite-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Nom du favori</label>
+                        <input type="text" class="form-input" id="create-favorite-name" placeholder="Ex: Post-workout shake">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Type de repas</label>
+                        <select class="form-select" id="create-favorite-type">
+                            <option value="breakfast">🌅 Petit-déjeuner</option>
+                            <option value="lunch">☀️ Déjeuner</option>
+                            <option value="snack">🍌 Collation</option>
+                            <option value="dinner">🌙 Dîner</option>
+                            <option value="any">🍽️ Tous repas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Icône</label>
+                    <div id="create-favorite-icon-picker" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="icon-picker-btn selected" data-icon="🍳" onclick="selectCreateFavoriteIcon('🍳')">🍳</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥗" onclick="selectCreateFavoriteIcon('🥗')">🥗</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🍗" onclick="selectCreateFavoriteIcon('🍗')">🍗</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥣" onclick="selectCreateFavoriteIcon('🥣')">🥣</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥪" onclick="selectCreateFavoriteIcon('🥪')">🥪</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🍜" onclick="selectCreateFavoriteIcon('🍜')">🍜</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥩" onclick="selectCreateFavoriteIcon('🥩')">🥩</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🐟" onclick="selectCreateFavoriteIcon('🐟')">🐟</button>
+                        <button type="button" class="icon-picker-btn" data-icon="🥤" onclick="selectCreateFavoriteIcon('🥤')">🥤</button>
+                        <button type="button" class="icon-picker-btn" data-icon="💪" onclick="selectCreateFavoriteIcon('💪')">💪</button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                    <label class="form-label">Ajouter des aliments</label>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <input type="text" class="form-input" id="create-favorite-food-search" placeholder="🔍 Rechercher un aliment..." oninput="searchFoodsForFavorite()">
+                    </div>
+                    <div class="food-search-results" id="create-favorite-food-results" style="max-height: 150px;"></div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <label class="form-label">Aliments sélectionnés</label>
+                    <div id="create-favorite-items" style="min-height: 60px; background: var(--bg-tertiary); border-radius: 8px; padding: 10px;">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Aucun aliment ajouté</p>
+                    </div>
+                </div>
+
+                <div id="create-favorite-macros" style="margin-top: 15px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; display: none;">
+                    <div style="display: flex; justify-content: space-around; text-align: center; font-size: 0.85rem;">
+                        <div><strong id="create-fav-cals">0</strong> <span style="color: var(--text-muted);">kcal</span></div>
+                        <div><strong id="create-fav-prot">0</strong>g <span style="color: var(--text-muted);">prot</span></div>
+                        <div><strong id="create-fav-carbs">0</strong>g <span style="color: var(--text-muted);">gluc</span></div>
+                        <div><strong id="create-fav-fat">0</strong>g <span style="color: var(--text-muted);">lip</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('create-favorite-modal')">Annuler</button>
+                <button class="btn btn-primary" onclick="createFavoriteMeal()">Créer le favori</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apply Favorite Modal -->
+    <div class="modal-overlay" id="apply-favorite-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Appliquer le Favori</div>
+                <button class="modal-close" onclick="closeModal('apply-favorite-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="apply-favorite-info"></div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="form-label">Ajouter à quel repas ?</label>
+                    <select class="form-select" id="apply-favorite-target">
+                        <option value="breakfast">🌅 Petit-déjeuner</option>
+                        <option value="lunch">☀️ Déjeuner</option>
+                        <option value="snack">🍌 Collation</option>
+                        <option value="dinner">🌙 Dîner</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mode d'ajout</label>
+                    <select class="form-select" id="apply-favorite-mode">
+                        <option value="replace">Remplacer le repas existant</option>
+                        <option value="add">Ajouter aux aliments existants</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('apply-favorite-modal')">Annuler</button>
+                <button class="btn btn-primary" onclick="confirmApplyFavorite()">Appliquer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Swap Exercise Modal -->
     <div class="modal-overlay" id="swap-exercise-modal">
         <div class="modal" style="max-width: 600px;">
@@ -768,6 +1068,200 @@
         </div>
     </div>
 
+    <!-- Open Food Facts Search Modal -->
+    <div class="modal-overlay" id="off-search-modal">
+        <div class="modal" style="max-width: 550px;">
+            <div class="modal-header">
+                <div class="modal-title">🔍 Rechercher un Aliment</div>
+                <button class="modal-close" onclick="closeOFFSearchModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Barre de recherche -->
+                <div class="form-group">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" class="form-input" id="off-search-input"
+                               placeholder="Nom du produit ou code-barres..."
+                               oninput="searchOFFProducts()"
+                               style="flex: 1;">
+                        <button class="btn btn-secondary" onclick="startBarcodeScanner()" title="Scanner un code-barres">
+                            📷
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Zone vidéo pour le scanner -->
+                <div id="scanner-video-container" style="display: none; margin-bottom: 15px; border-radius: 12px; overflow: hidden; position: relative;">
+                    <video id="scanner-video" autoplay playsinline style="width: 100%; border-radius: 12px;"></video>
+                    <div class="scanner-overlay">
+                        <div class="scanner-target"></div>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="stopBarcodeScanner()" style="position: absolute; top: 10px; right: 10px;">
+                        ✕ Fermer
+                    </button>
+                </div>
+
+                <!-- Status -->
+                <p id="scanner-status" style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; margin-bottom: 15px;"></p>
+
+                <!-- Résultats de recherche -->
+                <div id="off-search-results" style="max-height: 300px; overflow-y: auto;">
+                    <div class="off-intro">
+                        <div class="off-intro-icon">🔍</div>
+                        <p>Recherchez un aliment par <strong>nom</strong> ou <strong>code-barres</strong></p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">
+                            Les données proviennent de la base Open Food Facts
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Section de confirmation -->
+                <div id="off-confirm-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                    <h4 style="margin-bottom: 15px;">Produit sélectionné</h4>
+                    <div id="off-product-details"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Photo Modal -->
+    <div class="modal-overlay" id="add-photo-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📸 Ajouter une Photo</div>
+                <button class="modal-close" onclick="closeModal('add-photo-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="file" id="photo-input" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
+
+                <div id="photo-preview-container" class="photo-upload-zone" ondragover="handlePhotoDragOver(event)" ondrop="handlePhotoDrop(event)">
+                    <div class="photo-upload-placeholder" onclick="document.getElementById('photo-input').click()">
+                        <div class="photo-upload-icon">📷</div>
+                        <p>Cliquez pour ajouter une photo</p>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">ou glissez-déposez</p>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="form-label">Pose</label>
+                    <div class="pose-selector">
+                        <button type="button" class="pose-btn active" data-pose="front" onclick="selectPose('front')">🧍 Face</button>
+                        <button type="button" class="pose-btn" data-pose="side" onclick="selectPose('side')">🧍‍♂️ Profil</button>
+                        <button type="button" class="pose-btn" data-pose="back" onclick="selectPose('back')">🔙 Dos</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-input" id="photo-date">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Poids (kg)</label>
+                        <input type="number" class="form-input" id="photo-weight" step="0.1" placeholder="75.5">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">% Masse grasse (optionnel)</label>
+                    <input type="number" class="form-input" id="photo-bodyfat" step="0.1" placeholder="15.0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes (optionnel)</label>
+                    <textarea class="form-input" id="photo-notes" rows="2" placeholder="Début de sèche, fin de prise de masse..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-photo-modal')">Annuler</button>
+                <button class="btn btn-primary" onclick="saveProgressPhoto()">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Viewer Modal -->
+    <div class="modal-overlay" id="photo-viewer-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-title">📸 Détails</div>
+                <button class="modal-close" onclick="closeModal('photo-viewer-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <img id="viewer-image" src="" alt="Photo" style="width: 100%; max-height: 400px; object-fit: contain; background: var(--bg-tertiary);">
+                <div style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span id="viewer-date" style="font-weight: 600; font-size: 1.1rem;"></span>
+                        <span id="viewer-pose" style="font-size: 0.9rem; color: var(--text-secondary);"></span>
+                    </div>
+                    <div class="photo-viewer-stats">
+                        <div class="photo-viewer-stat">
+                            <span class="photo-viewer-stat-value" id="viewer-weight">-</span>
+                            <span class="photo-viewer-stat-label">Poids</span>
+                        </div>
+                        <div class="photo-viewer-stat">
+                            <span class="photo-viewer-stat-value" id="viewer-bodyfat">-</span>
+                            <span class="photo-viewer-stat-label">% MG</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Notes:</p>
+                        <p id="viewer-notes" style="font-size: 0.9rem;">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="deleteCurrentPhoto()">🗑️ Supprimer</button>
+                <button class="btn btn-secondary" onclick="closeModal('photo-viewer-modal')">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compare Photos Modal -->
+    <div class="modal-overlay" id="compare-modal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <div class="modal-title">🔄 Comparaison Avant/Après</div>
+                <button class="modal-close" onclick="closeModal('compare-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="compare-selectors">
+                    <div class="compare-selector">
+                        <label class="form-label">Avant</label>
+                        <select class="form-select" id="compare-before" onchange="updateCompareImages()"></select>
+                    </div>
+                    <div class="compare-selector">
+                        <label class="form-label">Après</label>
+                        <select class="form-select" id="compare-after" onchange="updateCompareImages()"></select>
+                    </div>
+                </div>
+
+                <div class="compare-images">
+                    <div class="compare-image-container">
+                        <div class="compare-label">AVANT</div>
+                        <img id="compare-before-img" src="" alt="Avant">
+                        <div class="compare-image-info">
+                            <span id="compare-before-weight">-</span>
+                        </div>
+                    </div>
+                    <div class="compare-image-container">
+                        <div class="compare-label">APRÈS</div>
+                        <img id="compare-after-img" src="" alt="Après">
+                        <div class="compare-image-info">
+                            <span id="compare-after-weight">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="compare-diff-container">
+                    <span class="compare-diff-label">Différence:</span>
+                    <span class="compare-diff-value" id="compare-diff">-</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('compare-modal')">Fermer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/data/foods.js"></script>
     <script src="js/data/exercises.js"></script>
@@ -776,11 +1270,16 @@
     <script src="js/modules/supabase.js"></script>
     <script src="js/modules/profile.js"></script>
     <script src="js/modules/nutrition.js"></script>
+    <script src="js/modules/favorites.js"></script>
     <script src="js/modules/training.js"></script>
+    <script src="js/modules/ai-training.js"></script>
     <script src="js/modules/progress.js"></script>
     <script src="js/modules/timer.js"></script>
     <script src="js/modules/ui.js"></script>
     <script src="js/modules/goals.js"></script>
+    <script src="js/modules/openfoodfacts.js"></script>
+    <script src="js/modules/photos.js"></script>
+    <script src="js/modules/stats.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

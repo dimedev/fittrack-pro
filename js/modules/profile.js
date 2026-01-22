@@ -160,11 +160,17 @@ function saveProfile() {
 }
 
 function updateDashboard() {
-    // Mise à jour des stats
-    if (state.profile) {
-        document.getElementById('stat-calories').textContent = state.profile.targetCalories;
-        document.getElementById('stat-protein').textContent = state.profile.macros.protein;
-        
+    // Mise à jour des stats avec animations
+    if (state.profile && state.profile.targetCalories && state.profile.macros) {
+        // Utiliser les animations si disponibles
+        if (typeof updateStatWithAnimation === 'function') {
+            updateStatWithAnimation('stat-calories', state.profile.targetCalories);
+            updateStatWithAnimation('stat-protein', state.profile.macros.protein);
+        } else {
+            document.getElementById('stat-calories').textContent = state.profile.targetCalories;
+            document.getElementById('stat-protein').textContent = state.profile.macros.protein;
+        }
+
         // Résumé du profil
         const goalLabels = {
             'cut': 'Sèche',
@@ -172,7 +178,7 @@ function updateDashboard() {
             'lean-bulk': 'Prise légère',
             'bulk': 'Prise de masse'
         };
-        
+
         const activityLabels = {
             '1.2': 'Sédentaire',
             '1.375': 'Peu actif',
@@ -180,24 +186,36 @@ function updateDashboard() {
             '1.725': 'Très actif',
             '1.9': 'Extrême'
         };
-        
+
         document.getElementById('profile-summary').innerHTML = `
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
                 <div><span style="color: var(--text-secondary);">Âge:</span> ${state.profile.age} ans</div>
                 <div><span style="color: var(--text-secondary);">Poids:</span> ${state.profile.weight} kg</div>
                 <div><span style="color: var(--text-secondary);">Taille:</span> ${state.profile.height} cm</div>
-                <div><span style="color: var(--text-secondary);">Objectif:</span> ${goalLabels[state.profile.goal]}</div>
-                <div><span style="color: var(--text-secondary);">BMR:</span> ${Math.round(state.profile.bmr)} kcal</div>
-                <div><span style="color: var(--text-secondary);">TDEE:</span> ${state.profile.tdee} kcal</div>
+                <div><span style="color: var(--text-secondary);">Objectif:</span> ${goalLabels[state.profile.goal] || state.profile.goal}</div>
+                <div><span style="color: var(--text-secondary);">BMR:</span> ${Math.round(state.profile.bmr || 0)} kcal</div>
+                <div><span style="color: var(--text-secondary);">TDEE:</span> ${state.profile.tdee || 0} kcal</div>
             </div>
         `;
 
         // Mise à jour des barres de macros
         updateMacroBars();
+    } else if (state.profile && state.profile.weight && state.profile.height) {
+        // Profil existe mais macros non calculés - les recalculer
+        const calculated = calculateProfile(state.profile);
+        state.profile.bmr = calculated.bmr;
+        state.profile.tdee = calculated.tdee;
+        state.profile.targetCalories = calculated.targetCalories;
+        state.profile.macros = calculated.macros;
+        saveState();
+
+        // Re-appeler updateDashboard avec les données complètes
+        updateDashboard();
+        return;
     }
 
     // Stats du programme
-    if (state.selectedProgram) {
+    if (state.selectedProgram && trainingPrograms[state.selectedProgram]) {
         const program = trainingPrograms[state.selectedProgram];
         document.getElementById('stat-program').textContent = program.name;
         document.getElementById('stat-days').textContent = state.trainingDays;
@@ -208,11 +226,11 @@ function updateDashboard() {
     const goalCard = document.getElementById('goal-card-container');
     const streakCard = document.getElementById('streak-card-container');
     const recommendationsCard = document.getElementById('recommendations-card-container');
-    
-    if (bodyweightCard) bodyweightCard.innerHTML = renderBodyWeightCard();
-    if (goalCard) goalCard.innerHTML = renderGoalCard();
-    if (streakCard) streakCard.innerHTML = renderStreakCard();
-    if (recommendationsCard) recommendationsCard.innerHTML = renderRecommendationsCard();
+
+    if (bodyweightCard && typeof renderBodyWeightCard === 'function') bodyweightCard.innerHTML = renderBodyWeightCard();
+    if (goalCard && typeof renderGoalCard === 'function') goalCard.innerHTML = renderGoalCard();
+    if (streakCard && typeof renderStreakCard === 'function') streakCard.innerHTML = renderStreakCard();
+    if (recommendationsCard && typeof renderRecommendationsCard === 'function') recommendationsCard.innerHTML = renderRecommendationsCard();
     
     // Graphique du poids corporel
     if (typeof updateBodyWeightChart === 'function') {

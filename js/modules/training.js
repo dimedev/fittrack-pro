@@ -98,6 +98,22 @@ function updateWeeklySchedule() {
     }
 
     const program = trainingPrograms[state.selectedProgram];
+
+    // Vérifier si le programme existe (peut avoir été supprimé ou être un programme IA non persisté)
+    if (!program) {
+        // Réinitialiser le programme sélectionné
+        state.selectedProgram = null;
+        saveState();
+        container.innerHTML = `
+            <div class="empty-state" style="padding: 40px 20px;">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-title">Programme non trouvé</div>
+                <p>Choisissez un programme ci-dessus pour voir votre planning</p>
+            </div>
+        `;
+        return;
+    }
+
     const split = program.splits[state.trainingDays];
 
     if (!split) {
@@ -159,6 +175,13 @@ function populateSessionDaySelect() {
     }
 
     const program = trainingPrograms[state.selectedProgram];
+    
+    // Vérifier si le programme existe
+    if (!program) {
+        select.innerHTML = '<option value="">Programme non trouvé</option>';
+        return;
+    }
+    
     const split = program.splits[state.trainingDays];
 
     if (!split) {
@@ -192,16 +215,51 @@ function loadSessionDay() {
     }
 
     const program = trainingPrograms[state.selectedProgram];
+
+    // Vérifier si le programme existe
+    if (!program) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🏋️</div>
+                <div class="empty-state-title">Programme non trouvé</div>
+                <p>Sélectionnez un programme dans l'onglet Programme</p>
+            </div>
+        `;
+        saveBtn.style.display = 'none';
+        return;
+    }
+
     const split = program.splits[state.trainingDays];
+
+    if (!split || !split[dayIndex]) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🏋️</div>
+                <div class="empty-state-title">Configuration invalide</div>
+                <p>Vérifiez les paramètres du programme</p>
+            </div>
+        `;
+        saveBtn.style.display = 'none';
+        return;
+    }
+
     const dayType = split[dayIndex];
     const exercises = program.exercises[dayType] || [];
 
     container.innerHTML = exercises.map((ex, exIdx) => {
         const effectiveName = getEffectiveExerciseName(ex.name, ex.muscle);
         const lastLog = getLastLog(effectiveName);
-        const suggestedWeight = lastLog ? lastLog.weight : '';
+        
+        // Vérifier s'il y a une suggestion de progression IA
+        const suggestedByAI = state.progressionSuggestions?.[effectiveName];
+        const suggestedWeight = suggestedByAI || (lastLog ? lastLog.weight : '');
+        const hasSuggestion = suggestedByAI && suggestedByAI !== lastLog?.weight;
+        
         const targetReps = ex.reps;
         const numSets = ex.sets;
+        
+        // Obtenir le badge PR pour cet exercice
+        const prBadge = typeof getPRBadgeHTML === 'function' ? getPRBadgeHTML(effectiveName) : '';
         
         // Générer les lignes pour chaque série
         let setsHtml = '';
@@ -210,7 +268,7 @@ function loadSessionDay() {
                 <div class="set-row">
                     <div class="set-num">${i}</div>
                     <div class="set-input-group">
-                        <input type="number" class="set-weight" value="${suggestedWeight}" placeholder="—" step="2.5" min="0">
+                        <input type="number" class="set-weight" value="${suggestedWeight}" placeholder="—" step="2.5" min="0" ${hasSuggestion ? 'style="border-color: var(--success);"' : ''}>
                         <span class="set-unit">kg</span>
                     </div>
                     <div class="set-input-group">
@@ -225,15 +283,29 @@ function loadSessionDay() {
         }
         
         return `
-            <div class="exercise-card" data-exercise="${effectiveName}" data-original="${ex.name}" data-muscle="${ex.muscle}">
-                <div class="exercise-card-header" onclick="openExerciseSwapModal('${ex.name}', '${ex.muscle}', ${ex.sets}, '${ex.reps}')">
-                    <div class="exercise-card-title">
-                        <span class="exercise-card-name">${effectiveName}</span>
-                        <span class="exercise-card-edit">✎</span>
+            <div class="exercise-card" data-exercise="${effectiveName}" data-original="${ex.name}" data-muscle="${ex.muscle}" data-index="${exIdx}">
+                <div class="exercise-card-header" onclick="toggleExerciseAccordion(${exIdx})">
+                    <div class="exercise-card-header-left">
+                        <span class="exercise-card-toggle">▶</span>
+                        <div class="exercise-card-title" onclick="event.stopPropagation(); openExerciseSwapModal('${ex.name}', '${ex.muscle}', ${ex.sets}, '${ex.reps}')">
+                            <span class="exercise-card-name">${effectiveName}</span>
+                            <span class="exercise-card-edit">✎</span>
+                        </div>
                     </div>
-                    <div class="exercise-card-target">Objectif: ${numSets}×${targetReps}</div>
+                    <div class="exercise-card-header-right">
+                        <button class="exercise-warmup-btn" onclick="event.stopPropagation(); showWarmupSets('${effectiveName.replace(/'/g, "\\'")}', ${suggestedWeight || 0})" title="Échauffement">🔥</button>
+                        <button class="exercise-history-btn" onclick="event.stopPropagation(); openExerciseTips('${effectiveName.replace(/'/g, "\\'")}')" title="Conseils">❓</button>
+                        <button class="exercise-history-btn" onclick="event.stopPropagation(); openExerciseHistory('${effectiveName.replace(/'/g, "\\'")}')" title="Historique">📊</button>
+                        <span class="exercise-card-target">${numSets}×${targetReps}</span>
+                        ${prBadge}
+                    </div>
                 </div>
                 <div class="exercise-card-body">
+                    ${hasSuggestion ? `
+                        <div style="padding: 8px 12px; background: rgba(34, 197, 94, 0.1); border-radius: var(--radius-sm); margin-bottom: 10px; font-size: 0.85rem;">
+                            💡 <strong>Suggestion IA:</strong> ${suggestedByAI}kg (${lastLog ? '+' + (suggestedByAI - lastLog.weight) + 'kg' : 'nouveau poids'})
+                        </div>
+                    ` : ''}
                     <div class="sets-header">
                         <span>#</span>
                         <span>Poids</span>
@@ -249,7 +321,16 @@ function loadSessionDay() {
     saveBtn.style.display = 'block';
 }
 
+// Toggle accordéon exercice
+function toggleExerciseAccordion(index) {
+    const card = document.querySelector(`.exercise-card[data-index="${index}"]`);
+    if (card) {
+        card.classList.toggle('open');
+    }
+}
+
 function toggleSetCheck(btn) {
+    const wasChecked = btn.classList.contains('checked');
     btn.classList.toggle('checked');
     
     // Si on coche, on peut auto-remplir les reps si vide
@@ -257,6 +338,30 @@ function toggleSetCheck(btn) {
     const repsInput = row.querySelector('.set-reps');
     if (btn.classList.contains('checked') && !repsInput.value) {
         repsInput.value = repsInput.placeholder;
+    }
+    
+    // Déclencher le timer auto si on vient de cocher (pas décocher)
+    if (!wasChecked && btn.classList.contains('checked')) {
+        // Récupérer les infos de l'exercice
+        const exerciseCard = btn.closest('.exercise-card');
+        if (exerciseCard) {
+            const exerciseName = exerciseCard.dataset.exercise;
+            const targetEl = exerciseCard.querySelector('.exercise-card-target');
+            let targetReps = '8-10'; // Défaut
+            
+            if (targetEl) {
+                // Extraire les reps du texte "Objectif: 4×8-10"
+                const match = targetEl.textContent.match(/×(.+)/);
+                if (match) {
+                    targetReps = match[1].trim();
+                }
+            }
+            
+            // Démarrer le timer auto
+            if (typeof startAutoTimer === 'function') {
+                startAutoTimer(exerciseName, targetReps);
+            }
+        }
     }
 }
 
@@ -448,17 +553,18 @@ function saveSession() {
     const today = new Date().toISOString().split('T')[0];
     const sessionData = [];
     let hasData = false;
+    const newPRs = []; // Collecter les nouveaux PRs
 
     exerciseCards.forEach(card => {
         const exerciseName = card.dataset.exercise;
         const setRows = card.querySelectorAll('.set-row');
         const setsData = [];
-        
+
         setRows.forEach((row, idx) => {
             const weight = parseFloat(row.querySelector('.set-weight').value) || 0;
             const reps = parseInt(row.querySelector('.set-reps').value) || 0;
             const completed = row.querySelector('.set-check').classList.contains('checked');
-            
+
             if (weight > 0 || reps > 0 || completed) {
                 hasData = true;
                 setsData.push({
@@ -467,20 +573,31 @@ function saveSession() {
                     reps,
                     completed
                 });
+
+                // Vérifier si c'est un nouveau PR (avant d'ajouter au log)
+                if (weight > 0 && reps > 0 && typeof checkForNewPR === 'function') {
+                    const prCheck = checkForNewPR(exerciseName, weight, reps);
+                    if (prCheck.isNewPR && !newPRs.find(p => p.exercise === exerciseName && p.types.includes('weight'))) {
+                        newPRs.push({
+                            exercise: exerciseName,
+                            ...prCheck
+                        });
+                    }
+                }
             }
         });
-        
+
         if (setsData.length > 0) {
             // Sauvegarder dans le log de progression
             if (!state.progressLog[exerciseName]) {
                 state.progressLog[exerciseName] = [];
             }
-            
+
             // Calculer les moyennes pour le log
             const avgWeight = setsData.reduce((sum, s) => sum + s.weight, 0) / setsData.length;
             const totalReps = setsData.reduce((sum, s) => sum + s.reps, 0);
             const completedSets = setsData.filter(s => s.completed).length;
-            
+
             state.progressLog[exerciseName].push({
                 date: today,
                 sets: setsData.length,
@@ -489,7 +606,7 @@ function saveSession() {
                 achievedSets: completedSets,
                 setsDetail: setsData
             });
-            
+
             sessionData.push({
                 exercise: exerciseName,
                 sets: setsData
@@ -515,31 +632,369 @@ function saveSession() {
     state.sessionHistory = state.sessionHistory.slice(0, 100);
 
     saveState();
-    
+
     // Mettre à jour le streak
     if (typeof updateStreak === 'function') {
         updateStreak();
     }
-    
+
     // Mettre à jour les recommandations
     if (typeof updateProgressionRecommendations === 'function') {
         updateProgressionRecommendations();
     }
-    
+
     // Mettre à jour l'analyse de progression
     if (typeof updateProgressionAnalysis === 'function') {
         updateProgressionAnalysis();
     }
-    
+
+    // Mettre à jour la section PRs
+    if (typeof renderPRsSection === 'function') {
+        renderPRsSection();
+    }
+
     updateSessionHistory();
     populateProgressExerciseSelect();
-    
+
     // Réinitialiser les champs
     exerciseCards.forEach(card => {
         card.querySelectorAll('.set-weight').forEach(input => input.value = '');
         card.querySelectorAll('.set-reps').forEach(input => input.value = '');
         card.querySelectorAll('.set-check').forEach(btn => btn.classList.remove('checked'));
     });
+
+    // Afficher les notifications de nouveaux PRs
+    if (newPRs.length > 0) {
+        // Afficher la notification PR en premier
+        showPRNotification(newPRs);
+    } else {
+        showToast('Séance enregistrée ! 💪', 'success');
+    }
+}
+
+/**
+ * Affiche une notification spectaculaire pour les nouveaux PRs
+ */
+function showPRNotification(prs) {
+    // Créer la notification
+    let notif = document.getElementById('pr-notification');
+    if (!notif) {
+        notif = document.createElement('div');
+        notif.id = 'pr-notification';
+        notif.className = 'pr-notification';
+        document.body.appendChild(notif);
+    }
+
+    // Construire le message
+    if (prs.length === 1) {
+        notif.innerHTML = `<span class="pr-icon">🏆</span>${prs[0].message}`;
+    } else {
+        notif.innerHTML = `<span class="pr-icon">🏆</span>${prs.length} NOUVEAUX RECORDS !`;
+    }
+
+    // Animer
+    setTimeout(() => notif.classList.add('show'), 50);
+
+    // Masquer après 4 secondes
+    setTimeout(() => {
+        notif.classList.remove('show');
+        // Ensuite afficher le toast normal
+        setTimeout(() => {
+            showToast('Séance enregistrée ! 💪', 'success');
+        }, 500);
+    }, 4000);
+}
+
+// ==================== HISTORIQUE EXERCICE ====================
+
+let exerciseHistoryChart = null;
+
+function openExerciseHistory(exerciseName) {
+    const logs = state.progressLog[exerciseName] || [];
     
-    showToast('Séance enregistrée ! 💪', 'success');
+    // Créer/afficher le modal
+    let modal = document.getElementById('exercise-history-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'exercise-history-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <div class="modal-title" id="exercise-history-title">Historique</div>
+                    <button class="modal-close" onclick="closeModal('exercise-history-modal')">&times;</button>
+                </div>
+                <div class="modal-body" id="exercise-history-content"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    document.getElementById('exercise-history-title').textContent = `📊 ${exerciseName}`;
+    
+    const content = document.getElementById('exercise-history-content');
+    
+    if (logs.length === 0) {
+        content.innerHTML = `
+            <div class="empty-state" style="padding: 40px 20px;">
+                <div class="empty-state-icon">📊</div>
+                <div class="empty-state-title">Pas encore d'historique</div>
+                <p>Enregistrez votre première séance pour voir votre progression !</p>
+            </div>
+        `;
+        openModal('exercise-history-modal');
+        return;
+    }
+    
+    // Calculer les stats
+    const weights = logs.map(l => l.weight).filter(w => w > 0);
+    const maxWeight = Math.max(...weights);
+    const lastWeight = weights[weights.length - 1] || 0;
+    const firstWeight = weights[0] || 0;
+    const progression = firstWeight > 0 ? Math.round((lastWeight - firstWeight) / firstWeight * 100) : 0;
+    
+    // Trouver le PR
+    const prLog = logs.find(l => l.weight === maxWeight);
+    const prDate = prLog ? new Date(prLog.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '-';
+    
+    content.innerHTML = `
+        <div class="history-stats">
+            <div class="history-stat">
+                <div class="history-stat-value">${maxWeight}<span class="history-stat-unit">kg</span></div>
+                <div class="history-stat-label">🏆 Record</div>
+                <div class="history-stat-date">${prDate}</div>
+            </div>
+            <div class="history-stat">
+                <div class="history-stat-value">${lastWeight}<span class="history-stat-unit">kg</span></div>
+                <div class="history-stat-label">Dernière séance</div>
+            </div>
+            <div class="history-stat">
+                <div class="history-stat-value ${progression >= 0 ? 'positive' : 'negative'}">${progression >= 0 ? '+' : ''}${progression}%</div>
+                <div class="history-stat-label">Progression</div>
+            </div>
+        </div>
+        
+        <div class="history-chart-container">
+            <canvas id="exercise-history-chart"></canvas>
+        </div>
+        
+        <div class="history-list">
+            <div class="history-list-header">Dernières séances</div>
+            ${logs.slice(-10).reverse().map(log => {
+                const date = new Date(log.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                const isMax = log.weight === maxWeight;
+                return `
+                    <div class="history-item ${isMax ? 'is-pr' : ''}">
+                        <span class="history-item-date">${date}</span>
+                        <span class="history-item-weight">${log.weight}kg</span>
+                        <span class="history-item-sets">${log.sets} séries</span>
+                        <span class="history-item-reps">${log.achievedReps} reps</span>
+                        ${isMax ? '<span class="history-item-pr">🏆</span>' : ''}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+    
+    openModal('exercise-history-modal');
+    
+    // Créer le graphique après l'ouverture du modal
+    setTimeout(() => renderExerciseHistoryChart(logs), 100);
+}
+
+function renderExerciseHistoryChart(logs) {
+    const ctx = document.getElementById('exercise-history-chart');
+    if (!ctx) return;
+    
+    // Détruire le graphique existant
+    if (exerciseHistoryChart) {
+        exerciseHistoryChart.destroy();
+    }
+    
+    // Préparer les données (dernières 15 séances max)
+    const recentLogs = logs.slice(-15);
+    const labels = recentLogs.map(l => {
+        const d = new Date(l.date);
+        return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    });
+    const weights = recentLogs.map(l => l.weight);
+    
+    exerciseHistoryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Poids (kg)',
+                data: weights,
+                borderColor: '#ffffff',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#ffffff',
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#666', font: { size: 10 } }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#666', font: { size: 10 } },
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+}
+
+// ==================== TIPS & TECHNIQUE ====================
+
+const exerciseTips = {
+    'Développé Couché': {
+        muscles: ['Pectoraux', 'Triceps', 'Épaules ant.'],
+        tips: ['Pieds au sol, fessiers serrés', 'Omoplates rétractées et abaissées', 'Barre au niveau des tétons', 'Descente contrôlée, explosive en montée'],
+        errors: ['Rebond sur la poitrine', 'Fessiers décollés du banc', 'Coudes trop écartés (90°)']
+    },
+    'Développé Incliné Haltères': {
+        muscles: ['Pectoraux sup.', 'Épaules ant.', 'Triceps'],
+        tips: ['Inclinaison 30-45°', 'Haltères au-dessus des épaules en haut', 'Étirement complet en bas', 'Rotation neutre ou légère supination'],
+        errors: ['Inclinaison trop forte (>45°)', 'Haltères qui se touchent en haut', 'Dos cambré excessif']
+    },
+    'Développé Militaire': {
+        muscles: ['Épaules', 'Triceps', 'Core'],
+        tips: ['Gainage abdominal serré', 'Barre part du haut de la poitrine', 'Pousser légèrement en arrière', 'Tête qui passe sous la barre'],
+        errors: ['Dos cambré', 'Poids sur les orteils', 'Coudes trop en avant']
+    },
+    'Squat': {
+        muscles: ['Quadriceps', 'Fessiers', 'Ischio-jambiers'],
+        tips: ['Pieds largeur épaules, pointes légèrement ouvertes', 'Genoux dans l\'axe des pieds', 'Descendre au moins parallèle', 'Poitrine haute, regard devant'],
+        errors: ['Genoux qui rentrent', 'Talons qui décollent', 'Dos qui s\'arrondit']
+    },
+    'Soulevé de Terre': {
+        muscles: ['Dos complet', 'Fessiers', 'Ischio-jambiers'],
+        tips: ['Barre contre les tibias au départ', 'Dos plat, épaules au-dessus de la barre', 'Pousser le sol avec les jambes', 'Verrouiller hanches et genoux ensemble'],
+        errors: ['Dos arrondi', 'Barre loin du corps', 'Tirer avec les bras']
+    },
+    'Tractions': {
+        muscles: ['Dorsaux', 'Biceps', 'Rhomboïdes'],
+        tips: ['Départ bras tendus (dead hang)', 'Tirer les coudes vers les hanches', 'Poitrine vers la barre', 'Descente contrôlée'],
+        errors: ['Demi-répétitions', 'Balancement du corps', 'Hausser les épaules']
+    },
+    'Rowing Barre': {
+        muscles: ['Dorsaux', 'Rhomboïdes', 'Biceps'],
+        tips: ['Dos à 45° ou parallèle au sol', 'Tirer vers le nombril', 'Serrer les omoplates en haut', 'Coudes proches du corps'],
+        errors: ['Tricher avec l\'élan', 'Dos arrondi', 'Tirer trop haut (vers la poitrine)']
+    },
+    'Curl Biceps': {
+        muscles: ['Biceps', 'Avant-bras'],
+        tips: ['Coudes fixes le long du corps', 'Supination complète en haut', 'Contrôler la descente', 'Ne pas balancer'],
+        errors: ['Coudes qui avancent', 'Élan avec le dos', 'Amplitude incomplète']
+    },
+    'Extensions Triceps Poulie': {
+        muscles: ['Triceps'],
+        tips: ['Coudes fixes et serrés', 'Extension complète en bas', 'Contracter 1 sec en bas', 'Résister à la remontée'],
+        errors: ['Coudes qui bougent', 'Se pencher en avant', 'Poids trop lourd = élan']
+    },
+    'Leg Press': {
+        muscles: ['Quadriceps', 'Fessiers'],
+        tips: ['Pieds largeur épaules au milieu de la plateforme', 'Descendre jusqu\'à 90° aux genoux', 'Ne pas verrouiller en haut', 'Bas du dos collé au siège'],
+        errors: ['Fesses qui décollent', 'Verrouillage brutal', 'Pieds trop bas = stress genoux']
+    },
+    'Leg Curl': {
+        muscles: ['Ischio-jambiers'],
+        tips: ['Hanches bien calées', 'Flexion complète', 'Contrôle excentrique (3-4 sec)', 'Pointes de pieds vers les tibias'],
+        errors: ['Lever les hanches', 'Mouvement trop rapide', 'Amplitude partielle']
+    },
+    'Élévations Latérales': {
+        muscles: ['Deltoïdes latéraux'],
+        tips: ['Légère flexion des coudes', 'Monter jusqu\'à parallèle', 'Petit doigt légèrement plus haut', 'Contrôle total'],
+        errors: ['Hausser les épaules', 'Balancer le corps', 'Monter trop haut']
+    },
+    'Crunch': {
+        muscles: ['Abdominaux', 'Core'],
+        tips: ['Bas du dos au sol', 'Regard vers le plafond', 'Enrouler les épaules vers les hanches', 'Expirer en montant'],
+        errors: ['Tirer sur la nuque', 'Élan', 'Amplitude excessive']
+    },
+    'Dips': {
+        muscles: ['Pectoraux', 'Triceps', 'Épaules ant.'],
+        tips: ['Descendre à 90° minimum', 'Se pencher en avant pour les pecs', 'Corps droit pour les triceps', 'Épaules basses'],
+        errors: ['Descente trop profonde', 'Épaules qui montent', 'Verrouillage violent']
+    },
+    'Hip Thrust': {
+        muscles: ['Fessiers', 'Ischio-jambiers'],
+        tips: ['Haut du dos sur le banc', 'Pieds à plat, genoux à 90° en haut', 'Serrer les fessiers en haut', 'Menton rentré'],
+        errors: ['Hyper-extension lombaire', 'Pieds trop loin/près', 'Ne pas serrer en haut']
+    }
+};
+
+function openExerciseTips(exerciseName) {
+    const tips = exerciseTips[exerciseName];
+    
+    // Créer/afficher le modal
+    let modal = document.getElementById('exercise-tips-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'exercise-tips-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal" style="max-width: 500px;">
+                <div class="modal-header">
+                    <div class="modal-title" id="exercise-tips-title">Conseils</div>
+                    <button class="modal-close" onclick="closeModal('exercise-tips-modal')">&times;</button>
+                </div>
+                <div class="modal-body" id="exercise-tips-content"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    document.getElementById('exercise-tips-title').textContent = `💡 ${exerciseName}`;
+    const content = document.getElementById('exercise-tips-content');
+    
+    if (!tips) {
+        content.innerHTML = `
+            <div class="empty-state" style="padding: 30px 20px;">
+                <div class="empty-state-icon">💡</div>
+                <div class="empty-state-title">Pas encore de conseils</div>
+                <p>Les tips pour cet exercice seront ajoutés prochainement !</p>
+            </div>
+        `;
+        openModal('exercise-tips-modal');
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="tips-section">
+            <div class="tips-muscles">
+                ${tips.muscles.map(m => `<span class="tips-muscle-tag">${m}</span>`).join('')}
+            </div>
+        </div>
+        
+        <div class="tips-section">
+            <div class="tips-section-title">✅ Points clés</div>
+            <ul class="tips-list tips-good">
+                ${tips.tips.map(t => `<li>${t}</li>`).join('')}
+            </ul>
+        </div>
+        
+        <div class="tips-section">
+            <div class="tips-section-title">❌ Erreurs à éviter</div>
+            <ul class="tips-list tips-bad">
+                ${tips.errors.map(e => `<li>${e}</li>`).join('')}
+            </ul>
+        </div>
+    `;
+    
+    openModal('exercise-tips-modal');
 }

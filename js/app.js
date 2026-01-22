@@ -16,6 +16,11 @@ function init() {
     // Initialiser l'interface
     initUI();
     
+    // Initialiser le timer
+    if (typeof initTimer === 'function') {
+        initTimer();
+    }
+
     // Initialiser Supabase
     initSupabase();
     
@@ -23,12 +28,28 @@ function init() {
     renderProgramTypes();
     renderFoodsList();
     renderDailyMenu();
+    renderFavoritesList(); // Initialiser les favoris
     updateDashboard();
     updateWeeklySchedule();
     populateSessionDaySelect();
     populateProgressExerciseSelect();
     updateSessionHistory();
     
+    // Initialiser les PRs
+    if (typeof renderPRsSection === 'function') {
+        renderPRsSection();
+    }
+    
+    // Initialiser les photos de progression
+    if (typeof renderPhotosGallery === 'function') {
+        renderPhotosGallery();
+    }
+
+    // Initialiser les statistiques
+    if (typeof initStatsModule === 'function') {
+        initStatsModule();
+    }
+
     // Initialiser le journal
     initJournal();
     
