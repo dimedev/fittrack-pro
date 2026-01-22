@@ -499,6 +499,8 @@ function switchProgressTab(tabName) {
     // Charger les données si nécessaire
     if (tabName === 'stats') {
         loadStatsData();
+    } else if (tabName === 'analysis' && typeof ProgressionEngine !== 'undefined') {
+        ProgressionEngine.renderProgressionAnalysisSection();
     } else if (tabName === 'photos' && typeof renderPhotosGallery === 'function') {
         renderPhotosGallery();
     } else if (tabName === 'prs' && typeof renderPRsSection === 'function') {

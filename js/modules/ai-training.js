@@ -325,12 +325,21 @@ function generateAndApplyAIProgram() {
     // Ajouter au trainingPrograms
     trainingPrograms['ai-custom'] = program;
 
+    // Sauvegarder le programme IA dans le state pour persistance
+    state.aiCustomProgram = program;
+
     // Sélectionner ce programme
     state.selectedProgram = 'ai-custom';
     state.trainingDays = aiProgramConfig.daysPerWeek;
     document.getElementById('training-days').value = state.trainingDays;
 
     saveState();
+
+    // Sync avec Supabase si connecté
+    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+        saveTrainingSettingsToSupabase();
+    }
+
     closeModal('ai-program-modal');
 
     renderProgramTypes();
@@ -339,6 +348,16 @@ function generateAndApplyAIProgram() {
     updateDashboard();
 
     showToast(`Programme IA généré ! ${program.splits[aiProgramConfig.daysPerWeek].length} jours de training 🤖`, 'success');
+}
+
+/**
+ * Restaure le programme IA depuis le state au démarrage
+ */
+function restoreAIProgram() {
+    if (state.aiCustomProgram) {
+        trainingPrograms['ai-custom'] = state.aiCustomProgram;
+        console.log('✅ Programme IA restauré');
+    }
 }
 
 /**
@@ -883,7 +902,7 @@ function applyProgressionSuggestion(exerciseName, newWeight) {
     
     // Rafraîchir si on est sur la séance du jour
     if (document.getElementById('session-exercises').innerHTML.includes(exerciseName)) {
-        loadSessionDay();
+        loadSessionDayV2();
     }
 }
 

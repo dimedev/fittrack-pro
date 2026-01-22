@@ -409,19 +409,42 @@ function updateSessionHistory() {
                     <div class="workout-day-header" onclick="toggleWorkoutDay(this)">
                         <div class="workout-day-title">
                             <span>${formattedDate}</span>
-                            <span class="workout-day-badge">${session.day}</span>
+                            <span class="workout-day-badge">${session.day || 'Séance'}</span>
                         </div>
-                        <span style="color: var(--text-muted);">${session.exercises.length} exercices ▼</span>
+                        <span style="color: var(--text-muted);">${session.exercises?.length || 0} exercices ▼</span>
                     </div>
                     <div class="workout-day-content" style="display: none;">
-                        ${session.exercises.map(ex => `
-                            <div class="exercise-item">
-                                <span class="exercise-name">${ex.exercise}</span>
-                                <span class="exercise-sets">${ex.sets} séries</span>
-                                <span class="exercise-reps">${ex.achievedReps || '-'} reps</span>
-                                <span class="exercise-weight">${ex.weight}kg</span>
-                            </div>
-                        `).join('')}
+                        ${(session.exercises || []).map(ex => {
+                            // Gérer les 2 formats possibles de données
+                            const exerciseName = ex.exercise || ex.name || 'Exercice';
+                            
+                            // Format 1: sets est un tableau d'objets [{weight, reps, completed}, ...]
+                            // Format 2: sets est un nombre, weight/achievedReps sont des propriétés directes
+                            let setsCount, totalReps, avgWeight;
+                            
+                            if (Array.isArray(ex.sets)) {
+                                // Nouveau format avec setsDetail
+                                setsCount = ex.sets.length;
+                                totalReps = ex.sets.reduce((sum, s) => sum + (s.reps || 0), 0);
+                                avgWeight = ex.sets.length > 0 
+                                    ? Math.round(ex.sets.reduce((sum, s) => sum + (s.weight || 0), 0) / ex.sets.length * 10) / 10
+                                    : 0;
+                            } else {
+                                // Ancien format ou format Supabase
+                                setsCount = ex.sets || 0;
+                                totalReps = ex.achievedReps || ex.reps || 0;
+                                avgWeight = ex.weight || 0;
+                            }
+                            
+                            return `
+                                <div class="exercise-item">
+                                    <span class="exercise-name">${exerciseName}</span>
+                                    <span class="exercise-sets">${setsCount} séries</span>
+                                    <span class="exercise-reps">${totalReps} reps</span>
+                                    <span class="exercise-weight">${avgWeight}kg</span>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `).join('');

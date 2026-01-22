@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style-nike-shadcn.css">
     <link rel="stylesheet" href="css/mobile-premium.css">
+    <link rel="stylesheet" href="css/session-manager.css">
+    <link rel="stylesheet" href="css/premium-components.css">
 
 
 
@@ -287,7 +289,7 @@
                                 Base d'Aliments
                             </div>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-sm btn-secondary" onclick="openOFFSearchModal()" title="Rechercher dans Open Food Facts">
+                                <button class="btn btn-sm btn-secondary" onclick="openOFFSearchModal()" data-tooltip="Rechercher dans Open Food Facts" data-tooltip-pos="bottom">
                                     🔍 OFF
                                 </button>
                                 <button class="btn btn-sm btn-primary" onclick="openCustomFoodModal()">+ Ajouter</button>
@@ -359,7 +361,7 @@
                                 <button class="btn btn-sm btn-secondary" onclick="openTrainingModeModal()" title="Supersets & Circuits">
                                     ⚡ Mode
                                 </button>
-                                <select class="form-select" id="session-day-select" style="width: auto;" onchange="loadSessionDay()"></select>
+                                <select class="form-select" id="session-day-select" style="width: auto;" onchange="loadSessionDayV2()"></select>
                             </div>
                         </div>
                         <div id="session-exercises">
@@ -370,7 +372,7 @@
                             </div>
                         </div>
                         <div style="margin-top: 20px; display: none;" id="save-session-btn">
-                            <button class="btn btn-primary" onclick="saveSession()" style="width: 100%;">
+                            <button class="btn btn-primary" onclick="saveSessionV2()" style="width: 100%;">
                                 Enregistrer la Séance
                             </button>
                         </div>
@@ -427,6 +429,7 @@
             <section id="progress" class="section">
                 <div class="tabs">
                     <button class="tab active" data-tab="stats" onclick="switchProgressTab('stats')">📊 Statistiques</button>
+                    <button class="tab" data-tab="analysis" onclick="switchProgressTab('analysis')">🤖 Analyse IA</button>
                     <button class="tab" data-tab="photos" onclick="switchProgressTab('photos')">📸 Photos</button>
                     <button class="tab" data-tab="prs" onclick="switchProgressTab('prs')">🏆 Records</button>
                     <button class="tab" data-tab="history" onclick="switchProgressTab('history')">📝 Historique</button>
@@ -470,6 +473,28 @@
                         </div>
                         <div class="chart-container" style="height: 250px; max-width: 300px; margin: 0 auto;">
                             <canvas id="macros-avg-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Photos -->
+
+                <!-- Tab Analyse IA -->
+                <div id="tab-analysis" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">🤖</span>
+                                Analyse de Progression Intelligente
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="ProgressionEngine.renderProgressionAnalysisSection()">🔄 Rafraîchir</button>
+                        </div>
+                        <div id="progression-analysis-container">
+                            <div class="empty-state" style="padding: 40px 20px;">
+                                <div class="empty-state-icon">🤖</div>
+                                <div class="empty-state-title">Analyse en cours...</div>
+                                <p>L'IA analyse votre historique d'entraînement</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1272,6 +1297,8 @@
     <script src="js/modules/nutrition.js"></script>
     <script src="js/modules/favorites.js"></script>
     <script src="js/modules/training.js"></script>
+    <script src="js/modules/session-manager.js"></script>
+    <script src="js/modules/session-ui.js"></script>
     <script src="js/modules/ai-training.js"></script>
     <script src="js/modules/progress.js"></script>
     <script src="js/modules/timer.js"></script>
@@ -1280,6 +1307,8 @@
     <script src="js/modules/openfoodfacts.js"></script>
     <script src="js/modules/photos.js"></script>
     <script src="js/modules/stats.js"></script>
+    <script src="js/modules/progression-engine.js"></script>
+    <script src="js/modules/premium-ui.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

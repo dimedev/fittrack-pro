@@ -31,6 +31,11 @@ function renderProgramTypes() {
 }
 
 function selectProgram(programId) {
+    // Nettoyer la session active si on change de programme
+    if (state.activeSession && state.activeSession.program !== programId) {
+        state.activeSession = null;
+    }
+    
     state.selectedProgram = programId;
     const program = trainingPrograms[programId];
 
@@ -193,7 +198,7 @@ function populateSessionDaySelect() {
         `<option value="${idx}">Jour ${idx + 1} - ${dayType}</option>`
     ).join('');
 
-    loadSessionDay();
+    loadSessionDayV2();
 }
 
 function loadSessionDay() {
@@ -477,10 +482,24 @@ function selectExerciseSwap(exerciseId) {
     if (originalExercise && originalExercise.id === exerciseId) {
         delete state.exerciseSwaps[originalName];
         showToast(`Retour à l'exercice original`, 'success');
+        
+        // Sync suppression avec Supabase
+        if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+            deleteExerciseSwapFromSupabase(originalName).catch(err => {
+                console.error('Erreur suppression swap Supabase:', err);
+            });
+        }
     } else {
         // Sauvegarder le swap
         state.exerciseSwaps[originalName] = exerciseId;
         showToast(`${originalName} remplacé par ${exercise.name}`, 'success');
+        
+        // Sync avec Supabase
+        if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+            saveExerciseSwapToSupabase(originalName, exerciseId).catch(err => {
+                console.error('Erreur sauvegarde swap Supabase:', err);
+            });
+        }
     }
 
     saveState();
@@ -488,7 +507,7 @@ function selectExerciseSwap(exerciseId) {
 
     // Rafraîchir les vues
     updateWeeklySchedule();
-    loadSessionDay();
+    loadSessionDayV2();
 }
 
 // ==================== EXERCICE PERSONNALISÉ ====================
@@ -631,7 +650,34 @@ function saveSession() {
     // Garder seulement les 100 dernières séances
     state.sessionHistory = state.sessionHistory.slice(0, 100);
 
+    // Sauvegarder en local d'abord (optimistic update)
     saveState();
+    
+    // Sync avec Supabase si connecté
+    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+        // Sauvegarder la séance
+        const sessionToSave = {
+            date: today,
+            program: state.selectedProgram,
+            day: document.getElementById('session-day-select').selectedOptions[0].text,
+            exercises: sessionData
+        };
+        saveWorkoutSessionToSupabase(sessionToSave).catch(err => {
+            console.error('Erreur sync séance Supabase:', err);
+        });
+        
+        // Sauvegarder chaque log de progression
+        sessionData.forEach(exData => {
+            const exerciseName = exData.exercise;
+            const logs = state.progressLog[exerciseName];
+            if (logs && logs.length > 0) {
+                const lastLog = logs[logs.length - 1];
+                saveProgressLogToSupabase(exerciseName, lastLog).catch(err => {
+                    console.error('Erreur sync progress log Supabase:', err);
+                });
+            }
+        });
+    }
 
     // Mettre à jour le streak
     if (typeof updateStreak === 'function') {

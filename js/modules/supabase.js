@@ -226,16 +226,36 @@ async function loadAllDataFromSupabase() {
             state.exercises = [...defaultExercises, ...customExList];
         }
         
-        // Charger les swaps d'exercices
+        // Charger les swaps d'exercices avec MERGE intelligent
         const { data: swaps } = await supabaseClient
             .from('exercise_swaps')
             .select('*')
             .eq('user_id', currentUser.id);
         
         if (swaps) {
-            state.exerciseSwaps = {};
+            // Garder les swaps locaux
+            const localSwaps = { ...state.exerciseSwaps };
+            
+            // Reconstruire depuis Supabase
+            const supabaseSwaps = {};
             swaps.forEach(s => {
-                state.exerciseSwaps[s.original_exercise] = s.replacement_exercise_id;
+                supabaseSwaps[s.original_exercise] = s.replacement_exercise_id;
+            });
+            
+            // Merger : Supabase prioritaire, mais conserver les swaps locaux non présents
+            state.exerciseSwaps = { ...supabaseSwaps };
+            
+            // Ajouter les swaps locaux manquants et les sync
+            Object.keys(localSwaps).forEach(originalExercise => {
+                if (!supabaseSwaps[originalExercise]) {
+                    // Swap local non présent dans Supabase, le garder et le sync
+                    state.exerciseSwaps[originalExercise] = localSwaps[originalExercise];
+                    
+                    // Tenter de sync ce swap manquant
+                    saveExerciseSwapToSupabase(originalExercise, localSwaps[originalExercise]).catch(err => {
+                        console.warn('Sync rattrapage swap:', err);
+                    });
+                }
             });
         }
         
@@ -276,7 +296,7 @@ async function loadAllDataFromSupabase() {
             });
         }
         
-        // Charger l'historique de progression
+        // Charger l'historique de progression avec MERGE intelligent
         const { data: progressLog } = await supabaseClient
             .from('progress_log')
             .select('*')
@@ -284,23 +304,66 @@ async function loadAllDataFromSupabase() {
             .order('date', { ascending: true });
         
         if (progressLog) {
-            state.progressLog = {};
+            // Garder les logs locaux qui ne sont pas encore sync
+            const localProgressLog = { ...state.progressLog };
+            
+            // Reconstruire depuis Supabase
+            const supabaseProgressLog = {};
             progressLog.forEach(log => {
-                if (!state.progressLog[log.exercise_name]) {
-                    state.progressLog[log.exercise_name] = [];
+                if (!supabaseProgressLog[log.exercise_name]) {
+                    supabaseProgressLog[log.exercise_name] = [];
                 }
-                state.progressLog[log.exercise_name].push({
+                supabaseProgressLog[log.exercise_name].push({
                     date: log.date,
                     sets: log.sets,
                     reps: log.reps,
                     weight: parseFloat(log.weight),
                     achievedReps: log.achieved_reps,
-                    achievedSets: log.achieved_sets
+                    achievedSets: log.achieved_sets,
+                    synced: true // Marquer comme synchronisé
                 });
+            });
+            
+            // Merger : Supabase + logs locaux non présents dans Supabase
+            state.progressLog = supabaseProgressLog;
+            
+            // Ajouter les logs locaux manquants (par date+exercice unique)
+            Object.keys(localProgressLog).forEach(exerciseName => {
+                const localLogs = localProgressLog[exerciseName] || [];
+                const supabaseLogs = state.progressLog[exerciseName] || [];
+                
+                localLogs.forEach(localLog => {
+                    // Vérifier si ce log existe déjà dans Supabase (même date, même poids)
+                    const exists = supabaseLogs.some(sLog => 
+                        sLog.date === localLog.date && 
+                        sLog.weight === localLog.weight &&
+                        sLog.achievedReps === localLog.achievedReps
+                    );
+                    
+                    if (!exists && !localLog.synced) {
+                        // Log local non synchronisé, le garder et tenter de le sync
+                        if (!state.progressLog[exerciseName]) {
+                            state.progressLog[exerciseName] = [];
+                        }
+                        state.progressLog[exerciseName].push(localLog);
+                        
+                        // Tenter de sync ce log manquant
+                        saveProgressLogToSupabase(exerciseName, localLog).catch(err => {
+                            console.warn('Sync rattrapage progress log:', err);
+                        });
+                    }
+                });
+                
+                // Trier par date
+                if (state.progressLog[exerciseName]) {
+                    state.progressLog[exerciseName].sort((a, b) => 
+                        new Date(a.date) - new Date(b.date)
+                    );
+                }
             });
         }
         
-        // Charger l'historique des séances
+        // Charger l'historique des séances avec MERGE intelligent
         const { data: sessions } = await supabaseClient
             .from('workout_sessions')
             .select('*')
@@ -309,16 +372,57 @@ async function loadAllDataFromSupabase() {
             .limit(100);
         
         if (sessions) {
-            state.sessionHistory = sessions.map(s => ({
+            // Garder les sessions locales
+            const localSessions = [...(state.sessionHistory || [])];
+            
+            // Reconstruire depuis Supabase
+            const supabaseSessions = sessions.map(s => ({
                 date: s.date,
                 timestamp: new Date(s.created_at).getTime(),
                 program: s.program,
                 day: s.day_name,
-                exercises: s.exercises || []
+                exercises: s.exercises || [],
+                synced: true // Marquer comme synchronisé
             }));
+            
+            // Identifier les sessions locales non présentes dans Supabase
+            const localOnlySessions = localSessions.filter(localSession => {
+                // Une session est considérée identique si même date + même timestamp (à 1 minute près)
+                return !supabaseSessions.some(sSession => 
+                    sSession.date === localSession.date &&
+                    Math.abs(sSession.timestamp - localSession.timestamp) < 60000
+                );
+            });
+            
+            // Merger : Supabase + sessions locales non sync
+            state.sessionHistory = [...supabaseSessions];
+            
+            // Ajouter et sync les sessions locales manquantes
+            localOnlySessions.forEach(localSession => {
+                if (!localSession.synced) {
+                    state.sessionHistory.push(localSession);
+                    
+                    // Tenter de sync cette session manquante
+                    saveWorkoutSessionToSupabase({
+                        date: localSession.date,
+                        program: localSession.program,
+                        day: localSession.day,
+                        exercises: localSession.exercises
+                    }).catch(err => {
+                        console.warn('Sync rattrapage session:', err);
+                    });
+                }
+            });
+            
+            // Trier par timestamp décroissant et limiter à 100
+            state.sessionHistory.sort((a, b) => b.timestamp - a.timestamp);
+            state.sessionHistory = state.sessionHistory.slice(0, 100);
         }
         
         console.log('✅ Données chargées depuis Supabase');
+        
+        // Sauvegarder le state mergé dans localStorage pour persistance
+        saveState();
         
         // Rafraîchir l'UI
         refreshAllUI();
@@ -331,6 +435,11 @@ async function loadAllDataFromSupabase() {
 
 // Rafraîchir toute l'UI
 function refreshAllUI() {
+    // Restaurer le programme IA si présent dans le state
+    if (state.aiCustomProgram && typeof trainingPrograms !== 'undefined') {
+        trainingPrograms['ai-custom'] = state.aiCustomProgram;
+    }
+    
     renderProgramTypes();
     renderFoodsList();
     renderDailyMenu();

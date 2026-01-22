@@ -17,6 +17,7 @@ let state = {
     trainingDays: 4,
     progressLog: {},
     sessionHistory: [],
+    activeSession: null, // Session en cours (gérée par SessionManager)
     progressionSuggestions: {}, // Suggestions de progression IA { exerciseName: suggestedWeight }
     trainingModes: {}, // Configuration des modes d'entraînement (supersets, circuits)
     foodAccordionState: {} // État des accordéons dans la base d'aliments
@@ -43,8 +44,15 @@ function loadState() {
             if (!state.foodAccordionState) state.foodAccordionState = {};
             if (!state.progressLog) state.progressLog = {};
             if (!state.sessionHistory) state.sessionHistory = [];
+            if (!state.activeSession) state.activeSession = null;
             if (!state.foodJournal) state.foodJournal = {};
             if (!state.dailyMenu) state.dailyMenu = { breakfast: [], lunch: [], snack: [], dinner: [] };
+
+            // Restaurer le programme IA personnalisé s'il existe
+            if (state.aiCustomProgram && typeof trainingPrograms !== 'undefined') {
+                trainingPrograms['ai-custom'] = state.aiCustomProgram;
+                console.log('✅ Programme IA restauré depuis localStorage');
+            };
         } catch (e) {
             console.error('Erreur lors du chargement des données:', e);
             // Réinitialiser le state en cas d'erreur de parsing

@@ -16,6 +16,7 @@
     --accent-brand: #ff0000;
     --accent-brand-hover: #cc0000;
     --accent-success: #22c55e;
+    --success: #22c55e;
     --accent-glow: rgba(255, 255, 255, 0.05);
     
     /* Text */
@@ -4444,4 +4445,402 @@ h1, h2, h3, h4, h5, h6 {
 
 .ai-summary-row.highlight strong {
     color: var(--success);
+}
+
+/* ==================== PROGRESSION ENGINE STYLES ==================== */
+
+/* Période Banner */
+.progression-period-banner {
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.progression-period-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent-primary);
+}
+
+.progression-period-banner.deload::before {
+    background: linear-gradient(90deg, var(--success), #10b981);
+}
+
+.progression-period-banner.overreach::before {
+    background: linear-gradient(90deg, var(--warning), var(--accent-brand));
+}
+
+.progression-period-banner.intensification::before {
+    background: linear-gradient(90deg, var(--info), #6366f1);
+}
+
+.period-info {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.period-week {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.period-cycle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.period-type {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.progression-period-banner.deload .period-type {
+    color: var(--success);
+}
+
+.progression-period-banner.overreach .period-type {
+    color: var(--warning);
+}
+
+.period-message {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Recommandations globales */
+.global-recommendations {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.recommendation-alert {
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-left: 4px solid;
+}
+
+.recommendation-alert.high {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.recommendation-alert.medium {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+.recommendation-alert.low {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--info);
+    color: var(--info);
+}
+
+/* Liste des exercices avec progression */
+.exercise-progression-list {
+    display: grid;
+    gap: 12px;
+}
+
+.exercise-progression-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    transition: var(--transition-fast);
+}
+
+.exercise-progression-item:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-hover);
+}
+
+.exercise-progression-item.increase_weight {
+    border-left: 3px solid var(--success);
+}
+
+.exercise-progression-item.decrease_weight {
+    border-left: 3px solid var(--warning);
+}
+
+.exercise-progression-item.maintain_push {
+    border-left: 3px solid var(--info);
+}
+
+.exercise-prog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.exercise-prog-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.exercise-prog-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+}
+
+.exercise-prog-badge.increase_weight {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+}
+
+.exercise-prog-badge.decrease_weight {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+}
+
+.exercise-prog-badge.maintain_push {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--info);
+}
+
+.exercise-prog-badge.maintain {
+    background: rgba(161, 161, 161, 0.15);
+    color: var(--text-secondary);
+}
+
+.exercise-prog-details {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+}
+
+.exercise-prog-weight {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.exercise-prog-conf {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.exercise-prog-conf.confidence-high {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.exercise-prog-conf.confidence-medium {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.exercise-prog-conf.confidence-low {
+    background: rgba(161, 161, 161, 0.1);
+    color: var(--text-muted);
+}
+
+.exercise-prog-message {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.exercise-prog-plateau {
+    font-size: 0.8rem;
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.1);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+}
+
+.exercise-progression-item .btn {
+    margin-top: 5px;
+}
+
+/* Volume Analysis */
+.volume-analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.volume-muscle-card {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    text-align: center;
+}
+
+.volume-muscle-name {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.volume-muscle-sets {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.volume-muscle-sets.low {
+    color: var(--warning);
+}
+
+.volume-muscle-sets.optimal {
+    color: var(--success);
+}
+
+.volume-muscle-sets.high {
+    color: var(--info);
+}
+
+.volume-muscle-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Recommendations Card (Dashboard) */
+.recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.recommendation-item {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    border: 1px solid var(--border-color);
+}
+
+.recommendation-item.increase_weight {
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.recommendation-item.decrease_weight {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.recommendation-item.deload {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.recommendation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.recommendation-exercise {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.recommendation-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+}
+
+.recommendation-badge.increase_weight {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+}
+
+.recommendation-badge.decrease_weight {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+}
+
+.recommendation-badge.deload {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--info);
+}
+
+.recommendation-message {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.recommendation-suggestion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.suggestion-weight {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.suggestion-weight strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Progression Analysis Section in Progress Tab */
+.progression-analysis {
+    padding: 10px 0;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+    .progression-period-banner {
+        padding: 15px;
+    }
+
+    .period-type {
+        font-size: 1.1rem;
+    }
+
+    .exercise-prog-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .recommendation-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .recommendation-suggestion {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
 }
