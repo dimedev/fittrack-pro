@@ -65,98 +65,115 @@ function openProfileModal() {
     openModal('profile-modal');
 }
 
-function saveProfile() {
-    const profile = {
-        age: parseInt(document.getElementById('profile-age').value),
-        gender: document.getElementById('profile-gender').value,
-        weight: parseFloat(document.getElementById('profile-weight').value),
-        height: parseInt(document.getElementById('profile-height').value),
-        activity: parseFloat(document.getElementById('profile-activity').value),
-        goal: document.getElementById('profile-goal').value
-    };
-
-    // Validation
-    if (!profile.age || !profile.weight || !profile.height) {
-        showToast('Veuillez remplir tous les champs', 'error');
-        return;
-    }
-
-    if (profile.age < 10 || profile.age > 100) {
-        showToast('Âge invalide', 'error');
-        return;
-    }
-
-    if (profile.weight < 30 || profile.weight > 300) {
-        showToast('Poids invalide', 'error');
-        return;
-    }
-
-    if (profile.height < 100 || profile.height > 250) {
-        showToast('Taille invalide', 'error');
-        return;
-    }
-
-    // Calcul du BMR avec la formule Mifflin-St Jeor
-    let bmr;
-    if (profile.gender === 'male') {
-        bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + 5;
-    } else {
-        bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age - 161;
-    }
-
-    // Calcul du TDEE (Total Daily Energy Expenditure)
-    const tdee = Math.round(bmr * profile.activity);
-
-    // Ajustement selon l'objectif
-    let targetCalories;
-    switch (profile.goal) {
-        case 'cut': 
-            targetCalories = tdee - 500; 
-            break;
-        case 'maintain': 
-            targetCalories = tdee; 
-            break;
-        case 'lean-bulk': 
-            targetCalories = tdee + 250; 
-            break;
-        case 'bulk': 
-            targetCalories = tdee + 500; 
-            break;
-        default:
-            targetCalories = tdee;
-    }
-
-    // Calcul des macros
-    // Protéines: 2g/kg pour la musculation
-    // Lipides: 0.8-1g/kg pour la santé hormonale
-    // Glucides: reste des calories
-    const proteinGrams = Math.round(profile.weight * 2);
-    const fatGrams = Math.round(profile.weight * 0.9);
-    const proteinCals = proteinGrams * 4;
-    const fatCals = fatGrams * 9;
-    const carbsCals = targetCalories - proteinCals - fatCals;
-    const carbsGrams = Math.round(Math.max(0, carbsCals / 4));
-
-    profile.bmr = bmr;
-    profile.tdee = tdee;
-    profile.targetCalories = targetCalories;
-    profile.macros = {
-        protein: proteinGrams,
-        carbs: carbsGrams,
-        fat: fatGrams
-    };
-
-    state.profile = profile;
-    saveState();
+async function saveProfile() {
+    const btn = document.querySelector('#profile-modal .btn-primary');
     
-    // Sync avec Supabase si connecté
-    if (isLoggedIn()) {
-        saveProfileToSupabase(profile);
+    // Activer l'état loading
+    if (btn) {
+        btn.classList.add('loading');
+        btn.disabled = true;
     }
     
-    closeModal('profile-modal');
-    updateDashboard();
-    showToast('Profil enregistré !', 'success');
+    try {
+        const profile = {
+            age: parseInt(document.getElementById('profile-age').value),
+            gender: document.getElementById('profile-gender').value,
+            weight: parseFloat(document.getElementById('profile-weight').value),
+            height: parseInt(document.getElementById('profile-height').value),
+            activity: parseFloat(document.getElementById('profile-activity').value),
+            goal: document.getElementById('profile-goal').value
+        };
+
+        // Validation
+        if (!profile.age || !profile.weight || !profile.height) {
+            showToast('Veuillez remplir tous les champs', 'error');
+            return;
+        }
+
+        if (profile.age < 10 || profile.age > 100) {
+            showToast('Âge invalide', 'error');
+            return;
+        }
+
+        if (profile.weight < 30 || profile.weight > 300) {
+            showToast('Poids invalide', 'error');
+            return;
+        }
+
+        if (profile.height < 100 || profile.height > 250) {
+            showToast('Taille invalide', 'error');
+            return;
+        }
+
+        // Calcul du BMR avec la formule Mifflin-St Jeor
+        let bmr;
+        if (profile.gender === 'male') {
+            bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + 5;
+        } else {
+            bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age - 161;
+        }
+
+        // Calcul du TDEE (Total Daily Energy Expenditure)
+        const tdee = Math.round(bmr * profile.activity);
+
+        // Ajustement selon l'objectif
+        let targetCalories;
+        switch (profile.goal) {
+            case 'cut': 
+                targetCalories = tdee - 500; 
+                break;
+            case 'maintain': 
+                targetCalories = tdee; 
+                break;
+            case 'lean-bulk': 
+                targetCalories = tdee + 250; 
+                break;
+            case 'bulk': 
+                targetCalories = tdee + 500; 
+                break;
+            default:
+                targetCalories = tdee;
+        }
+
+        // Calcul des macros
+        // Protéines: 2g/kg pour la musculation
+        // Lipides: 0.8-1g/kg pour la santé hormonale
+        // Glucides: reste des calories
+        const proteinGrams = Math.round(profile.weight * 2);
+        const fatGrams = Math.round(profile.weight * 0.9);
+        const proteinCals = proteinGrams * 4;
+        const fatCals = fatGrams * 9;
+        const carbsCals = targetCalories - proteinCals - fatCals;
+        const carbsGrams = Math.round(Math.max(0, carbsCals / 4));
+
+        profile.bmr = bmr;
+        profile.tdee = tdee;
+        profile.targetCalories = targetCalories;
+        profile.macros = {
+            protein: proteinGrams,
+            carbs: carbsGrams,
+            fat: fatGrams
+        };
+
+        state.profile = profile;
+        saveState();
+        
+        // Sync avec Supabase si connecté
+        if (isLoggedIn()) {
+            await saveProfileToSupabase(profile);
+        }
+        
+        closeModal('profile-modal');
+        updateDashboard();
+        showToast('Profil enregistré !', 'success');
+        
+    } finally {
+        // Désactiver l'état loading
+        if (btn) {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    }
 }
 
 function updateDashboard() {
@@ -239,25 +256,114 @@ function updateDashboard() {
 }
 
 function updateMacroBars() {
-    if (!state.profile) return;
+    if (!state.profile || !state.profile.macros) return;
 
     const consumed = calculateConsumedMacros();
     const targets = state.profile.macros;
+    const targetCalories = state.profile.targetCalories || 2000;
 
-    // Protéines
-    const proteinPercent = Math.min((consumed.protein / targets.protein) * 100, 100);
-    document.getElementById('macro-protein-value').textContent = `${consumed.protein} / ${targets.protein}g`;
-    document.getElementById('macro-protein-bar').style.width = `${proteinPercent}%`;
+    // === PROGRESS RINGS (Premium UI) ===
+    if (window.PremiumUI && typeof window.PremiumUI.createProgressRing === 'function') {
+        // Calories Ring
+        const caloriesContainer = document.getElementById('ring-calories');
+        if (caloriesContainer) {
+            window.PremiumUI.createProgressRing(caloriesContainer, {
+                value: consumed.calories,
+                max: targetCalories,
+                label: 'kcal',
+                type: 'calories',
+                size: 90
+            });
+            const caloriesDetail = document.getElementById('ring-calories-detail');
+            if (caloriesDetail) caloriesDetail.textContent = `${consumed.calories} / ${targetCalories}`;
+        }
 
-    // Glucides
-    const carbsPercent = Math.min((consumed.carbs / targets.carbs) * 100, 100);
-    document.getElementById('macro-carbs-value').textContent = `${consumed.carbs} / ${targets.carbs}g`;
-    document.getElementById('macro-carbs-bar').style.width = `${carbsPercent}%`;
+        // Protein Ring
+        const proteinContainer = document.getElementById('ring-protein');
+        if (proteinContainer) {
+            window.PremiumUI.createProgressRing(proteinContainer, {
+                value: consumed.protein,
+                max: targets.protein,
+                label: 'prot',
+                type: 'protein',
+                size: 90
+            });
+            const proteinDetail = document.getElementById('ring-protein-detail');
+            if (proteinDetail) proteinDetail.textContent = `${consumed.protein} / ${targets.protein}g`;
+        }
 
-    // Lipides
-    const fatPercent = Math.min((consumed.fat / targets.fat) * 100, 100);
-    document.getElementById('macro-fat-value').textContent = `${consumed.fat} / ${targets.fat}g`;
-    document.getElementById('macro-fat-bar').style.width = `${fatPercent}%`;
+        // Carbs Ring
+        const carbsContainer = document.getElementById('ring-carbs');
+        if (carbsContainer) {
+            window.PremiumUI.createProgressRing(carbsContainer, {
+                value: consumed.carbs,
+                max: targets.carbs,
+                label: 'gluc',
+                type: 'carbs',
+                size: 90
+            });
+            const carbsDetail = document.getElementById('ring-carbs-detail');
+            if (carbsDetail) carbsDetail.textContent = `${consumed.carbs} / ${targets.carbs}g`;
+        }
+
+        // Fat Ring
+        const fatContainer = document.getElementById('ring-fat');
+        if (fatContainer) {
+            window.PremiumUI.createProgressRing(fatContainer, {
+                value: consumed.fat,
+                max: targets.fat,
+                label: 'lip',
+                type: 'fat',
+                size: 90
+            });
+            const fatDetail = document.getElementById('ring-fat-detail');
+            if (fatDetail) fatDetail.textContent = `${consumed.fat} / ${targets.fat}g`;
+        }
+
+        // Update status badge
+        const statusBadge = document.getElementById('macros-status');
+        if (statusBadge) {
+            const caloriesPercent = (consumed.calories / targetCalories) * 100;
+            if (caloriesPercent >= 90 && caloriesPercent <= 110) {
+                statusBadge.textContent = '✓ Objectif atteint';
+                statusBadge.className = 'badge badge-success';
+                statusBadge.style.display = 'inline-flex';
+            } else if (caloriesPercent > 110) {
+                statusBadge.textContent = 'Dépassé';
+                statusBadge.className = 'badge badge-warning';
+                statusBadge.style.display = 'inline-flex';
+            } else if (caloriesPercent > 0) {
+                statusBadge.textContent = 'En cours';
+                statusBadge.className = 'badge badge-info';
+                statusBadge.style.display = 'inline-flex';
+            } else {
+                statusBadge.style.display = 'none';
+            }
+        }
+    }
+
+    // === FALLBACK BARS (for very small screens or if PremiumUI not loaded) ===
+    const proteinBar = document.getElementById('macro-protein-bar');
+    const carbsBar = document.getElementById('macro-carbs-bar');
+    const fatBar = document.getElementById('macro-fat-bar');
+
+    if (proteinBar) {
+        const proteinPercent = Math.min((consumed.protein / targets.protein) * 100, 100);
+        document.getElementById('macro-protein-value').textContent = `${consumed.protein} / ${targets.protein}g`;
+        proteinBar.style.width = `${proteinPercent}%`;
+    }
+
+    if (carbsBar) {
+        const carbsPercent = Math.min((consumed.carbs / targets.carbs) * 100, 100);
+        document.getElementById('macro-carbs-value').textContent = `${consumed.carbs} / ${targets.carbs}g`;
+        carbsBar.style.width = `${carbsPercent}%`;
+    }
+
+    if (fatBar) {
+        const fatPercent = Math.min((consumed.fat / targets.fat) * 100, 100);
+        document.getElementById('macro-fat-value').textContent = `${consumed.fat} / ${targets.fat}g`;
+        fatBar.style.width = `${fatPercent}%`;
+    }
 }
 
 function calculateConsumedMacros() {

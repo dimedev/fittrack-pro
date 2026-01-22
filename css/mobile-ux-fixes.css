@@ -1,0 +1,855 @@
+/* ==================== FITTRACK PRO - MOBILE UX FIXES ==================== */
+/* Correctifs ciblés pour une UX mobile irréprochable (one-hand usage) */
+/* Version: 1.0 - Diagnostic complet et solutions */
+
+/* ==================== DIAGNOSTIC DES PROBLÈMES ==================== */
+/*
+   PROBLÈME 1: Zones cliquables décalées
+   - CAUSE: transform, position:relative sur parents, z-index conflictuels
+   - CAUSE: pointer-events mal configurés sur pseudo-éléments
+   - CAUSE: overflow:hidden qui coupe les zones de tap
+   
+   PROBLÈME 2: Inputs trop petits
+   - CAUSE: padding insuffisant, height non définie
+   - CAUSE: font-size < 16px provoque zoom iOS
+   
+   PROBLÈME 3: Chiffres qui dépassent sur les rings
+   - CAUSE: container trop petit pour le texte
+   - CAUSE: font-size non responsive
+   - CAUSE: pas de clamp() ou overflow handling
+   
+   PROBLÈME 4: Modales non adaptées mobile
+   - CAUSE: max-height mal calculé, pas de safe-area
+   - CAUSE: bouton close trop petit et mal positionné
+   
+   PROBLÈME 5: Navigation perfectible
+   - CAUSE: tap targets < 44px (Apple HIG minimum)
+   - CAUSE: pas de feedback tactile approprié
+*/
+
+/* ==================== FIX 1: ZONES CLIQUABLES ==================== */
+
+/* Désactiver pointer-events sur tous les pseudo-éléments décoratifs */
+@media (max-width: 768px) {
+    .btn::before,
+    .btn::after,
+    .card::before,
+    .card::after,
+    .stat-card::before,
+    .stat-card::after,
+    .program-card::before,
+    .program-card::after,
+    .nav-tab::before,
+    .nav-tab::after,
+    .mobile-nav-item::before,
+    .mobile-nav-item::after {
+        pointer-events: none !important;
+    }
+
+    /* Reset transforms qui peuvent décaler les zones de tap */
+    .btn:not(:active),
+    .card:not(:active),
+    .stat-card:not(:active) {
+        transform: none !important;
+    }
+
+    /* S'assurer que les éléments cliquables ont une zone de tap étendue */
+    .btn,
+    .nav-tab,
+    .tab,
+    .mobile-nav-item,
+    .food-select-item,
+    .food-search-item,
+    .program-card,
+    .exercise-card-header,
+    .meal-header,
+    .workout-day-header {
+        position: relative;
+        isolation: isolate; /* Nouveau contexte d'empilement */
+    }
+
+    /* Technique du pseudo-élément pour étendre la zone de tap */
+    .food-btn::before,
+    .btn-icon::before,
+    .modal-close::before,
+    .timer-preset-btn::before,
+    .journal-entry-delete::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+        z-index: -1;
+    }
+
+    /* Fix z-index conflicts */
+    .nav {
+        z-index: 100;
+    }
+    
+    .mobile-nav {
+        z-index: 100;
+    }
+    
+    .modal-overlay {
+        z-index: 200;
+    }
+    
+    .toast-container {
+        z-index: 300;
+    }
+
+    /* Fix pour les items de liste avec actions */
+    .food-item,
+    .journal-entry {
+        position: relative;
+        z-index: 1;
+    }
+
+    .food-item-actions,
+    .journal-entry-delete {
+        position: relative;
+        z-index: 2;
+    }
+}
+
+/* ==================== FIX 2: INPUTS MOBILE-FRIENDLY ==================== */
+
+@media (max-width: 768px) {
+    /* Taille minimum pour éviter zoom iOS et assurer accessibilité */
+    .form-input,
+    .form-select,
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    input[type="date"],
+    input[type="time"],
+    textarea,
+    select {
+        min-height: 48px !important;
+        font-size: 16px !important; /* CRUCIAL: évite zoom iOS */
+        padding: 12px 16px !important;
+        border-radius: 12px;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    /* Inputs dans les séances (sets, reps, weight) */
+    .set-input,
+    .log-entry input,
+    .set-row input {
+        min-height: 44px !important;
+        min-width: 60px;
+        font-size: 16px !important;
+        padding: 10px 8px !important;
+        text-align: center;
+        border-radius: 10px;
+    }
+
+    /* Input de recherche */
+    #food-search,
+    #add-food-search,
+    #swap-food-search,
+    #journal-food-search,
+    #swap-exercise-search,
+    #create-favorite-food-search {
+        min-height: 52px !important;
+        padding: 14px 16px 14px 44px !important; /* Espace pour icône */
+        font-size: 16px !important;
+    }
+
+    /* Quantité dans le journal */
+    .journal-entry-qty input {
+        min-width: 80px;
+        min-height: 44px !important;
+        font-size: 16px !important;
+    }
+
+    /* Select avec flèche */
+    .form-select {
+        background-position: right 14px center;
+        background-size: 20px;
+        padding-right: 48px !important;
+    }
+}
+
+/* ==================== FIX 3: RINGS - CHIFFRES QUI DÉPASSENT ==================== */
+
+@media (max-width: 768px) {
+    /* Container des rings adaptatif */
+    .macros-rings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px 12px;
+        padding: 12px 8px;
+    }
+
+    .macro-ring-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        min-width: 0; /* Permet shrink */
+    }
+
+    /* Ring container avec taille contrainte */
+    .ring-container {
+        width: clamp(70px, 18vw, 90px);
+        height: clamp(70px, 18vw, 90px);
+        position: relative;
+    }
+
+    /* Valeur centrale du ring - CRITIQUE */
+    .progress-ring__value {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        width: 100%;
+        padding: 0 8px;
+        box-sizing: border-box;
+    }
+
+    .progress-ring__number {
+        font-size: clamp(0.9rem, 4vw, 1.3rem) !important;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.5px;
+        /* Empêcher le débordement */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    .progress-ring__label {
+        font-size: clamp(0.5rem, 2.5vw, 0.65rem) !important;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        /* Tronquer si trop long */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Sous-titre du ring (valeurs détaillées) */
+    .ring-subtitle {
+        font-size: clamp(0.6rem, 2.8vw, 0.75rem) !important;
+        color: var(--text-muted);
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        padding: 0 4px;
+    }
+
+    /* SVG du ring responsive */
+    .progress-ring {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .progress-ring__svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Épaisseur du trait adaptative */
+    .progress-ring__circle-bg,
+    .progress-ring__circle {
+        stroke-width: 6;
+    }
+}
+
+/* Très petits écrans - afficher barres à la place */
+@media (max-width: 360px) {
+    .macros-rings-container {
+        display: none !important;
+    }
+
+    .macros-bars-fallback {
+        display: block !important;
+    }
+
+    /* Alternative: rings en colonne si on veut les garder */
+    .macros-rings-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px 8px;
+    }
+
+    .ring-container {
+        width: 65px;
+        height: 65px;
+    }
+
+    .progress-ring__number {
+        font-size: 0.85rem !important;
+    }
+
+    .ring-subtitle {
+        font-size: 0.55rem !important;
+    }
+}
+
+/* ==================== FIX 4: MODALES MOBILE (BOTTOM SHEET) ==================== */
+
+@media (max-width: 768px) {
+    /* Overlay */
+    .modal-overlay {
+        align-items: flex-end !important;
+        padding: 0 !important;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.active {
+        display: flex !important;
+    }
+
+    /* Modal en bottom sheet */
+    .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: calc(100vh - 60px) !important;
+        max-height: calc(100dvh - 60px) !important; /* Dynamic viewport */
+        margin: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        animation: bottomSheetIn 0.3s cubic-bezier(0.32, 0.72, 0, 1) !important;
+        overflow: hidden;
+    }
+
+    @keyframes bottomSheetIn {
+        from {
+            transform: translateY(100%);
+            opacity: 0.8;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Handle de drag en haut */
+    .modal-header {
+        position: relative;
+        padding: 28px 20px 16px !important;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40px;
+        height: 5px;
+        background: var(--border-hover);
+        border-radius: 3px;
+    }
+
+    /* Bouton close accessible */
+    .modal-close {
+        position: absolute !important;
+        top: 20px !important;
+        right: 16px !important;
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px;
+        min-height: 44px;
+        border-radius: 12px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+    }
+
+    .modal-close:active {
+        background: var(--danger);
+        color: white;
+        transform: scale(0.95);
+    }
+
+    /* Modal title */
+    .modal-title {
+        font-size: 1.1rem;
+        padding-right: 50px; /* Espace pour bouton close */
+    }
+
+    /* Body scrollable avec safe area */
+    .modal-body {
+        padding: 20px !important;
+        max-height: calc(100vh - 200px);
+        max-height: calc(100dvh - 200px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    /* Footer sticky avec safe area */
+    .modal-footer {
+        position: sticky;
+        bottom: 0;
+        padding: 16px 20px !important;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 12px;
+    }
+
+    .modal-footer .btn {
+        flex: 1;
+        min-height: 48px;
+        justify-content: center;
+    }
+
+    /* Inputs dans modales */
+    .modal .form-input,
+    .modal .form-select {
+        font-size: 16px !important;
+        min-height: 48px !important;
+    }
+
+    /* Grid dans modales */
+    .modal .grid-2 {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+}
+
+/* ==================== FIX 5: NAVIGATION AMÉLIORÉE ==================== */
+
+@media (max-width: 768px) {
+    /* Mobile Nav - One hand usage */
+    .mobile-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: calc(70px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid var(--border-color);
+        z-index: 100;
+        display: block !important;
+    }
+
+    .mobile-nav-items {
+        display: flex;
+        justify-content: space-around;
+        align-items: stretch;
+        height: 70px;
+        padding: 0;
+    }
+
+    /* Chaque item de nav - Zone de tap 44x44 minimum */
+    .mobile-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-height: 70px;
+        min-width: 60px;
+        padding: 8px 4px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        cursor: pointer;
+        transition: color 0.15s ease, transform 0.1s ease;
+        position: relative;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-nav-item svg {
+        width: 26px;
+        height: 26px;
+        stroke-width: 1.8;
+        transition: transform 0.15s ease;
+    }
+
+    /* État actif */
+    .mobile-nav-item.active {
+        color: var(--text-primary);
+    }
+
+    .mobile-nav-item.active svg {
+        color: var(--accent-brand);
+        transform: scale(1.1);
+    }
+
+    /* Indicateur actif */
+    .mobile-nav-item.active::after {
+        content: '';
+        position: absolute;
+        bottom: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 5px;
+        height: 5px;
+        background: var(--accent-brand);
+        border-radius: 50%;
+    }
+
+    /* Feedback au tap */
+    .mobile-nav-item:active {
+        transform: scale(0.92);
+    }
+
+    .mobile-nav-item:active svg {
+        transform: scale(0.9);
+    }
+
+    /* Top nav simplifié */
+    .nav {
+        height: calc(56px + env(safe-area-inset-top, 0px));
+        padding-top: env(safe-area-inset-top, 0px);
+        justify-content: center;
+    }
+
+    .nav-tabs,
+    .nav-actions {
+        display: none !important;
+    }
+
+    .logo {
+        font-size: 1.1rem;
+    }
+
+    /* Main padding ajusté */
+    .main {
+        padding-top: calc(56px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* ==================== FIX 6: TABS HORIZONTAUX SCROLLABLES ==================== */
+
+@media (max-width: 768px) {
+    .tabs {
+        display: flex;
+        gap: 4px;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding: 4px;
+        margin-bottom: 16px;
+    }
+
+    .tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tab {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 12px 18px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        scroll-snap-align: start;
+        border-radius: 10px;
+    }
+
+    .tab:active {
+        transform: scale(0.95);
+    }
+}
+
+/* ==================== FIX 7: BOUTONS ET ACTIONS ==================== */
+
+@media (max-width: 768px) {
+    /* Tous les boutons - minimum 44px tap target */
+    .btn {
+        min-height: 44px;
+        padding: 12px 20px;
+        font-size: 0.95rem;
+        border-radius: 12px;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-sm {
+        min-height: 40px;
+        padding: 10px 16px;
+        font-size: 0.875rem;
+    }
+
+    .btn-icon {
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
+    }
+
+    /* Boutons d'action sur les items */
+    .food-btn {
+        min-width: 36px;
+        min-height: 36px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+    }
+
+    /* Timer preset buttons */
+    .timer-preset-btn {
+        min-height: 48px;
+        flex: 1;
+        padding: 12px 16px;
+        font-size: 1rem;
+        border-radius: 12px;
+    }
+
+    /* Feedback tactile */
+    .btn:active,
+    .food-btn:active,
+    .timer-preset-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+
+    /* Désactiver hover effects sur touch */
+    .btn:hover,
+    .card:hover,
+    .stat-card:hover,
+    .program-card:hover,
+    .food-select-item:hover,
+    .food-search-item:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* ==================== FIX 8: CARDS ET ITEMS CLIQUABLES ==================== */
+
+@media (max-width: 768px) {
+    /* Food items - zone de tap étendue */
+    .food-select-item,
+    .food-search-item {
+        min-height: 60px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        gap: 12px;
+    }
+
+    .food-select-item:active,
+    .food-search-item:active {
+        background: var(--bg-hover);
+        transform: scale(0.98);
+    }
+
+    /* Exercise cards */
+    .exercise-card-header {
+        min-height: 56px;
+        padding: 14px 16px;
+    }
+
+    .exercise-card-header:active {
+        background: var(--bg-hover);
+    }
+
+    /* Program cards */
+    .program-card {
+        padding: 20px;
+    }
+
+    .program-card:active {
+        transform: scale(0.98);
+        border-color: var(--accent-brand);
+    }
+
+    /* Stat cards non cliquables - pas de feedback */
+    .stat-card {
+        pointer-events: none;
+    }
+}
+
+/* ==================== FIX 9: TOAST POSITION MOBILE ==================== */
+
+@media (max-width: 768px) {
+    .toast-container,
+    #toast-container {
+        position: fixed;
+        bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+        left: 16px;
+        right: 16px;
+        top: auto !important;
+        z-index: 300;
+    }
+
+    .toast {
+        width: 100%;
+        max-width: none;
+        border-radius: 14px;
+        padding: 14px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+/* ==================== FIX 10: GESTURES HELPERS ==================== */
+
+@media (max-width: 768px) {
+    /* Swipe hint pour les items supprimables */
+    .journal-entry,
+    .food-item {
+        position: relative;
+        overflow: visible;
+    }
+
+    /* Animation subtile pour indiquer swipe possible */
+    @keyframes swipeHint {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(-5px); }
+    }
+
+    .journal-entry:first-child {
+        animation: swipeHint 2s ease-in-out 2s 2;
+    }
+
+    /* Pull to refresh indicator area */
+    .section.active {
+        min-height: calc(100vh - 140px);
+        overscroll-behavior-y: contain;
+    }
+}
+
+/* ==================== FIX 11: STAT CARDS OVERFLOW ==================== */
+
+@media (max-width: 768px) {
+    .stat-card {
+        padding: 14px 16px;
+        overflow: hidden;
+    }
+
+    .stat-value {
+        font-size: clamp(1.4rem, 6vw, 2rem);
+        line-height: 1.1;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .stat-label {
+        font-size: 0.65rem;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-unit {
+        font-size: 0.7rem;
+    }
+
+    /* Stat avec texte long (ex: nom du programme) */
+    #stat-program {
+        font-size: clamp(0.9rem, 4vw, 1.3rem) !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+/* ==================== FIX 12: LANDSCAPE MODE ==================== */
+
+@media (max-width: 768px) and (orientation: landscape) {
+    .mobile-nav {
+        height: 50px;
+    }
+
+    .mobile-nav-items {
+        height: 50px;
+    }
+
+    .mobile-nav-item {
+        min-height: 50px;
+    }
+
+    .mobile-nav-item span {
+        display: none;
+    }
+
+    .mobile-nav-item svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .main {
+        padding-bottom: 65px;
+    }
+
+    .modal {
+        max-height: 90vh !important;
+    }
+
+    .modal-body {
+        max-height: 50vh;
+    }
+}
+
+/* ==================== FIX 13: REDUCED MOTION ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .modal {
+        animation: none !important;
+    }
+}
+
+/* ==================== FIX 14: DARK MODE OLED OPTIMIZATION ==================== */
+
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+    body,
+    .nav,
+    .mobile-nav,
+    .modal,
+    .card,
+    .stat-card {
+        background-color: #000000;
+    }
+}
+
+/* ==================== FIX 15: FOCUS VISIBLE POUR ACCESSIBILITÉ ==================== */
+
+@media (max-width: 768px) {
+    *:focus-visible {
+        outline: 2px solid var(--accent-brand);
+        outline-offset: 2px;
+    }
+
+    .btn:focus-visible,
+    .form-input:focus-visible,
+    .form-select:focus-visible {
+        box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.3);
+    }
+
+    /* Cacher l'outline pour les interactions touch */
+    *:focus:not(:focus-visible) {
+        outline: none;
+    }
+}

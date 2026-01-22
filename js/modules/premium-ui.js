@@ -11,8 +11,11 @@ function createProgressRing(container, { value, max, label, type = 'calories', s
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percentage / 100) * circumference;
     
+    const displayValue = Math.round(value);
+    const formattedValue = displayValue > 9999 ? Math.round(displayValue / 1000) + 'k' : displayValue;
+    
     container.innerHTML = `
-        <div class="progress-ring" style="width: ${size}px; height: ${size}px;">
+        <div class="progress-ring progress-ring--${type}" style="width: ${size}px; height: ${size}px;">
             <svg class="progress-ring__svg" viewBox="0 0 100 100">
                 <defs>
                     <linearGradient id="gradient-calories" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -42,7 +45,7 @@ function createProgressRing(container, { value, max, label, type = 'calories', s
                 />
             </svg>
             <div class="progress-ring__value">
-                <div class="progress-ring__number">${Math.round(value)}</div>
+                <div class="progress-ring__number">${formattedValue}</div>
                 <div class="progress-ring__label">${label}${unit ? ` ${unit}` : ''}</div>
             </div>
         </div>
@@ -50,10 +53,11 @@ function createProgressRing(container, { value, max, label, type = 'calories', s
     
     requestAnimationFrame(() => {
         const circle = container.querySelector('.progress-ring__circle');
+        const ring = container.querySelector('.progress-ring');
         if (circle) {
             circle.style.strokeDashoffset = offset;
             if (percentage >= 100) {
-                container.querySelector('.progress-ring').classList.add('progress-ring--complete');
+                ring.classList.add('progress-ring--complete');
             }
         }
     });
@@ -70,7 +74,11 @@ function updateProgressRing(container, value, max) {
     const offset = circumference - (percentage / 100) * circumference;
     
     circle.style.strokeDashoffset = offset;
-    animateValue(numberEl, parseInt(numberEl.textContent) || 0, Math.round(value), 400);
+    
+    // Formater le nombre pour éviter débordement
+    const displayValue = Math.round(value);
+    const formattedValue = displayValue > 9999 ? Math.round(displayValue / 1000) + 'k' : displayValue;
+    animateValue(numberEl, parseInt(numberEl.textContent) || 0, formattedValue, 400);
     
     if (percentage >= 100) {
         ring?.classList.add('progress-ring--complete');
@@ -367,7 +375,58 @@ function addBadgeOverlay(element, text, type = 'brand') {
 
 function initPremiumUI() {
     CommandPalette.init();
+    
+    // Show keyboard shortcut hint for new users
+    showKbdHint();
+    
     console.log('✨ FitTrack Premium UI initialized');
+}
+
+function showKbdHint() {
+    // Only show on desktop
+    if (window.innerWidth <= 768) return;
+    
+    // Check if user has used command palette before
+    const hasUsedCmdK = localStorage.getItem('fittrack_used_cmdk');
+    if (hasUsedCmdK) return;
+    
+    // Create hint element
+    const hint = document.createElement('div');
+    hint.className = 'kbd-hint';
+    hint.innerHTML = `
+        <span>Astuce : </span>
+        <span class="command-key">⌘</span>
+        <span class="command-key">K</span>
+        <span>pour rechercher</span>
+    `;
+    document.body.appendChild(hint);
+    
+    // Show after 3 seconds
+    setTimeout(() => {
+        hint.classList.add('visible');
+    }, 3000);
+    
+    // Hide after 8 seconds
+    setTimeout(() => {
+        hint.classList.remove('visible');
+        setTimeout(() => hint.remove(), 300);
+        localStorage.setItem('fittrack_used_cmdk', 'true');
+    }, 11000);
+}
+
+// Add skeletons on page load
+function showInitialSkeletons() {
+    // Dashboard stats skeleton
+    const statsGrid = document.querySelector('#dashboard .grid.grid-4');
+    if (statsGrid && !statsGrid.dataset.loaded) {
+        const statCards = statsGrid.querySelectorAll('.stat-card');
+        statCards.forEach(card => {
+            const value = card.querySelector('.stat-value');
+            if (value && value.textContent === '--') {
+                card.classList.add('skeleton-loading');
+            }
+        });
+    }
 }
 
 if (document.readyState === 'loading') {

@@ -24,6 +24,11 @@ function loadSessionDayV2() {
         return;
     }
 
+    // Afficher un skeleton pendant le chargement
+    if (window.PremiumUI && container.children.length === 0) {
+        container.innerHTML = window.PremiumUI.SkeletonTemplates.exerciseList(4);
+    }
+
     // Initialiser ou récupérer la session via SessionManager
     const session = SessionManager.getOrCreateSession(dayIndex);
     
@@ -510,31 +515,52 @@ function addExerciseToSession(exerciseId) {
 /**
  * Sauvegarde la session avec le nouveau système
  */
-function saveSessionV2() {
-    const result = SessionManager.finalizeSession();
+async function saveSessionV2() {
+    const btn = document.querySelector('#save-session-btn .btn-primary') || 
+                document.querySelector('#save-session-btn button');
     
-    if (!result) {
-        showToast('Remplissez au moins une série pour sauvegarder', 'error');
-        return;
+    // Activer l'état loading
+    if (btn) {
+        btn.classList.add('loading');
+        btn.disabled = true;
     }
     
-    // Mettre à jour l'UI
-    if (typeof updateStreak === 'function') updateStreak();
-    if (typeof updateProgressionRecommendations === 'function') updateProgressionRecommendations();
-    if (typeof updateProgressionAnalysis === 'function') updateProgressionAnalysis();
-    if (typeof renderPRsSection === 'function') renderPRsSection();
-    updateSessionHistory();
-    populateProgressExerciseSelect();
-    
-    // Afficher notification PR si nécessaire
-    if (result.newPRs && result.newPRs.length > 0) {
-        showPRNotification(result.newPRs);
-    } else {
-        showToast('Séance enregistrée ! 💪', 'success');
+    try {
+        const result = SessionManager.finalizeSession();
+        
+        if (!result) {
+            showToast('Remplissez au moins une série pour sauvegarder', 'error');
+            return;
+        }
+        
+        // Petit délai pour feedback visuel
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Mettre à jour l'UI
+        if (typeof updateStreak === 'function') updateStreak();
+        if (typeof updateProgressionRecommendations === 'function') updateProgressionRecommendations();
+        if (typeof updateProgressionAnalysis === 'function') updateProgressionAnalysis();
+        if (typeof renderPRsSection === 'function') renderPRsSection();
+        updateSessionHistory();
+        populateProgressExerciseSelect();
+        
+        // Afficher notification PR si nécessaire
+        if (result.newPRs && result.newPRs.length > 0) {
+            showPRNotification(result.newPRs);
+        } else {
+            showToast('Séance enregistrée ! 💪', 'success');
+        }
+        
+        // Réinitialiser la vue
+        loadSessionDayV2();
+        
+    } finally {
+        // Désactiver l'état loading
+        if (btn) {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
     }
-    
-    // Réinitialiser la vue
-    loadSessionDayV2();
 }
 
 // ==================== DRAG & DROP (Mobile-friendly) ====================

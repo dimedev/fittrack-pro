@@ -3,9 +3,165 @@
 // Mode hors-ligne (sans compte)
 let offlineMode = false;
 
+// Afficher les skeletons pendant le chargement
+function showInitialSkeletons() {
+    if (!window.PremiumUI) return;
+    
+    // Dashboard: Stats grid skeleton
+    const statsGrid = document.querySelector('#dashboard .grid.grid-4');
+    if (statsGrid) {
+        statsGrid.innerHTML = window.PremiumUI.SkeletonTemplates.statGrid(4);
+        statsGrid.dataset.skeleton = 'true';
+    }
+    
+    // Dashboard: Macros rings skeleton
+    const macrosContainer = document.getElementById('daily-macros');
+    if (macrosContainer) {
+        macrosContainer.innerHTML = `
+            <div class="macros-rings-grid">
+                ${Array(4).fill('').map(() => `
+                    <div class="macro-ring-item">
+                        <div class="skeleton skeleton-ring" style="width: 90px; height: 90px;"></div>
+                        <div class="skeleton" style="width: 60px; height: 12px; margin-top: 8px;"></div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        macrosContainer.dataset.skeleton = 'true';
+    }
+    
+    // Dashboard: Profile summary skeleton
+    const profileSummary = document.getElementById('profile-summary');
+    if (profileSummary) {
+        profileSummary.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                ${Array(6).fill('').map(() => `
+                    <div class="skeleton" style="height: 20px; border-radius: 4px;"></div>
+                `).join('')}
+            </div>
+        `;
+        profileSummary.dataset.skeleton = 'true';
+    }
+    
+    // Dashboard: Weight chart skeleton
+    const chartContainer = document.querySelector('#bodyweight-chart')?.parentElement;
+    if (chartContainer) {
+        const canvas = document.getElementById('bodyweight-chart');
+        if (canvas) canvas.style.display = 'none';
+        const skeletonChart = document.createElement('div');
+        skeletonChart.className = 'skeleton';
+        skeletonChart.id = 'chart-skeleton';
+        skeletonChart.style.cssText = 'width: 100%; height: 250px; border-radius: var(--radius-lg);';
+        chartContainer.appendChild(skeletonChart);
+    }
+    
+    // Dashboard: Goal cards skeleton
+    const bodyweightCard = document.getElementById('bodyweight-card-container');
+    const goalCard = document.getElementById('goal-card-container');
+    const streakCard = document.getElementById('streak-card-container');
+    
+    [bodyweightCard, goalCard, streakCard].forEach(container => {
+        if (container) {
+            container.innerHTML = window.PremiumUI.SkeletonTemplates.card();
+            container.dataset.skeleton = 'true';
+        }
+    });
+    
+    // Nutrition: Daily menu skeleton
+    const dailyMenu = document.getElementById('daily-menu');
+    if (dailyMenu) {
+        dailyMenu.innerHTML = window.PremiumUI.SkeletonTemplates.foodList(4);
+        dailyMenu.dataset.skeleton = 'true';
+    }
+    
+    // Training: Session exercises skeleton
+    const sessionExercises = document.getElementById('session-exercises');
+    if (sessionExercises && !sessionExercises.querySelector('.empty-state')) {
+        sessionExercises.innerHTML = window.PremiumUI.SkeletonTemplates.exerciseList(3);
+        sessionExercises.dataset.skeleton = 'true';
+    }
+    
+    console.log('💀 Skeletons affichés');
+}
+
+// Retirer les skeletons quand le contenu est chargé
+function removeSkeletons() {
+    // Stats grid: restaurer la structure originale
+    const statsGrid = document.querySelector('#dashboard .grid.grid-4');
+    if (statsGrid && statsGrid.dataset.skeleton) {
+        statsGrid.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-label">Calories Objectif</div>
+                <div class="stat-value" id="stat-calories">--</div>
+                <div class="stat-unit">kcal/jour</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Protéines</div>
+                <div class="stat-value" id="stat-protein">--</div>
+                <div class="stat-unit">g/jour</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Programme</div>
+                <div class="stat-value" id="stat-program" style="font-size: 1.3rem;">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Séances/semaine</div>
+                <div class="stat-value" id="stat-days">--</div>
+            </div>
+        `;
+        delete statsGrid.dataset.skeleton;
+    }
+    
+    // Macros container: restaurer la structure
+    const macrosContainer = document.getElementById('daily-macros');
+    if (macrosContainer && macrosContainer.dataset.skeleton) {
+        macrosContainer.innerHTML = `
+            <div class="macros-rings-grid">
+                <div class="macro-ring-item">
+                    <div id="ring-calories" class="ring-container"></div>
+                    <span class="ring-subtitle" id="ring-calories-detail">-- / -- kcal</span>
+                </div>
+                <div class="macro-ring-item">
+                    <div id="ring-protein" class="ring-container"></div>
+                    <span class="ring-subtitle" id="ring-protein-detail">-- / --g</span>
+                </div>
+                <div class="macro-ring-item">
+                    <div id="ring-carbs" class="ring-container"></div>
+                    <span class="ring-subtitle" id="ring-carbs-detail">-- / --g</span>
+                </div>
+                <div class="macro-ring-item">
+                    <div id="ring-fat" class="ring-container"></div>
+                    <span class="ring-subtitle" id="ring-fat-detail">-- / --g</span>
+                </div>
+            </div>
+        `;
+        delete macrosContainer.dataset.skeleton;
+    }
+    
+    // Chart skeleton
+    const chartSkeleton = document.getElementById('chart-skeleton');
+    const canvas = document.getElementById('bodyweight-chart');
+    if (chartSkeleton) {
+        chartSkeleton.remove();
+        if (canvas) canvas.style.display = 'block';
+    }
+    
+    // Autres containers: juste supprimer le flag
+    ['profile-summary', 'bodyweight-card-container', 'goal-card-container', 
+     'streak-card-container', 'daily-menu', 'session-exercises'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) delete el.dataset.skeleton;
+    });
+    
+    console.log('✨ Skeletons retirés');
+}
+
 // Initialisation de l'application
 function init() {
     console.log('🏋️ FitTrack Pro - Initialisation...');
+    
+    // Afficher les skeletons immédiatement
+    showInitialSkeletons();
     
     // Charger l'état local d'abord
     loadState();
@@ -24,36 +180,42 @@ function init() {
     // Initialiser Supabase
     initSupabase();
     
-    // Rendre les composants (en attendant auth)
-    renderProgramTypes();
-    renderFoodsList();
-    renderDailyMenu();
-    renderFavoritesList(); // Initialiser les favoris
-    updateDashboard();
-    updateWeeklySchedule();
-    populateSessionDaySelect();
-    populateProgressExerciseSelect();
-    updateSessionHistory();
-    
-    // Initialiser les PRs
-    if (typeof renderPRsSection === 'function') {
-        renderPRsSection();
-    }
-    
-    // Initialiser les photos de progression
-    if (typeof renderPhotosGallery === 'function') {
-        renderPhotosGallery();
-    }
+    // Petit délai pour que les skeletons soient visibles (simule chargement)
+    setTimeout(() => {
+        // Retirer les skeletons et restaurer la structure
+        removeSkeletons();
+        
+        // Rendre les composants
+        renderProgramTypes();
+        renderFoodsList();
+        renderDailyMenu();
+        renderFavoritesList();
+        updateDashboard();
+        updateWeeklySchedule();
+        populateSessionDaySelect();
+        populateProgressExerciseSelect();
+        updateSessionHistory();
+        
+        // Initialiser les PRs
+        if (typeof renderPRsSection === 'function') {
+            renderPRsSection();
+        }
+        
+        // Initialiser les photos de progression
+        if (typeof renderPhotosGallery === 'function') {
+            renderPhotosGallery();
+        }
 
-    // Initialiser les statistiques
-    if (typeof initStatsModule === 'function') {
-        initStatsModule();
-    }
+        // Initialiser les statistiques
+        if (typeof initStatsModule === 'function') {
+            initStatsModule();
+        }
 
-    // Initialiser le journal
-    initJournal();
-    
-    console.log('✅ FitTrack Pro - Prêt !');
+        // Initialiser le journal
+        initJournal();
+        
+        console.log('✅ FitTrack Pro - Prêt !');
+    }, 400); // 400ms pour voir l'effet skeleton
 }
 
 // ==================== AUTH HANDLERS ====================

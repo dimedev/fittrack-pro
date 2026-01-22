@@ -182,22 +182,34 @@ function renderPRsSection() {
         return (allPRs[b].estimated1RM.value || 0) - (allPRs[a].estimated1RM.value || 0);
     });
 
+    // Check for recent PRs (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     let html = '<div class="prs-grid">';
 
     sortedExercises.forEach(exerciseName => {
         const prs = allPRs[exerciseName];
-        const maxWeightDate = prs.maxWeight.date ? new Date(prs.maxWeight.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '-';
+        const maxWeightDate = prs.maxWeight.date ? new Date(prs.maxWeight.date) : null;
+        const maxWeightDateStr = maxWeightDate ? maxWeightDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '-';
+        
+        // Check if this is a recent PR
+        const isRecentPR = maxWeightDate && maxWeightDate >= sevenDaysAgo;
+        const badgeHTML = isRecentPR && window.PremiumUI 
+            ? window.PremiumUI.createBadge('NEW', 'brand', { animated: true }) 
+            : '';
 
         html += `
-            <div class="pr-card">
+            <div class="pr-card ${isRecentPR ? 'pr-card--recent' : ''}">
                 <div class="pr-card-header">
                     <span class="pr-exercise-name">${exerciseName}</span>
+                    ${badgeHTML}
                 </div>
                 <div class="pr-card-body">
                     <div class="pr-stat">
                         <div class="pr-stat-value">${prs.maxWeight.value}<span class="pr-stat-unit">kg</span></div>
                         <div class="pr-stat-label">Max Poids</div>
-                        <div class="pr-stat-date">${maxWeightDate}</div>
+                        <div class="pr-stat-date">${maxWeightDateStr}</div>
                     </div>
                     <div class="pr-stat">
                         <div class="pr-stat-value">${prs.estimated1RM.value}<span class="pr-stat-unit">kg</span></div>

@@ -165,6 +165,11 @@ async function loadAllDataFromSupabase() {
     try {
         console.log('📥 Chargement des données...');
         
+        // Afficher les skeletons pendant le chargement
+        if (window.PremiumUI && typeof showInitialSkeletons === 'function') {
+            showInitialSkeletons();
+        }
+        
         // Charger le profil
         const { data: profile } = await supabaseClient
             .from('user_profiles')
@@ -420,6 +425,11 @@ async function loadAllDataFromSupabase() {
         }
         
         console.log('✅ Données chargées depuis Supabase');
+        
+        // Retirer les skeletons
+        if (typeof removeSkeletons === 'function') {
+            removeSkeletons();
+        }
         
         // Sauvegarder le state mergé dans localStorage pour persistance
         saveState();

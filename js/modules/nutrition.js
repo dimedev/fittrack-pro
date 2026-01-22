@@ -653,45 +653,62 @@ function openCustomFoodModal() {
     openModal('custom-food-modal');
 }
 
-function saveCustomFood() {
-    const name = document.getElementById('custom-food-name').value.trim();
-    const calories = parseFloat(document.getElementById('custom-food-calories').value);
-    const protein = parseFloat(document.getElementById('custom-food-protein').value);
-    const carbs = parseFloat(document.getElementById('custom-food-carbs').value);
-    const fat = parseFloat(document.getElementById('custom-food-fat').value);
-    const category = document.getElementById('custom-food-category').value;
-
-    if (!name) {
-        showToast('Nom requis', 'error');
-        return;
+async function saveCustomFood() {
+    const btn = document.querySelector('#custom-food-modal .btn-primary');
+    
+    // Activer l'état loading
+    if (btn) {
+        btn.classList.add('loading');
+        btn.disabled = true;
     }
     
-    if (isNaN(calories) || calories < 0) {
-        showToast('Calories invalides', 'error');
-        return;
-    }
+    try {
+        const name = document.getElementById('custom-food-name').value.trim();
+        const calories = parseFloat(document.getElementById('custom-food-calories').value);
+        const protein = parseFloat(document.getElementById('custom-food-protein').value);
+        const carbs = parseFloat(document.getElementById('custom-food-carbs').value);
+        const fat = parseFloat(document.getElementById('custom-food-fat').value);
+        const category = document.getElementById('custom-food-category').value;
 
-    const food = {
-        id: 'custom-' + Date.now(),
-        name,
-        calories,
-        protein: protein || 0,
-        carbs: carbs || 0,
-        fat: fat || 0,
-        category
-    };
+        if (!name) {
+            showToast('Nom requis', 'error');
+            return;
+        }
+        
+        if (isNaN(calories) || calories < 0) {
+            showToast('Calories invalides', 'error');
+            return;
+        }
 
-    state.foods.push(food);
-    saveState();
-    
-    // Sync avec Supabase si connecté
-    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-        saveCustomFoodToSupabase(food);
+        const food = {
+            id: 'custom-' + Date.now(),
+            name,
+            calories,
+            protein: protein || 0,
+            carbs: carbs || 0,
+            fat: fat || 0,
+            category
+        };
+
+        state.foods.push(food);
+        saveState();
+        
+        // Sync avec Supabase si connecté
+        if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+            await saveCustomFoodToSupabase(food);
+        }
+        
+        closeModal('custom-food-modal');
+        renderFoodsList();
+        showToast('Aliment ajouté !', 'success');
+        
+    } finally {
+        // Désactiver l'état loading
+        if (btn) {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
     }
-    
-    closeModal('custom-food-modal');
-    renderFoodsList();
-    showToast('Aliment ajouté !', 'success');
 }
 
 function deleteCustomFood(foodId) {

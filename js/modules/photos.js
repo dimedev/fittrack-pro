@@ -281,9 +281,12 @@ async function saveProgressPhoto() {
     }
     
     const saveBtn = document.querySelector('#add-photo-modal .btn-primary');
-    const originalText = saveBtn.textContent;
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Envoi...';
+    
+    // Activer l'état loading
+    if (saveBtn) {
+        saveBtn.classList.add('loading');
+        saveBtn.disabled = true;
+    }
     
     try {
         const uploadResult = await uploadPhotoToStorage(currentPhotoBlob, selectedPose, date);
@@ -304,8 +307,11 @@ async function saveProgressPhoto() {
         console.error('Erreur sauvegarde:', error);
         showToast('Erreur lors de la sauvegarde', 'error');
     } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = originalText;
+        // Désactiver l'état loading
+        if (saveBtn) {
+            saveBtn.classList.remove('loading');
+            saveBtn.disabled = false;
+        }
     }
 }
 
