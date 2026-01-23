@@ -1,4 +1,4 @@
-// ==================== BASE D'EXERCICES ====================
+// ==================== BASE D'EXERCICES PREMIUM ====================
 
 // Catégories de muscles
 const muscleGroups = {
@@ -17,7 +17,7 @@ const muscleGroups = {
     'forearms': { name: 'Avant-bras', icon: '✊' }
 };
 
-// Base d'exercices par défaut
+// Base d'exercices par défaut - STRUCTURE ENRICHIE COACH
 const defaultExercises = [
     // ==================== PECTORAUX ====================
     { 
@@ -25,24 +25,54 @@ const defaultExercises = [
         name: 'Développé Couché Barre', 
         muscle: 'chest', 
         equipment: 'barbell',
+        level: 'beginner',
+        type: 'compound',
+        primaryMuscles: ['Grand pectoral'],
+        secondaryMuscles: ['Triceps', 'Deltoïde antérieur'],
         muscleTargets: ['Pectoraux', 'Triceps', 'Épaules ant.'],
-        tips: 'Gardez les omoplates serrées. Descendez la barre au niveau des mamelons. Poussez en contractant les pectoraux.'
+        execution: 'Allongé sur banc, pieds au sol. Décroche la barre, descends contrôlé jusqu\'à la poitrine, puis pousse explosif.',
+        cues: ['Omoplates serrées dans le banc', 'Pieds ancrés au sol', 'Barre au niveau des mamelons', 'Poignets droits'],
+        commonMistakes: ['Rebond sur la poitrine', 'Coudes trop écartés', 'Fesses qui décollent', 'Poignets cassés'],
+        alternatives: ['bench-press-db', 'chest-press-machine', 'push-ups'],
+        contraindications: ['shoulder'],
+        tips: 'Gardez les omoplates serrées. Descendez la barre au niveau des mamelons. Poussez en contractant les pectoraux.',
+        image: null
     },
     { 
         id: 'bench-press-db', 
         name: 'Développé Couché Haltères', 
         muscle: 'chest', 
         equipment: 'dumbbell',
+        level: 'beginner',
+        type: 'compound',
+        primaryMuscles: ['Grand pectoral'],
+        secondaryMuscles: ['Triceps', 'Deltoïde antérieur'],
         muscleTargets: ['Pectoraux', 'Triceps', 'Épaules ant.'],
-        tips: 'Amplitude plus grande qu\'à la barre. Contrôlez la descente. Les haltères doivent se toucher en haut.'
+        execution: 'Allongé sur banc, haltères au-dessus. Descends en ouvrant les coudes, remonte en rapprochant.',
+        cues: ['Amplitude plus grande qu\'à la barre', 'Rotation naturelle des poignets', 'Haltères se touchent en haut', 'Contrôle 2-3 sec'],
+        commonMistakes: ['Descente trop basse', 'Haltères vers l\'extérieur', 'Rebond en bas'],
+        alternatives: ['bench-press', 'chest-press-machine', 'push-ups'],
+        contraindications: [],
+        tips: 'Amplitude plus grande qu\'à la barre. Contrôlez la descente. Les haltères doivent se toucher en haut.',
+        image: null
     },
     { 
         id: 'incline-bench', 
         name: 'Développé Incliné Barre', 
         muscle: 'chest', 
         equipment: 'barbell',
+        level: 'beginner',
+        type: 'compound',
+        primaryMuscles: ['Pectoral faisceau claviculaire'],
+        secondaryMuscles: ['Deltoïde antérieur', 'Triceps'],
         muscleTargets: ['Pectoraux sup.', 'Épaules ant.', 'Triceps'],
-        tips: 'Inclinaison 30-45°. Ciblez le haut des pectoraux. Ne cambrez pas excessivement le dos.'
+        execution: 'Banc incliné à 30-45°. Décroche la barre, descends vers le haut de la poitrine, pousse.',
+        cues: ['Inclinaison 30-45° max', 'Barre vers le haut de la poitrine', 'Omoplates plaquées', 'Dos pas trop cambré'],
+        commonMistakes: ['Inclinaison trop haute', 'Barre trop basse', 'Dos trop cambré'],
+        alternatives: ['incline-bench-db', 'chest-press-incline-machine', 'smith-incline'],
+        contraindications: ['shoulder'],
+        tips: 'Inclinaison 30-45°. Ciblez le haut des pectoraux. Ne cambrez pas excessivement le dos.',
+        image: null
     },
     { id: 'incline-bench-db', name: 'Développé Incliné Haltères', muscle: 'chest', equipment: 'dumbbell', muscleTargets: ['Pectoraux sup.', 'Épaules ant.', 'Triceps'], tips: 'Inclinaison 30-45°. Amplitude complète avec rotation naturelle des poignets.' },
     { id: 'decline-bench', name: 'Développé Décliné', muscle: 'chest', equipment: 'barbell', muscleTargets: ['Pectoraux inf.', 'Triceps'], tips: 'Cible le bas des pectoraux. Gardez les pieds bien ancrés. Contrôlez la charge.' },
@@ -66,31 +96,95 @@ const defaultExercises = [
         name: 'Soulevé de Terre', 
         muscle: 'back', 
         equipment: 'barbell',
+        level: 'intermediate',
+        type: 'compound',
+        primaryMuscles: ['Érecteurs du rachis', 'Grand dorsal'],
+        secondaryMuscles: ['Trapèzes', 'Fessiers', 'Ischio-jambiers', 'Quadriceps'],
         muscleTargets: ['Dorsaux', 'Trapèzes', 'Lombaires', 'Fessiers'],
-        tips: 'Dos droit, regard devant. Poussez avec les jambes. La barre doit rester près du corps.'
+        execution: 'Barre au sol, pieds largeur hanches. Attrape la barre, dos droit, pousse le sol avec les jambes puis verrouille les hanches.',
+        cues: ['Dos DROIT, jamais arrondi', 'Barre contre les tibias', 'Pousse le sol avec les pieds', 'Verrouille hanches et épaules ensemble'],
+        commonMistakes: ['Dos arrondi (risque blessure)', 'Barre éloignée du corps', 'Lever hanches avant épaules', 'Hyperextension en haut'],
+        alternatives: ['rdl', 'sumo-deadlift', 'hex-bar-deadlift'],
+        contraindications: ['back'],
+        tips: 'Dos droit, regard devant. Poussez avec les jambes. La barre doit rester près du corps.',
+        image: null
     },
     { 
         id: 'pull-ups', 
         name: 'Tractions', 
         muscle: 'back', 
         equipment: 'bodyweight',
+        level: 'intermediate',
+        type: 'compound',
+        primaryMuscles: ['Grand dorsal'],
+        secondaryMuscles: ['Biceps', 'Trapèzes', 'Rhomboïdes'],
         muscleTargets: ['Dorsaux', 'Biceps', 'Avant-bras'],
-        tips: 'Amplitude complète. Tirez les coudes vers le bas et l\'arrière. Contrôlez la descente.'
+        execution: 'Suspendu à la barre, prise pronation. Tire les coudes vers le bas pour monter le menton au-dessus de la barre.',
+        cues: ['Initie avec les dorsaux', 'Tire les coudes vers les hanches', 'Menton au-dessus de la barre', 'Contrôle la descente 2-3 sec'],
+        commonMistakes: ['Utiliser l\'élan (kipping)', 'Amplitude incomplète', 'Tirer uniquement avec les bras', 'Descente non contrôlée'],
+        alternatives: ['lat-pulldown', 'chin-ups', 'assisted-pull-ups'],
+        contraindications: ['shoulder'],
+        tips: 'Amplitude complète. Tirez les coudes vers le bas et l\'arrière. Contrôlez la descente.',
+        image: null
     },
-    { id: 'pull-ups-weighted', name: 'Tractions Lestées', muscle: 'back', equipment: 'bodyweight', muscleTargets: ['Dorsaux', 'Biceps'], tips: 'Ajoutez du poids progressivement. Amplitude complète obligatoire. Force maximale.' },
-    { id: 'chin-ups', name: 'Tractions Supination', muscle: 'back', equipment: 'bodyweight', muscleTargets: ['Dorsaux', 'Biceps'], tips: 'Prise en supination (paumes vers soi). Met l\'accent sur les biceps. Montez le menton au-dessus de la barre.' },
+    { id: 'pull-ups-weighted', name: 'Tractions Lestées', muscle: 'back', equipment: 'bodyweight', level: 'advanced', type: 'compound', muscleTargets: ['Dorsaux', 'Biceps'], tips: 'Ajoutez du poids progressivement. Amplitude complète obligatoire. Force maximale.', alternatives: ['pull-ups', 'lat-pulldown'], contraindications: ['shoulder'] },
+    { id: 'chin-ups', name: 'Tractions Supination', muscle: 'back', equipment: 'bodyweight', level: 'intermediate', type: 'compound', muscleTargets: ['Dorsaux', 'Biceps'], tips: 'Prise en supination (paumes vers soi). Met l\'accent sur les biceps.', alternatives: ['pull-ups', 'lat-pulldown'], contraindications: ['shoulder'] },
     { 
         id: 'lat-pulldown', 
         name: 'Tirage Vertical Poulie Haute', 
         muscle: 'back', 
         equipment: 'cable',
+        level: 'beginner',
+        type: 'compound',
+        primaryMuscles: ['Grand dorsal'],
+        secondaryMuscles: ['Biceps', 'Trapèzes', 'Rhomboïdes'],
         muscleTargets: ['Dorsaux', 'Biceps', 'Trapèzes'],
-        tips: 'Tirez vers la poitrine, pas derrière la nuque. Ressortez la poitrine. Contrôlez la remontée.'
+        execution: 'Assis, cuisses calées. Attrape la barre large, tire vers le haut de la poitrine en ressortant celle-ci.',
+        cues: ['Tire vers la poitrine, PAS derrière la nuque', 'Ressors la poitrine', 'Coudes vers le bas et l\'arrière', 'Contrôle la remontée'],
+        commonMistakes: ['Tirer derrière la nuque', 'Se pencher trop en arrière', 'Utiliser l\'élan', 'Prise trop serrée'],
+        alternatives: ['pull-ups', 'lat-pulldown-close', 'lat-pulldown-vbar'],
+        contraindications: [],
+        tips: 'Tirez vers la poitrine, pas derrière la nuque. Ressortez la poitrine. Contrôlez la remontée.',
+        image: null
     },
     { id: 'lat-pulldown-close', name: 'Tirage Vertical Prise Serrée', muscle: 'back', equipment: 'cable', muscleTargets: ['Dorsaux', 'Biceps'], tips: 'Prise serrée accentue l\'épaisseur du dos. Tirez vers le sternum.' },
     { id: 'lat-pulldown-vbar', name: 'Tirage Vertical Prise Neutre', muscle: 'back', equipment: 'cable', muscleTargets: ['Dorsaux', 'Biceps'], tips: 'Prise neutre confortable pour les poignets. Amplitude complète.' },
-    { id: 'bent-over-row', name: 'Rowing Barre', muscle: 'back', equipment: 'barbell', muscleTargets: ['Dorsaux', 'Trapèzes', 'Biceps'], tips: 'Buste à 45°. Tirez la barre vers le bas du ventre. Serrez les omoplates.' },
-    { id: 'bent-over-row-db', name: 'Rowing Haltère (1 bras)', muscle: 'back', equipment: 'dumbbell', muscleTargets: ['Dorsaux', 'Trapèzes'], tips: 'Prenez appui sur un banc. Tirez le coude vers l\'arrière, pas vers le haut.' },
+    { 
+        id: 'bent-over-row', 
+        name: 'Rowing Barre', 
+        muscle: 'back', 
+        equipment: 'barbell',
+        level: 'intermediate',
+        type: 'compound',
+        primaryMuscles: ['Grand dorsal', 'Trapèzes'],
+        secondaryMuscles: ['Biceps', 'Rhomboïdes', 'Érecteurs'],
+        muscleTargets: ['Dorsaux', 'Trapèzes', 'Biceps'],
+        execution: 'Debout, buste penché à 45°, genoux fléchis. Tire la barre vers le bas du ventre en serrant les omoplates.',
+        cues: ['Buste à 45° (pas plus bas)', 'Dos droit, gainage constant', 'Tire vers le nombril', 'Serre les omoplates en haut'],
+        commonMistakes: ['Dos arrondi', 'Trop de mouvement du buste', 'Tirer trop haut (vers poitrine)', 'Utiliser l\'élan'],
+        alternatives: ['bent-over-row-db', 'tbar-row', 'seated-cable-row', 'chest-supported-row'],
+        contraindications: ['back'],
+        tips: 'Buste à 45°. Tirez la barre vers le bas du ventre. Serrez les omoplates.',
+        image: null
+    },
+    { 
+        id: 'bent-over-row-db', 
+        name: 'Rowing Haltère (1 bras)', 
+        muscle: 'back', 
+        equipment: 'dumbbell',
+        level: 'beginner',
+        type: 'compound',
+        primaryMuscles: ['Grand dorsal'],
+        secondaryMuscles: ['Trapèzes', 'Biceps', 'Rhomboïdes'],
+        muscleTargets: ['Dorsaux', 'Trapèzes'],
+        execution: 'Appui sur banc (genou + main). L\'autre main tire l\'haltère vers la hanche en gardant le dos droit.',
+        cues: ['Dos parallèle au sol', 'Tire le coude vers l\'arrière', 'Évite la rotation du tronc', 'Contracte en haut 1 sec'],
+        commonMistakes: ['Rotation excessive du tronc', 'Tirer vers la poitrine', 'Dos arrondi ou trop cambré'],
+        alternatives: ['bent-over-row', 'seated-cable-row', 'machine-row'],
+        contraindications: [],
+        tips: 'Prenez appui sur un banc. Tirez le coude vers l\'arrière, pas vers le haut.',
+        image: null
+    },
     { id: 'tbar-row', name: 'Rowing T-Bar', muscle: 'back', equipment: 'barbell', muscleTargets: ['Dorsaux', 'Trapèzes'], tips: 'Position stable. Tirez explosif, descente contrôlée. Cible l\'épaisseur du dos.' },
     { id: 'seated-cable-row', name: 'Tirage Horizontal Poulie Basse', muscle: 'back', equipment: 'cable', muscleTargets: ['Dorsaux', 'Trapèzes', 'Biceps'], tips: 'Gardez le dos droit. Tirez vers le bas du ventre. Contractez les omoplates.' },
     { id: 'chest-supported-row', name: 'Rowing Buste Penché Machine', muscle: 'back', equipment: 'machine', muscleTargets: ['Dorsaux', 'Trapèzes'], tips: 'Supprime le stress lombaire. Focus total sur les dorsaux. Amplitude complète.' },
@@ -101,8 +195,42 @@ const defaultExercises = [
     { id: 'hyperextension', name: 'Hyperextension / Lombaires', muscle: 'back', equipment: 'bodyweight', muscleTargets: ['Lombaires', 'Fessiers', 'Ischios'], tips: 'Descendez contrôlé. Remontez jusqu\'à l\'alignement. Ne vous hyperextendez pas.' },
     
     // ==================== ÉPAULES ====================
-    { id: 'overhead-press', name: 'Développé Militaire Barre', muscle: 'shoulders', equipment: 'barbell', muscleTargets: ['Épaules ant.', 'Triceps'], tips: 'Debout ou assis. Poussez vertical. Serrez les abdos. Ne cambrez pas le dos.' },
-    { id: 'overhead-press-db', name: 'Développé Épaules Haltères', muscle: 'shoulders', equipment: 'dumbbell', muscleTargets: ['Épaules ant.', 'Triceps'], tips: 'Amplitude naturelle. Les haltères se touchent en haut. Stabilisation accrue.' },
+    { 
+        id: 'overhead-press', 
+        name: 'Développé Militaire Barre', 
+        muscle: 'shoulders', 
+        equipment: 'barbell',
+        level: 'intermediate',
+        type: 'compound',
+        primaryMuscles: ['Deltoïde antérieur', 'Deltoïde latéral'],
+        secondaryMuscles: ['Triceps', 'Trapèzes supérieurs'],
+        muscleTargets: ['Épaules ant.', 'Triceps'],
+        execution: 'Debout ou assis, barre au niveau des clavicules. Pousse verticalement au-dessus de la tête, bras tendus.',
+        cues: ['Serre les abdos et les fessiers', 'Pousse la tête "à travers" les bras', 'Barre au-dessus du milieu du pied', 'Ne cambre pas le dos'],
+        commonMistakes: ['Dos trop cambré (risque lombaire)', 'Barre devant le visage', 'Coudes qui partent vers l\'avant'],
+        alternatives: ['overhead-press-db', 'shoulder-press-machine', 'arnold-press'],
+        contraindications: ['shoulder', 'back'],
+        tips: 'Debout ou assis. Poussez vertical. Serrez les abdos. Ne cambrez pas le dos.',
+        image: null
+    },
+    { 
+        id: 'overhead-press-db', 
+        name: 'Développé Épaules Haltères', 
+        muscle: 'shoulders', 
+        equipment: 'dumbbell',
+        level: 'beginner',
+        type: 'compound',
+        primaryMuscles: ['Deltoïde antérieur', 'Deltoïde latéral'],
+        secondaryMuscles: ['Triceps', 'Trapèzes supérieurs'],
+        muscleTargets: ['Épaules ant.', 'Triceps'],
+        execution: 'Assis ou debout, haltères à hauteur d\'épaules. Pousse vers le haut, les haltères se rapprochent en haut.',
+        cues: ['Coudes à 45° du corps', 'Haltères se touchent presque en haut', 'Stabilisation du core constante', 'Descends jusqu\'aux épaules'],
+        commonMistakes: ['Coudes trop en arrière', 'Dos qui se cambre', 'Amplitude incomplète'],
+        alternatives: ['overhead-press', 'arnold-press', 'shoulder-press-machine'],
+        contraindications: [],
+        tips: 'Amplitude naturelle. Les haltères se touchent en haut. Stabilisation accrue.',
+        image: null
+    },
     { id: 'arnold-press', name: 'Arnold Press', muscle: 'shoulders', equipment: 'dumbbell', muscleTargets: ['Épaules ant.', 'Épaules lat.', 'Triceps'], tips: 'Rotation des poignets pendant le mouvement. Sollicite toutes les portions de l\'épaule.' },
     { id: 'shoulder-press-machine', name: 'Développé Épaules Machine', muscle: 'shoulders', equipment: 'machine', muscleTargets: ['Épaules ant.', 'Triceps'], tips: 'Trajectoire guidée sécurisée. Idéal pour charger lourd en fin de séance.' },
     { id: 'smith-shoulder-press', name: 'Développé Épaules Smith', muscle: 'shoulders', equipment: 'smith', muscleTargets: ['Épaules ant.', 'Triceps'], tips: 'Rail guidé. Poussez explosif. Descendez contrôlé jusqu\'aux épaules.' },
@@ -154,9 +282,60 @@ const defaultExercises = [
     { id: 'drag-curl', name: 'Drag Curl', muscle: 'biceps', equipment: 'barbell', muscleTargets: ['Biceps'], tips: 'Barre glisse le long du corps. Coudes vers l\'arrière. Tension continue.' },
     
     // ==================== QUADRICEPS ====================
-    { id: 'squat', name: 'Squat Barre', muscle: 'quads', equipment: 'barbell', muscleTargets: ['Quadriceps', 'Fessiers', 'Ischios'], tips: 'Descendez jusqu\'aux parallèles. Genoux dans l\'axe des pieds. Dos droit, poitrine haute.' },
-    { id: 'front-squat', name: 'Front Squat', muscle: 'quads', equipment: 'barbell', muscleTargets: ['Quadriceps', 'Abdos'], tips: 'Barre devant. Coudes hauts. Moins de stress lombaire. Plus de focus sur les quads.' },
-    { id: 'goblet-squat', name: 'Goblet Squat', muscle: 'quads', equipment: 'dumbbell', muscleTargets: ['Quadriceps', 'Fessiers'], tips: 'Tenez l\'haltère contre la poitrine. Excellent pour apprendre le mouvement. Descendez profond.' },
+    { 
+        id: 'squat', 
+        name: 'Squat Barre', 
+        muscle: 'quads', 
+        equipment: 'barbell',
+        level: 'intermediate',
+        type: 'compound',
+        primaryMuscles: ['Quadriceps', 'Fessiers'],
+        secondaryMuscles: ['Ischio-jambiers', 'Érecteurs', 'Core'],
+        muscleTargets: ['Quadriceps', 'Fessiers', 'Ischios'],
+        execution: 'Barre sur les trapèzes, pieds largeur épaules. Descends en poussant les hanches en arrière, remonte en poussant le sol.',
+        cues: ['Pieds largeur épaules, pointes légèrement ouvertes', 'Genoux dans l\'axe des pieds', 'Descends au moins aux parallèles', 'Poitrine haute, regard devant'],
+        commonMistakes: ['Genoux qui rentrent (valgus)', 'Dos qui s\'arrondit', 'Talons qui décollent', 'Descente insuffisante'],
+        alternatives: ['front-squat', 'goblet-squat', 'hack-squat', 'leg-press'],
+        contraindications: ['knee', 'back'],
+        tips: 'Descendez jusqu\'aux parallèles. Genoux dans l\'axe des pieds. Dos droit, poitrine haute.',
+        image: null
+    },
+    { 
+        id: 'front-squat', 
+        name: 'Front Squat', 
+        muscle: 'quads', 
+        equipment: 'barbell',
+        level: 'advanced',
+        type: 'compound',
+        primaryMuscles: ['Quadriceps'],
+        secondaryMuscles: ['Core', 'Fessiers'],
+        muscleTargets: ['Quadriceps', 'Abdos'],
+        execution: 'Barre sur les clavicules, coudes hauts. Descends verticalement, remonte en gardant les coudes hauts.',
+        cues: ['Coudes hauts (parallèles au sol)', 'Descends profond', 'Garde le buste très droit', 'Moins de stress lombaire'],
+        commonMistakes: ['Coudes qui tombent', 'Se pencher en avant', 'Poignets qui se cassent'],
+        alternatives: ['goblet-squat', 'hack-squat', 'leg-press'],
+        contraindications: ['wrist', 'knee'],
+        tips: 'Barre devant. Coudes hauts. Moins de stress lombaire. Plus de focus sur les quads.',
+        image: null
+    },
+    { 
+        id: 'goblet-squat', 
+        name: 'Goblet Squat', 
+        muscle: 'quads', 
+        equipment: 'dumbbell',
+        level: 'beginner',
+        type: 'compound',
+        primaryMuscles: ['Quadriceps', 'Fessiers'],
+        secondaryMuscles: ['Core'],
+        muscleTargets: ['Quadriceps', 'Fessiers'],
+        execution: 'Tiens l\'haltère contre la poitrine. Descends profond entre tes jambes, remonte en poussant.',
+        cues: ['Haltère contre la poitrine', 'Coudes entre les genoux en bas', 'Descends profond', 'Excellent pour apprendre le squat'],
+        commonMistakes: ['Ne pas descendre assez', 'Se pencher en avant', 'Lâcher l\'haltère'],
+        alternatives: ['squat', 'leg-press', 'hack-squat'],
+        contraindications: [],
+        tips: 'Tenez l\'haltère contre la poitrine. Excellent pour apprendre le mouvement. Descendez profond.',
+        image: null
+    },
     { id: 'smith-squat', name: 'Squat Smith', muscle: 'quads', equipment: 'smith', muscleTargets: ['Quadriceps', 'Fessiers'], tips: 'Rail guidé. Position des pieds vers l\'avant. Permet de cibler précisément.' },
     { id: 'hack-squat', name: 'Hack Squat', muscle: 'quads', equipment: 'machine', muscleTargets: ['Quadriceps'], tips: 'Dos contre le pad. Pieds vers l\'avant. Isolation des quadriceps. Descendez contrôlé.' },
     { id: 'leg-press', name: 'Presse à Cuisses', muscle: 'quads', equipment: 'machine', muscleTargets: ['Quadriceps', 'Fessiers'], tips: 'Ne déccollez pas les fesses. Descendez jusqu\'à 90°. Poussez avec les talons.' },
@@ -171,7 +350,24 @@ const defaultExercises = [
     { id: 'v-squat', name: 'V-Squat Machine', muscle: 'quads', equipment: 'machine', muscleTargets: ['Quadriceps'], tips: 'Position en V. Amplitude sécurisée. Parfait pour charger lourd en isolation.' },
     
     // ==================== ISCHIO-JAMBIERS ====================
-    { id: 'rdl', name: 'Soulevé de Terre Roumain', muscle: 'hamstrings', equipment: 'barbell', muscleTargets: ['Ischio-jambiers', 'Fessiers', 'Lombaires'], tips: 'Jambes légèrement fléchies. Poussez les hanches vers l\'arrière. Sentez l\'étirement.' },
+    { 
+        id: 'rdl', 
+        name: 'Soulevé de Terre Roumain', 
+        muscle: 'hamstrings', 
+        equipment: 'barbell',
+        level: 'intermediate',
+        type: 'compound',
+        primaryMuscles: ['Ischio-jambiers', 'Fessiers'],
+        secondaryMuscles: ['Érecteurs du rachis'],
+        muscleTargets: ['Ischio-jambiers', 'Fessiers', 'Lombaires'],
+        execution: 'Debout, barre contre les cuisses. Pousse les hanches en arrière en gardant les jambes presque tendues, descends jusqu\'à l\'étirement.',
+        cues: ['Jambes quasi tendues (légère flexion)', 'Pousse les hanches vers l\'arrière', 'Barre reste contre les jambes', 'Sens l\'étirement des ischios'],
+        commonMistakes: ['Dos qui s\'arrondit', 'Trop de flexion des genoux', 'Barre éloignée du corps', 'Descendre trop bas sans souplesse'],
+        alternatives: ['rdl-db', 'stiff-leg-deadlift', 'good-morning'],
+        contraindications: ['back'],
+        tips: 'Jambes légèrement fléchies. Poussez les hanches vers l\'arrière. Sentez l\'étirement.',
+        image: null
+    },
     { id: 'rdl-db', name: 'Soulevé de Terre Roumain Haltères', muscle: 'hamstrings', equipment: 'dumbbell', muscleTargets: ['Ischio-jambiers', 'Fessiers'], tips: 'Amplitude naturelle. Haltères le long des jambes. Focus sur l\'étirement et la contraction.' },
     { id: 'stiff-leg-deadlift', name: 'Soulevé Jambes Tendues', muscle: 'hamstrings', equipment: 'barbell', muscleTargets: ['Ischio-jambiers', 'Lombaires'], tips: 'Jambes presque tendues. Étirement maximal. Attention à ne pas arrondir le dos.' },
     { id: 'good-morning', name: 'Good Morning', muscle: 'hamstrings', equipment: 'barbell', muscleTargets: ['Ischio-jambiers', 'Lombaires'], tips: 'Barre sur les épaules. Penchez le buste en avant. Gardez le dos droit. Exercice avancé.' },
@@ -183,8 +379,25 @@ const defaultExercises = [
     { id: 'leg-press-feet-high', name: 'Presse Pieds Hauts (Ischios)', muscle: 'hamstrings', equipment: 'machine', muscleTargets: ['Ischio-jambiers', 'Fessiers'], tips: 'Pieds hauts sur la plateforme. Cible davantage l\'arrière des cuisses et les fessiers.' },
     
     // ==================== FESSIERS ====================
-    { id: 'hip-thrust', name: 'Hip Thrust', muscle: 'glutes', equipment: 'barbell', muscleTargets: ['Fessiers', 'Ischio-jambiers'], tips: 'Dos contre banc. Poussez avec les talons. Contractez fort les fessiers en haut.' },
-    { id: 'hip-thrust-machine', name: 'Hip Thrust Machine', muscle: 'glutes', equipment: 'machine', muscleTargets: ['Fessiers'], tips: 'Position optimale guidée. Focus total sur les fessiers. Contraction maximale.' },
+    { 
+        id: 'hip-thrust', 
+        name: 'Hip Thrust', 
+        muscle: 'glutes', 
+        equipment: 'barbell',
+        level: 'beginner',
+        type: 'compound',
+        primaryMuscles: ['Grand fessier'],
+        secondaryMuscles: ['Ischio-jambiers'],
+        muscleTargets: ['Fessiers', 'Ischio-jambiers'],
+        execution: 'Dos contre un banc, barre sur les hanches. Pousse les hanches vers le haut en contractant les fessiers.',
+        cues: ['Pieds largeur hanches, tibias verticaux', 'Pousse avec les talons', 'Contracte fort les fessiers en haut', 'Menton rentré, regard vers l\'avant'],
+        commonMistakes: ['Hyperextension du dos', 'Pieds trop loin ou trop près', 'Contraction insuffisante en haut', 'Regarder le plafond'],
+        alternatives: ['hip-thrust-machine', 'glute-bridge', 'cable-kickback'],
+        contraindications: [],
+        tips: 'Dos contre banc. Poussez avec les talons. Contractez fort les fessiers en haut.',
+        image: null
+    },
+    { id: 'hip-thrust-machine', name: 'Hip Thrust Machine', muscle: 'glutes', equipment: 'machine', level: 'beginner', type: 'compound', muscleTargets: ['Fessiers'], tips: 'Position optimale guidée. Focus total sur les fessiers. Contraction maximale.', alternatives: ['hip-thrust', 'glute-bridge'], contraindications: [] },
     { id: 'glute-bridge', name: 'Glute Bridge', muscle: 'glutes', equipment: 'bodyweight', muscleTargets: ['Fessiers', 'Ischios'], tips: 'Au sol. Poussez les hanches vers le haut. Serrez les fessiers en haut 2-3 sec.' },
     { id: 'cable-kickback', name: 'Kickback Fessier Poulie', muscle: 'glutes', equipment: 'cable', muscleTargets: ['Fessiers'], tips: 'Poussez la jambe vers l\'arrière. Contractez fort. Mouvement contrôlé.' },
     { id: 'glute-kickback-machine', name: 'Kickback Fessier Machine', muscle: 'glutes', equipment: 'machine', muscleTargets: ['Fessiers'], tips: 'Isolation pure. Amplitude complète. Excellent en fin de séance jambes.' },
@@ -389,4 +602,211 @@ function getEquivalentExercises(exerciseId, favoriteExercises = []) {
             return 0;
         })
         .slice(0, 5); // Limiter à 5 suggestions
+}
+
+// ==================== EXERCISE IMAGES (SUPABASE STORAGE) ====================
+
+// Configuration Storage pour les images d'exercices
+const EXERCISE_STORAGE_URL = 'https://erszjvaajztewcukvwbj.supabase.co';
+const EXERCISE_IMAGES_BUCKET = 'exercise-images';
+
+// Mapping ID exercice → nom fichier image (si différent)
+const exerciseImageMapping = {
+    // Pectoraux
+    'bench-press': 'barbell-bench-press',
+    'chest-press-machine': 'converging-chest-press-machine',
+    'chest-fly-cable': 'cable-chest-fly',
+    
+    // Dos
+    'pull-ups': 'pull-ups',
+    'lat-pulldown': 'lat-pulldown',
+    'machine-row': 'seated-row-machine',
+    'seated-cable-row': 'seated-row-machine',
+    
+    // Épaules
+    'shoulder-press-machine': 'seated-shoulder-press-machine',
+    'lateral-raise': 'dumbbell-lateral-raises',
+    
+    // Bras
+    'dumbbell-curl': 'dumbbell-bicep-curl',
+    'tricep-pushdown': 'cable-triceps-pushdown',
+    
+    // Jambes
+    'squat': 'barbell-squat',
+    'leg-press': 'leg-press-machine',
+    'hip-thrust': 'hip-thrust',
+    
+    // Core
+    'plank': 'plank-exercise',
+    'crunch-machine': 'ab-crunch-machine'
+};
+
+/**
+ * Génère l'URL d'une image d'exercice depuis Supabase Storage (WebP)
+ * @param {string} exerciseId - ID de l'exercice
+ * @returns {string} - URL de l'image ou null
+ */
+function getExerciseImageUrl(exerciseId) {
+    if (!exerciseId) return null;
+    // Utiliser le mapping si existe, sinon l'ID directement
+    const imageName = exerciseImageMapping[exerciseId] || exerciseId;
+    return `${EXERCISE_STORAGE_URL}/storage/v1/object/public/${EXERCISE_IMAGES_BUCKET}/${imageName}.webp`;
+}
+
+/**
+ * Vérifie si une image existe (utile pour le fallback)
+ * @param {string} url - URL de l'image
+ * @returns {Promise<boolean>}
+ */
+async function checkImageExists(url) {
+    try {
+        const response = await fetch(url, { method: 'HEAD' });
+        return response.ok;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Retourne l'URL de l'image avec fallback SVG selon le muscle
+ * @param {Object} exercise - Exercice
+ * @returns {string} - URL finale
+ */
+function getExerciseImageWithFallback(exercise) {
+    if (!exercise) return null;
+    
+    // Si l'exercice a une image définie
+    if (exercise.image) {
+        return exercise.image;
+    }
+    
+    // Générer l'URL depuis le bucket
+    const imageUrl = getExerciseImageUrl(exercise.id);
+    
+    // Retourner l'URL - le fallback sera géré côté HTML avec onerror
+    return imageUrl;
+}
+
+// ==================== ADAPTATION COACH ====================
+
+/**
+ * Mapping équipement → types d'équipement autorisés
+ */
+const equipmentMapping = {
+    'full-gym': ['barbell', 'dumbbell', 'cable', 'machine', 'smith', 'bodyweight', 'plate', 'other'],
+    'home-gym': ['barbell', 'dumbbell', 'bodyweight', 'plate'],
+    'dumbbells-only': ['dumbbell', 'bodyweight'],
+    'bodyweight': ['bodyweight']
+};
+
+/**
+ * Trouve une alternative sûre pour un exercice selon sensibilités et équipement
+ * @param {string} exerciseName - Nom de l'exercice
+ * @param {string[]} sensitivities - Sensibilités (shoulder, knee, back, wrist)
+ * @param {string} equipment - Type d'équipement (full-gym, home-gym, etc.)
+ * @returns {Object} - Exercice (original ou alternatif)
+ */
+function findSafeExercise(exerciseName, sensitivities = [], equipment = 'full-gym') {
+    // Trouver l'exercice par nom
+    const exercise = defaultExercises.find(e => 
+        e.name === exerciseName || e.name.includes(exerciseName) || exerciseName.includes(e.name)
+    );
+    
+    if (!exercise) return null;
+    
+    const allowedEquipment = equipmentMapping[equipment] || equipmentMapping['full-gym'];
+    
+    // Vérifier si l'exercice actuel est compatible
+    const hasContraindication = exercise.contraindications?.some(c => sensitivities.includes(c));
+    const hasEquipment = allowedEquipment.includes(exercise.equipment);
+    
+    if (!hasContraindication && hasEquipment) {
+        return exercise; // Exercice OK tel quel
+    }
+    
+    // Chercher une alternative
+    const alternatives = exercise.alternatives || [];
+    for (const altId of alternatives) {
+        const alt = defaultExercises.find(e => e.id === altId);
+        if (!alt) continue;
+        
+        const altHasContraindication = alt.contraindications?.some(c => sensitivities.includes(c));
+        const altHasEquipment = allowedEquipment.includes(alt.equipment);
+        
+        if (!altHasContraindication && altHasEquipment) {
+            return {
+                ...alt,
+                wasSwapped: true,
+                originalExercise: exercise.name,
+                swapReason: hasContraindication ? 'sensibilité' : 'équipement'
+            };
+        }
+    }
+    
+    // Chercher dans les équivalents
+    const equivalents = getEquivalentExercises(exercise.id);
+    for (const eq of equivalents) {
+        const eqHasContraindication = eq.contraindications?.some(c => sensitivities.includes(c));
+        const eqHasEquipment = allowedEquipment.includes(eq.equipment);
+        
+        if (!eqHasContraindication && eqHasEquipment) {
+            return {
+                ...eq,
+                wasSwapped: true,
+                originalExercise: exercise.name,
+                swapReason: hasContraindication ? 'sensibilité' : 'équipement'
+            };
+        }
+    }
+    
+    // Dernière chance: chercher n'importe quel exercice du même muscle compatible
+    const sameMuscle = defaultExercises.filter(e => 
+        e.muscle === exercise.muscle &&
+        e.id !== exercise.id &&
+        allowedEquipment.includes(e.equipment) &&
+        !e.contraindications?.some(c => sensitivities.includes(c))
+    );
+    
+    if (sameMuscle.length > 0) {
+        return {
+            ...sameMuscle[0],
+            wasSwapped: true,
+            originalExercise: exercise.name,
+            swapReason: 'fallback muscle'
+        };
+    }
+    
+    // Aucune alternative trouvée, retourner l'original avec un warning
+    return {
+        ...exercise,
+        hasWarning: true,
+        warningMessage: 'Aucune alternative disponible'
+    };
+}
+
+/**
+ * Adapte une liste d'exercices selon le profil utilisateur
+ * @param {Object[]} exercises - Liste d'exercices du programme
+ * @param {Object} userProfile - Profil utilisateur (sensitivities, equipment)
+ * @returns {Object[]} - Liste adaptée
+ */
+function adaptExercisesForUser(exercises, userProfile = {}) {
+    const { sensitivities = [], equipment = 'full-gym' } = userProfile;
+    
+    return exercises.map(ex => {
+        const adaptedExercise = findSafeExercise(ex.name, sensitivities, equipment);
+        
+        if (!adaptedExercise) return ex;
+        
+        return {
+            ...ex,
+            name: adaptedExercise.wasSwapped ? adaptedExercise.name : ex.name,
+            originalName: adaptedExercise.wasSwapped ? adaptedExercise.originalExercise : null,
+            wasSwapped: adaptedExercise.wasSwapped || false,
+            swapReason: adaptedExercise.swapReason || null,
+            hasWarning: adaptedExercise.hasWarning || false,
+            warningMessage: adaptedExercise.warningMessage || null,
+            exerciseData: adaptedExercise
+        };
+    });
 }

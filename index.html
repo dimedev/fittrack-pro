@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=15">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/session-manager.css?v=12">
+    <link rel="stylesheet" href="css/session-manager.css?v=15">
     <link rel="stylesheet" href="css/premium-components.css?v=15">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=22">
     <link rel="stylesheet" href="css/journal-macros.css?v=5">
@@ -1125,7 +1125,7 @@
         </div>
     </div>
 
-    <!-- Program Wizard Modal -->
+    <!-- Program Wizard Modal - Coach Edition -->
     <div class="modal-overlay" id="program-wizard-modal">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
@@ -1140,6 +1140,10 @@
                     <div class="wizard-step" data-step="2">2</div>
                     <div class="wizard-step-line"></div>
                     <div class="wizard-step" data-step="3">3</div>
+                    <div class="wizard-step-line"></div>
+                    <div class="wizard-step" data-step="4">4</div>
+                    <div class="wizard-step-line"></div>
+                    <div class="wizard-step" data-step="5">5</div>
                 </div>
 
                 <!-- Step 1: Frequency -->
@@ -1216,10 +1220,71 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Program Selection (shown after step 3) -->
+                <!-- Step 4: Sensibilités physiques (NEW) -->
                 <div class="wizard-content" id="wizard-step-4" style="display: none;">
+                    <h3 class="wizard-title">Des sensibilités physiques ?</h3>
+                    <p class="wizard-subtitle">On adaptera les exercices en conséquence</p>
+                    <div class="wizard-options wizard-options-multi">
+                        <button class="wizard-option wizard-option-toggle" data-value="shoulder" onclick="toggleWizardSensitivity('shoulder')">
+                            <span class="wizard-option-icon">🦴</span>
+                            <span class="wizard-option-label">Épaules</span>
+                            <span class="wizard-option-check">✓</span>
+                        </button>
+                        <button class="wizard-option wizard-option-toggle" data-value="knee" onclick="toggleWizardSensitivity('knee')">
+                            <span class="wizard-option-icon">🦵</span>
+                            <span class="wizard-option-label">Genoux</span>
+                            <span class="wizard-option-check">✓</span>
+                        </button>
+                        <button class="wizard-option wizard-option-toggle" data-value="back" onclick="toggleWizardSensitivity('back')">
+                            <span class="wizard-option-icon">🔙</span>
+                            <span class="wizard-option-label">Dos / Lombaires</span>
+                            <span class="wizard-option-check">✓</span>
+                        </button>
+                        <button class="wizard-option wizard-option-toggle" data-value="wrist" onclick="toggleWizardSensitivity('wrist')">
+                            <span class="wizard-option-icon">✊</span>
+                            <span class="wizard-option-label">Poignets</span>
+                            <span class="wizard-option-check">✓</span>
+                        </button>
+                        <button class="wizard-option wizard-option-toggle selected" data-value="none" onclick="toggleWizardSensitivity('none')">
+                            <span class="wizard-option-icon">✨</span>
+                            <span class="wizard-option-label">Aucune</span>
+                            <span class="wizard-option-check">✓</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Équipement (NEW) -->
+                <div class="wizard-content" id="wizard-step-5" style="display: none;">
+                    <h3 class="wizard-title">Quel équipement as-tu ?</h3>
+                    <p class="wizard-subtitle">Pour adapter les exercices disponibles</p>
+                    <div class="wizard-options">
+                        <button class="wizard-option" data-value="full-gym" onclick="selectWizardOption('equipment', 'full-gym')">
+                            <span class="wizard-option-icon">🏋️</span>
+                            <span class="wizard-option-label">Salle complète</span>
+                            <span class="wizard-option-desc">Machines, barres, poulies</span>
+                        </button>
+                        <button class="wizard-option" data-value="home-gym" onclick="selectWizardOption('equipment', 'home-gym')">
+                            <span class="wizard-option-icon">🏠</span>
+                            <span class="wizard-option-label">Home Gym</span>
+                            <span class="wizard-option-desc">Barres, haltères, banc</span>
+                        </button>
+                        <button class="wizard-option" data-value="dumbbells-only" onclick="selectWizardOption('equipment', 'dumbbells-only')">
+                            <span class="wizard-option-icon">💪</span>
+                            <span class="wizard-option-label">Haltères uniquement</span>
+                            <span class="wizard-option-desc">Minimum mais efficace</span>
+                        </button>
+                        <button class="wizard-option" data-value="bodyweight" onclick="selectWizardOption('equipment', 'bodyweight')">
+                            <span class="wizard-option-icon">🤸</span>
+                            <span class="wizard-option-label">Poids du corps</span>
+                            <span class="wizard-option-desc">Sans équipement</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 6: Program Selection -->
+                <div class="wizard-content" id="wizard-step-6" style="display: none;">
                     <h3 class="wizard-title">Programmes recommandés</h3>
-                    <p class="wizard-subtitle">Basé sur tes préférences</p>
+                    <p class="wizard-subtitle">Basé sur ton profil</p>
                     <div class="wizard-programs" id="wizard-programs-list"></div>
                 </div>
             </div>
@@ -1275,19 +1340,43 @@
         </div>
     </div>
 
-    <!-- Exercise Info Bottom Sheet -->
+    <!-- Exercise Info Bottom Sheet - Premium Coach -->
     <div class="bottom-sheet-overlay" id="exercise-info-sheet" style="display: none;" onclick="closeExerciseInfo()">
-        <div class="bottom-sheet" onclick="event.stopPropagation()">
-            <div class="bottom-sheet-header">
-                <div class="bottom-sheet-handle"></div>
-                <h3 class="bottom-sheet-title" id="info-exercise-name">Exercice</h3>
-            </div>
-            <div class="bottom-sheet-content">
-                <div class="info-section">
-                    <h4 class="info-section-title">Muscles ciblés</h4>
+        <div class="bottom-sheet exercise-info-premium" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-handle exercise-hero-handle"></div>
+            <!-- Hero Header avec image pleine largeur -->
+            <div class="exercise-info-hero">
+                <img class="exercise-hero-image" id="info-exercise-image" src="" alt="" onerror="this.style.display='none'; document.getElementById('info-exercise-fallback').style.display='flex';">
+                <div class="exercise-hero-fallback" id="info-exercise-fallback">💪</div>
+                <div class="exercise-hero-overlay">
+                    <h3 class="exercise-hero-title" id="info-exercise-name">Exercice</h3>
                     <div class="info-muscle-tags" id="info-muscle-tags"></div>
                 </div>
-                <div class="info-section">
+            </div>
+            <div class="bottom-sheet-content exercise-info-content">
+                <!-- Execution -->
+                <div class="info-section" id="info-execution-section" style="display: none;">
+                    <h4 class="info-section-title">Exécution</h4>
+                    <p class="info-execution-text" id="info-execution-text"></p>
+                </div>
+                
+                <!-- Points clés (Cues) -->
+                <div class="info-section" id="info-cues-section" style="display: none;">
+                    <h4 class="info-section-title">Points clés</h4>
+                    <ul class="info-cues-list" id="info-cues-list"></ul>
+                </div>
+                
+                <!-- Erreurs à éviter -->
+                <div class="info-section" id="info-mistakes-section" style="display: none;">
+                    <h4 class="info-section-title">
+                        <span class="info-warning-icon">⚠️</span>
+                        Erreurs à éviter
+                    </h4>
+                    <ul class="info-mistakes-list" id="info-mistakes-list"></ul>
+                </div>
+                
+                <!-- Conseils généraux (fallback) -->
+                <div class="info-section" id="info-tips-section">
                     <h4 class="info-section-title">Conseils</h4>
                     <p class="info-tips-text" id="info-tips-text"></p>
                 </div>
@@ -1518,20 +1607,20 @@
 
     <!-- Scripts -->
     <script src="js/data/foods.js?v=5"></script>
-    <script src="js/data/exercises.js?v=5"></script>
+    <script src="js/data/exercises.js?v=9"></script>
     <script src="js/data/programs.js?v=5"></script>
     <script src="js/modules/state.js?v=5"></script>
     <script src="js/modules/supabase.js?v=6"></script>
     <script src="js/modules/profile.js?v=19"></script>
     <script src="js/modules/nutrition.js?v=8"></script>
-    <script src="js/modules/training.js?v=8"></script>
+    <script src="js/modules/training.js?v=11"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=5"></script>
     <script src="js/modules/progress.js?v=18"></script>
     <script src="js/modules/timer.js?v=5"></script>
     <script src="js/modules/ui.js?v=11"></script>
     <script src="js/modules/goals.js?v=5"></script>
-    <script src="js/modules/photos.js?v=5"></script>
+    <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=5"></script>
     <script src="js/modules/mobile-gestures.js?v=10"></script>
     <script src="js/app.js?v=20"></script>

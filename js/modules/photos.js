@@ -39,7 +39,7 @@ async function compressImage(file, maxWidth = 1200, quality = 0.8) {
  * Upload une photo vers Supabase Storage
  */
 async function uploadPhotoToStorage(imageBlob, pose, date) {
-    if (!supabaseClient || !isLoggedIn()) {
+    if (!supabaseClient || typeof isLoggedIn !== 'function' || !isLoggedIn()) {
         showToast('Connectez-vous pour sauvegarder vos photos', 'error');
         return null;
     }
@@ -80,7 +80,7 @@ async function uploadPhotoToStorage(imageBlob, pose, date) {
  * Sauvegarde les métadonnées de la photo
  */
 async function savePhotoMetadata(photoPath, photoUrl, date, weight, bodyFat, pose, notes) {
-    if (!supabaseClient || !isLoggedIn()) return null;
+    if (!supabaseClient || typeof isLoggedIn !== 'function' || !isLoggedIn()) return null;
     
     try {
         const user = (await supabaseClient.auth.getUser()).data.user;
@@ -113,7 +113,7 @@ async function savePhotoMetadata(photoPath, photoUrl, date, weight, bodyFat, pos
  * Récupère toutes les photos de l'utilisateur
  */
 async function fetchUserPhotos() {
-    if (!supabaseClient || !isLoggedIn()) return [];
+    if (!supabaseClient || typeof isLoggedIn !== 'function' || !isLoggedIn()) return [];
     
     try {
         const { data, error } = await supabaseClient
@@ -134,7 +134,7 @@ async function fetchUserPhotos() {
  * Supprime une photo
  */
 async function deletePhoto(photoId, photoPath) {
-    if (!supabaseClient || !isLoggedIn()) return false;
+    if (!supabaseClient || typeof isLoggedIn !== 'function' || !isLoggedIn()) return false;
     
     try {
         // Supprimer du storage
@@ -161,7 +161,7 @@ async function deletePhoto(photoId, photoPath) {
  * Ouvre le modal d'ajout de photo
  */
 function openAddPhotoModal() {
-    if (!isLoggedIn()) {
+    if (typeof isLoggedIn !== 'function' || !isLoggedIn()) {
         showToast('Connectez-vous pour ajouter des photos', 'error');
         return;
     }
@@ -322,7 +322,7 @@ async function renderPhotosGallery() {
     const container = document.getElementById('photos-gallery');
     if (!container) return;
     
-    if (!isLoggedIn()) {
+    if (typeof isLoggedIn !== 'function' || !isLoggedIn()) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">🔒</div>

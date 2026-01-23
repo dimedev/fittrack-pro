@@ -6,7 +6,9 @@ let wizardState = {
     currentStep: 1,
     frequency: null,
     goal: null,
-    experience: null
+    experience: null,
+    sensitivities: [], // ['shoulder', 'knee', 'back', 'wrist'] or []
+    equipment: null    // 'full-gym', 'home-gym', 'dumbbells-only', 'bodyweight'
 };
 
 // ==================== FULL-SCREEN SESSION STATE ====================
@@ -194,7 +196,9 @@ function openProgramWizard() {
         currentStep: 1,
         frequency: state.wizardResults?.frequency || null,
         goal: state.wizardResults?.goal || null,
-        experience: state.wizardResults?.experience || null
+        experience: state.wizardResults?.experience || null,
+        sensitivities: state.wizardResults?.sensitivities || [],
+        equipment: state.wizardResults?.equipment || null
     };
 
     // Reset UI
@@ -211,8 +215,8 @@ function updateWizardUI() {
         el.classList.toggle('current', idx + 1 === step);
     });
 
-    // Show/hide steps
-    for (let i = 1; i <= 4; i++) {
+    // Show/hide steps (now 6 steps)
+    for (let i = 1; i <= 6; i++) {
         const stepEl = document.getElementById(`wizard-step-${i}`);
         if (stepEl) {
             stepEl.style.display = i === step ? 'block' : 'none';
@@ -225,7 +229,8 @@ function updateWizardUI() {
 
     backBtn.style.display = step > 1 ? 'inline-flex' : 'none';
 
-    if (step === 4) {
+    if (step === 6) {
+        // Program selection step - no next button
         nextBtn.style.display = 'none';
     } else {
         nextBtn.style.display = 'inline-flex';
@@ -236,28 +241,77 @@ function updateWizardUI() {
         if (step === 1) hasSelection = wizardState.frequency !== null;
         if (step === 2) hasSelection = wizardState.goal !== null;
         if (step === 3) hasSelection = wizardState.experience !== null;
+        if (step === 4) hasSelection = true; // Sensitivities always valid (can be empty)
+        if (step === 5) hasSelection = wizardState.equipment !== null;
         nextBtn.disabled = !hasSelection;
     }
 
-    // Update option selections
-    document.querySelectorAll('.wizard-option').forEach(btn => {
+    // Update option selections (steps 1-3, 5)
+    document.querySelectorAll('.wizard-option:not(.wizard-option-toggle)').forEach(btn => {
         btn.classList.remove('selected');
     });
 
     if (step === 1 && wizardState.frequency) {
-        document.querySelector(`.wizard-option[data-value="${wizardState.frequency}"]`)?.classList.add('selected');
+        document.querySelector(`#wizard-step-1 .wizard-option[data-value="${wizardState.frequency}"]`)?.classList.add('selected');
     }
     if (step === 2 && wizardState.goal) {
-        document.querySelector(`.wizard-option[data-value="${wizardState.goal}"]`)?.classList.add('selected');
+        document.querySelector(`#wizard-step-2 .wizard-option[data-value="${wizardState.goal}"]`)?.classList.add('selected');
     }
     if (step === 3 && wizardState.experience) {
-        document.querySelector(`.wizard-option[data-value="${wizardState.experience}"]`)?.classList.add('selected');
+        document.querySelector(`#wizard-step-3 .wizard-option[data-value="${wizardState.experience}"]`)?.classList.add('selected');
+    }
+    if (step === 5 && wizardState.equipment) {
+        document.querySelector(`#wizard-step-5 .wizard-option[data-value="${wizardState.equipment}"]`)?.classList.add('selected');
     }
 
-    // If step 4, show programs
+    // Update sensitivity toggles (step 4)
     if (step === 4) {
+        updateSensitivityToggles();
+    }
+
+    // If step 6, show programs
+    if (step === 6) {
         renderProgramRecommendations();
     }
+}
+
+/**
+ * Update sensitivity toggle buttons UI
+ */
+function updateSensitivityToggles() {
+    const noneSelected = wizardState.sensitivities.length === 0;
+    
+    document.querySelectorAll('#wizard-step-4 .wizard-option-toggle').forEach(btn => {
+        const value = btn.dataset.value;
+        if (value === 'none') {
+            btn.classList.toggle('selected', noneSelected);
+        } else {
+            btn.classList.toggle('selected', wizardState.sensitivities.includes(value));
+        }
+    });
+}
+
+/**
+ * Toggle sensitivity selection (multi-select)
+ */
+function toggleWizardSensitivity(value) {
+    if (value === 'none') {
+        // Clear all sensitivities
+        wizardState.sensitivities = [];
+    } else {
+        // Toggle this sensitivity
+        const idx = wizardState.sensitivities.indexOf(value);
+        if (idx > -1) {
+            wizardState.sensitivities.splice(idx, 1);
+        } else {
+            wizardState.sensitivities.push(value);
+        }
+    }
+    
+    updateSensitivityToggles();
+    
+    // Enable next button (always valid)
+    document.getElementById('wizard-next-btn').disabled = false;
 }
 
 function selectWizardOption(field, value) {
@@ -274,7 +328,7 @@ function selectWizardOption(field, value) {
 }
 
 function wizardNext() {
-    if (wizardState.currentStep < 4) {
+    if (wizardState.currentStep < 6) {
         wizardState.currentStep++;
         updateWizardUI();
     }
@@ -328,11 +382,13 @@ function renderProgramRecommendations() {
 }
 
 function selectProgram(programId) {
-    // Save wizard results
+    // Save wizard results (including new coach fields)
     state.wizardResults = {
         frequency: wizardState.frequency,
         goal: wizardState.goal,
         experience: wizardState.experience,
+        sensitivities: wizardState.sensitivities || [],
+        equipment: wizardState.equipment || 'full-gym',
         favoriteExercises: state.wizardResults?.favoriteExercises || [],
         selectedProgram: programId,
         completedAt: new Date().toISOString()
@@ -398,7 +454,13 @@ function showSessionPreview(splitIndex) {
         hasChanges: false
     };
 
-    // Remplir avec le template ou les exercices par défaut
+    // Récupérer les préférences utilisateur pour l'adaptation
+    const userProfile = {
+        sensitivities: state.wizardResults?.sensitivities || [],
+        equipment: state.wizardResults?.equipment || 'full-gym'
+    };
+    
+    // Remplir avec le template ou les exercices par défaut (avec adaptation auto)
     if (template && template.exercises) {
         previewSession.exercises = defaultExercises.map(ex => {
             const templateEx = template.exercises.find(te => te.originalName === ex.name);
@@ -413,15 +475,37 @@ function showSessionPreview(splitIndex) {
             };
         });
     } else {
-        previewSession.exercises = defaultExercises.map(ex => ({
-            originalName: ex.name,
-            muscle: ex.muscle,
-            sets: ex.sets,
-            reps: ex.reps,
-            swappedId: null,
-            swappedName: null,
-            isModified: false
-        }));
+        // Adapter automatiquement les exercices selon les sensibilités/équipement
+        previewSession.exercises = defaultExercises.map(ex => {
+            // Utiliser la fonction d'adaptation si disponible
+            if (typeof findSafeExercise === 'function') {
+                const adaptedEx = findSafeExercise(ex.name, userProfile.sensitivities, userProfile.equipment);
+                
+                if (adaptedEx && adaptedEx.wasSwapped) {
+                    return {
+                        originalName: ex.name,
+                        muscle: ex.muscle,
+                        sets: ex.sets,
+                        reps: ex.reps,
+                        swappedId: adaptedEx.id,
+                        swappedName: adaptedEx.name,
+                        isModified: true,
+                        autoAdapted: true,
+                        adaptReason: adaptedEx.swapReason
+                    };
+                }
+            }
+            
+            return {
+                originalName: ex.name,
+                muscle: ex.muscle,
+                sets: ex.sets,
+                reps: ex.reps,
+                swappedId: null,
+                swappedName: null,
+                isModified: false
+            };
+        });
     }
 
     // Nouveau flow: demander d'abord la durée
@@ -475,13 +559,23 @@ function renderSessionPreviewUI() {
     container.innerHTML = previewSession.exercises.map((ex, idx) => {
         const displayName = ex.swappedName || ex.originalName;
         const isModified = ex.isModified;
+        const isAutoAdapted = ex.autoAdapted;
+        
+        // Badge selon le type de modification
+        let badge = '';
+        if (isAutoAdapted) {
+            const reasonLabel = ex.adaptReason === 'sensibilité' ? '🛡️ Adapté' : '🔧 Adapté';
+            badge = `<span class="preview-exercise-adapted-badge">${reasonLabel}</span>`;
+        } else if (isModified) {
+            badge = '<span class="preview-exercise-modified-badge">✓ Modifié</span>';
+        }
 
         return `
-            <div class="preview-exercise-item ${isModified ? 'modified' : ''}" data-index="${idx}">
+            <div class="preview-exercise-item ${isModified ? 'modified' : ''} ${isAutoAdapted ? 'auto-adapted' : ''}" data-index="${idx}">
                 <div class="preview-exercise-info">
                     <span class="preview-exercise-name">
                         ${displayName}
-                        ${isModified ? '<span class="preview-exercise-modified-badge">✓ Modifié</span>' : ''}
+                        ${badge}
                     </span>
                     <span class="preview-exercise-meta">${ex.sets} séries × ${ex.reps} reps</span>
                 </div>
@@ -1356,7 +1450,7 @@ function updateTrainingDays() {
 }
 
 /**
- * Ouvrir le bottom sheet avec les infos de l'exercice
+ * Ouvrir le bottom sheet avec les infos de l'exercice - Version Coach Premium
  */
 function openExerciseTips(exerciseName) {
     // Trouver l'exercice dans la base de données
@@ -1367,6 +1461,42 @@ function openExerciseTips(exerciseName) {
     if (!exercise) {
         showToast('Informations non disponibles pour cet exercice', 'info');
         return;
+    }
+    
+    // Gestion de l'image Hero
+    const heroImage = document.getElementById('info-exercise-image');
+    const heroFallback = document.getElementById('info-exercise-fallback');
+    
+    // Icônes fallback selon le groupe musculaire
+    const muscleIcons = {
+        'chest': '🫁', 'back': '🔙', 'shoulders': '🎯', 'rear-delts': '🎯',
+        'triceps': '💪', 'biceps': '💪', 'quads': '🦵', 'hamstrings': '🦵',
+        'glutes': '🍑', 'calves': '🦶', 'traps': '🔺', 'abs': '🎽', 'forearms': '✊'
+    };
+    const fallbackIcon = muscleIcons[exercise.muscle] || '💪';
+    
+    if (heroImage && heroFallback) {
+        // Réinitialiser l'état
+        heroImage.style.display = 'none';
+        heroFallback.style.display = 'flex';
+        heroFallback.textContent = fallbackIcon;
+        
+        // Essayer de charger l'image depuis Supabase Storage
+        if (typeof getExerciseImageUrl === 'function' && exercise.id) {
+            const imageUrl = getExerciseImageUrl(exercise.id);
+            heroImage.src = imageUrl;
+            heroImage.alt = exercise.name;
+            
+            // Gérer le chargement
+            heroImage.onload = function() {
+                this.style.display = 'block';
+                heroFallback.style.display = 'none';
+            };
+            heroImage.onerror = function() {
+                this.style.display = 'none';
+                heroFallback.style.display = 'flex';
+            };
+        }
     }
     
     // Remplir le nom
@@ -1382,9 +1512,52 @@ function openExerciseTips(exerciseName) {
         muscleTagsContainer.innerHTML = `<span class="info-muscle-tag">${muscleGroups[exercise.muscle]?.name || exercise.muscle}</span>`;
     }
     
-    // Remplir les conseils
+    // === NOUVELLES SECTIONS COACH ===
+    
+    // Execution
+    const executionSection = document.getElementById('info-execution-section');
+    const executionText = document.getElementById('info-execution-text');
+    if (exercise.execution && executionSection && executionText) {
+        executionText.textContent = exercise.execution;
+        executionSection.style.display = 'block';
+    } else if (executionSection) {
+        executionSection.style.display = 'none';
+    }
+    
+    // Cues (Points clés)
+    const cuesSection = document.getElementById('info-cues-section');
+    const cuesList = document.getElementById('info-cues-list');
+    if (exercise.cues && exercise.cues.length > 0 && cuesSection && cuesList) {
+        cuesList.innerHTML = exercise.cues.map(cue => 
+            `<li class="info-cue-item"><span class="cue-bullet">✓</span> ${cue}</li>`
+        ).join('');
+        cuesSection.style.display = 'block';
+    } else if (cuesSection) {
+        cuesSection.style.display = 'none';
+    }
+    
+    // Common Mistakes (Erreurs)
+    const mistakesSection = document.getElementById('info-mistakes-section');
+    const mistakesList = document.getElementById('info-mistakes-list');
+    if (exercise.commonMistakes && exercise.commonMistakes.length > 0 && mistakesSection && mistakesList) {
+        mistakesList.innerHTML = exercise.commonMistakes.map(mistake => 
+            `<li class="info-mistake-item"><span class="mistake-bullet">✗</span> ${mistake}</li>`
+        ).join('');
+        mistakesSection.style.display = 'block';
+    } else if (mistakesSection) {
+        mistakesSection.style.display = 'none';
+    }
+    
+    // Tips (fallback si pas de cues/execution)
+    const tipsSection = document.getElementById('info-tips-section');
     const tipsText = document.getElementById('info-tips-text');
-    tipsText.textContent = exercise.tips || 'Aucun conseil disponible pour cet exercice.';
+    if (tipsText) {
+        tipsText.textContent = exercise.tips || 'Aucun conseil disponible pour cet exercice.';
+    }
+    // Masquer tips si on a execution ou cues
+    if (tipsSection) {
+        tipsSection.style.display = (exercise.execution || exercise.cues) ? 'none' : 'block';
+    }
     
     // Afficher le bottom sheet avec animation iOS-like
     const sheet = document.getElementById('exercise-info-sheet');
