@@ -7,11 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=6">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=9">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/session-manager.css?v=8">
-    <link rel="stylesheet" href="css/premium-components.css?v=5">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=6">
+    <link rel="stylesheet" href="css/session-manager.css?v=10">
+    <link rel="stylesheet" href="css/premium-components.css?v=10">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=10">
     <link rel="stylesheet" href="css/journal-macros.css?v=5">
 
 
@@ -66,6 +66,13 @@
             </button>
         </div>
     </div>
+
+    <!-- iOS-like Back Button -->
+    <button id="back-nav-btn" class="back-nav-btn" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+    </button>
 
     <!-- Main Content -->
     <main class="main">
@@ -330,9 +337,9 @@
             <!-- Progress Section -->
             <section id="progress" class="section">
                 <div class="tabs">
-                    <button class="tab active" data-tab="prs" onclick="switchProgressTab('prs')">🏆 Records</button>
-                    <button class="tab" data-tab="history" onclick="switchProgressTab('history')">📅 Séances</button>
-                    <button class="tab" data-tab="photos" onclick="switchProgressTab('photos')">📸 Photos</button>
+                    <button class="tab active" data-tab="prs" onclick="switchProgressTab('prs')">Records</button>
+                    <button class="tab" data-tab="history" onclick="switchProgressTab('history')">Séances</button>
+                    <button class="tab" data-tab="photos" onclick="switchProgressTab('photos')">Photos</button>
                 </div>
 
                 <!-- Tab PRs -->
@@ -1519,11 +1526,11 @@
     <script src="js/modules/session-ui.js?v=5"></script>
     <script src="js/modules/progress.js?v=5"></script>
     <script src="js/modules/timer.js?v=5"></script>
-    <script src="js/modules/ui.js?v=5"></script>
+    <script src="js/modules/ui.js?v=9"></script>
     <script src="js/modules/goals.js?v=5"></script>
     <script src="js/modules/photos.js?v=5"></script>
     <script src="js/modules/premium-ui.js?v=5"></script>
-    <script src="js/modules/mobile-gestures.js?v=7"></script>
+    <script src="js/modules/mobile-gestures.js?v=9"></script>
     <script src="js/app.js?v=5"></script>
 </body>
 </html>

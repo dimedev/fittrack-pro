@@ -1330,10 +1330,13 @@
     background: var(--bg-card);
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
+    display: flex;
+    justify-content: center;
 }
 
 .preview-footer .btn-lg {
     width: 100%;
+    max-width: 1200px;
     padding: 16px;
     font-size: 1rem;
     font-weight: 700;

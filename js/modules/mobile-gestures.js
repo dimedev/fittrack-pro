@@ -327,6 +327,130 @@
         }
     }
 
+    // ==================== SWIPE BACK GESTURE ====================
+    class SwipeBackGesture {
+        constructor() {
+            this.edgeWidth = 20;
+            this.threshold = 100;
+            this.startX = 0;
+            this.startY = 0;
+            this.currentX = 0;
+            this.isDragging = false;
+            this.isEdgeSwipe = false;
+            
+            if (this.isTouchDevice()) {
+                this.init();
+            }
+        }
+        
+        isTouchDevice() {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
+        
+        init() {
+            document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+            document.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+            document.addEventListener('touchend', this.handleTouchEnd.bind(this));
+        }
+        
+        handleTouchStart(e) {
+            // Zones d'exclusion
+            if (this.isExcluded()) return;
+            
+            // Détecter si le touch commence dans la zone edge
+            this.startX = e.touches[0].clientX;
+            this.startY = e.touches[0].clientY;
+            
+            if (this.startX <= this.edgeWidth) {
+                this.isEdgeSwipe = true;
+                this.isDragging = true;
+            }
+        }
+        
+        handleTouchMove(e) {
+            if (!this.isDragging || !this.isEdgeSwipe) return;
+            
+            this.currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+            const diffX = this.currentX - this.startX;
+            const diffY = currentY - this.startY;
+            
+            // Si scroll vertical, annuler le swipe
+            if (Math.abs(diffY) > Math.abs(diffX)) {
+                this.isDragging = false;
+                this.isEdgeSwipe = false;
+                return;
+            }
+            
+            // Seulement swipe vers la droite
+            if (diffX > 0) {
+                e.preventDefault();
+                
+                const progress = Math.min(diffX / this.threshold, 1);
+                
+                // Feedback visuel : slide la section actuelle
+                const activeSection = document.querySelector('.section.active');
+                if (activeSection) {
+                    const translateX = Math.min(diffX * 0.5, 50);
+                    activeSection.style.transform = `translateX(${translateX}px)`;
+                    activeSection.style.transition = 'none';
+                }
+                
+                // Haptic feedback au threshold
+                if (progress >= 1 && !this.hasVibrated) {
+                    Haptics.medium();
+                    this.hasVibrated = true;
+                }
+            }
+        }
+        
+        handleTouchEnd() {
+            if (!this.isDragging || !this.isEdgeSwipe) return;
+            
+            const diffX = this.currentX - this.startX;
+            const activeSection = document.querySelector('.section.active');
+            
+            if (activeSection) {
+                activeSection.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+                
+                if (diffX >= this.threshold) {
+                    // Déclencher le retour
+                    Haptics.success();
+                    if (typeof navigateBack === 'function') {
+                        navigateBack();
+                    }
+                }
+                
+                // Reset
+                setTimeout(() => {
+                    activeSection.style.transform = '';
+                }, 50);
+            }
+            
+            this.isDragging = false;
+            this.isEdgeSwipe = false;
+            this.hasVibrated = false;
+            this.startX = 0;
+            this.currentX = 0;
+        }
+        
+        isExcluded() {
+            // Pas de swipe-back dans les modals
+            const modalActive = document.querySelector('.modal-overlay.active');
+            if (modalActive) return true;
+            
+            // Pas de swipe-back pendant une session active
+            const sessionActive = document.querySelector('.fullscreen-session');
+            if (sessionActive && sessionActive.style.display !== 'none') return true;
+            
+            // Pas de swipe-back sur le dashboard
+            const currentSection = document.querySelector('.section.active');
+            if (currentSection && currentSection.id === 'dashboard') return true;
+            
+            return false;
+        }
+    }
+
     // ==================== INITIALISATION ====================
     function initMobileGestures() {
         // Ne s'exécute que sur mobile
@@ -334,6 +458,9 @@
         
         // Initialiser le feedback tactile
         initTapFeedback();
+        
+        // Initialiser le swipe back
+        new SwipeBackGesture();
         
         // Observer les nouveaux éléments du journal pour le swipe to delete
         const journalObserver = new MutationObserver((mutations) => {
@@ -462,6 +589,7 @@
     // ==================== EXPORT ====================
     window.MobileGestures = {
         SwipeToDelete,
+        SwipeBackGesture,
         PullToRefresh,
         Haptics,
         init: initMobileGestures

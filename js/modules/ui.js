@@ -81,17 +81,38 @@ function updateStatWithAnimation(elementId, newValue) {
 
 // ==================== NAVIGATION ====================
 
+// Historique de navigation
+const navigationHistory = [];
+let currentSection = 'dashboard';
+
 function setupNavigation() {
     // Navigation desktop et mobile
     document.querySelectorAll('.nav-tab, .mobile-nav-item').forEach(tab => {
         tab.addEventListener('click', () => {
             const section = tab.dataset.section;
-            navigateToSection(section);
+            navigateToSection(section, true);
         });
     });
+    
+    // Back button
+    const backBtn = document.getElementById('back-nav-btn');
+    if (backBtn) {
+        backBtn.addEventListener('click', navigateBack);
+    }
+    
+    // Initialize current section
+    const activeSection = document.querySelector('.section.active');
+    if (activeSection) {
+        currentSection = activeSection.id;
+    }
 }
 
-function navigateToSection(sectionId) {
+function navigateToSection(sectionId, addToHistory = true) {
+    // Ajouter à l'historique si différent de la section actuelle
+    if (addToHistory && currentSection && currentSection !== sectionId && currentSection !== 'dashboard') {
+        navigationHistory.push(currentSection);
+    }
+    
     // Mettre à jour les onglets
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.mobile-nav-item').forEach(t => t.classList.remove('active'));
@@ -101,8 +122,38 @@ function navigateToSection(sectionId) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(sectionId).classList.add('active');
     
+    // Mettre à jour la section actuelle
+    currentSection = sectionId;
+    
     // Scroll en haut
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Afficher/masquer le back button
+    updateBackButton();
+}
+
+function navigateBack() {
+    if (navigationHistory.length > 0) {
+        const previousSection = navigationHistory.pop();
+        navigateToSection(previousSection, false);
+    }
+}
+
+function updateBackButton() {
+    const backBtn = document.getElementById('back-nav-btn');
+    if (backBtn) {
+        if (navigationHistory.length > 0 && currentSection !== 'dashboard') {
+            backBtn.style.display = 'flex';
+            backBtn.style.opacity = '1';
+        } else {
+            backBtn.style.opacity = '0';
+            setTimeout(() => {
+                if (navigationHistory.length === 0 || currentSection === 'dashboard') {
+                    backBtn.style.display = 'none';
+                }
+            }, 200);
+        }
+    }
 }
 
 // Tabs internes
