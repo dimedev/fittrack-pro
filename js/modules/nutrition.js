@@ -124,20 +124,28 @@ function toggleMultiSelectMode() {
     const footer = document.getElementById('multiselect-footer');
     
     if (multiSelectModeActive) {
-        btn.classList.add('active');
-        btn.style.background = 'var(--accent-primary)';
-        btn.style.color = 'var(--bg-primary)';
-        icon.textContent = '☑';
-        hint.innerHTML = '✓ Mode sélection activé - Choisissez plusieurs aliments';
-        footer.style.display = 'flex';
+        if (btn) {
+            btn.classList.add('active');
+            btn.style.background = 'var(--accent-primary)';
+            btn.style.color = 'var(--bg-primary)';
+        }
+        if (icon) icon.textContent = '☑';
+        if (hint) hint.innerHTML = '✓ Mode sélection activé - Choisissez plusieurs aliments';
+        if (footer) footer.style.display = 'flex';
     } else {
-        btn.classList.remove('active');
-        btn.style.background = '';
-        btn.style.color = '';
-        icon.textContent = '☐';
-        hint.innerHTML = '💡 Cliquez sur un aliment pour l\'ajouter rapidement au journal du jour';
-        footer.style.display = 'none';
+        if (btn) {
+            btn.classList.remove('active');
+            btn.style.background = '';
+            btn.style.color = '';
+        }
+        if (icon) icon.textContent = '☐';
+        if (hint) hint.innerHTML = '💡 Cliquez sur un aliment pour l\'ajouter rapidement au journal du jour';
+        if (footer) footer.style.display = 'none';
     }
+    
+    // Update count
+    const countEl = document.getElementById('multiselect-count');
+    if (countEl) countEl.textContent = '0';
     
     // Re-render la liste
     renderFoodsList();

@@ -119,29 +119,33 @@
 @media (max-width: 768px) {
     .tabs {
         width: 100% !important;
-        gap: 0;
-        padding: 3px;
+        display: flex !important;
+        gap: 0 !important;
+        padding: 4px !important;
+        overflow-x: visible !important;
     }
     
-    .tab {
-        flex: 1;
-        padding: 10px 8px;
-        font-size: 0.8rem;
-        text-align: center;
-        border-radius: 0;
-        white-space: nowrap;
+    .tabs .tab {
+        flex: 1 1 0 !important;
+        flex-shrink: 1 !important;
+        padding: 12px 8px !important;
+        font-size: 0.85rem !important;
+        text-align: center !important;
+        border-radius: 0 !important;
+        white-space: nowrap !important;
+        min-width: 0 !important;
     }
     
-    .tab:first-child {
-        border-radius: var(--radius-md, 8px) 0 0 var(--radius-md, 8px);
+    .tabs .tab:first-child {
+        border-radius: 8px 0 0 8px !important;
     }
     
-    .tab:last-child {
-        border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
+    .tabs .tab:last-child {
+        border-radius: 0 8px 8px 0 !important;
     }
     
-    .tab:only-child {
-        border-radius: var(--radius-md, 8px);
+    .tabs .tab:only-child {
+        border-radius: 8px !important;
     }
 }
 
@@ -149,78 +153,91 @@
 
 @media (max-width: 768px) {
     /* Appliquer le système typographique harmonisé */
-    h1 { font-size: var(--text-3xl); }
-    h2 { font-size: var(--text-2xl); }
-    h3 { font-size: var(--text-xl); }
-    h4 { font-size: var(--text-lg); }
+    h1 { font-size: clamp(1.5rem, 6vw, 2rem) !important; }
+    h2 { font-size: clamp(1.25rem, 5vw, 1.5rem) !important; }
+    h3 { font-size: clamp(1.125rem, 4vw, 1.25rem) !important; }
+    h4 { font-size: clamp(1rem, 3.5vw, 1.125rem) !important; }
     
     .card-title {
-        font-size: var(--text-base) !important;
+        font-size: clamp(0.85rem, 3vw, 1rem) !important;
     }
     
     .stat-value {
-        font-size: var(--text-3xl) !important;
+        font-size: clamp(1.5rem, 6vw, 2rem) !important;
     }
     
     .stat-label,
     .stat-unit {
-        font-size: var(--text-xs) !important;
-    }
-    
-    /* Tabs avec nouvelle échelle */
-    .tab {
-        font-size: var(--text-sm);
+        font-size: clamp(0.65rem, 2vw, 0.75rem) !important;
     }
     
     /* Boutons */
     .btn {
-        font-size: var(--text-base);
+        font-size: clamp(0.85rem, 3vw, 1rem) !important;
     }
     
     .btn-sm {
-        font-size: var(--text-sm);
+        font-size: clamp(0.7rem, 2.5vw, 0.85rem) !important;
     }
     
     .btn-lg {
-        font-size: var(--text-lg);
+        font-size: clamp(1rem, 3.5vw, 1.125rem) !important;
     }
 }
 
 /* ==================== FIX 1B3: MULTI-SELECT FOOD BASE ==================== */
 
-.food-select-item.selectable {
-    padding-left: 50px;
-    position: relative;
-    cursor: pointer;
+/* Bouton toggle multi-select */
+#toggle-multiselect-btn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    transition: all 0.2s ease !important;
 }
 
-.food-check {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--border-color);
-    border-radius: var(--radius-sm, 6px);
-    background: var(--bg-primary);
-    transition: all 0.2s ease;
+#toggle-multiselect-btn.active,
+#toggle-multiselect-btn[style*="background: var(--accent-primary)"] {
+    background: var(--accent-primary) !important;
+    color: var(--bg-primary) !important;
+    border-color: var(--accent-primary) !important;
+}
+
+#toggle-multiselect-btn:hover {
+    transform: scale(1.02);
+}
+
+.food-select-item.selectable {
+    padding-left: 50px !important;
+    position: relative !important;
+    cursor: pointer !important;
+}
+
+.food-select-item .food-check {
+    position: absolute !important;
+    left: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 20px !important;
+    height: 20px !important;
+    border: 2px solid var(--border-color) !important;
+    border-radius: 6px !important;
+    background: var(--bg-primary) !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .food-select-item.selected .food-check {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
+    background: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
 }
 
 .food-select-item.selected .food-check::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--bg-primary);
-    font-size: 0.8rem;
-    font-weight: 700;
+    content: '✓' !important;
+    color: var(--bg-primary) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
 }
 
 .multiselect-footer {
@@ -266,26 +283,28 @@
 @media (max-width: 768px) {
     /* Boutons secondaires plus compacts */
     .card-header .btn-sm {
-        padding: 5px 10px;
-        font-size: 0.75rem;
-        min-height: 32px;
+        padding: 6px 12px !important;
+        font-size: 0.75rem !important;
+        min-height: 32px !important;
     }
     
-    /* Boutons dans les cards goals/bodyweight */
+    /* Boutons dans les cards goals/bodyweight - TRÈS compacts */
+    .grid-3 .card .btn-sm,
     .grid-3 .btn-sm,
     .grid-2 .btn-sm {
-        padding: 4px 8px;
-        font-size: 0.7rem;
-        min-height: 28px;
+        padding: 5px 10px !important;
+        font-size: 0.72rem !important;
+        min-height: 28px !important;
+        border-radius: 6px !important;
     }
     
     /* Meilleur contraste visuel */
     .btn-primary {
-        font-weight: 600;
+        font-weight: 600 !important;
     }
     
     .btn-secondary {
-        font-weight: 500;
+        font-weight: 500 !important;
     }
 }
 
@@ -294,39 +313,40 @@
 @media (max-width: 768px) {
     /* Grid-3 en 2 colonnes pour éviter l'écrasement */
     .grid-3 {
+        display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px;
+        gap: 12px !important;
     }
     
     /* 3ème élément prend toute la largeur */
     .grid-3 > *:nth-child(3) {
-        grid-column: span 2;
+        grid-column: span 2 !important;
     }
     
     /* Cards plus compactes et lisibles */
     .grid-3 .card {
-        padding: 14px;
+        padding: 14px !important;
     }
     
     .grid-3 .card-header {
-        flex-direction: row;
-        gap: 8px;
-        align-items: center;
-        margin-bottom: 12px;
+        flex-direction: row !important;
+        gap: 8px !important;
+        align-items: center !important;
+        margin-bottom: 10px !important;
     }
     
     .grid-3 .card-title {
-        font-size: 0.85rem;
-        flex: 1;
+        font-size: 0.85rem !important;
+        flex: 1 !important;
     }
     
     .grid-3 .card-title .icon {
-        font-size: 1rem;
+        font-size: 1rem !important;
     }
     
     /* Valeurs centrées et lisibles */
     .grid-3 .card > div:not(.card-header) {
-        text-align: center;
+        text-align: center !important;
     }
 }
 
