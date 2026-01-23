@@ -7,11 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=9">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=12">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/session-manager.css?v=10">
-    <link rel="stylesheet" href="css/premium-components.css?v=10">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=10">
+    <link rel="stylesheet" href="css/premium-components.css?v=15">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=20">
     <link rel="stylesheet" href="css/journal-macros.css?v=5">
 
 
@@ -219,12 +219,6 @@
                     </div>
                 </div>
 
-                <div class="grid grid-3" style="margin-top: 20px;">
-                    <div id="bodyweight-card-container"></div>
-                    <div id="goal-card-container"></div>
-                    <div id="streak-card-container"></div>
-                </div>
-
                 <div id="recommendations-card-container" style="margin-top: 20px;"></div>
 
             </section>
@@ -366,7 +360,7 @@
                                 <span class="icon">📊</span>
                                 Évolution des Performances
                             </div>
-                            <select class="form-select" id="progress-exercise" style="width: auto;" onchange="updateProgressChart()">
+                            <select class="form-select" id="progress-exercise" style="width: auto; max-width: 100%;" onchange="updateProgressChart()">
                                 <option value="">Sélectionner un exercice</option>
                             </select>
                         </div>
@@ -1519,18 +1513,18 @@
     <script src="js/data/programs.js?v=5"></script>
     <script src="js/modules/state.js?v=5"></script>
     <script src="js/modules/supabase.js?v=5"></script>
-    <script src="js/modules/profile.js?v=5"></script>
+    <script src="js/modules/profile.js?v=19"></script>
     <script src="js/modules/nutrition.js?v=7"></script>
     <script src="js/modules/training.js?v=7"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=5"></script>
-    <script src="js/modules/progress.js?v=5"></script>
+    <script src="js/modules/progress.js?v=17"></script>
     <script src="js/modules/timer.js?v=5"></script>
     <script src="js/modules/ui.js?v=9"></script>
     <script src="js/modules/goals.js?v=5"></script>
     <script src="js/modules/photos.js?v=5"></script>
     <script src="js/modules/premium-ui.js?v=5"></script>
     <script src="js/modules/mobile-gestures.js?v=9"></script>
-    <script src="js/app.js?v=5"></script>
+    <script src="js/app.js?v=19"></script>
 </body>
 </html>

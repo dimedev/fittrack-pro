@@ -572,7 +572,7 @@ function renderTodaySession() {
     const exercisesList = exercises.slice(0, 4).map(ex => {
         const icon = getMuscleIcon(ex.muscle);
         const type = ex.type || 'compound';
-        const typeBadge = type === 'compound' ? 'Compound' : 'Isolation';
+        const typeBadge = type === 'compound' ? 'Polyarticulaire' : 'Isolation';
         const badgeClass = type === 'compound' ? 'compound' : 'isolation';
         
         return `<div class="today-exercise-card">

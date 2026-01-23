@@ -67,6 +67,43 @@
     font-weight: 600 !important;
 }
 
+/* ==================== NUTRITION CSS CLEANUP ==================== */
+
+/* Cacher le titre dans la section nutrition (desktop et mobile) */
+#nutrition .card-title {
+    display: none !important;
+}
+
+/* Padding collé à gauche pour la date (desktop et mobile) */
+#nutrition .card-header {
+    padding: 20px 0px !important;
+}
+
+/* ==================== MOBILE NUTRITION OPTIMIZATIONS ==================== */
+
+@media (max-width: 768px) {
+    /* Fix overflow des noms d'exercices dans les records */
+    .pr-exercise-name,
+    .preview-exercise-name {
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        max-width: 100% !important;
+    }
+    
+    .preview-exercise-info {
+        min-width: 0 !important;
+        flex: 1 !important;
+        overflow: hidden !important;
+    }
+    
+    /* Fix select progression qui dépasse */
+    #progress-exercise {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
 /* ==================== DIAGNOSTIC DES PROBLÈMES ==================== */
 /*
    PROBLÈME 1: Zones cliquables décalées
@@ -128,11 +165,10 @@
     height: 24px;
 }
 
+/* Masquer en mobile */
 @media (max-width: 768px) {
     .back-nav-btn {
-        top: env(safe-area-inset-top, 16px);
-        top: calc(env(safe-area-inset-top, 0px) + 16px);
-        left: 16px;
+        display: none !important;
     }
 }
 
@@ -292,7 +328,13 @@ body, main {
         padding-right: 24px;
     }
     
-    /* Fullscreen session aussi */
+    /* Fullscreen session aussi - centré verticalement */
+    .fullscreen-session {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
     .fullscreen-session .fs-content {
         max-width: 600px;
         margin: 0 auto;

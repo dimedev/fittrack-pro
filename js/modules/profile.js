@@ -204,6 +204,10 @@ function updateDashboard() {
             '1.9': 'Extrême'
         };
 
+        const totalSessions = state.sessionHistory ? state.sessionHistory.length : 0;
+        const currentStreak = state.goals?.currentStreak || 0;
+        const longestStreak = state.goals?.longestStreak || 0;
+        
         document.getElementById('profile-summary').innerHTML = `
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
                 <div><span style="color: var(--text-secondary);">Âge:</span> ${state.profile.age} ans</div>
@@ -212,7 +216,12 @@ function updateDashboard() {
                 <div><span style="color: var(--text-secondary);">Objectif:</span> ${goalLabels[state.profile.goal] || state.profile.goal}</div>
                 <div><span style="color: var(--text-secondary);">BMR:</span> ${Math.round(state.profile.bmr || 0)} kcal</div>
                 <div><span style="color: var(--text-secondary);">TDEE:</span> ${state.profile.tdee || 0} kcal</div>
+                <div><span style="color: var(--text-secondary);">Séances totales:</span> ${totalSessions}</div>
+                <div><span style="color: var(--text-secondary);">Série actuelle:</span> 🔥 ${currentStreak} jours</div>
             </div>
+            ${longestStreak > 0 ? `<div style="margin-top: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 12px; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
+                Record : ${longestStreak} jours 🏆
+            </div>` : ''}
         `;
 
         // Mise à jour des barres de macros
@@ -238,16 +247,11 @@ function updateDashboard() {
         document.getElementById('stat-days').textContent = state.trainingDays;
     }
 
-    // Nouveaux widgets d'objectifs et progression
-    const bodyweightCard = document.getElementById('bodyweight-card-container');
-    const goalCard = document.getElementById('goal-card-container');
-    const streakCard = document.getElementById('streak-card-container');
+    // Widget de recommandations
     const recommendationsCard = document.getElementById('recommendations-card-container');
-
-    if (bodyweightCard && typeof renderBodyWeightCard === 'function') bodyweightCard.innerHTML = renderBodyWeightCard();
-    if (goalCard && typeof renderGoalCard === 'function') goalCard.innerHTML = renderGoalCard();
-    if (streakCard && typeof renderStreakCard === 'function') streakCard.innerHTML = renderStreakCard();
-    if (recommendationsCard && typeof renderRecommendationsCard === 'function') recommendationsCard.innerHTML = renderRecommendationsCard();
+    if (recommendationsCard && typeof renderRecommendationsCard === 'function') {
+        recommendationsCard.innerHTML = renderRecommendationsCard();
+    }
     
     // Graphique du poids corporel
     if (typeof updateBodyWeightChart === 'function') {
@@ -280,7 +284,7 @@ function updateMacroBars() {
             window.PremiumUI.createProgressRing(caloriesContainer, {
                 value: consumed.calories,
                 max: targetCalories,
-                label: 'kcal',
+                label: 'CALORIES',
                 type: 'calories',
                 size: 90
             });
@@ -294,7 +298,7 @@ function updateMacroBars() {
             window.PremiumUI.createProgressRing(proteinContainer, {
                 value: consumed.protein,
                 max: targets.protein,
-                label: 'prot',
+                label: 'PROTÉINES',
                 type: 'protein',
                 size: 90
             });
@@ -308,7 +312,7 @@ function updateMacroBars() {
             window.PremiumUI.createProgressRing(carbsContainer, {
                 value: consumed.carbs,
                 max: targets.carbs,
-                label: 'gluc',
+                label: 'GLUCIDES',
                 type: 'carbs',
                 size: 90
             });
@@ -322,7 +326,7 @@ function updateMacroBars() {
             window.PremiumUI.createProgressRing(fatContainer, {
                 value: consumed.fat,
                 max: targets.fat,
-                label: 'lip',
+                label: 'LIPIDES',
                 type: 'fat',
                 size: 90
             });
@@ -379,15 +383,22 @@ function updateMacroBars() {
 function calculateConsumedMacros() {
     let protein = 0, carbs = 0, fat = 0, calories = 0;
 
-    Object.values(state.dailyMenu).forEach(meal => {
-        meal.forEach(item => {
-            const multiplier = item.quantity / 100;
-            protein += item.food.protein * multiplier;
-            carbs += item.food.carbs * multiplier;
-            fat += item.food.fat * multiplier;
-            calories += item.food.calories * multiplier;
+    // Vérification de nullité pour éviter l'erreur Object.values()
+    if (state.dailyMenu && typeof state.dailyMenu === 'object') {
+        Object.values(state.dailyMenu).forEach(meal => {
+            if (Array.isArray(meal)) {
+                meal.forEach(item => {
+                    if (item && item.food) {
+                        const multiplier = item.quantity / 100;
+                        protein += item.food.protein * multiplier;
+                        carbs += item.food.carbs * multiplier;
+                        fat += item.food.fat * multiplier;
+                        calories += item.food.calories * multiplier;
+                    }
+                });
+            }
         });
-    });
+    }
 
     return {
         protein: Math.round(protein),

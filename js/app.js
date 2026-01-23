@@ -56,17 +56,7 @@ function showInitialSkeletons() {
         chartContainer.appendChild(skeletonChart);
     }
     
-    // Dashboard: Goal cards skeleton
-    const bodyweightCard = document.getElementById('bodyweight-card-container');
-    const goalCard = document.getElementById('goal-card-container');
-    const streakCard = document.getElementById('streak-card-container');
-    
-    [bodyweightCard, goalCard, streakCard].forEach(container => {
-        if (container) {
-            container.innerHTML = window.PremiumUI.SkeletonTemplates.card();
-            container.dataset.skeleton = 'true';
-        }
-    });
+    // Dashboard goal cards supprimés (maintenant dans Mon Profil)
     
     // Training: Session exercises skeleton
     const sessionExercises = document.getElementById('session-exercises');
@@ -141,8 +131,7 @@ function removeSkeletons() {
     }
     
     // Autres containers: juste supprimer le flag
-    ['profile-summary', 'bodyweight-card-container', 'goal-card-container', 
-     'streak-card-container', 'session-exercises'].forEach(id => {
+    ['profile-summary', 'session-exercises'].forEach(id => {
         const el = document.getElementById(id);
         if (el) delete el.dataset.skeleton;
     });

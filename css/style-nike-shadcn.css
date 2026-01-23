@@ -853,15 +853,22 @@ h1, h2, h3, h4, h5, h6 {
 
 .grid-3 {
     grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
 }
 
 .grid-4 {
     grid-template-columns: repeat(4, 1fr);
 }
 
+/* Desktop: forcer 2 colonnes jusqu'à 1280px pour éviter débordement */
+@media (max-width: 1280px) {
+    .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 1024px) {
     .grid-4 { grid-template-columns: repeat(2, 1fr); }
-    .grid-3 { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 640px) {
