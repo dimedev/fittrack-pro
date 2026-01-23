@@ -116,6 +116,80 @@ h1, h2, h3, h4, h5, h6 {
     text-transform: uppercase;
 }
 
+/* ==================== SYNC INDICATOR ==================== */
+.sync-indicator {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+}
+
+.sync-indicator svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+
+/* État: synchronisation en cours */
+.sync-indicator.syncing svg {
+    animation: syncSpin 1s linear infinite;
+    color: var(--accent-primary);
+    opacity: 1;
+}
+
+/* État: succès */
+.sync-indicator.success svg {
+    color: var(--success);
+    opacity: 1;
+}
+
+/* État: erreur */
+.sync-indicator.error svg {
+    color: var(--danger);
+    opacity: 1;
+}
+
+/* État: hors-ligne */
+.sync-indicator.offline svg {
+    color: var(--warning);
+    opacity: 0.7;
+}
+
+.sync-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 14px;
+    height: 14px;
+    background: var(--danger);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 700;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+@keyframes syncSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Masquer sur mobile (espace limité) */
+@media (max-width: 768px) {
+    .sync-indicator {
+        display: none;
+    }
+}
+
 .nav-tabs {
     display: flex;
     gap: 4px;
@@ -1956,68 +2030,153 @@ h1, h2, h3, h4, h5, h6 {
 /* ==================== EMPTY STATES ==================== */
 .empty-state {
     text-align: center;
-    padding: 48px 24px;
+    padding: 60px 24px;
+    animation: emptyFadeIn 0.4s ease-out;
+}
+
+@keyframes emptyFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: 16px;
-    opacity: 0.5;
+    font-size: 3.5rem;
+    margin-bottom: 20px;
+    opacity: 0.4;
 }
 
 .empty-state-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text-primary);
 }
 
 .empty-state p {
     color: var(--text-muted);
-    font-size: 0.875rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-width: 280px;
+    margin: 0 auto;
 }
 
-/* ==================== TOAST ==================== */
+/* CTA dans les états vides */
+.empty-state .btn {
+    margin-top: 24px;
+}
+
+/* ==================== TOAST PREMIUM ==================== */
 .toast-container {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 300;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 8px;
+    pointer-events: none;
+    max-width: calc(100vw - 32px);
 }
 
 .toast {
-    padding: 14px 20px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
-    font-size: 0.875rem;
-    box-shadow: var(--shadow-lg);
-    animation: toastSlideIn var(--transition-slow) ease-out;
+    padding: 12px 20px;
+    background: rgba(23, 23, 23, 0.95);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    animation: toastIn 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    pointer-events: auto;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
-@keyframes toastSlideIn {
+.toast.hiding {
+    animation: toastOut 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes toastIn {
     from {
         opacity: 0;
-        transform: translateX(100%);
+        transform: translateY(20px) scale(0.95);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateY(0) scale(1);
     }
 }
 
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+}
+
+.toast-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
 .toast.success {
-    border-left: 3px solid var(--success);
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+.toast.success .toast-icon {
+    color: var(--success);
 }
 
 .toast.error {
-    border-left: 3px solid var(--danger);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.toast.error .toast-icon {
+    color: var(--danger);
+}
+
+.toast.info {
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.toast.info .toast-icon {
+    color: var(--info);
+}
+
+/* Mobile toast - centré en bas */
+@media (max-width: 768px) {
+    .toast-container {
+        bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+        left: 16px;
+        right: 16px;
+        transform: none;
+        max-width: none;
+    }
+    
+    .toast {
+        width: 100%;
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
+    }
 }
 
 /* ==================== CHART ==================== */
@@ -2799,13 +2958,25 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
-/* ==================== PERSONAL RECORDS (PRs) — PREMIUM ==================== */
+/* ==================== PERSONAL RECORDS (PRs) — NIKE PREMIUM ==================== */
 
 .prs-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
     padding: 20px;
+}
+
+/* Animation d'entrée en cascade */
+@keyframes prCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .pr-card {
@@ -2814,47 +2985,106 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid var(--border-color);
     border-radius: 16px;
     overflow: hidden;
-    transition: border-color var(--transition-fast);
+    transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    animation: prCardIn 0.4s cubic-bezier(0.32, 0.72, 0, 1) backwards;
 }
 
 .pr-card:hover {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
-/* Dot indicateur nouveau PR */
-.pr-card--recent::after {
-    content: '';
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 8px;
-    height: 8px;
-    background: #00ff88;
-    border-radius: 50%;
-    box-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+/* Card PR récent - gradient subtil */
+.pr-card--recent {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, var(--bg-secondary) 50%);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.pr-card--recent:hover {
+    border-color: rgba(34, 197, 94, 0.5);
 }
 
 .pr-card-header {
-    padding: 20px 24px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .pr-exercise-name {
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--text-primary);
     letter-spacing: -0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 75%;
+}
+
+/* Badge NEW animé */
+.pr-badge-new {
+    padding: 3px 8px;
+    background: var(--success);
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 4px;
+    animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
 }
 
 .pr-card-body {
     display: flex;
-    padding: 24px;
-    gap: 32px;
+    padding: 20px;
+    gap: 20px;
 }
 
 .pr-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Stat principale (1RM) - grande et mise en avant */
+.pr-stat--primary {
+    flex: 1.2;
+}
+
+.pr-stat--primary .pr-stat-value {
+    font-size: 2.75rem;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
+}
+
+.pr-stat--primary .pr-stat-label {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+}
+
+/* Stat secondaire (Max soulevé) - plus discrète */
+.pr-stat--secondary {
     flex: 1;
-    text-align: center;
+    opacity: 0.8;
+}
+
+.pr-stat--secondary .pr-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.pr-stat--secondary .pr-stat-label {
+    font-size: 0.65rem;
 }
 
 .pr-stat-value {
@@ -2871,22 +3101,44 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .pr-stat-unit {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-muted);
+    margin-left: 2px;
 }
 
 .pr-stat-label {
     font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-top: 10px;
+    letter-spacing: 1px;
+    margin-top: 8px;
     font-weight: 600;
 }
 
 .pr-stat-date {
-    display: none;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* État vide premium */
+.pr-empty-state {
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.pr-empty-state .empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.pr-empty-state .empty-state-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
 }
 
 /* PR Badge dans les exercices */
@@ -2943,22 +3195,38 @@ h1, h2, h3, h4, h5, h6 {
         grid-template-columns: repeat(2, 1fr);
         gap: 20px;
     }
+    
+    .pr-stat--primary .pr-stat-value {
+        font-size: 3rem;
+    }
+    
+    .pr-stat--secondary .pr-stat-value {
+        font-size: 2rem;
+    }
 }
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
     .prs-grid {
         padding: 16px;
-        gap: 16px;
+        gap: 12px;
     }
 
     .pr-card-body {
-        padding: 20px;
-        gap: 24px;
+        padding: 16px;
+        gap: 16px;
+    }
+    
+    .pr-card-header {
+        padding: 12px 16px 10px;
     }
 
-    .pr-stat-value {
-        font-size: 2rem;
+    .pr-stat--primary .pr-stat-value {
+        font-size: 2.25rem;
+    }
+    
+    .pr-stat--secondary .pr-stat-value {
+        font-size: 1.5rem;
     }
 
     .pr-notification {
@@ -4935,5 +5203,8 @@ h1, h2, h3, h4, h5, h6 {
         flex-direction: column;
         gap: 10px;
         align-items: stretch;
+    }
+}
+align-items: stretch;
     }
 }

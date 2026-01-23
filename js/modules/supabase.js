@@ -8,6 +8,162 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let supabaseClient = null;
 let currentUser = null;
 
+// ==================== SYNC STATUS ====================
+const SyncStatus = {
+    IDLE: 'idle',
+    SYNCING: 'syncing',
+    SUCCESS: 'success',
+    ERROR: 'error',
+    OFFLINE: 'offline'
+};
+
+let currentSyncStatus = SyncStatus.IDLE;
+let pendingSyncCount = 0;
+let lastSyncError = null;
+let isOnline = navigator.onLine;
+
+// Mettre à jour l'indicateur de sync dans l'UI
+function updateSyncIndicator(status, message = null) {
+    currentSyncStatus = status;
+    const indicator = document.getElementById('sync-indicator');
+    if (!indicator) return;
+    
+    // Reset classes
+    indicator.className = 'sync-indicator';
+    
+    switch (status) {
+        case SyncStatus.SYNCING:
+            indicator.classList.add('syncing');
+            indicator.title = 'Synchronisation en cours...';
+            break;
+        case SyncStatus.SUCCESS:
+            indicator.classList.add('success');
+            indicator.title = 'Données synchronisées';
+            // Reset après 3 secondes
+            setTimeout(() => {
+                if (currentSyncStatus === SyncStatus.SUCCESS) {
+                    updateSyncIndicator(SyncStatus.IDLE);
+                }
+            }, 3000);
+            break;
+        case SyncStatus.ERROR:
+            indicator.classList.add('error');
+            indicator.title = message || 'Erreur de synchronisation';
+            lastSyncError = message;
+            break;
+        case SyncStatus.OFFLINE:
+            indicator.classList.add('offline');
+            indicator.title = 'Mode hors-ligne';
+            break;
+        default:
+            indicator.title = 'Synchronisé';
+    }
+    
+    // Afficher le compteur si des syncs sont en attente
+    const badge = indicator.querySelector('.sync-badge');
+    if (badge) {
+        if (pendingSyncCount > 0) {
+            badge.textContent = pendingSyncCount;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// Retry avec backoff exponentiel
+async function withRetry(fn, options = {}) {
+    const {
+        maxRetries = 3,
+        baseDelay = 1000,
+        maxDelay = 10000,
+        onRetry = null,
+        critical = false
+    } = options;
+    
+    let lastError;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            updateSyncIndicator(SyncStatus.SYNCING);
+            const result = await fn();
+            updateSyncIndicator(SyncStatus.SUCCESS);
+            return result;
+        } catch (error) {
+            lastError = error;
+            
+            if (attempt < maxRetries - 1) {
+                // Calcul du délai avec backoff exponentiel
+                const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+                console.warn(`Retry ${attempt + 1}/${maxRetries} après ${delay}ms:`, error.message);
+                
+                if (onRetry) onRetry(attempt + 1, delay);
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+    
+    // Échec après tous les retries
+    updateSyncIndicator(SyncStatus.ERROR, lastError?.message);
+    
+    // Notification pour les erreurs critiques uniquement
+    if (critical) {
+        showToast('Erreur de synchronisation. Vos données sont sauvegardées localement.', 'error');
+    }
+    
+    throw lastError;
+}
+
+// Détection online/offline
+function initNetworkDetection() {
+    window.addEventListener('online', () => {
+        isOnline = true;
+        console.log('🌐 Retour en ligne');
+        updateSyncIndicator(SyncStatus.IDLE);
+        
+        // Tenter de synchroniser les données en attente
+        if (currentUser) {
+            syncPendingData();
+        }
+    });
+    
+    window.addEventListener('offline', () => {
+        isOnline = false;
+        console.log('📴 Mode hors-ligne');
+        updateSyncIndicator(SyncStatus.OFFLINE);
+    });
+    
+    // Vérifier l'état initial
+    if (!navigator.onLine) {
+        updateSyncIndicator(SyncStatus.OFFLINE);
+    }
+}
+
+// Synchroniser les données en attente (appelé au retour en ligne)
+async function syncPendingData() {
+    if (!currentUser || !isOnline) return;
+    
+    console.log('🔄 Synchronisation des données en attente...');
+    updateSyncIndicator(SyncStatus.SYNCING);
+    
+    try {
+        // Re-sauvegarder les paramètres d'entraînement
+        await saveTrainingSettingsToSupabase();
+        
+        // Re-sauvegarder le profil si présent
+        if (state.profile && state.profile.age) {
+            await saveProfileToSupabase(state.profile);
+        }
+        
+        updateSyncIndicator(SyncStatus.SUCCESS);
+        console.log('✅ Données synchronisées');
+    } catch (error) {
+        console.error('Erreur sync pending:', error);
+        updateSyncIndicator(SyncStatus.ERROR);
+    }
+}
+
 // Initialiser Supabase
 function initSupabase() {
     try {
@@ -19,6 +175,9 @@ function initSupabase() {
             console.error('❌ Supabase SDK non trouvé');
             return;
         }
+        
+        // Initialiser la détection réseau
+        initNetworkDetection();
         
         // Écouter les changements d'auth
         supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -610,11 +769,15 @@ async function deleteExerciseSwapFromSupabase(originalExercise) {
     }
 }
 
-// Sauvegarder les paramètres d'entraînement
+// Sauvegarder les paramètres d'entraînement (avec retry)
 async function saveTrainingSettingsToSupabase() {
     if (!currentUser) return;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: sauvegarde locale uniquement');
+        return;
+    }
     
-    try {
+    return withRetry(async () => {
         const { error } = await supabaseClient
             .from('training_settings')
             .upsert({
@@ -628,10 +791,8 @@ async function saveTrainingSettingsToSupabase() {
             }, { onConflict: 'user_id' });
         
         if (error) throw error;
-        console.log('✅ Paramètres entraînement sauvegardés (wizard, progress, templates)');
-    } catch (error) {
-        console.error('Erreur sauvegarde training settings:', error);
-    }
+        console.log('✅ Paramètres entraînement sauvegardés');
+    }, { maxRetries: 3, critical: false });
 }
 
 // Ajouter une entrée au journal
@@ -707,11 +868,15 @@ async function clearJournalDayInSupabase(date) {
     }
 }
 
-// Sauvegarder un log de progression
+// Sauvegarder un log de progression (avec retry - CRITIQUE)
 async function saveProgressLogToSupabase(exerciseName, logData) {
     if (!currentUser) return;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: progression sauvegardée localement');
+        return;
+    }
     
-    try {
+    return withRetry(async () => {
         const { error } = await supabaseClient
             .from('progress_log')
             .insert({
@@ -726,16 +891,19 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
             });
         
         if (error) throw error;
-    } catch (error) {
-        console.error('Erreur sauvegarde progress log:', error);
-    }
+        console.log('✅ Progression sauvegardée');
+    }, { maxRetries: 3, critical: true });
 }
 
-// Sauvegarder une séance
+// Sauvegarder une séance (avec retry - CRITIQUE)
 async function saveWorkoutSessionToSupabase(sessionData) {
     if (!currentUser) return;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: séance sauvegardée localement');
+        return;
+    }
     
-    try {
+    return withRetry(async () => {
         const { error } = await supabaseClient
             .from('workout_sessions')
             .insert({
@@ -748,9 +916,7 @@ async function saveWorkoutSessionToSupabase(sessionData) {
         
         if (error) throw error;
         console.log('✅ Séance sauvegardée');
-    } catch (error) {
-        console.error('Erreur sauvegarde séance:', error);
-    }
+    }, { maxRetries: 3, critical: true });
 }
 
 // ==================== UTILS ====================

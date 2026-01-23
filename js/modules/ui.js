@@ -255,30 +255,56 @@ function setupModals() {
     });
 }
 
-// Toast notifications
-function showToast(message, type = 'success', duration = 3000) {
+// Toast notifications - Premium redesign
+const MAX_TOASTS = 3;
+
+function showToast(message, type = 'success', duration = 2500) {
     const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    // Limiter le nombre de toasts affichés
+    const existingToasts = container.querySelectorAll('.toast:not(.hiding)');
+    if (existingToasts.length >= MAX_TOASTS) {
+        // Retirer le plus ancien
+        const oldest = existingToasts[0];
+        removeToast(oldest);
+    }
+    
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
-    const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+    // Icônes premium
+    const icons = {
+        success: '✓',
+        error: '✕',
+        info: 'ℹ'
+    };
+    const icon = icons[type] || icons.info;
     
     toast.innerHTML = `
-        <span style="font-size: 1.2rem;">${icon}</span>
-        <span>${message}</span>
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${message}</span>
     `;
     
     container.appendChild(toast);
 
-    // Animation de sortie
+    // Animation de sortie après la durée
     setTimeout(() => {
-        toast.style.animation = 'toastIn 0.3s ease reverse forwards';
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.remove();
-            }
-        }, 300);
+        removeToast(toast);
     }, duration);
+}
+
+function removeToast(toast) {
+    if (!toast || toast.classList.contains('hiding')) return;
+    
+    toast.classList.add('hiding');
+    
+    // Retirer après l'animation
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 250);
 }
 
 // Formattage des nombres

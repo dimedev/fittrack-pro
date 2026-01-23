@@ -187,7 +187,7 @@ function checkForNewPR(exerciseName, weight, reps) {
 }
 
 /**
- * Affiche la section des PRs dans l'interface
+ * Affiche la section des PRs dans l'interface - Style Nike Premium
  */
 function renderPRsSection() {
     const container = document.getElementById('prs-container');
@@ -198,10 +198,10 @@ function renderPRsSection() {
 
     if (exerciseNames.length === 0) {
         container.innerHTML = `
-            <div class="empty-state" style="padding: 30px;">
+            <div class="empty-state pr-empty-state">
                 <div class="empty-state-icon">🏆</div>
-                <div class="empty-state-title">Pas encore de records</div>
-                <p>Loguez vos séances pour voir vos PRs apparaître ici</p>
+                <div class="empty-state-title">Aucun record</div>
+                <p>Tes PRs apparaîtront ici après ta première séance</p>
             </div>
         `;
         return;
@@ -218,32 +218,31 @@ function renderPRsSection() {
 
     let html = '<div class="prs-grid">';
 
-    sortedExercises.forEach(exerciseName => {
+    sortedExercises.forEach((exerciseName, index) => {
         const prs = allPRs[exerciseName];
         const maxWeightDate = prs.maxWeight.date ? new Date(prs.maxWeight.date) : null;
-        const maxWeightDateStr = maxWeightDate ? maxWeightDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '-';
+        
+        // Date relative pour UX premium
+        const dateStr = getRelativeDateShort(maxWeightDate);
         
         // Check if this is a recent PR
         const isRecentPR = maxWeightDate && maxWeightDate >= sevenDaysAgo;
-        const badgeHTML = isRecentPR && window.PremiumUI 
-            ? window.PremiumUI.createBadge('NEW', 'brand', { animated: true }) 
-            : '';
 
         html += `
-            <div class="pr-card ${isRecentPR ? 'pr-card--recent' : ''}">
+            <div class="pr-card ${isRecentPR ? 'pr-card--recent' : ''}" style="animation-delay: ${index * 0.05}s">
                 <div class="pr-card-header">
                     <span class="pr-exercise-name">${exerciseName}</span>
-                    ${badgeHTML}
+                    ${isRecentPR ? '<span class="pr-badge-new">NEW</span>' : ''}
                 </div>
                 <div class="pr-card-body">
-                    <div class="pr-stat">
-                        <div class="pr-stat-value">${prs.maxWeight.value}<span class="pr-stat-unit">kg</span></div>
-                        <div class="pr-stat-label">Max Poids</div>
-                        <div class="pr-stat-date">${maxWeightDateStr}</div>
-                    </div>
-                    <div class="pr-stat">
+                    <div class="pr-stat pr-stat--primary">
                         <div class="pr-stat-value">${prs.estimated1RM.value}<span class="pr-stat-unit">kg</span></div>
                         <div class="pr-stat-label">1RM Estimé</div>
+                    </div>
+                    <div class="pr-stat pr-stat--secondary">
+                        <div class="pr-stat-value">${prs.maxWeight.value}<span class="pr-stat-unit">kg</span></div>
+                        <div class="pr-stat-label">Max soulevé</div>
+                        <div class="pr-stat-date">${dateStr}</div>
                     </div>
                 </div>
             </div>
@@ -252,6 +251,24 @@ function renderPRsSection() {
 
     html += '</div>';
     container.innerHTML = html;
+}
+
+/**
+ * Retourne une date relative courte
+ */
+function getRelativeDateShort(date) {
+    if (!date) return '-';
+    
+    const now = new Date();
+    const diffTime = now - date;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Aujourd'hui";
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `Il y a ${diffDays}j`;
+    if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} sem.`;
+    if (diffDays < 365) return `Il y a ${Math.floor(diffDays / 30)} mois`;
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
 }
 
 /**
