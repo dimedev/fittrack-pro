@@ -485,9 +485,14 @@ function renderSessionPreviewUI() {
                     </span>
                     <span class="preview-exercise-meta">${ex.sets} séries × ${ex.reps} reps</span>
                 </div>
-                <button class="preview-exercise-edit" onclick="openExerciseSwapSheet(${idx})" title="Changer l'exercice">
-                    ⇄
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="exercise-info-btn" onclick="openExerciseTips('${displayName.replace(/'/g, "\\'")}')" title="Informations">
+                        ⓘ
+                    </button>
+                    <button class="preview-exercise-edit" onclick="openExerciseSwapSheet(${idx})" title="Changer l'exercice">
+                        ⇄
+                    </button>
+                </div>
             </div>
         `;
     }).join('');
@@ -775,7 +780,13 @@ function renderCurrentExercise() {
     document.getElementById('fs-session-progress').textContent = `Jour ${fsSession.splitIndex + 1}/${splits.length}`;
 
     // Update exercise info
-    document.getElementById('fs-exercise-name').textContent = exercise.effectiveName;
+    const exerciseNameEl = document.getElementById('fs-exercise-name');
+    exerciseNameEl.innerHTML = `
+        ${exercise.effectiveName}
+        <button class="exercise-info-btn" onclick="openExerciseTips('${exercise.effectiveName.replace(/'/g, "\\'")}')" title="Informations" style="margin-left: 8px;">
+            ⓘ
+        </button>
+    `;
     document.getElementById('fs-set-indicator').textContent = `Série ${currentSet} / ${totalSets}`;
 
     // Update progress bar
@@ -1275,28 +1286,17 @@ function quitSession() {
 // ==================== PR NOTIFICATION (from original) ====================
 
 function showPRNotification(prs) {
-    let notif = document.getElementById('pr-notification');
-    if (!notif) {
-        notif = document.createElement('div');
-        notif.id = 'pr-notification';
-        notif.className = 'pr-notification';
-        document.body.appendChild(notif);
-    }
-
+    // Remplacer les notifications intrusives par des toasts simples
     if (prs.length === 1) {
-        notif.innerHTML = `<span class="pr-icon">🏆</span>${prs[0].message}`;
+        showToast(`🏆 ${prs[0].message}`, 'success', 5000);
     } else {
-        notif.innerHTML = `<span class="pr-icon">🏆</span>${prs.length} NOUVEAUX RECORDS !`;
+        showToast(`🏆 ${prs.length} nouveaux records !`, 'success', 5000);
     }
-
-    setTimeout(() => notif.classList.add('show'), 50);
-
+    
+    // Confirmer la sauvegarde après un court délai
     setTimeout(() => {
-        notif.classList.remove('show');
-        setTimeout(() => {
-            showToast('Séance enregistrée ! 💪', 'success');
-        }, 500);
-    }, 4000);
+        showToast('Séance enregistrée ! 💪', 'success');
+    }, 500);
 }
 
 // ==================== LEGACY COMPATIBILITY ====================
@@ -1326,4 +1326,54 @@ function loadSessionDayV2() {
 
 function updateTrainingDays() {
     // Legacy - now handled by wizard
+}
+
+/**
+ * Ouvrir le bottom sheet avec les infos de l'exercice
+ */
+function openExerciseTips(exerciseName) {
+    // Trouver l'exercice dans la base de données
+    const exercise = defaultExercises.find(ex => 
+        ex.name === exerciseName || ex.name.includes(exerciseName) || exerciseName.includes(ex.name)
+    );
+    
+    if (!exercise) {
+        showToast('Informations non disponibles pour cet exercice', 'info');
+        return;
+    }
+    
+    // Remplir le nom
+    document.getElementById('info-exercise-name').textContent = exercise.name;
+    
+    // Remplir les muscles ciblés
+    const muscleTagsContainer = document.getElementById('info-muscle-tags');
+    if (exercise.muscleTargets && exercise.muscleTargets.length > 0) {
+        muscleTagsContainer.innerHTML = exercise.muscleTargets.map(muscle =>
+            `<span class="info-muscle-tag">${muscle}</span>`
+        ).join('');
+    } else {
+        muscleTagsContainer.innerHTML = `<span class="info-muscle-tag">${muscleGroups[exercise.muscle]?.name || exercise.muscle}</span>`;
+    }
+    
+    // Remplir les conseils
+    const tipsText = document.getElementById('info-tips-text');
+    tipsText.textContent = exercise.tips || 'Aucun conseil disponible pour cet exercice.';
+    
+    // Afficher le bottom sheet
+    const sheet = document.getElementById('exercise-info-sheet');
+    if (sheet) {
+        sheet.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+/**
+ * Fermer le bottom sheet d'info exercice
+ */
+function closeExerciseInfo() {
+    const sheet = document.getElementById('exercise-info-sheet');
+    if (sheet) {
+        sheet.style.display = 'none';
+        document.body.style.overflow = '';
+    }
 }

@@ -245,7 +245,7 @@ function setupModals() {
 }
 
 // Toast notifications
-function showToast(message, type = 'success') {
+function showToast(message, type = 'success', duration = 3000) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -267,7 +267,7 @@ function showToast(message, type = 'success') {
                 toast.remove();
             }
         }, 300);
-    }, 3000);
+    }, duration);
 }
 
 // Formattage des nombres

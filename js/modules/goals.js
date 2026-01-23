@@ -729,92 +729,10 @@ function renderRecommendationsCard() {
 // Graphique du poids corporel
 let bodyWeightChart = null;
 
+// Widget "Évolution du Poids" supprimé - utiliser renderBodyWeightCard() à la place
 function updateBodyWeightChart() {
-    const ctx = document.getElementById('bodyweight-chart')?.getContext('2d');
-    if (!ctx) return;
-    
-    if (bodyWeightChart) {
-        bodyWeightChart.destroy();
-    }
-    
-    if (!state.bodyWeightLog || state.bodyWeightLog.length === 0) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.fillStyle = '#606070';
-        ctx.font = '14px Outfit';
-        ctx.textAlign = 'center';
-        ctx.fillText('Loggez votre poids pour voir le graphique', ctx.canvas.width / 2, ctx.canvas.height / 2);
-        return;
-    }
-    
-    const labels = state.bodyWeightLog.map(log => {
-        const date = new Date(log.date);
-        return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-    });
-    
-    const weights = state.bodyWeightLog.map(log => log.weight);
-    
-    // Ligne de l'objectif si défini
-    const datasets = [{
-        label: 'Poids',
-        data: weights,
-        borderColor: '#ff0000',
-        backgroundColor: 'rgba(255, 0, 0, 0.1)',
-        tension: 0.3,
-        fill: true,
-        pointRadius: 4,
-        pointHoverRadius: 6
-    }];
-    
-    // Ajouter la ligne d'objectif
-    if (state.goals && state.goals.target) {
-        const targetLine = Array(labels.length).fill(state.goals.target.value);
-        datasets.push({
-            label: 'Objectif',
-            data: targetLine,
-            borderColor: '#00ff88',
-            borderDash: [5, 5],
-            tension: 0,
-            fill: false,
-            pointRadius: 0
-        });
-    }
-    
-    bodyWeightChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    labels: { color: '#a1a1a1', font: { family: 'Inter' } }
-                },
-                tooltip: {
-                    backgroundColor: '#0a0a0a',
-                    titleColor: '#fafafa',
-                    bodyColor: '#a1a1a1',
-                    borderColor: '#262626',
-                    borderWidth: 1
-                }
-            },
-            scales: {
-                x: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: '#525252', font: { family: 'Inter' } }
-                },
-                y: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: '#a1a1a1', font: { family: 'Inter' } },
-                    title: {
-                        display: true,
-                        text: 'Poids (kg)',
-                        color: '#a1a1a1'
-                    }
-                }
-            }
-        }
-    });
+    // Fonction obsolète - widget supprimé du dashboard
+    return;
 }
 
 // ==================== MODALS ====================

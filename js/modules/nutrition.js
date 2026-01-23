@@ -20,8 +20,11 @@ const foodCategories = {
 // ==================== BASE D'ALIMENTS ====================
 
 // Afficher la liste des aliments (accordéon par catégorie)
+// Note: Cette fonction est conservée pour compatibilité mais l'élément #foods-list n'existe plus
 function renderFoodsList() {
     const container = document.getElementById('foods-list');
+    if (!container) return; // Element supprimé dans la refonte Nutrition unifiée
+    
     const searchTerm = document.getElementById('food-search')?.value?.toLowerCase() || '';
     
     // Initialiser l'état des accordéons si nécessaire
@@ -169,6 +172,82 @@ function quickAddToJournal(foodId) {
 
 function filterFoods() {
     renderFoodsList();
+}
+
+/**
+ * Recherche unifiée pour l'écran nutrition
+ */
+function searchUnifiedFoods() {
+    const searchTerm = document.getElementById('unified-food-search').value.toLowerCase();
+    const container = document.getElementById('search-results-list');
+    const resultsContainer = document.getElementById('search-results-container');
+
+    if (searchTerm.length < 2) {
+        resultsContainer.style.display = 'none';
+        return;
+    }
+
+    const results = state.foods.filter(f => f.name.toLowerCase().includes(searchTerm)).slice(0, 12);
+
+    if (results.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Aucun résultat</p>';
+        resultsContainer.style.display = 'block';
+        return;
+    }
+
+    container.innerHTML = results.map(food => {
+        const macroText = `P: ${food.protein}g · G: ${food.carbs}g · L: ${food.fat}g`;
+        return `
+            <div class="search-result-item" id="search-item-${food.id}" onclick="quickAddFromSearch('${food.id}')" style="cursor: pointer; padding: 12px; border-bottom: 1px solid var(--border-color); transition: all 0.3s;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${food.name}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">${macroText}</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                        <span style="font-weight: 700; color: var(--accent-primary);">${food.calories} kcal</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">100g</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    resultsContainer.style.display = 'block';
+}
+
+/**
+ * Ajout rapide depuis la recherche unifiée
+ */
+async function quickAddFromSearch(foodId) {
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) return;
+    
+    // Ajouter au journal
+    await addToJournalDirect(foodId, 100);
+    
+    // Animation de l'item
+    animateFoodAdded(foodId);
+    
+    // Toast persistant 4 secondes
+    showToast(`+100g de ${food.name} ajouté au journal`, 'success', 4000);
+}
+
+/**
+ * Animation de confirmation sur l'item
+ */
+function animateFoodAdded(foodId) {
+    const item = document.getElementById(`search-item-${foodId}`);
+    if (!item) return;
+    
+    // Animation pulse
+    item.style.background = 'var(--accent-glow)';
+    item.style.transform = 'scale(0.98)';
+    
+    setTimeout(() => {
+        item.style.background = '';
+        item.style.transform = '';
+    }, 300);
 }
 
 // ==================== ALIMENTS PERSONNALISÉS ====================

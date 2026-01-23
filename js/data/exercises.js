@@ -20,9 +20,30 @@ const muscleGroups = {
 // Base d'exercices par défaut
 const defaultExercises = [
     // ==================== PECTORAUX ====================
-    { id: 'bench-press', name: 'Développé Couché Barre', muscle: 'chest', equipment: 'barbell' },
-    { id: 'bench-press-db', name: 'Développé Couché Haltères', muscle: 'chest', equipment: 'dumbbell' },
-    { id: 'incline-bench', name: 'Développé Incliné Barre', muscle: 'chest', equipment: 'barbell' },
+    { 
+        id: 'bench-press', 
+        name: 'Développé Couché Barre', 
+        muscle: 'chest', 
+        equipment: 'barbell',
+        muscleTargets: ['Pectoraux', 'Triceps', 'Épaules ant.'],
+        tips: 'Gardez les omoplates serrées. Descendez la barre au niveau des mamelons. Poussez en contractant les pectoraux.'
+    },
+    { 
+        id: 'bench-press-db', 
+        name: 'Développé Couché Haltères', 
+        muscle: 'chest', 
+        equipment: 'dumbbell',
+        muscleTargets: ['Pectoraux', 'Triceps', 'Épaules ant.'],
+        tips: 'Amplitude plus grande qu\'à la barre. Contrôlez la descente. Les haltères doivent se toucher en haut.'
+    },
+    { 
+        id: 'incline-bench', 
+        name: 'Développé Incliné Barre', 
+        muscle: 'chest', 
+        equipment: 'barbell',
+        muscleTargets: ['Pectoraux sup.', 'Épaules ant.', 'Triceps'],
+        tips: 'Inclinaison 30-45°. Ciblez le haut des pectoraux. Ne cambrez pas excessivement le dos.'
+    },
     { id: 'incline-bench-db', name: 'Développé Incliné Haltères', muscle: 'chest', equipment: 'dumbbell' },
     { id: 'decline-bench', name: 'Développé Décliné', muscle: 'chest', equipment: 'barbell' },
     { id: 'chest-press-machine', name: 'Développé Machine Convergente', muscle: 'chest', equipment: 'machine' },
@@ -40,11 +61,32 @@ const defaultExercises = [
     { id: 'push-ups-decline', name: 'Pompes Déclinées', muscle: 'chest', equipment: 'bodyweight' },
     
     // ==================== DOS ====================
-    { id: 'deadlift', name: 'Soulevé de Terre', muscle: 'back', equipment: 'barbell' },
-    { id: 'pull-ups', name: 'Tractions', muscle: 'back', equipment: 'bodyweight' },
+    { 
+        id: 'deadlift', 
+        name: 'Soulevé de Terre', 
+        muscle: 'back', 
+        equipment: 'barbell',
+        muscleTargets: ['Dorsaux', 'Trapèzes', 'Lombaires', 'Fessiers'],
+        tips: 'Dos droit, regard devant. Poussez avec les jambes. La barre doit rester près du corps.'
+    },
+    { 
+        id: 'pull-ups', 
+        name: 'Tractions', 
+        muscle: 'back', 
+        equipment: 'bodyweight',
+        muscleTargets: ['Dorsaux', 'Biceps', 'Avant-bras'],
+        tips: 'Amplitude complète. Tirez les coudes vers le bas et l\'arrière. Contrôlez la descente.'
+    },
     { id: 'pull-ups-weighted', name: 'Tractions Lestées', muscle: 'back', equipment: 'bodyweight' },
     { id: 'chin-ups', name: 'Tractions Supination', muscle: 'back', equipment: 'bodyweight' },
-    { id: 'lat-pulldown', name: 'Tirage Vertical Poulie Haute', muscle: 'back', equipment: 'cable' },
+    { 
+        id: 'lat-pulldown', 
+        name: 'Tirage Vertical Poulie Haute', 
+        muscle: 'back', 
+        equipment: 'cable',
+        muscleTargets: ['Dorsaux', 'Biceps', 'Trapèzes'],
+        tips: 'Tirez vers la poitrine, pas derrière la nuque. Ressortez la poitrine. Contrôlez la remontée.'
+    },
     { id: 'lat-pulldown-close', name: 'Tirage Vertical Prise Serrée', muscle: 'back', equipment: 'cable' },
     { id: 'lat-pulldown-vbar', name: 'Tirage Vertical Prise Neutre', muscle: 'back', equipment: 'cable' },
     { id: 'bent-over-row', name: 'Rowing Barre', muscle: 'back', equipment: 'barbell' },

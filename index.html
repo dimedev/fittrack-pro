@@ -7,12 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=4">
-    <link rel="stylesheet" href="css/mobile-premium.css?v=4">
-    <link rel="stylesheet" href="css/session-manager.css?v=4">
-    <link rel="stylesheet" href="css/premium-components.css?v=4">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=4">
-    <link rel="stylesheet" href="css/journal-macros.css?v=4">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=6">
+    <link rel="stylesheet" href="css/mobile-premium.css?v=5">
+    <link rel="stylesheet" href="css/session-manager.css?v=5">
+    <link rel="stylesheet" href="css/premium-components.css?v=5">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=6">
+    <link rel="stylesheet" href="css/journal-macros.css?v=5">
 
 
 
@@ -220,41 +220,37 @@
 
                 <div id="recommendations-card-container" style="margin-top: 20px;"></div>
 
-                <!-- Widget caché: évolution du poids non pertinent sur dashboard -->
-                <div class="card" style="margin-top: 20px; display: none;">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="icon">📈</span>
-                            Évolution du Poids
-                        </div>
-                    </div>
-                    <div class="chart-container" style="height: 300px;">
-                        <canvas id="bodyweight-chart"></canvas>
-                    </div>
-                </div>
             </section>
 
             <!-- Nutrition Section -->
             <section id="nutrition" class="section">
-                <div class="tabs">
-                    <button class="tab active" data-tab="journal">📝 Journal</button>
-                    <button class="tab" data-tab="aliments">🥑 Base d'Aliments</button>
-                </div>
-
-                <div id="tab-journal" class="tab-content">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">📝</span>
-                                Journal Alimentaire
-                            </div>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <input type="date" class="form-input" id="journal-date" style="width: auto;" onchange="loadJournalDay()">
-                                <button class="btn btn-sm btn-danger" onclick="clearJournalDay()" data-tooltip="Vider le journal du jour" data-tooltip-pos="bottom">🗑️</button>
-                            </div>
+                <!-- Header avec date -->
+                <div class="card">
+                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                        <div class="card-title">
+                            <span class="icon">🍽️</span>
+                            Nutrition
                         </div>
+                        <div class="nutrition-header-actions">
+                            <input type="date" class="form-input" id="journal-date" onchange="loadJournalDay()">
+                            <button class="btn-icon btn-danger-icon" onclick="clearJournalDay()" title="Vider le journal">🗑️</button>
+                            <button class="btn-icon btn-primary-icon" onclick="openCustomFoodModal()" title="Ajouter aliment">+</button>
+                        </div>
+                    </div>
 
-                        <!-- Barres de progression des macros -->
+                    <!-- Search bar -->
+                    <div class="nutrition-search-bar" style="margin-bottom: 20px;">
+                        <input type="text" class="form-input" id="unified-food-search" placeholder="Rechercher un aliment..." oninput="searchUnifiedFoods()">
+                    </div>
+
+                    <!-- Resultats recherche (apparait quand on tape) -->
+                    <div id="search-results-container" style="display: none; margin-bottom: 20px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Résultats de recherche</h4>
+                        <div id="search-results-list" style="max-height: 300px; overflow-y: auto;"></div>
+                    </div>
+
+                    <!-- Macros du jour -->
+                    <div class="nutrition-macros-summary">
                         <div id="journal-macros-bars" class="journal-macro-bars">
                             <div class="journal-macro-bar-item">
                                 <div class="journal-macro-bar-header">
@@ -293,23 +289,11 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Ajouter plusieurs aliments -->
-                        <div style="margin-bottom: 20px;">
-                            <div class="form-group" style="margin-bottom: 10px;">
-                                <input type="text" class="form-input" id="journal-food-search" placeholder="🔍 Rechercher des aliments à ajouter..." oninput="searchFoodsForJournal()">
-                            </div>
-                            <div class="food-search-results" id="journal-food-results" style="max-height: 250px;"></div>
-                            <div id="journal-selected-foods" style="display: none; margin-top: 10px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <span style="font-size: 0.85rem; color: var(--text-secondary);"><span id="selected-foods-count">0</span> aliment(s) sélectionné(s)</span>
-                                    <button class="btn btn-sm btn-primary" onclick="addSelectedFoodsToJournal()">✓ Ajouter tout</button>
-                                </div>
-                                <div id="selected-foods-list" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Liste des aliments du journal -->
+                    <!-- Journal du jour -->
+                    <div class="nutrition-journal" style="margin-top: 20px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Journal du jour</h4>
                         <div id="journal-entries">
                             <div class="empty-state" style="padding: 30px;">
                                 <div class="empty-state-icon">📋</div>
@@ -320,31 +304,9 @@
                     </div>
                 </div>
 
-                <div id="tab-aliments" class="tab-content" style="display: none;">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">🥑</span>
-                                Base d'Aliments
-                            </div>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <button class="btn btn-sm btn-primary" onclick="openCustomFoodModal()" data-tooltip="Ajouter un aliment personnalisé">+ Ajouter</button>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <input type="text" class="form-input" id="food-search" placeholder="Rechercher un aliment..." oninput="filterFoods()">
-                        </div>
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">
-                            💡 Tapez sur un aliment pour l'ajouter (100g par défaut)
-                        </p>
-                        <div id="foods-list"></div>
-                        
-                        <!-- Badge flottant compteur -->
-                        <div class="food-counter-badge" id="food-counter-badge" style="display: none;">
-                            <span id="food-counter-text">+1 ajouté</span>
-                            <button class="btn btn-sm" onclick="switchTab('journal')">Voir</button>
-                        </div>
-                    </div>
+                <!-- Badge flottant compteur -->
+                <div class="food-counter-badge" id="food-counter-badge" style="display: none;">
+                    <span id="food-counter-text">+1 ajouté</span>
                 </div>
             </section>
 
@@ -1294,6 +1256,26 @@
         </div>
     </div>
 
+    <!-- Exercise Info Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="exercise-info-sheet" style="display: none;" onclick="closeExerciseInfo()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title" id="info-exercise-name">Exercice</h3>
+            </div>
+            <div class="bottom-sheet-content">
+                <div class="info-section">
+                    <h4 class="info-section-title">Muscles ciblés</h4>
+                    <div class="info-muscle-tags" id="info-muscle-tags"></div>
+                </div>
+                <div class="info-section">
+                    <h4 class="info-section-title">Conseils</h4>
+                    <p class="info-tips-text" id="info-tips-text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Session Settings Bottom Sheet -->
     <div class="bottom-sheet-overlay" id="settings-sheet" style="display: none;" onclick="closeSettingsSheet()">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
@@ -1464,23 +1446,23 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/data/foods.js?v=4"></script>
-    <script src="js/data/exercises.js?v=4"></script>
-    <script src="js/data/programs.js?v=4"></script>
-    <script src="js/modules/state.js?v=4"></script>
-    <script src="js/modules/supabase.js?v=4"></script>
-    <script src="js/modules/profile.js?v=4"></script>
-    <script src="js/modules/nutrition.js?v=4"></script>
-    <script src="js/modules/training.js?v=4"></script>
-    <script src="js/modules/session-manager.js?v=4"></script>
-    <script src="js/modules/session-ui.js?v=4"></script>
-    <script src="js/modules/progress.js?v=4"></script>
-    <script src="js/modules/timer.js?v=4"></script>
-    <script src="js/modules/ui.js?v=4"></script>
-    <script src="js/modules/goals.js?v=4"></script>
-    <script src="js/modules/photos.js?v=4"></script>
-    <script src="js/modules/premium-ui.js?v=4"></script>
-    <script src="js/modules/mobile-gestures.js?v=4"></script>
-    <script src="js/app.js?v=4"></script>
+    <script src="js/data/foods.js?v=5"></script>
+    <script src="js/data/exercises.js?v=5"></script>
+    <script src="js/data/programs.js?v=5"></script>
+    <script src="js/modules/state.js?v=5"></script>
+    <script src="js/modules/supabase.js?v=5"></script>
+    <script src="js/modules/profile.js?v=5"></script>
+    <script src="js/modules/nutrition.js?v=6"></script>
+    <script src="js/modules/training.js?v=5"></script>
+    <script src="js/modules/session-manager.js?v=5"></script>
+    <script src="js/modules/session-ui.js?v=5"></script>
+    <script src="js/modules/progress.js?v=5"></script>
+    <script src="js/modules/timer.js?v=5"></script>
+    <script src="js/modules/ui.js?v=5"></script>
+    <script src="js/modules/goals.js?v=5"></script>
+    <script src="js/modules/photos.js?v=5"></script>
+    <script src="js/modules/premium-ui.js?v=5"></script>
+    <script src="js/modules/mobile-gestures.js?v=5"></script>
+    <script src="js/app.js?v=5"></script>
 </body>
 </html>

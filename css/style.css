@@ -1152,19 +1152,8 @@ body {
     .journal-summary {
         grid-template-columns: repeat(2, 1fr);
     }
-
-    .journal-entry {
-        flex-wrap: wrap;
-    }
-
-    .journal-entry-info {
-        width: 100%;
-    }
-
-    .journal-entry-macros {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
+    
+    /* Règles pour journal-entry déplacées dans mobile-ux-fixes.css */
 }
 
 /* ==================== EXERCISE ITEMS CLICKABLE ==================== */

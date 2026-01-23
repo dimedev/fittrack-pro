@@ -548,13 +548,42 @@ function renderTodaySession() {
     // Afficher la card
     card.style.display = 'block';
 
-    // Rendre le contenu
-    const exercisesList = exercises.slice(0, 4).map(ex => 
-        `<div class="today-exercise-item">
-            <span class="today-exercise-bullet">•</span>
-            <span class="today-exercise-name">${ex.name}</span>
-        </div>`
-    ).join('');
+    // Fonction pour obtenir l'icône selon le muscle
+    const getMuscleIcon = (muscle) => {
+        const icons = {
+            'chest': '💪',
+            'back': '🦾',
+            'shoulders': '🏋️',
+            'arms': '💪',
+            'biceps': '💪',
+            'triceps': '💪',
+            'legs': '🦵',
+            'quads': '🦵',
+            'hamstrings': '🦵',
+            'glutes': '🍑',
+            'calves': '🦵',
+            'abs': '🔥',
+            'core': '🔥'
+        };
+        return icons[muscle] || '💪';
+    };
+
+    // Rendre le contenu avec cards premium
+    const exercisesList = exercises.slice(0, 4).map(ex => {
+        const icon = getMuscleIcon(ex.muscle);
+        const type = ex.type || 'compound';
+        const typeBadge = type === 'compound' ? 'Compound' : 'Isolation';
+        const badgeClass = type === 'compound' ? 'compound' : 'isolation';
+        
+        return `<div class="today-exercise-card">
+            <div class="today-exercise-icon">${icon}</div>
+            <div class="today-exercise-info">
+                <span class="today-exercise-name">${ex.name}</span>
+                <span class="today-exercise-sets">${ex.sets} × ${ex.reps}</span>
+            </div>
+            <span class="today-exercise-badge ${badgeClass}">${typeBadge}</span>
+        </div>`;
+    }).join('');
 
     const moreText = exercises.length > 4 ? `<div class="today-exercise-more">+${exercises.length - 4} autres exercices</div>` : '';
 
