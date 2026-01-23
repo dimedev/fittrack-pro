@@ -1351,7 +1351,9 @@
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
 }
 
 .preview-footer .btn-lg {
@@ -1363,10 +1365,11 @@
 }
 
 .preview-save-hint {
-    margin-top: 12px;
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
+    max-width: 300px;
+    line-height: 1.4;
 }
 
 /* ==================== BOTTOM SHEET ==================== */
