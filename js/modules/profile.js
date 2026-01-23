@@ -253,6 +253,11 @@ function updateDashboard() {
     if (typeof updateBodyWeightChart === 'function') {
         updateBodyWeightChart();
     }
+
+    // Résumé de la semaine d'entraînement
+    if (typeof renderTrainingWeekSummary === 'function') {
+        renderTrainingWeekSummary();
+    }
 }
 
 function updateMacroBars() {

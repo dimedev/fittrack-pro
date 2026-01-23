@@ -99,7 +99,7 @@ const SessionManager = (function() {
         const exercises = programExercises.map((ex, idx) => {
             const effectiveName = getEffectiveExerciseName(ex.name, ex.muscle);
             const lastLog = getLastLog(effectiveName);
-            const suggestedWeight = state.progressionSuggestions?.[effectiveName] || lastLog?.weight || '';
+            const suggestedWeight = lastLog?.weight || '';
             
             // Créer les séries vides pré-remplies
             const sets = [];

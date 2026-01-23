@@ -6,6 +6,7 @@ let timerRunning = false;
 let autoTimerEnabled = true; // Timer auto activé par défaut
 
 // Configuration des temps de repos recommandés (en secondes)
+// Ces valeurs sont maintenant définies dans exercises.js (REST_TIMES)
 const restTimeConfig = {
     // Exercices composés lourds (force: 1-5 reps)
     heavy_compound: 180,    // 3 minutes
@@ -29,7 +30,21 @@ function isCompoundExercise(exerciseName) {
     return compoundExercises.some(compound => nameLower.includes(compound));
 }
 
+/**
+ * Retourne le temps de repos recommandé en secondes
+ * Priorité : objectif du wizard > type d'exercice/reps
+ */
 function getRecommendedRestTime(exerciseName, targetReps) {
+    // 1. Vérifier si un objectif wizard est défini
+    if (state.wizardResults && state.wizardResults.goal && typeof REST_TIMES !== 'undefined') {
+        const goal = state.wizardResults.goal;
+        const config = REST_TIMES[goal];
+        if (config) {
+            return config.default;
+        }
+    }
+
+    // 2. Fallback: calculer selon le type d'exercice et les reps
     // Parser les reps (peut être "6-8", "8-10", "12-15", "Max", etc.)
     let minReps = 8;
     if (typeof targetReps === 'string') {
@@ -59,21 +74,38 @@ function getRecommendedRestTime(exerciseName, targetReps) {
     return restTimeConfig.default;
 }
 
+/**
+ * Retourne le temps de repos par défaut selon l'objectif du wizard
+ * Utilisé par le full-screen session
+ */
+function getRestTimeForGoal() {
+    if (state.wizardResults && state.wizardResults.goal && typeof REST_TIMES !== 'undefined') {
+        const goal = state.wizardResults.goal;
+        const config = REST_TIMES[goal];
+        if (config) {
+            return config.default;
+        }
+    }
+    return 90; // Default fallback
+}
+
 function setTimer(seconds) {
     timerSeconds = seconds;
     timerRunning = false;
     clearInterval(timerInterval);
-    document.getElementById('timer-toggle').textContent = 'Démarrer';
+    const toggleBtn = document.getElementById('timer-toggle');
+    if (toggleBtn) toggleBtn.textContent = 'Démarrer';
     updateTimerDisplay();
     updateMiniTimer();
 }
 
 function toggleTimer() {
+    const toggleBtn = document.getElementById('timer-toggle');
     if (timerRunning) {
         // Pause
         clearInterval(timerInterval);
         timerRunning = false;
-        document.getElementById('timer-toggle').textContent = 'Reprendre';
+        if (toggleBtn) toggleBtn.textContent = 'Reprendre';
         updateMiniTimerState();
     } else {
         // Start
@@ -84,7 +116,8 @@ function toggleTimer() {
 
 function startTimerCountdown() {
     timerRunning = true;
-    document.getElementById('timer-toggle').textContent = 'Pause';
+    const toggleBtn = document.getElementById('timer-toggle');
+    if (toggleBtn) toggleBtn.textContent = 'Pause';
     updateMiniTimerState();
 
     timerInterval = setInterval(() => {
@@ -95,7 +128,7 @@ function startTimerCountdown() {
         if (timerSeconds <= 0) {
             clearInterval(timerInterval);
             timerRunning = false;
-            document.getElementById('timer-toggle').textContent = 'Démarrer';
+            if (toggleBtn) toggleBtn.textContent = 'Démarrer';
             playTimerSound();
 
             // Vibration si supportée
@@ -114,7 +147,8 @@ function resetTimer() {
     clearInterval(timerInterval);
     timerRunning = false;
     timerSeconds = 0;
-    document.getElementById('timer-toggle').textContent = 'Démarrer';
+    const toggleBtn = document.getElementById('timer-toggle');
+    if (toggleBtn) toggleBtn.textContent = 'Démarrer';
     updateTimerDisplay();
     updateMiniTimer();
     hideMiniTimer();
@@ -330,33 +364,30 @@ function playTimerSound() {
 // ==================== KEYBOARD SHORTCUTS ====================
 
 document.addEventListener('keydown', (e) => {
-    // Seulement si on est sur la section training et l'onglet timer
+    // Seulement si on est sur la section training et en mode full-screen session
     const trainingSection = document.getElementById('training');
-    const timerTab = document.getElementById('tab-timer');
-
-    if (!trainingSection.classList.contains('active') || timerTab.style.display === 'none') {
+    const fullscreenSession = document.getElementById('fullscreen-session');
+    
+    // Vérifier si on est en full-screen session
+    const isInFullscreen = fullscreenSession && fullscreenSession.style.display !== 'none';
+    
+    if (!trainingSection || !trainingSection.classList.contains('active')) {
         return;
     }
+
+    // Raccourcis uniquement disponibles en session full-screen
+    if (!isInFullscreen) return;
 
     switch (e.code) {
         case 'Space':
             e.preventDefault();
-            toggleTimer();
+            // Valider série ou toggle timer
+            if (typeof validateCurrentSet === 'function') {
+                validateCurrentSet();
+            }
             break;
         case 'KeyR':
-            resetTimer();
-            break;
-        case 'Digit1':
-            setTimer(60);
-            break;
-        case 'Digit2':
-            setTimer(90);
-            break;
-        case 'Digit3':
-            setTimer(120);
-            break;
-        case 'Digit4':
-            setTimer(180);
+            resetFsTimer();
             break;
     }
 });

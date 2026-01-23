@@ -1,26 +1,31 @@
 // ==================== STATE MANAGEMENT ====================
+// Version MVP - dailyMenu supprimé, foodJournal est la source unique
 
 let state = {
     profile: null,
     foods: [...defaultFoods],
-    exercises: [...defaultExercises], // Exercices disponibles
+    exercises: [...defaultExercises],
     exerciseSwaps: {}, // Exercices remplacés par l'utilisateur { "Développé Couché": "chest-press-machine" }
-    dailyMenu: {
-        breakfast: [],
-        lunch: [],
-        snack: [],
-        dinner: []
-    },
     foodJournal: {}, // Journal alimentaire par date { "2025-01-21": [{ foodId, quantity }] }
-    favoriteMeals: [], // Repas favoris [{ id, name, icon, mealType, items: [{ foodId, quantity }], createdAt }]
     selectedProgram: null,
     trainingDays: 4,
     progressLog: {},
     sessionHistory: [],
-    activeSession: null, // Session en cours (gérée par SessionManager)
-    progressionSuggestions: {}, // Suggestions de progression IA { exerciseName: suggestedWeight }
-    trainingModes: {}, // Configuration des modes d'entraînement (supersets, circuits)
-    foodAccordionState: {} // État des accordéons dans la base d'aliments
+    activeSession: null,
+    foodAccordionState: {}, // État des accordéons dans la base d'aliments
+    
+    // Résultats du wizard de configuration programme
+    wizardResults: null, // { frequency, goal, experience, favoriteExercises, selectedProgram, completedAt }
+    
+    // Progression séquentielle dans le programme
+    trainingProgress: {
+        currentSplitIndex: 0,       // Prochain jour du split à faire (0=Push, 1=Pull, 2=Legs pour PPL)
+        lastSessionDate: null,      // Date de la dernière séance complétée
+        totalSessionsCompleted: 0   // Compteur total de séances
+    },
+    
+    // Templates de séances personnalisés par slot
+    sessionTemplates: {} // Clé: "programId-splitIndex" -> { splitIndex, splitName, exercises[], savedAt }
 };
 
 // Charger l'état depuis localStorage
@@ -30,32 +35,49 @@ function loadState() {
         try {
             const parsed = JSON.parse(saved);
             state = { ...state, ...parsed };
+            
             // S'assurer que les aliments par défaut sont inclus
             const customFoods = (state.foods || []).filter(f => !defaultFoods.find(df => df.id === f.id));
             state.foods = [...defaultFoods, ...customFoods];
+            
             // S'assurer que les exercices par défaut sont inclus
             const customExercises = (state.exercises || []).filter(e => !defaultExercises.find(de => de.id === e.id));
             state.exercises = [...defaultExercises, ...customExercises];
+            
             // Initialiser les champs manquants
             if (!state.exerciseSwaps) state.exerciseSwaps = {};
-            if (!state.favoriteMeals) state.favoriteMeals = [];
-            if (!state.progressionSuggestions) state.progressionSuggestions = {};
-            if (!state.trainingModes) state.trainingModes = {};
             if (!state.foodAccordionState) state.foodAccordionState = {};
             if (!state.progressLog) state.progressLog = {};
             if (!state.sessionHistory) state.sessionHistory = [];
             if (!state.activeSession) state.activeSession = null;
             if (!state.foodJournal) state.foodJournal = {};
-            if (!state.dailyMenu) state.dailyMenu = { breakfast: [], lunch: [], snack: [], dinner: [] };
-
-            // Restaurer le programme IA personnalisé s'il existe
-            if (state.aiCustomProgram && typeof trainingPrograms !== 'undefined') {
-                trainingPrograms['ai-custom'] = state.aiCustomProgram;
-                console.log('✅ Programme IA restauré depuis localStorage');
-            };
+            
+            // Nouveaux champs pour la refonte Training
+            if (!state.wizardResults) state.wizardResults = null;
+            if (!state.trainingProgress) {
+                state.trainingProgress = {
+                    currentSplitIndex: 0,
+                    lastSessionDate: null,
+                    totalSessionsCompleted: 0
+                };
+            }
+            
+            // Templates de séances personnalisés
+            if (!state.sessionTemplates) state.sessionTemplates = {};
+            
+            // Migration: si dailyMenu existe encore, on le supprime
+            if (state.dailyMenu) {
+                delete state.dailyMenu;
+            }
+            
+            // Migration: supprimer les champs obsolètes
+            if (state.favoriteMeals) delete state.favoriteMeals;
+            if (state.progressionSuggestions) delete state.progressionSuggestions;
+            if (state.trainingModes) delete state.trainingModes;
+            if (state.aiCustomProgram) delete state.aiCustomProgram;
+            
         } catch (e) {
             console.error('Erreur lors du chargement des données:', e);
-            // Réinitialiser le state en cas d'erreur de parsing
             localStorage.removeItem('fittrack-state');
         }
     }
@@ -78,7 +100,7 @@ function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fittrack-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `repzy-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('Données exportées !', 'success');
@@ -98,20 +120,21 @@ function handleImport(event) {
         try {
             const imported = JSON.parse(e.target.result);
             state = { ...state, ...imported };
+            
             // Re-merger les aliments par défaut
             const customFoods = state.foods.filter(f => !defaultFoods.find(df => df.id === f.id));
             state.foods = [...defaultFoods, ...customFoods];
             saveState();
             
             // Rafraîchir l'interface
-            renderProgramTypes();
-            renderFoodsList();
-            renderDailyMenu();
-            updateDashboard();
-            updateWeeklySchedule();
-            populateSessionDaySelect();
-            populateProgressExerciseSelect();
-            updateSessionHistory();
+            if (typeof renderProgramTypes === 'function') renderProgramTypes();
+            if (typeof renderFoodsList === 'function') renderFoodsList();
+            if (typeof updateDashboard === 'function') updateDashboard();
+            if (typeof updateWeeklySchedule === 'function') updateWeeklySchedule();
+            if (typeof populateSessionDaySelect === 'function') populateSessionDaySelect();
+            if (typeof populateProgressExerciseSelect === 'function') populateProgressExerciseSelect();
+            if (typeof updateSessionHistory === 'function') updateSessionHistory();
+            if (typeof loadJournalDay === 'function') loadJournalDay();
             
             showToast('Données importées avec succès !', 'success');
         } catch (err) {

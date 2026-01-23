@@ -1,0 +1,173 @@
+/* ==================== JOURNAL MACRO PROGRESS BARS ==================== */
+.journal-macro-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.journal-macro-bar-item {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    transition: all var(--transition-fast);
+}
+
+.journal-macro-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.journal-macro-bar-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.journal-macro-bar-values {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.journal-macro-bar-track {
+    height: 8px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.journal-macro-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+    width: 0%;
+}
+
+.journal-macro-bar-fill.calories {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.journal-macro-bar-fill.protein {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.journal-macro-bar-fill.carbs {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.journal-macro-bar-fill.fat {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+/* États quand objectif atteint/dépassé */
+.journal-macro-bar-fill.complete {
+    box-shadow: 0 0 10px currentColor;
+}
+
+.journal-macro-bar-fill.over {
+    background: linear-gradient(90deg, #ef4444, #dc2626) !important;
+}
+
+/* ==================== MULTI-SELECT FOODS ==================== */
+.food-search-item-selectable {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: 2px solid transparent;
+}
+
+.food-search-item-selectable:hover {
+    background: var(--bg-hover);
+}
+
+.food-search-item-selectable.selected {
+    border-color: var(--accent-brand);
+    background: rgba(255, 0, 0, 0.05);
+}
+
+.food-check {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+}
+
+.food-search-item-selectable.selected .food-check {
+    background: var(--accent-brand);
+    border-color: var(--accent-brand);
+    color: white;
+}
+
+.food-search-item-selectable .food-check::after {
+    content: '';
+    display: none;
+}
+
+.food-search-item-selectable.selected .food-check::after {
+    content: '✓';
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.food-select-info-multi {
+    flex: 1;
+}
+
+.food-select-info-multi strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Selected foods chips */
+.selected-food-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+}
+
+.selected-food-chip .remove-chip {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.selected-food-chip .remove-chip:hover {
+    color: var(--danger);
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+    .journal-macro-bars {
+        gap: 10px;
+    }
+    
+    .journal-macro-bar-item {
+        padding: 10px 12px;
+    }
+    
+    .journal-macro-bar-track {
+        height: 10px;
+    }
+}

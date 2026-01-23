@@ -10,6 +10,13 @@ function loadSessionDayV2() {
     const container = document.getElementById('session-exercises');
     const saveBtn = document.getElementById('save-session-btn');
     const select = document.getElementById('session-day-select');
+    
+    // Vérifier si les éléments existent (peuvent avoir été supprimés dans la refonte)
+    if (!container || !select) {
+        console.log('loadSessionDayV2: éléments non trouvés, utiliser le nouveau flow');
+        return;
+    }
+    
     const dayIndex = parseInt(select.value);
 
     if (!state.selectedProgram || isNaN(dayIndex)) {
@@ -54,8 +61,6 @@ function loadSessionDayV2() {
     container.innerHTML = session.exercises.map((exercise, exIdx) => {
         const prBadge = typeof getPRBadgeHTML === 'function' ? getPRBadgeHTML(exercise.effectiveName) : '';
         const lastLog = getLastLog(exercise.effectiveName);
-        const hasSuggestion = state.progressionSuggestions?.[exercise.effectiveName] && 
-                             state.progressionSuggestions[exercise.effectiveName] !== lastLog?.weight;
         
         return `
             <div class="exercise-card" 
@@ -83,12 +88,6 @@ function loadSessionDayV2() {
                     </div>
                 </div>
                 <div class="exercise-card-body">
-                    ${hasSuggestion ? `
-                        <div class="ai-suggestion-banner">
-                            💡 <strong>Suggestion IA:</strong> ${state.progressionSuggestions[exercise.effectiveName]}kg 
-                            (${lastLog ? '+' + (state.progressionSuggestions[exercise.effectiveName] - lastLog.weight) + 'kg' : 'nouveau poids'})
-                        </div>
-                    ` : ''}
                     <div class="sets-header">
                         <span>#</span>
                         <span>Poids</span>
@@ -319,7 +318,8 @@ function copyLastSession(dayType) {
  */
 function resetCurrentSession() {
     if (confirm('Réinitialiser cette séance ? Toutes les données non sauvegardées seront perdues.')) {
-        const dayIndex = parseInt(document.getElementById('session-day-select').value);
+        const selectEl = document.getElementById('session-day-select');
+        const dayIndex = selectEl ? parseInt(selectEl.value) : 0;
         SessionManager.clearActiveSession();
         SessionManager.initSession(dayIndex);
         loadSessionDayV2();

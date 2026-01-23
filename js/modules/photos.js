@@ -39,19 +39,19 @@ async function compressImage(file, maxWidth = 1200, quality = 0.8) {
  * Upload une photo vers Supabase Storage
  */
 async function uploadPhotoToStorage(imageBlob, pose, date) {
-    if (!supabase || !isLoggedIn()) {
+    if (!supabaseClient || !isLoggedIn()) {
         showToast('Connectez-vous pour sauvegarder vos photos', 'error');
         return null;
     }
     
     try {
-        const user = (await supabase.auth.getUser()).data.user;
+        const user = (await supabaseClient.auth.getUser()).data.user;
         if (!user) throw new Error('Non connecté');
         
         const fileName = `${date}_${pose}_${Date.now()}.jpg`;
         const filePath = `${user.id}/${fileName}`;
         
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabaseClient.storage
             .from('progress-photos')
             .upload(filePath, imageBlob, {
                 contentType: 'image/jpeg',
@@ -61,7 +61,7 @@ async function uploadPhotoToStorage(imageBlob, pose, date) {
         if (error) throw error;
         
         // URL signée valide 1 an
-        const { data: urlData, error: urlError } = await supabase.storage
+        const { data: urlData, error: urlError } = await supabaseClient.storage
             .from('progress-photos')
             .createSignedUrl(filePath, 365 * 24 * 60 * 60);
         
@@ -80,12 +80,12 @@ async function uploadPhotoToStorage(imageBlob, pose, date) {
  * Sauvegarde les métadonnées de la photo
  */
 async function savePhotoMetadata(photoPath, photoUrl, date, weight, bodyFat, pose, notes) {
-    if (!supabase || !isLoggedIn()) return null;
+    if (!supabaseClient || !isLoggedIn()) return null;
     
     try {
-        const user = (await supabase.auth.getUser()).data.user;
+        const user = (await supabaseClient.auth.getUser()).data.user;
         
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('progress_photos')
             .insert({
                 user_id: user.id,
@@ -113,10 +113,10 @@ async function savePhotoMetadata(photoPath, photoUrl, date, weight, bodyFat, pos
  * Récupère toutes les photos de l'utilisateur
  */
 async function fetchUserPhotos() {
-    if (!supabase || !isLoggedIn()) return [];
+    if (!supabaseClient || !isLoggedIn()) return [];
     
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('progress_photos')
             .select('*')
             .order('taken_at', { ascending: false });
@@ -134,14 +134,14 @@ async function fetchUserPhotos() {
  * Supprime une photo
  */
 async function deletePhoto(photoId, photoPath) {
-    if (!supabase || !isLoggedIn()) return false;
+    if (!supabaseClient || !isLoggedIn()) return false;
     
     try {
         // Supprimer du storage
-        await supabase.storage.from('progress-photos').remove([photoPath]);
+        await supabaseClient.storage.from('progress-photos').remove([photoPath]);
         
         // Supprimer de la base
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('progress_photos')
             .delete()
             .eq('id', photoId);

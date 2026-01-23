@@ -2,6 +2,36 @@
 
 let progressChart = null;
 
+// ==================== TAB SWITCHING ====================
+
+function switchProgressTab(tabName) {
+    // Mettre à jour les boutons d'onglets
+    document.querySelectorAll('#progress .tabs .tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.tab === tabName) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Afficher/masquer les contenus
+    document.querySelectorAll('#progress .tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    
+    const targetContent = document.getElementById(`tab-${tabName}`);
+    if (targetContent) {
+        targetContent.style.display = 'block';
+    }
+
+    // Refresh data based on tab
+    if (tabName === 'history') {
+        updateSessionHistory();
+    } else if (tabName === 'prs') {
+        renderPRsSection();
+        populateProgressExerciseSelect();
+    }
+}
+
 // ==================== PERSONAL RECORDS (PRs) ====================
 
 /**
@@ -482,4 +512,298 @@ function getProgressionStats(exerciseName) {
         percentProgress,
         averageReps: Math.round(logs.reduce((sum, l) => sum + (l.achievedReps || 0), 0) / logs.length)
     };
+}
+
+// ==================== TRAINING WEEK SUMMARY (DASHBOARD) ====================
+
+function renderTrainingWeekSummary() {
+    const container = document.getElementById('training-week-summary');
+    if (!container) return;
+
+    // Hide if no program configured
+    if (!state.wizardResults || !state.wizardResults.selectedProgram) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'block';
+
+    // Get sessions from this week
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const weekSessions = (state.sessionHistory || []).filter(s => {
+        const sessionDate = new Date(s.date);
+        return sessionDate >= startOfWeek;
+    });
+
+    // Get target sessions per week
+    const targetSessions = state.wizardResults?.frequency || 4;
+    const completedSessions = weekSessions.length;
+
+    // Update progress bar
+    document.getElementById('week-sessions-count').textContent = `${completedSessions}/${targetSessions} séances`;
+    const progressPercent = Math.min((completedSessions / targetSessions) * 100, 100);
+    document.getElementById('week-progress-fill').style.width = `${progressPercent}%`;
+
+    // Update last session
+    const lastSession = state.sessionHistory?.[0];
+    const emptyEl = document.getElementById('last-session-empty');
+    const contentEl = document.getElementById('last-session-content');
+
+    if (!lastSession) {
+        emptyEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        return;
+    }
+
+    emptyEl.style.display = 'none';
+    contentEl.style.display = 'block';
+
+    // Format date
+    const sessionDate = new Date(lastSession.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    sessionDate.setHours(0, 0, 0, 0);
+
+    let dateText;
+    if (sessionDate.getTime() === today.getTime()) {
+        dateText = "Aujourd'hui";
+    } else if (sessionDate.getTime() === yesterday.getTime()) {
+        dateText = "Hier";
+    } else {
+        dateText = sessionDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
+    }
+
+    document.getElementById('last-session-date').textContent = dateText;
+    document.getElementById('last-session-title').textContent = lastSession.day || 'Séance';
+
+    // Calculate stats
+    const exercises = lastSession.exercises || [];
+    const totalSets = exercises.reduce((sum, ex) => sum + (Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0)), 0);
+    const duration = lastSession.duration || 0;
+
+    document.getElementById('last-session-exercises').textContent = `${exercises.length} exos`;
+    document.getElementById('last-session-sets').textContent = `${totalSets} séries`;
+    document.getElementById('last-session-duration').textContent = `${duration} min`;
+
+    // Count PRs from that session (check if any exercise had a PR that day)
+    const prsCount = countSessionPRs(lastSession);
+    const prsEl = document.getElementById('last-session-prs');
+    if (prsCount > 0) {
+        prsEl.style.display = 'inline-flex';
+        document.getElementById('last-session-prs-count').textContent = prsCount;
+    } else {
+        prsEl.style.display = 'none';
+    }
+}
+
+function countSessionPRs(session) {
+    if (!session || !session.exercises) return 0;
+    let prCount = 0;
+    const sessionDate = session.date;
+
+    session.exercises.forEach(ex => {
+        const exerciseName = ex.exercise || ex.name;
+        const logs = state.progressLog[exerciseName];
+        if (!logs) return;
+
+        // Check if any PR was set on this date
+        const prs = getExercisePRs(exerciseName);
+        if (prs && prs.maxWeight.date === sessionDate) {
+            prCount++;
+        }
+    });
+
+    return prCount;
+}
+
+function openLastSessionDetail() {
+    const lastSession = state.sessionHistory?.[0];
+    if (lastSession) {
+        openSessionDetail(0);
+    }
+}
+
+// ==================== SESSIONS LIST (NEW) ====================
+
+function updateSessionHistory() {
+    const container = document.getElementById('session-history');
+    if (!container) return;
+
+    if (!state.sessionHistory || state.sessionHistory.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <div class="empty-state-title">Aucune séance enregistrée</div>
+                <p>Vos séances apparaîtront ici après votre première session</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Render all sessions as clean cards
+    container.innerHTML = `
+        <div class="sessions-list-container">
+            ${state.sessionHistory.map((session, index) => {
+                const sessionDate = new Date(session.date);
+                const day = sessionDate.getDate();
+                const month = sessionDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
+                
+                const exercises = session.exercises || [];
+                const totalSets = exercises.reduce((sum, ex) => 
+                    sum + (Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0)), 0
+                );
+                const duration = session.duration || 0;
+                const prsCount = countSessionPRs(session);
+
+                return `
+                    <div class="session-history-item" onclick="openSessionDetail(${index})">
+                        <div class="session-history-date">
+                            <div class="session-history-day">${day}</div>
+                            <div class="session-history-month">${month}</div>
+                        </div>
+                        <div class="session-history-info">
+                            <div class="session-history-title">
+                                ${session.day || 'Séance'}
+                                ${prsCount > 0 ? `<span class="session-history-pr-badge">🏆 ${prsCount} PR${prsCount > 1 ? 's' : ''}</span>` : ''}
+                            </div>
+                            <div class="session-history-meta">
+                                ${exercises.length} exos • ${totalSets} séries • ${duration} min
+                            </div>
+                        </div>
+                        <span class="session-history-arrow">›</span>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+// ==================== SESSION DETAIL VIEW ====================
+
+let currentDetailSessionIndex = null;
+
+function openSessionDetail(sessionIndex) {
+    const session = state.sessionHistory[sessionIndex];
+    if (!session) return;
+
+    currentDetailSessionIndex = sessionIndex;
+
+    // Create overlay if it doesn't exist
+    let overlay = document.getElementById('session-detail-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'session-detail-overlay';
+        overlay.className = 'session-detail-overlay';
+        document.body.appendChild(overlay);
+    }
+
+    const sessionDate = new Date(session.date);
+    const formattedDate = sessionDate.toLocaleDateString('fr-FR', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long' 
+    });
+
+    const exercises = session.exercises || [];
+    const totalSets = exercises.reduce((sum, ex) => 
+        sum + (Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0)), 0
+    );
+    const duration = session.duration || 0;
+
+    overlay.innerHTML = `
+        <div class="session-detail-header">
+            <button class="session-detail-back" onclick="closeSessionDetail()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <div class="session-detail-title">
+                <h2>${session.day || 'Séance'}</h2>
+                <span>${formattedDate}</span>
+            </div>
+        </div>
+        <div class="session-detail-content">
+            <div class="session-detail-summary">
+                <div class="session-summary-stat">
+                    <div class="session-summary-value">${exercises.length}</div>
+                    <div class="session-summary-label">Exercices</div>
+                </div>
+                <div class="session-summary-stat">
+                    <div class="session-summary-value">${totalSets}</div>
+                    <div class="session-summary-label">Séries</div>
+                </div>
+                <div class="session-summary-stat">
+                    <div class="session-summary-value">${duration}</div>
+                    <div class="session-summary-label">Minutes</div>
+                </div>
+            </div>
+            <div class="session-detail-exercises">
+                ${renderSessionExercises(session)}
+            </div>
+        </div>
+    `;
+
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function renderSessionExercises(session) {
+    const exercises = session.exercises || [];
+    const sessionDate = session.date;
+
+    return exercises.map(ex => {
+        const exerciseName = ex.exercise || ex.name || 'Exercice';
+        const sets = Array.isArray(ex.sets) ? ex.sets : [];
+        
+        // Check if this exercise had a PR on this date
+        const prs = getExercisePRs(exerciseName);
+        const hadPR = prs && prs.maxWeight.date === sessionDate;
+
+        // Find best set (highest tonnage)
+        let bestSetIndex = -1;
+        let bestTonnage = 0;
+        sets.forEach((set, idx) => {
+            const tonnage = (set.weight || 0) * (set.reps || 0);
+            if (tonnage > bestTonnage) {
+                bestTonnage = tonnage;
+                bestSetIndex = idx;
+            }
+        });
+
+        return `
+            <div class="session-exercise-card">
+                <div class="session-exercise-header">
+                    <span class="session-exercise-name">${exerciseName}</span>
+                    ${hadPR ? '<span class="session-exercise-pr">🏆 PR</span>' : ''}
+                </div>
+                <div class="session-exercise-sets">
+                    ${sets.length > 0 ? sets.map((set, idx) => `
+                        <div class="session-set-row">
+                            <span class="session-set-num">S${idx + 1}</span>
+                            <span class="session-set-value">${set.weight || 0}kg × ${set.reps || 0}</span>
+                            ${idx === bestSetIndex ? '<span class="session-set-best">Meilleure</span>' : ''}
+                        </div>
+                    `).join('') : `
+                        <div class="session-set-row">
+                            <span class="session-set-value" style="color: var(--text-muted);">Pas de détail disponible</span>
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function closeSessionDetail() {
+    const overlay = document.getElementById('session-detail-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+    document.body.style.overflow = '';
+    currentDetailSessionIndex = null;
 }

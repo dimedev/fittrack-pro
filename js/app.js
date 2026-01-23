@@ -1,4 +1,5 @@
 // ==================== MAIN APP ====================
+// Version MVP - Simplifié
 
 // Mode hors-ligne (sans compte)
 let offlineMode = false;
@@ -66,13 +67,6 @@ function showInitialSkeletons() {
             container.dataset.skeleton = 'true';
         }
     });
-    
-    // Nutrition: Daily menu skeleton
-    const dailyMenu = document.getElementById('daily-menu');
-    if (dailyMenu) {
-        dailyMenu.innerHTML = window.PremiumUI.SkeletonTemplates.foodList(4);
-        dailyMenu.dataset.skeleton = 'true';
-    }
     
     // Training: Session exercises skeleton
     const sessionExercises = document.getElementById('session-exercises');
@@ -148,7 +142,7 @@ function removeSkeletons() {
     
     // Autres containers: juste supprimer le flag
     ['profile-summary', 'bodyweight-card-container', 'goal-card-container', 
-     'streak-card-container', 'daily-menu', 'session-exercises'].forEach(id => {
+     'streak-card-container', 'session-exercises'].forEach(id => {
         const el = document.getElementById(id);
         if (el) delete el.dataset.skeleton;
     });
@@ -158,7 +152,7 @@ function removeSkeletons() {
 
 // Initialisation de l'application
 function init() {
-    console.log('🏋️ FitTrack Pro - Initialisation...');
+    console.log('🏋️ Repzy - Initialisation...');
     
     // Afficher les skeletons immédiatement
     showInitialSkeletons();
@@ -167,7 +161,9 @@ function init() {
     loadState();
     
     // Initialiser le système d'objectifs
-    initGoalsTracking();
+    if (typeof initGoalsTracking === 'function') {
+        initGoalsTracking();
+    }
     
     // Initialiser l'interface
     initUI();
@@ -178,23 +174,23 @@ function init() {
     }
 
     // Initialiser Supabase
-    initSupabase();
+    if (typeof initSupabase === 'function') {
+        initSupabase();
+    }
     
-    // Petit délai pour que les skeletons soient visibles (simule chargement)
+    // Petit délai pour que les skeletons soient visibles
     setTimeout(() => {
         // Retirer les skeletons et restaurer la structure
         removeSkeletons();
         
         // Rendre les composants
-        renderProgramTypes();
-        renderFoodsList();
-        renderDailyMenu();
-        renderFavoritesList();
-        updateDashboard();
-        updateWeeklySchedule();
-        populateSessionDaySelect();
-        populateProgressExerciseSelect();
-        updateSessionHistory();
+        if (typeof renderProgramTypes === 'function') renderProgramTypes();
+        if (typeof renderFoodsList === 'function') renderFoodsList();
+        if (typeof updateDashboard === 'function') updateDashboard();
+        if (typeof updateWeeklySchedule === 'function') updateWeeklySchedule();
+        if (typeof populateSessionDaySelect === 'function') populateSessionDaySelect();
+        if (typeof populateProgressExerciseSelect === 'function') populateProgressExerciseSelect();
+        if (typeof updateSessionHistory === 'function') updateSessionHistory();
         
         // Initialiser les PRs
         if (typeof renderPRsSection === 'function') {
@@ -206,16 +202,18 @@ function init() {
             renderPhotosGallery();
         }
 
-        // Initialiser les statistiques
-        if (typeof initStatsModule === 'function') {
-            initStatsModule();
+        // Initialiser le journal alimentaire
+        if (typeof initJournal === 'function') {
+            initJournal();
         }
-
-        // Initialiser le journal
-        initJournal();
         
-        console.log('✅ FitTrack Pro - Prêt !');
-    }, 400); // 400ms pour voir l'effet skeleton
+        // Mettre à jour les anneaux de macros depuis le journal
+        if (typeof updateMacroRings === 'function') {
+            updateMacroRings();
+        }
+        
+        console.log('✅ Repzy - Prêt !');
+    }, 400);
 }
 
 // ==================== AUTH HANDLERS ====================
@@ -226,22 +224,24 @@ function switchAuthTab(tab) {
     const loginForm = document.getElementById('auth-form-login');
     const signupForm = document.getElementById('auth-form-signup');
     
+    if (!loginTab || !signupTab) return;
+    
     if (tab === 'login') {
         loginTab.classList.replace('btn-secondary', 'btn-primary');
         signupTab.classList.replace('btn-primary', 'btn-secondary');
-        loginForm.style.display = 'block';
-        signupForm.style.display = 'none';
+        if (loginForm) loginForm.style.display = 'block';
+        if (signupForm) signupForm.style.display = 'none';
     } else {
         signupTab.classList.replace('btn-secondary', 'btn-primary');
         loginTab.classList.replace('btn-primary', 'btn-secondary');
-        signupForm.style.display = 'block';
-        loginForm.style.display = 'none';
+        if (signupForm) signupForm.style.display = 'block';
+        if (loginForm) loginForm.style.display = 'none';
     }
 }
 
 async function handleLogin() {
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
+    const email = document.getElementById('login-email')?.value.trim();
+    const password = document.getElementById('login-password')?.value;
     
     if (!email || !password) {
         showToast('Remplissez tous les champs', 'error');
@@ -256,9 +256,9 @@ async function handleLogin() {
 }
 
 async function handleSignup() {
-    const email = document.getElementById('signup-email').value.trim();
-    const password = document.getElementById('signup-password').value;
-    const passwordConfirm = document.getElementById('signup-password-confirm').value;
+    const email = document.getElementById('signup-email')?.value.trim();
+    const password = document.getElementById('signup-password')?.value;
+    const passwordConfirm = document.getElementById('signup-password-confirm')?.value;
     
     if (!email || !password || !passwordConfirm) {
         showToast('Remplissez tous les champs', 'error');

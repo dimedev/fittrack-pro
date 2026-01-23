@@ -199,3 +199,152 @@ const equipmentTypes = {
     'plate': 'Disque',
     'other': 'Autre'
 };
+
+// ==================== GROUPES D'EXERCICES ÉQUIVALENTS ====================
+// Pour la substitution d'exercices - exercices interchangeables par pattern de mouvement
+
+const exerciseEquivalents = {
+    // Pectoraux - Développés horizontaux
+    'horizontal-press': ['bench-press', 'bench-press-db', 'chest-press-machine', 'smith-bench', 'push-ups'],
+    
+    // Pectoraux - Développés inclinés
+    'incline-press': ['incline-bench', 'incline-bench-db', 'chest-press-incline-machine', 'smith-incline', 'push-ups-decline'],
+    
+    // Pectoraux - Écartés / Isolation
+    'chest-fly': ['chest-fly-db', 'chest-fly-cable', 'cable-crossover', 'pec-deck'],
+    
+    // Dos - Tirages verticaux
+    'vertical-pull': ['pull-ups', 'pull-ups-weighted', 'chin-ups', 'lat-pulldown', 'lat-pulldown-close', 'lat-pulldown-vbar'],
+    
+    // Dos - Tirages horizontaux
+    'horizontal-row': ['bent-over-row', 'bent-over-row-db', 'tbar-row', 'seated-cable-row', 'chest-supported-row', 'machine-row', 'meadows-row'],
+    
+    // Épaules - Développés
+    'shoulder-press': ['overhead-press', 'overhead-press-db', 'arnold-press', 'shoulder-press-machine', 'smith-shoulder-press', 'push-press'],
+    
+    // Épaules - Élévations latérales
+    'lateral-raise': ['lateral-raise', 'lateral-raise-cable', 'lateral-raise-machine'],
+    
+    // Épaules arrière
+    'rear-delt': ['face-pull', 'reverse-fly', 'reverse-fly-machine', 'reverse-fly-cable', 'rear-delt-row'],
+    
+    // Quadriceps - Squats
+    'squat-pattern': ['squat', 'front-squat', 'goblet-squat', 'smith-squat', 'hack-squat', 'pendulum-squat', 'v-squat'],
+    
+    // Quadriceps - Presse
+    'leg-press-pattern': ['leg-press', 'leg-press-feet-low'],
+    
+    // Quadriceps - Extension
+    'leg-extension-pattern': ['leg-extension'],
+    
+    // Quadriceps - Fentes
+    'lunge-pattern': ['lunge', 'walking-lunge', 'bulgarian-split-squat', 'step-up'],
+    
+    // Ischio-jambiers - Hip hinge
+    'hip-hinge': ['rdl', 'rdl-db', 'stiff-leg-deadlift', 'good-morning', 'cable-pull-through'],
+    
+    // Ischio-jambiers - Leg curl
+    'leg-curl': ['leg-curl-lying', 'leg-curl-seated', 'leg-curl-standing'],
+    
+    // Fessiers
+    'glute-isolation': ['hip-thrust', 'hip-thrust-machine', 'glute-bridge', 'cable-kickback', 'glute-kickback-machine'],
+    
+    // Triceps - Extensions
+    'tricep-extension': ['tricep-pushdown', 'tricep-pushdown-rope', 'tricep-pushdown-vbar', 'overhead-tricep', 'overhead-tricep-db', 'tricep-machine'],
+    
+    // Triceps - Composés
+    'tricep-compound': ['dips-triceps', 'close-grip-bench', 'skull-crusher', 'skull-crusher-db'],
+    
+    // Biceps - Curls
+    'bicep-curl': ['barbell-curl', 'ez-curl', 'dumbbell-curl', 'alternating-curl', 'cable-curl', 'machine-curl'],
+    
+    // Biceps - Curls spécialisés
+    'bicep-curl-isolation': ['hammer-curl', 'incline-curl', 'concentration-curl', 'preacher-curl', 'preacher-curl-db', 'spider-curl'],
+    
+    // Mollets
+    'calf-raise': ['standing-calf', 'standing-calf-smith', 'seated-calf', 'leg-press-calf', 'donkey-calf', 'single-leg-calf'],
+    
+    // Trapèzes
+    'shrug-pattern': ['barbell-shrug', 'dumbbell-shrug', 'smith-shrug', 'trap-bar-shrug', 'cable-shrug']
+};
+
+// Configuration des temps de repos par objectif
+const REST_TIMES = {
+    'endurance':   { default: 45,  range: [30, 60] },
+    'hypertrophy': { default: 90,  range: [60, 120] },
+    'strength':    { default: 150, range: [120, 180] }
+};
+
+// Configuration des plages de répétitions par objectif
+const REP_RANGES = {
+    'endurance':   { min: 15, max: 20, label: '15-20' },
+    'hypertrophy': { min: 8,  max: 12, label: '8-12' },
+    'strength':    { min: 3,  max: 6,  label: '3-6' }
+};
+
+/**
+ * Trouve le groupe d'équivalence d'un exercice
+ * @param {string} exerciseId - ID de l'exercice
+ * @returns {string|null} - Nom du groupe ou null
+ */
+function findExerciseGroup(exerciseId) {
+    for (const [group, exercises] of Object.entries(exerciseEquivalents)) {
+        if (exercises.includes(exerciseId)) {
+            return group;
+        }
+    }
+    return null;
+}
+
+/**
+ * Retourne les exercices équivalents pour un exercice donné
+ * Trie les favoris en premier
+ * @param {string} exerciseId - ID de l'exercice à remplacer
+ * @param {string[]} favoriteExercises - Liste des IDs des exercices favoris
+ * @returns {Object[]} - Liste des exercices équivalents avec leurs détails
+ */
+function getEquivalentExercises(exerciseId, favoriteExercises = []) {
+    const group = findExerciseGroup(exerciseId);
+    
+    if (group) {
+        // Exercices du même groupe
+        const equivalentIds = exerciseEquivalents[group].filter(id => id !== exerciseId);
+        
+        // Récupérer les détails et trier (favoris en premier)
+        const equivalents = equivalentIds
+            .map(id => {
+                const exercise = defaultExercises.find(e => e.id === id);
+                if (!exercise) return null;
+                return {
+                    ...exercise,
+                    isFavorite: favoriteExercises.includes(id)
+                };
+            })
+            .filter(e => e !== null)
+            .sort((a, b) => {
+                // Favoris d'abord
+                if (a.isFavorite && !b.isFavorite) return -1;
+                if (!a.isFavorite && b.isFavorite) return 1;
+                return 0;
+            });
+        
+        return equivalents;
+    }
+    
+    // Fallback: exercices du même muscle
+    const exercise = defaultExercises.find(e => e.id === exerciseId);
+    if (!exercise) return [];
+    
+    return defaultExercises
+        .filter(e => e.muscle === exercise.muscle && e.id !== exerciseId)
+        .map(e => ({
+            ...e,
+            isFavorite: favoriteExercises.includes(e.id)
+        }))
+        .sort((a, b) => {
+            if (a.isFavorite && !b.isFavorite) return -1;
+            if (!a.isFavorite && b.isFavorite) return 1;
+            return 0;
+        })
+        .slice(0, 5); // Limiter à 5 suggestions
+}

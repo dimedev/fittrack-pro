@@ -445,21 +445,15 @@ async function loadAllDataFromSupabase() {
 
 // Rafraîchir toute l'UI
 function refreshAllUI() {
-    // Restaurer le programme IA si présent dans le state
-    if (state.aiCustomProgram && typeof trainingPrograms !== 'undefined') {
-        trainingPrograms['ai-custom'] = state.aiCustomProgram;
-    }
-    
-    renderProgramTypes();
-    renderFoodsList();
-    renderDailyMenu();
-    renderFavoritesList();
-    updateDashboard();
-    updateWeeklySchedule();
-    populateSessionDaySelect();
-    populateProgressExerciseSelect();
-    updateSessionHistory();
-    if (document.getElementById('journal-date')) {
+    if (typeof renderProgramTypes === 'function') renderProgramTypes();
+    if (typeof renderFoodsList === 'function') renderFoodsList();
+    if (typeof updateDashboard === 'function') updateDashboard();
+    if (typeof updateWeeklySchedule === 'function') updateWeeklySchedule();
+    if (typeof populateSessionDaySelect === 'function') populateSessionDaySelect();
+    if (typeof populateProgressExerciseSelect === 'function') populateProgressExerciseSelect();
+    if (typeof updateSessionHistory === 'function') updateSessionHistory();
+    if (typeof updateMacroRings === 'function') updateMacroRings();
+    if (document.getElementById('journal-date') && typeof loadJournalDay === 'function') {
         loadJournalDay();
     }
 }

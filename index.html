@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/session-manager.css">
     <link rel="stylesheet" href="css/premium-components.css">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css">
+    <link rel="stylesheet" href="css/journal-macros.css">
 
 
 
@@ -90,6 +91,38 @@
                     <div class="stat-card">
                         <div class="stat-label">Séances/semaine</div>
                         <div class="stat-value" id="stat-days">--</div>
+                    </div>
+                </div>
+
+                <!-- Training Week Summary -->
+                <div class="card training-week-card" id="training-week-summary" style="margin-top: 20px;">
+                    <div class="week-progress-header">
+                        <span class="week-title">Cette semaine</span>
+                        <span class="week-count" id="week-sessions-count">0/0 séances</span>
+                    </div>
+                    <div class="week-progress-bar">
+                        <div class="week-progress-fill" id="week-progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="last-session-card" id="last-session-card" onclick="openLastSessionDetail()">
+                        <div class="last-session-empty" id="last-session-empty">
+                            <span>Aucune séance cette semaine</span>
+                        </div>
+                        <div class="last-session-content" id="last-session-content" style="display: none;">
+                            <div class="last-session-header">
+                                <span class="last-session-label">Dernière séance</span>
+                                <span class="last-session-date" id="last-session-date">Hier</span>
+                            </div>
+                            <div class="last-session-title" id="last-session-title">Push</div>
+                            <div class="last-session-stats">
+                                <span id="last-session-exercises">6 exos</span>
+                                <span class="stat-separator">•</span>
+                                <span id="last-session-sets">24 séries</span>
+                                <span class="stat-separator">•</span>
+                                <span id="last-session-duration">45 min</span>
+                                <span class="last-session-prs" id="last-session-prs" style="display: none;">🏆 <span id="last-session-prs-count">0</span> PRs</span>
+                            </div>
+                        </div>
+                        <div class="last-session-arrow">›</div>
                     </div>
                 </div>
 
@@ -193,54 +226,11 @@
             <!-- Nutrition Section -->
             <section id="nutrition" class="section">
                 <div class="tabs">
-                    <button class="tab active" data-tab="menu">Menu du Jour</button>
-                    <button class="tab" data-tab="favoris">⭐ Favoris</button>
-                    <button class="tab" data-tab="journal">Journal</button>
-                    <button class="tab" data-tab="aliments">Base d'Aliments</button>
+                    <button class="tab active" data-tab="journal">📝 Journal</button>
+                    <button class="tab" data-tab="aliments">🥑 Base d'Aliments</button>
                 </div>
 
-                <div id="tab-menu" class="tab-content">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">🍽️</span>
-                                Menu du Jour
-                            </div>
-                            <div style="display: flex; gap: 10px;">
-                                <button class="btn btn-sm btn-secondary" onclick="openSaveMealAsFavoriteModal()" data-tooltip="Sauvegarder ce menu en favori" data-tooltip-pos="bottom">⭐ Sauvegarder</button>
-                                <button class="btn btn-sm btn-primary" onclick="openAddFoodModal()" data-tooltip="Ajouter un aliment" data-tooltip-pos="bottom">+ Ajouter</button>
-                            </div>
-                        </div>
-                        <div id="daily-menu">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">🥗</div>
-                                <div class="empty-state-title">Aucun repas planifié</div>
-                                <p>Générez un menu ou ajoutez des aliments manuellement</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="tab-favoris" class="tab-content" style="display: none;">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">⭐</span>
-                                Mes Repas Favoris
-                            </div>
-                            <button class="btn btn-sm btn-primary" onclick="openCreateFavoriteModal()" data-tooltip="Créer un nouveau favori">+ Créer un favori</button>
-                        </div>
-                        <div id="favorites-list">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">⭐</div>
-                                <div class="empty-state-title">Aucun favori</div>
-                                <p>Sauvegardez vos combinaisons d'aliments préférées pour les réutiliser rapidement</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="tab-journal" class="tab-content" style="display: none;">
+                <div id="tab-journal" class="tab-content">
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
@@ -253,45 +243,59 @@
                             </div>
                         </div>
 
-                        <!-- Résumé des macros du journal -->
-                        <div id="journal-macros-summary" class="journal-summary">
-                            <div class="journal-summary-item">
-                                <span class="journal-summary-value" id="journal-calories">0</span>
-                                <span class="journal-summary-label">kcal</span>
+                        <!-- Barres de progression des macros -->
+                        <div id="journal-macros-bars" class="journal-macro-bars">
+                            <div class="journal-macro-bar-item">
+                                <div class="journal-macro-bar-header">
+                                    <span class="journal-macro-bar-label">🔥 Calories</span>
+                                    <span class="journal-macro-bar-values" id="journal-cals-values">0 / 2000 kcal</span>
+                                </div>
+                                <div class="journal-macro-bar-track">
+                                    <div class="journal-macro-bar-fill calories" id="journal-cals-bar"></div>
+                                </div>
                             </div>
-                            <div class="journal-summary-item protein">
-                                <span class="journal-summary-value" id="journal-protein">0</span>
-                                <span class="journal-summary-label">Protéines (g)</span>
+                            <div class="journal-macro-bar-item">
+                                <div class="journal-macro-bar-header">
+                                    <span class="journal-macro-bar-label">🥩 Protéines</span>
+                                    <span class="journal-macro-bar-values" id="journal-prot-values">0 / 150g</span>
+                                </div>
+                                <div class="journal-macro-bar-track">
+                                    <div class="journal-macro-bar-fill protein" id="journal-prot-bar"></div>
+                                </div>
                             </div>
-                            <div class="journal-summary-item carbs">
-                                <span class="journal-summary-value" id="journal-carbs">0</span>
-                                <span class="journal-summary-label">Glucides (g)</span>
+                            <div class="journal-macro-bar-item">
+                                <div class="journal-macro-bar-header">
+                                    <span class="journal-macro-bar-label">🍚 Glucides</span>
+                                    <span class="journal-macro-bar-values" id="journal-carbs-values">0 / 250g</span>
+                                </div>
+                                <div class="journal-macro-bar-track">
+                                    <div class="journal-macro-bar-fill carbs" id="journal-carbs-bar"></div>
+                                </div>
                             </div>
-                            <div class="journal-summary-item fat">
-                                <span class="journal-summary-value" id="journal-fat">0</span>
-                                <span class="journal-summary-label">Lipides (g)</span>
+                            <div class="journal-macro-bar-item">
+                                <div class="journal-macro-bar-header">
+                                    <span class="journal-macro-bar-label">🥑 Lipides</span>
+                                    <span class="journal-macro-bar-values" id="journal-fat-values">0 / 70g</span>
+                                </div>
+                                <div class="journal-macro-bar-track">
+                                    <div class="journal-macro-bar-fill fat" id="journal-fat-bar"></div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Barre de progression des objectifs -->
-                        <div id="journal-progress-bars" style="margin-top: 20px; margin-bottom: 20px;">
-                            <div class="macro-bar">
-                                <div class="macro-bar-header">
-                                    <span class="macro-bar-label">Calories</span>
-                                    <span class="macro-bar-value" id="journal-cals-progress">0 / --</span>
-                                </div>
-                                <div class="macro-bar-track">
-                                    <div class="macro-bar-fill calories" id="journal-cals-bar" style="width: 0%; background: linear-gradient(90deg, #00ff88, #00cc6a);"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Ajouter un aliment -->
+                        <!-- Ajouter plusieurs aliments -->
                         <div style="margin-bottom: 20px;">
                             <div class="form-group" style="margin-bottom: 10px;">
-                                <input type="text" class="form-input" id="journal-food-search" placeholder="🔍 Rechercher un aliment à ajouter..." oninput="searchFoodsForJournal()">
+                                <input type="text" class="form-input" id="journal-food-search" placeholder="🔍 Rechercher des aliments à ajouter..." oninput="searchFoodsForJournal()">
                             </div>
-                            <div class="food-search-results" id="journal-food-results" style="max-height: 200px;"></div>
+                            <div class="food-search-results" id="journal-food-results" style="max-height: 250px;"></div>
+                            <div id="journal-selected-foods" style="display: none; margin-top: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary);"><span id="selected-foods-count">0</span> aliment(s) sélectionné(s)</span>
+                                    <button class="btn btn-sm btn-primary" onclick="addSelectedFoodsToJournal()">✓ Ajouter tout</button>
+                                </div>
+                                <div id="selected-foods-list" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                            </div>
                         </div>
 
                         <!-- Liste des aliments du journal -->
@@ -312,21 +316,14 @@
                                 <span class="icon">🥑</span>
                                 Base d'Aliments
                             </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-sm btn-secondary" onclick="openOFFSearchModal()" data-tooltip="Rechercher dans Open Food Facts" data-tooltip-pos="bottom">
-                                    🔍 OFF
-                                </button>
-                                <button class="btn btn-sm btn-primary" onclick="openCustomFoodModal()" data-tooltip="Ajouter un aliment personnalisé">+ Ajouter</button>
-                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="openCustomFoodModal()" data-tooltip="Ajouter un aliment personnalisé">+ Ajouter</button>
                         </div>
                         <div class="form-group">
                             <input type="text" class="form-input" id="food-search" placeholder="Rechercher un aliment..." oninput="filterFoods()">
                         </div>
-                        <div style="margin-bottom: 15px;">
-                            <button class="btn btn-sm btn-primary" onclick="resetToDefaultSelection()" style="width: 100%;">
-                                🔄 Réinitialiser avec 19 aliments recommandés
-                            </button>
-                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">
+                            💡 Cliquez sur un aliment pour l'ajouter rapidement au journal du jour
+                        </p>
                         <div id="foods-list"></div>
                     </div>
                 </div>
@@ -334,217 +331,22 @@
 
             <!-- Training Section -->
             <section id="training" class="section">
-                <div class="tabs">
-                    <button class="tab active" data-tab="program">Programme</button>
-                    <button class="tab" data-tab="session">Séance du Jour</button>
-                    <button class="tab" data-tab="timer">Timer</button>
-                </div>
-
-                <div id="tab-program" class="tab-content">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">📋</span>
-                                Type de Programme
-                            </div>
-                            <button class="btn btn-sm btn-primary" onclick="applyAIProgram()" data-tooltip="Générer un programme personnalisé par l'IA" data-tooltip-pos="bottom">
-                                🤖 Programme IA
-                            </button>
-                        </div>
-                        <div class="grid grid-3" id="program-types"></div>
-                    </div>
-
-                    <div class="card" style="margin-top: 20px;">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">📅</span>
-                                Jours d'Entraînement
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Combien de fois par semaine ?</label>
-                            <select class="form-select" id="training-days" onchange="updateTrainingDays()">
-                                <option value="3">3 jours</option>
-                                <option value="4">4 jours</option>
-                                <option value="5">5 jours</option>
-                                <option value="6">6 jours</option>
-                            </select>
-                        </div>
-                        <div id="weekly-schedule"></div>
-                    </div>
-                </div>
-
-                <div id="tab-session" class="tab-content" style="display: none;">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">💪</span>
-                                Séance du Jour
-                            </div>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <button class="btn btn-sm btn-secondary" onclick="openTrainingModeModal()" data-tooltip="Supersets & Circuits" data-tooltip-pos="bottom">
-                                    ⚡ Mode
-                                </button>
-                                <select class="form-select" id="session-day-select" style="width: auto;" onchange="loadSessionDayV2()"></select>
-                            </div>
-                        </div>
-                        <div id="session-exercises">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">🏋️</div>
-                                <div class="empty-state-title">Sélectionnez un programme</div>
-                                <p>Choisissez d'abord un type de programme dans l'onglet Programme</p>
-                            </div>
-                        </div>
-                        <div style="margin-top: 20px; display: none;" id="save-session-btn">
-                            <button class="btn btn-primary" onclick="saveSessionV2()" style="width: 100%;">
-                                Enregistrer la Séance
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="tab-timer" class="tab-content" style="display: none;">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">⏱️</span>
-                                Timer de Repos
-                            </div>
-                        </div>
-
-                        <!-- Toggle Auto-Timer -->
-                        <div class="auto-timer-toggle active" id="auto-timer-toggle" onclick="toggleAutoTimer()">
-                            <div class="auto-timer-toggle-info">
-                                <span class="auto-timer-toggle-title">⚡ Timer Automatique</span>
-                                <span class="auto-timer-toggle-desc">Lance le timer quand vous validez une série</span>
-                            </div>
-                            <div class="auto-timer-toggle-switch">
-                                <span class="toggle-status">ON</span>
-                            </div>
-                        </div>
-
-                        <!-- Temps recommandés -->
-                        <div style="margin-bottom: 20px; padding: 12px; background: var(--bg-tertiary); border-radius: var(--radius-md); font-size: 0.85rem;">
-                            <div style="font-weight: 600; margin-bottom: 8px;">💡 Temps recommandés :</div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: var(--text-secondary);">
-                                <span>🏋️ Force (1-5 reps) : <strong>3 min</strong></span>
-                                <span>💪 Hypertrophie (6-10) : <strong>2 min</strong></span>
-                                <span>🔥 Isolation (12+) : <strong>1:30</strong></span>
-                                <span>⚡ Circuits : <strong>1 min</strong></span>
-                            </div>
-                        </div>
-
-                        <div class="timer-display" id="timer-display">00:00</div>
-                        <div class="timer-controls">
-                            <button class="btn btn-secondary" onclick="resetTimer()">Reset</button>
-                            <button class="btn btn-primary" id="timer-toggle" onclick="toggleTimer()">Démarrer</button>
-                        </div>
-                        <div class="timer-preset">
-                            <button class="timer-preset-btn" onclick="setTimer(60)">1:00</button>
-                            <button class="timer-preset-btn" onclick="setTimer(90)">1:30</button>
-                            <button class="timer-preset-btn" onclick="setTimer(120)">2:00</button>
-                            <button class="timer-preset-btn" onclick="setTimer(180)">3:00</button>
-                        </div>
-                    </div>
+                <!-- Training Content - Dynamic -->
+                <div id="training-content">
+                    <!-- Will be filled by renderTrainingSection() -->
                 </div>
             </section>
 
             <!-- Progress Section -->
             <section id="progress" class="section">
                 <div class="tabs">
-                    <button class="tab active" data-tab="stats" onclick="switchProgressTab('stats')">📊 Statistiques</button>
-                    <button class="tab" data-tab="analysis" onclick="switchProgressTab('analysis')">🤖 Analyse IA</button>
+                    <button class="tab active" data-tab="prs" onclick="switchProgressTab('prs')">🏆 Records</button>
+                    <button class="tab" data-tab="history" onclick="switchProgressTab('history')">📅 Séances</button>
                     <button class="tab" data-tab="photos" onclick="switchProgressTab('photos')">📸 Photos</button>
-                    <button class="tab" data-tab="prs" onclick="switchProgressTab('prs')">🏆 Records</button>
-                    <button class="tab" data-tab="history" onclick="switchProgressTab('history')">📝 Historique</button>
-                </div>
-
-                <!-- Tab Stats -->
-                <div id="tab-stats" class="tab-content">
-                    <!-- Sélecteur de période -->
-                    <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                        <button class="stats-period-btn active" data-period="7" onclick="setStatsPeriod(7)">7 jours</button>
-                        <button class="stats-period-btn" data-period="30" onclick="setStatsPeriod(30)">30 jours</button>
-                        <button class="stats-period-btn" data-period="90" onclick="setStatsPeriod(90)">90 jours</button>
-                    </div>
-
-                    <!-- Résumé des stats -->
-                    <div id="stats-summary"></div>
-
-                    <!-- Graphiques -->
-                    <div class="grid grid-2" style="margin-top: 20px;">
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">⚖️ Évolution du Poids</div>
-                            </div>
-                            <div class="chart-container" style="height: 250px;">
-                                <canvas id="weight-trend-chart"></canvas>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">🔥 Calories Journalières</div>
-                            </div>
-                            <div class="chart-container" style="height: 250px;">
-                                <canvas id="calories-trend-chart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card" style="margin-top: 20px;">
-                        <div class="card-header">
-                            <div class="card-title">🥧 Répartition Moyenne des Macros</div>
-                        </div>
-                        <div class="chart-container" style="height: 250px; max-width: 300px; margin: 0 auto;">
-                            <canvas id="macros-avg-chart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab Photos -->
-
-                <!-- Tab Analyse IA -->
-                <div id="tab-analysis" class="tab-content" style="display: none;">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">🤖</span>
-                                Analyse de Progression Intelligente
-                            </div>
-                            <button class="btn btn-sm btn-secondary" onclick="ProgressionEngine.renderProgressionAnalysisSection()">🔄 Rafraîchir</button>
-                        </div>
-                        <div id="progression-analysis-container">
-                            <div class="empty-state" style="padding: 40px 20px;">
-                                <div class="empty-state-icon">🤖</div>
-                                <div class="empty-state-title">Analyse en cours...</div>
-                                <p>L'IA analyse votre historique d'entraînement</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab Photos -->
-                <div id="tab-photos" class="tab-content" style="display: none;">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">📸</span>
-                                Photos de Progression
-                            </div>
-                            <button class="btn btn-sm btn-primary" onclick="openAddPhotoModal()" data-tooltip="Ajouter une photo de progression">+ Ajouter</button>
-                        </div>
-                        <div id="photos-gallery">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">📸</div>
-                                <div class="empty-state-title">Aucune photo</div>
-                                <p>Prenez votre première photo de progression !</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Tab PRs -->
-                <div id="tab-prs" class="tab-content" style="display: none;">
+                <div id="tab-prs" class="tab-content">
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
@@ -577,20 +379,32 @@
                     </div>
                 </div>
 
-                <!-- Tab History -->
+                <!-- Tab Sessions -->
                 <div id="tab-history" class="tab-content" style="display: none;">
+                    <div id="session-history">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📅</div>
+                            <div class="empty-state-title">Aucune séance enregistrée</div>
+                            <p>Vos séances apparaîtront ici</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Photos -->
+                <div id="tab-photos" class="tab-content" style="display: none;">
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
-                                <span class="icon">📝</span>
-                                Historique des Séances
+                                <span class="icon">📸</span>
+                                Photos de Progression
                             </div>
+                            <button class="btn btn-sm btn-primary" onclick="openAddPhotoModal()" data-tooltip="Ajouter une photo de progression">+ Ajouter</button>
                         </div>
-                        <div id="session-history">
+                        <div id="photos-gallery">
                             <div class="empty-state">
-                                <div class="empty-state-icon">📅</div>
-                                <div class="empty-state-title">Aucune séance enregistrée</div>
-                                <p>Vos séances apparaîtront ici</p>
+                                <div class="empty-state-icon">📸</div>
+                                <div class="empty-state-title">Aucune photo</div>
+                                <p>Prenez votre première photo de progression !</p>
                             </div>
                         </div>
                     </div>
@@ -1311,6 +1125,325 @@
         </div>
     </div>
 
+    <!-- Program Wizard Modal -->
+    <div class="modal-overlay" id="program-wizard-modal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <div class="modal-title">🎯 Configurer mon Programme</div>
+                <button class="modal-close" onclick="closeModal('program-wizard-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Progress indicator -->
+                <div class="wizard-progress">
+                    <div class="wizard-step active" data-step="1">1</div>
+                    <div class="wizard-step-line"></div>
+                    <div class="wizard-step" data-step="2">2</div>
+                    <div class="wizard-step-line"></div>
+                    <div class="wizard-step" data-step="3">3</div>
+                </div>
+
+                <!-- Step 1: Frequency -->
+                <div class="wizard-content" id="wizard-step-1">
+                    <h3 class="wizard-title">Combien de fois par semaine ?</h3>
+                    <p class="wizard-subtitle">Choisissez votre fréquence d'entraînement</p>
+                    <div class="wizard-options">
+                        <button class="wizard-option" data-value="3" onclick="selectWizardOption('frequency', 3)">
+                            <span class="wizard-option-value">3</span>
+                            <span class="wizard-option-label">jours / semaine</span>
+                            <span class="wizard-option-desc">Idéal pour débuter</span>
+                        </button>
+                        <button class="wizard-option" data-value="4" onclick="selectWizardOption('frequency', 4)">
+                            <span class="wizard-option-value">4</span>
+                            <span class="wizard-option-label">jours / semaine</span>
+                            <span class="wizard-option-desc">Bon équilibre</span>
+                        </button>
+                        <button class="wizard-option" data-value="5" onclick="selectWizardOption('frequency', 5)">
+                            <span class="wizard-option-value">5</span>
+                            <span class="wizard-option-label">jours / semaine</span>
+                            <span class="wizard-option-desc">Intensif</span>
+                        </button>
+                        <button class="wizard-option" data-value="6" onclick="selectWizardOption('frequency', 6)">
+                            <span class="wizard-option-value">6</span>
+                            <span class="wizard-option-label">jours / semaine</span>
+                            <span class="wizard-option-desc">Très intensif</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Goal -->
+                <div class="wizard-content" id="wizard-step-2" style="display: none;">
+                    <h3 class="wizard-title">Quel est ton objectif ?</h3>
+                    <p class="wizard-subtitle">Cela détermine les temps de repos et les répétitions</p>
+                    <div class="wizard-options">
+                        <button class="wizard-option" data-value="strength" onclick="selectWizardOption('goal', 'strength')">
+                            <span class="wizard-option-icon">🏋️</span>
+                            <span class="wizard-option-label">Force</span>
+                            <span class="wizard-option-desc">3-6 reps • 2-3 min repos</span>
+                        </button>
+                        <button class="wizard-option" data-value="hypertrophy" onclick="selectWizardOption('goal', 'hypertrophy')">
+                            <span class="wizard-option-icon">💪</span>
+                            <span class="wizard-option-label">Hypertrophie</span>
+                            <span class="wizard-option-desc">8-12 reps • 1-2 min repos</span>
+                        </button>
+                        <button class="wizard-option" data-value="endurance" onclick="selectWizardOption('goal', 'endurance')">
+                            <span class="wizard-option-icon">🔥</span>
+                            <span class="wizard-option-label">Endurance</span>
+                            <span class="wizard-option-desc">15-20 reps • 45-60s repos</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Experience -->
+                <div class="wizard-content" id="wizard-step-3" style="display: none;">
+                    <h3 class="wizard-title">Depuis quand tu t'entraînes ?</h3>
+                    <p class="wizard-subtitle">Pour adapter la complexité du programme</p>
+                    <div class="wizard-options">
+                        <button class="wizard-option" data-value="beginner" onclick="selectWizardOption('experience', 'beginner')">
+                            <span class="wizard-option-icon">🌱</span>
+                            <span class="wizard-option-label">Débutant</span>
+                            <span class="wizard-option-desc">Moins de 6 mois</span>
+                        </button>
+                        <button class="wizard-option" data-value="intermediate" onclick="selectWizardOption('experience', 'intermediate')">
+                            <span class="wizard-option-icon">🌿</span>
+                            <span class="wizard-option-label">Intermédiaire</span>
+                            <span class="wizard-option-desc">6 mois - 2 ans</span>
+                        </button>
+                        <button class="wizard-option" data-value="advanced" onclick="selectWizardOption('experience', 'advanced')">
+                            <span class="wizard-option-icon">🌳</span>
+                            <span class="wizard-option-label">Avancé</span>
+                            <span class="wizard-option-desc">Plus de 2 ans</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Program Selection (shown after step 3) -->
+                <div class="wizard-content" id="wizard-step-4" style="display: none;">
+                    <h3 class="wizard-title">Programmes recommandés</h3>
+                    <p class="wizard-subtitle">Basé sur tes préférences</p>
+                    <div class="wizard-programs" id="wizard-programs-list"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="wizard-back-btn" onclick="wizardBack()" style="display: none;">Retour</button>
+                <button class="btn btn-primary" id="wizard-next-btn" onclick="wizardNext()" disabled>Suivant</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Preview Screen -->
+    <div class="session-preview" id="session-preview" style="display: none;">
+        <div class="preview-header">
+            <button class="preview-back-btn" onclick="closeSessionPreview()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </button>
+            <div class="preview-title">
+                <h2 id="preview-split-name">Push</h2>
+                <span id="preview-split-day">Jour 1/3</span>
+            </div>
+        </div>
+
+        <div class="preview-content">
+            <div class="preview-info">
+                <p id="preview-template-status"></p>
+            </div>
+            <div class="preview-exercises" id="preview-exercises-list">
+                <!-- Exercices générés dynamiquement -->
+            </div>
+        </div>
+
+        <div class="preview-footer">
+            <button class="btn btn-primary btn-lg" onclick="startSessionFromPreview()">
+                Commencer la séance
+            </button>
+            <p class="preview-save-hint" id="preview-save-hint"></p>
+        </div>
+    </div>
+
+    <!-- Exercise Swap Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="swap-bottom-sheet" style="display: none;" onclick="closeBottomSheet()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Remplacer l'exercice</h3>
+            </div>
+            <div class="bottom-sheet-content">
+                <p class="bottom-sheet-current" id="swap-current-name">Développé Couché Barre</p>
+                <div class="swap-options" id="swap-options-list">
+                    <!-- Filled dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Settings Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="settings-sheet" style="display: none;" onclick="closeSettingsSheet()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Paramètres de séance</h3>
+            </div>
+            <div class="bottom-sheet-content">
+                <div class="settings-section">
+                    <h4 class="settings-section-title">Temps de repos</h4>
+                    <div class="settings-options">
+                        <button class="settings-option" onclick="adjustRestTime(30)">30 secondes</button>
+                        <button class="settings-option" onclick="adjustRestTime(60)">60 secondes</button>
+                        <button class="settings-option" onclick="adjustRestTime(90)">90 secondes</button>
+                        <button class="settings-option" onclick="adjustRestTime(120)">120 secondes</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <button class="settings-action-btn" onclick="returnToPreview()">
+                        ← Retour à l'aperçu
+                    </button>
+                    <button class="settings-action-btn danger" onclick="quitSession()">
+                        Quitter la séance
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Duration Picker Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="duration-picker-sheet" style="display: none;" onclick="closeDurationPicker()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Combien de temps as-tu aujourd'hui ?</h3>
+            </div>
+            <div class="bottom-sheet-content">
+                <div class="duration-options">
+                    <button class="duration-option" onclick="selectDuration('30-45')">
+                        <span class="duration-option-time">30-45 min</span>
+                        <span class="duration-option-desc">Exercices principaux</span>
+                    </button>
+                    <button class="duration-option" onclick="selectDuration('45-60')">
+                        <span class="duration-option-time">45-60 min</span>
+                        <span class="duration-option-desc">Programme complet</span>
+                    </button>
+                    <button class="duration-option" onclick="selectDuration('60-90')">
+                        <span class="duration-option-time">60-90 min</span>
+                        <span class="duration-option-desc">Séance complète</span>
+                    </button>
+                    <button class="duration-skip" onclick="selectDuration(null)">
+                        Passer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Session Overlay -->
+    <div class="fullscreen-session" id="fullscreen-session" style="display: none;">
+        <div class="fs-header">
+            <button class="fs-back-btn" onclick="closeFullScreenSession()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </button>
+            <div class="fs-header-info">
+                <span class="fs-session-title" id="fs-session-title">Push</span>
+                <span class="fs-session-progress" id="fs-session-progress">Jour 1/3</span>
+            </div>
+            <button class="fs-settings-btn" onclick="openSessionSettings()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+        </div>
+
+        <div class="fs-content">
+            <!-- Exercise Header -->
+            <div class="fs-exercise-header">
+                <h2 class="fs-exercise-name" id="fs-exercise-name">Développé Couché Barre</h2>
+                <div class="fs-exercise-meta">
+                    <span class="fs-set-indicator" id="fs-set-indicator">Série 1 / 4</span>
+                </div>
+                <div class="fs-progress-bar">
+                    <div class="fs-progress-fill" id="fs-progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Previous Performance -->
+            <div class="fs-previous" id="fs-previous">
+                <span class="fs-previous-label">Dernière fois :</span>
+                <span class="fs-previous-value" id="fs-previous-value">80kg × 10</span>
+            </div>
+
+            <!-- Main Input -->
+            <div class="fs-input-section">
+                <div class="fs-input-group">
+                    <label class="fs-input-label">Poids</label>
+                    <div class="fs-input-wrapper">
+                        <button class="fs-input-btn minus" onclick="adjustWeight(-2.5)">−</button>
+                        <input type="number" class="fs-input" id="fs-weight-input" value="80" step="2.5">
+                        <button class="fs-input-btn plus" onclick="adjustWeight(2.5)">+</button>
+                    </div>
+                    <span class="fs-input-unit">kg</span>
+                </div>
+                <div class="fs-input-separator">×</div>
+                <div class="fs-input-group">
+                    <label class="fs-input-label">Reps</label>
+                    <div class="fs-input-wrapper">
+                        <button class="fs-input-btn minus" onclick="adjustReps(-1)">−</button>
+                        <input type="number" class="fs-input" id="fs-reps-input" value="10">
+                        <button class="fs-input-btn plus" onclick="adjustReps(1)">+</button>
+                    </div>
+                    <span class="fs-input-unit">reps</span>
+                </div>
+            </div>
+
+            <!-- Validate Button -->
+            <button class="fs-validate-btn" id="fs-validate-btn" onclick="validateCurrentSet()">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Valider la série</span>
+            </button>
+
+            <!-- Completed Sets -->
+            <div class="fs-completed-sets" id="fs-completed-sets">
+                <!-- Filled dynamically -->
+            </div>
+        </div>
+
+        <!-- Footer with Timer -->
+        <div class="fs-footer">
+            <div class="fs-timer" id="fs-timer">
+                <span class="fs-timer-value" id="fs-timer-display">00:00</span>
+                <div class="fs-timer-controls">
+                    <button class="fs-timer-btn" onclick="resetFsTimer()">↺</button>
+                    <button class="fs-timer-btn" onclick="adjustFsTimer(-15)">-15s</button>
+                    <button class="fs-timer-btn" onclick="adjustFsTimer(15)">+15s</button>
+                </div>
+            </div>
+            <button class="fs-finish-btn" onclick="finishSession()">
+                Terminer la séance
+            </button>
+        </div>
+
+        <!-- Exercise Complete State -->
+        <div class="fs-exercise-complete" id="fs-exercise-complete" style="display: none;">
+            <div class="fs-complete-content">
+                <div class="fs-complete-icon">✓</div>
+                <h2 class="fs-complete-title">Exercice terminé !</h2>
+                <p class="fs-complete-subtitle">Prêt pour le suivant ?</p>
+                <button class="btn btn-primary btn-lg" onclick="goToNextExercise()">
+                    Exercice suivant : <strong id="fs-next-exercise-name">Rowing Barre</strong>
+                </button>
+            </div>
+        </div>
+
+        <!-- Session Complete State -->
+        <div class="fs-session-complete" id="fs-session-complete" style="display: none;">
+            <div class="fs-complete-content">
+                <div class="fs-complete-icon">🎉</div>
+                <h2 class="fs-complete-title">Séance terminée !</h2>
+                <p class="fs-complete-subtitle">Bravo pour cette session</p>
+                <div class="fs-complete-stats" id="fs-complete-stats">
+                    <!-- Filled dynamically -->
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="finishSession()">
+                    Sauvegarder la séance
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/data/foods.js"></script>
     <script src="js/data/exercises.js"></script>
@@ -1319,19 +1452,14 @@
     <script src="js/modules/supabase.js"></script>
     <script src="js/modules/profile.js"></script>
     <script src="js/modules/nutrition.js"></script>
-    <script src="js/modules/favorites.js"></script>
     <script src="js/modules/training.js"></script>
     <script src="js/modules/session-manager.js"></script>
     <script src="js/modules/session-ui.js"></script>
-    <script src="js/modules/ai-training.js"></script>
     <script src="js/modules/progress.js"></script>
     <script src="js/modules/timer.js"></script>
     <script src="js/modules/ui.js"></script>
     <script src="js/modules/goals.js"></script>
-    <script src="js/modules/openfoodfacts.js"></script>
     <script src="js/modules/photos.js"></script>
-    <script src="js/modules/stats.js"></script>
-    <script src="js/modules/progression-engine.js"></script>
     <script src="js/modules/premium-ui.js"></script>
     <script src="js/modules/mobile-gestures.js"></script>
     <script src="js/app.js"></script>

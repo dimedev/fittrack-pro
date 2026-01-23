@@ -295,8 +295,9 @@ function initUI() {
     setupTabs();
     setupModals();
     
-    // Mettre à jour le sélecteur de jours
-    if (state.trainingDays) {
-        document.getElementById('training-days').value = state.trainingDays;
+    // Mettre à jour le sélecteur de jours (legacy - peut ne plus exister)
+    const trainingDaysSelect = document.getElementById('training-days');
+    if (trainingDaysSelect && state.trainingDays) {
+        trainingDaysSelect.value = state.trainingDays;
     }
 }
