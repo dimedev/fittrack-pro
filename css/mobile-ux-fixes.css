@@ -114,6 +114,222 @@
     }
 }
 
+/* ==================== FIX 1B: TABS FULL-WIDTH MOBILE ==================== */
+
+@media (max-width: 768px) {
+    .tabs {
+        width: 100% !important;
+        gap: 0;
+        padding: 3px;
+    }
+    
+    .tab {
+        flex: 1;
+        padding: 10px 8px;
+        font-size: 0.8rem;
+        text-align: center;
+        border-radius: 0;
+        white-space: nowrap;
+    }
+    
+    .tab:first-child {
+        border-radius: var(--radius-md, 8px) 0 0 var(--radius-md, 8px);
+    }
+    
+    .tab:last-child {
+        border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
+    }
+    
+    .tab:only-child {
+        border-radius: var(--radius-md, 8px);
+    }
+}
+
+/* ==================== FIX 1B2: TYPOGRAPHY HARMONIZATION ==================== */
+
+@media (max-width: 768px) {
+    /* Appliquer le système typographique harmonisé */
+    h1 { font-size: var(--text-3xl); }
+    h2 { font-size: var(--text-2xl); }
+    h3 { font-size: var(--text-xl); }
+    h4 { font-size: var(--text-lg); }
+    
+    .card-title {
+        font-size: var(--text-base) !important;
+    }
+    
+    .stat-value {
+        font-size: var(--text-3xl) !important;
+    }
+    
+    .stat-label,
+    .stat-unit {
+        font-size: var(--text-xs) !important;
+    }
+    
+    /* Tabs avec nouvelle échelle */
+    .tab {
+        font-size: var(--text-sm);
+    }
+    
+    /* Boutons */
+    .btn {
+        font-size: var(--text-base);
+    }
+    
+    .btn-sm {
+        font-size: var(--text-sm);
+    }
+    
+    .btn-lg {
+        font-size: var(--text-lg);
+    }
+}
+
+/* ==================== FIX 1B3: MULTI-SELECT FOOD BASE ==================== */
+
+.food-select-item.selectable {
+    padding-left: 50px;
+    position: relative;
+    cursor: pointer;
+}
+
+.food-check {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-primary);
+    transition: all 0.2s ease;
+}
+
+.food-select-item.selected .food-check {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.food-select-item.selected .food-check::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--bg-primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.multiselect-footer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    margin: 16px -20px -20px;
+    gap: 16px;
+}
+
+.multiselect-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.multiselect-footer .btn {
+    flex: 1;
+    padding: 12px 20px;
+}
+
+@media (max-width: 768px) {
+    .multiselect-footer {
+        position: fixed;
+        bottom: 70px;
+        left: 0;
+        right: 0;
+        margin: 0;
+        z-index: 50;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* ==================== FIX 1C: COMPACT BUTTONS MOBILE ==================== */
+
+@media (max-width: 768px) {
+    /* Boutons secondaires plus compacts */
+    .card-header .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.75rem;
+        min-height: 32px;
+    }
+    
+    /* Boutons dans les cards goals/bodyweight */
+    .grid-3 .btn-sm,
+    .grid-2 .btn-sm {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+        min-height: 28px;
+    }
+    
+    /* Meilleur contraste visuel */
+    .btn-primary {
+        font-weight: 600;
+    }
+    
+    .btn-secondary {
+        font-weight: 500;
+    }
+}
+
+/* ==================== FIX 1D: GRID ADAPTIVE ==================== */
+
+@media (max-width: 768px) {
+    /* Grid-3 en 2 colonnes pour éviter l'écrasement */
+    .grid-3 {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px;
+    }
+    
+    /* 3ème élément prend toute la largeur */
+    .grid-3 > *:nth-child(3) {
+        grid-column: span 2;
+    }
+    
+    /* Cards plus compactes et lisibles */
+    .grid-3 .card {
+        padding: 14px;
+    }
+    
+    .grid-3 .card-header {
+        flex-direction: row;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    
+    .grid-3 .card-title {
+        font-size: 0.85rem;
+        flex: 1;
+    }
+    
+    .grid-3 .card-title .icon {
+        font-size: 1rem;
+    }
+    
+    /* Valeurs centrées et lisibles */
+    .grid-3 .card > div:not(.card-header) {
+        text-align: center;
+    }
+}
+
 /* ==================== FIX 2: INPUTS MOBILE-FRIENDLY ==================== */
 
 @media (max-width: 768px) {

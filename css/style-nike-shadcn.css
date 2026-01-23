@@ -50,6 +50,16 @@
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Typography Scale - Responsive & Harmonized */
+    --text-xs: clamp(0.65rem, 2vw, 0.75rem);
+    --text-sm: clamp(0.75rem, 2.5vw, 0.875rem);
+    --text-base: clamp(0.875rem, 3vw, 1rem);
+    --text-lg: clamp(1rem, 3.5vw, 1.125rem);
+    --text-xl: clamp(1.125rem, 4vw, 1.25rem);
+    --text-2xl: clamp(1.25rem, 5vw, 1.5rem);
+    --text-3xl: clamp(1.5rem, 6vw, 2rem);
+    --text-4xl: clamp(2rem, 8vw, 3rem);
 }
 
 /* ==================== RESET ==================== */
