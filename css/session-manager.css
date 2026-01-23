@@ -804,10 +804,29 @@
     flex-direction: column;
     overflow: hidden;
     pointer-events: auto;
+    /* L'animation est déclenchée via la classe .animate-in */
 }
 
 .fullscreen-session[style*="display: none"] {
     pointer-events: none;
+}
+
+/* Animation iOS-like pour fullscreen session et preview */
+@keyframes fullscreenSlideUp {
+    0% {
+        transform: translateY(100%);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Classe pour déclencher l'animation manuellement */
+.fullscreen-session.animate-in,
+.session-preview.animate-in {
+    animation: fullscreenSlideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .fs-header {
@@ -1190,6 +1209,7 @@
     flex-direction: column;
     overflow: hidden;
     pointer-events: auto;
+    /* L'animation est déclenchée via la classe .animate-in */
 }
 
 .session-preview[style*="display: none"] {
@@ -1354,28 +1374,64 @@
 .bottom-sheet-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0);
     z-index: 10000;
     display: flex;
     align-items: flex-end;
-    animation: fadeIn 0.3s ease;
+    justify-content: center;
+    animation: overlayFadeIn 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    -webkit-backdrop-filter: blur(0px);
+    backdrop-filter: blur(0px);
+}
+
+@keyframes overlayFadeIn {
+    0% {
+        background: rgba(0, 0, 0, 0);
+        -webkit-backdrop-filter: blur(0px);
+        backdrop-filter: blur(0px);
+    }
+    100% {
+        background: rgba(0, 0, 0, 0.5);
+        -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(4px);
+    }
 }
 
 .bottom-sheet {
     width: 100%;
     max-width: 500px;
-    max-height: 70vh;
+    max-height: 85vh;
     background: var(--bg-card);
     border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
-    animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    /* Animation iOS spring-like déclenchée via .animate-in sur le parent */
+    animation: bottomSheetSlideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
     margin: 0 auto;
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes bottomSheetSlideUp {
+    0% {
+        transform: translateY(100%);
+        opacity: 0.5;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Classe pour déclencher l'animation du bottom sheet */
+.bottom-sheet-overlay.animate-in .bottom-sheet {
+    animation: bottomSheetSlideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 @media (max-width: 768px) {
     .bottom-sheet {
         max-width: 100%;
+        max-height: 90vh;
+        border-radius: 24px 24px 0 0;
     }
 }
 
@@ -1676,6 +1732,59 @@
     font-weight: 600;
     color: rgba(255, 255, 255, 0.95);
     margin-top: 6px;
+}
+
+/* ==================== PREMIUM CTA BUTTON (MOBILE) ==================== */
+
+/* Style premium iOS/Nike pour le CTA du bottom sheet */
+#food-quantity-sheet .bottom-sheet-content .btn-primary {
+    width: 100%;
+    padding: 18px 24px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    border-radius: 14px;
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+#food-quantity-sheet .bottom-sheet-content .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+#food-quantity-sheet .bottom-sheet-content .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+#food-quantity-sheet .bottom-sheet-content .btn-primary:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+    #food-quantity-sheet .bottom-sheet-content {
+        padding: 20px;
+        padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+    }
+    
+    #food-quantity-sheet .bottom-sheet-content .btn-primary {
+        padding: 20px 24px;
+        font-size: 1.15rem;
+        border-radius: 16px;
+        margin-top: 20px !important;
+        /* Safe area pour iPhone X+ */
+        margin-bottom: env(safe-area-inset-bottom, 0);
+    }
 }
 
 /* ==================== ANIMATIONS ==================== */

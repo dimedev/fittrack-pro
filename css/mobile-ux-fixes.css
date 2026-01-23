@@ -129,49 +129,6 @@
    - CAUSE: pas de feedback tactile approprié
 */
 
-/* ==================== IOS-LIKE BACK BUTTON ==================== */
-
-.back-nav-btn {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    color: var(--text-primary);
-    cursor: pointer;
-    z-index: 9999;
-    transition: all 0.2s ease;
-    padding: 0;
-}
-
-.back-nav-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.back-nav-btn:active {
-    transform: scale(0.95);
-}
-
-.back-nav-btn svg {
-    width: 24px;
-    height: 24px;
-}
-
-/* Masquer en mobile */
-@media (max-width: 768px) {
-    .back-nav-btn {
-        display: none !important;
-    }
-}
-
 /* ==================== FIX 0: PAS DE SCROLL HORIZONTAL ==================== */
 
 /* Global overflow fix */
@@ -328,16 +285,16 @@ body, main {
         padding-right: 24px;
     }
     
-    /* Fullscreen session aussi - centré verticalement */
-    .fullscreen-session {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    
+    /* Fullscreen session - contenu centré mais header/footer full-width */
     .fullscreen-session .fs-content {
         max-width: 600px;
         margin: 0 auto;
+        width: 100%;
+    }
+    
+    .fullscreen-session .fs-header,
+    .fullscreen-session .fs-footer {
+        width: 100%;
     }
     
     /* Session preview */

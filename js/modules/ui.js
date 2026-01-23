@@ -81,8 +81,6 @@ function updateStatWithAnimation(elementId, newValue) {
 
 // ==================== NAVIGATION ====================
 
-// Historique de navigation
-const navigationHistory = [];
 let currentSection = 'dashboard';
 
 function setupNavigation() {
@@ -90,15 +88,9 @@ function setupNavigation() {
     document.querySelectorAll('.nav-tab, .mobile-nav-item').forEach(tab => {
         tab.addEventListener('click', () => {
             const section = tab.dataset.section;
-            navigateToSection(section, true);
+            navigateToSection(section);
         });
     });
-    
-    // Back button
-    const backBtn = document.getElementById('back-nav-btn');
-    if (backBtn) {
-        backBtn.addEventListener('click', navigateBack);
-    }
     
     // Initialize current section
     const activeSection = document.querySelector('.section.active');
@@ -107,12 +99,7 @@ function setupNavigation() {
     }
 }
 
-function navigateToSection(sectionId, addToHistory = true) {
-    // Ajouter à l'historique si différent de la section actuelle
-    if (addToHistory && currentSection && currentSection !== sectionId && currentSection !== 'dashboard') {
-        navigationHistory.push(currentSection);
-    }
-    
+function navigateToSection(sectionId) {
     // Mettre à jour les onglets
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.mobile-nav-item').forEach(t => t.classList.remove('active'));
@@ -127,33 +114,6 @@ function navigateToSection(sectionId, addToHistory = true) {
     
     // Scroll en haut
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Afficher/masquer le back button
-    updateBackButton();
-}
-
-function navigateBack() {
-    if (navigationHistory.length > 0) {
-        const previousSection = navigationHistory.pop();
-        navigateToSection(previousSection, false);
-    }
-}
-
-function updateBackButton() {
-    const backBtn = document.getElementById('back-nav-btn');
-    if (backBtn) {
-        if (navigationHistory.length > 0 && currentSection !== 'dashboard') {
-            backBtn.style.display = 'flex';
-            backBtn.style.opacity = '1';
-        } else {
-            backBtn.style.opacity = '0';
-            setTimeout(() => {
-                if (navigationHistory.length === 0 || currentSection === 'dashboard') {
-                    backBtn.style.display = 'none';
-                }
-            }, 200);
-        }
-    }
 }
 
 // Tabs internes

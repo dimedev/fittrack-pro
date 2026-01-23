@@ -245,10 +245,15 @@ function quickAddFromSearch(foodId) {
     // Mettre à jour le total
     updateQuantityTotal();
     
-    // Afficher le bottom sheet
+    // Afficher le bottom sheet avec animation iOS-like
     const sheet = document.getElementById('food-quantity-sheet');
     if (sheet) {
         sheet.style.display = 'flex';
+        // Force reflow to trigger animation
+        sheet.offsetHeight;
+        sheet.classList.remove('animate-in');
+        void sheet.offsetWidth;
+        sheet.classList.add('animate-in');
         document.body.style.overflow = 'hidden';
     }
 }

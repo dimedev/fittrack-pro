@@ -547,8 +547,13 @@ function openExerciseSwapSheet(exerciseIndex) {
         `).join('');
     }
 
-    // Afficher le bottom sheet
-    document.getElementById('swap-bottom-sheet').style.display = 'flex';
+    // Afficher le bottom sheet avec animation iOS-like
+    const sheet = document.getElementById('swap-bottom-sheet');
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
 }
 
 /**
@@ -597,7 +602,12 @@ function startSessionFromPreview() {
 }
 
 function showDurationPicker() {
-    document.getElementById('duration-picker-sheet').style.display = 'flex';
+    const sheet = document.getElementById('duration-picker-sheet');
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
 }
 
 function closeDurationPicker() {
@@ -620,8 +630,14 @@ function selectDuration(duration) {
     previewSession.exercises = filteredExercises;
     previewSession.selectedDuration = duration;
     
-    // Afficher l'écran d'aperçu avec les exercices filtrés
-    document.getElementById('session-preview').style.display = 'flex';
+    // Afficher l'écran d'aperçu avec animation iOS-like
+    const previewElement = document.getElementById('session-preview');
+    previewElement.style.display = 'flex';
+    // Force reflow to trigger animation
+    previewElement.offsetHeight;
+    previewElement.classList.remove('animate-in');
+    void previewElement.offsetWidth;
+    previewElement.classList.add('animate-in');
     document.body.style.overflow = 'hidden';
 
     // Hide nav
@@ -724,8 +740,14 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
         startTime: Date.now()
     };
 
-    // Show full-screen UI
-    document.getElementById('fullscreen-session').style.display = 'flex';
+    // Show full-screen UI with iOS-like animation
+    const fsElement = document.getElementById('fullscreen-session');
+    fsElement.style.display = 'flex';
+    // Force reflow to trigger animation
+    fsElement.offsetHeight;
+    fsElement.classList.remove('animate-in');
+    void fsElement.offsetWidth; // Force reflow
+    fsElement.classList.add('animate-in');
     document.body.style.overflow = 'hidden';
 
     // Hide nav
@@ -1255,7 +1277,12 @@ function getLastLog(exerciseName) {
 }
 
 function openSessionSettings() {
-    document.getElementById('settings-sheet').style.display = 'flex';
+    const sheet = document.getElementById('settings-sheet');
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
 }
 
 function closeSettingsSheet() {
@@ -1359,10 +1386,14 @@ function openExerciseTips(exerciseName) {
     const tipsText = document.getElementById('info-tips-text');
     tipsText.textContent = exercise.tips || 'Aucun conseil disponible pour cet exercice.';
     
-    // Afficher le bottom sheet
+    // Afficher le bottom sheet avec animation iOS-like
     const sheet = document.getElementById('exercise-info-sheet');
     if (sheet) {
         sheet.style.display = 'flex';
+        sheet.offsetHeight;
+        sheet.classList.remove('animate-in');
+        void sheet.offsetWidth;
+        sheet.classList.add('animate-in');
         document.body.style.overflow = 'hidden';
     }
 }
