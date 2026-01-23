@@ -274,6 +274,17 @@ async function loadAllDataFromSupabase() {
         if (trainingSettings) {
             state.selectedProgram = trainingSettings.selected_program;
             state.trainingDays = trainingSettings.training_days;
+            
+            // Charger les données complètes de training
+            if (trainingSettings.wizard_results) {
+                state.wizardResults = trainingSettings.wizard_results;
+            }
+            if (trainingSettings.training_progress) {
+                state.trainingProgress = trainingSettings.training_progress;
+            }
+            if (trainingSettings.session_templates) {
+                state.sessionTemplates = trainingSettings.session_templates;
+            }
         }
         
         // Charger le journal alimentaire (7 derniers jours)
@@ -610,11 +621,14 @@ async function saveTrainingSettingsToSupabase() {
                 user_id: currentUser.id,
                 selected_program: state.selectedProgram,
                 training_days: state.trainingDays,
+                wizard_results: state.wizardResults || null,
+                training_progress: state.trainingProgress || null,
+                session_templates: state.sessionTemplates || null,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' });
         
         if (error) throw error;
-        console.log('✅ Paramètres entraînement sauvegardés');
+        console.log('✅ Paramètres entraînement sauvegardés (wizard, progress, templates)');
     } catch (error) {
         console.error('Erreur sauvegarde training settings:', error);
     }

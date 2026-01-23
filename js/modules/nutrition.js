@@ -53,14 +53,8 @@ function renderFoodsList() {
                 </div>
                 <div class="food-category-content" style="display: ${isOpen ? 'block' : 'none'};">
                     ${catFoods.map(food => {
-                        const isSelected = multiSelectModeActive && selectedFoodsFromBase.some(f => f.id === food.id);
-                        const clickHandler = multiSelectModeActive 
-                            ? `toggleFoodSelectionFromBase('${food.id}')` 
-                            : `quickAddToJournal('${food.id}')`;
-                        
                         return `
-                            <div class="food-select-item ${multiSelectModeActive ? 'selectable' : ''} ${isSelected ? 'selected' : ''}" onclick="${clickHandler}">
-                                ${multiSelectModeActive ? '<div class="food-check"></div>' : ''}
+                            <div class="food-select-item" onclick="quickAddToJournal('${food.id}')">
                                 <div class="food-select-info">
                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                         <strong>${food.name}</strong>
@@ -72,7 +66,7 @@ function renderFoodsList() {
                                         <span>L: ${food.fat}g</span>
                                     </div>
                                 </div>
-                                ${!defaultFoods.find(df => df.id === food.id) && !multiSelectModeActive ? `
+                                ${!defaultFoods.find(df => df.id === food.id) ? `
                                     <button class="food-btn" onclick="event.stopPropagation(); deleteCustomFood('${food.id}')" title="Supprimer">🗑️</button>
                                 ` : ''}
                             </div>
@@ -111,111 +105,46 @@ function toggleFoodCategory(categoryId) {
     }
 }
 
-// ==================== MULTI-SELECT MODE (BASE ALIMENTS) ====================
+// ==================== COMPTEUR SIMPLE D'AJOUTS ====================
 
-function toggleMultiSelectMode() {
-    multiSelectModeActive = !multiSelectModeActive;
-    selectedFoodsFromBase = [];
+let foodsAddedCount = 0;
+let foodCounterTimeout = null;
+
+function showFoodCounterBadge() {
+    const badge = document.getElementById('food-counter-badge');
+    const text = document.getElementById('food-counter-text');
     
-    // Update button UI
-    const btn = document.getElementById('toggle-multiselect-btn');
-    const icon = document.getElementById('multiselect-icon');
-    const hint = document.getElementById('food-list-hint');
-    const footer = document.getElementById('multiselect-footer');
+    if (!badge || !text) return;
     
-    if (multiSelectModeActive) {
-        if (btn) {
-            btn.classList.add('active');
-            btn.style.background = 'var(--accent-primary)';
-            btn.style.color = 'var(--bg-primary)';
-        }
-        if (icon) icon.textContent = '☑';
-        if (hint) hint.innerHTML = '✓ Mode sélection activé - Choisissez plusieurs aliments';
-        if (footer) footer.style.display = 'flex';
-    } else {
-        if (btn) {
-            btn.classList.remove('active');
-            btn.style.background = '';
-            btn.style.color = '';
-        }
-        if (icon) icon.textContent = '☐';
-        if (hint) hint.innerHTML = '💡 Cliquez sur un aliment pour l\'ajouter rapidement au journal du jour';
-        if (footer) footer.style.display = 'none';
+    // Mettre à jour le texte
+    text.textContent = `+${foodsAddedCount} au journal`;
+    
+    // Afficher le badge
+    badge.style.display = 'flex';
+    
+    // Clear timeout existant
+    if (foodCounterTimeout) {
+        clearTimeout(foodCounterTimeout);
     }
     
-    // Update count
-    const countEl = document.getElementById('multiselect-count');
-    if (countEl) countEl.textContent = '0';
-    
-    // Re-render la liste
-    renderFoodsList();
+    // Auto-hide après 5 secondes
+    foodCounterTimeout = setTimeout(() => {
+        badge.style.display = 'none';
+        foodsAddedCount = 0;
+    }, 5000);
 }
 
-function toggleFoodSelectionFromBase(foodId) {
-    const food = state.foods.find(f => f.id === foodId);
-    if (!food) return;
-    
-    const existingIndex = selectedFoodsFromBase.findIndex(f => f.id === foodId);
-    
-    if (existingIndex >= 0) {
-        selectedFoodsFromBase.splice(existingIndex, 1);
-    } else {
-        selectedFoodsFromBase.push(food);
+function resetFoodCounter() {
+    foodsAddedCount = 0;
+    const badge = document.getElementById('food-counter-badge');
+    if (badge) badge.style.display = 'none';
+    if (foodCounterTimeout) {
+        clearTimeout(foodCounterTimeout);
+        foodCounterTimeout = null;
     }
-    
-    // Update count
-    const countEl = document.getElementById('multiselect-count');
-    if (countEl) {
-        countEl.textContent = selectedFoodsFromBase.length;
-    }
-    
-    // Re-render liste
-    renderFoodsList();
 }
 
-function addMultipleFromBase() {
-    if (selectedFoodsFromBase.length === 0) {
-        showToast('Aucun aliment sélectionné', 'warning');
-        return;
-    }
-    
-    // S'assurer qu'on est sur la date du jour
-    const today = new Date().toISOString().split('T')[0];
-    const dateInput = document.getElementById('journal-date');
-    if (dateInput) {
-        dateInput.value = today;
-    }
-    
-    // Ajouter tous les aliments
-    selectedFoodsFromBase.forEach(food => {
-        addToJournalDirect(food.id, 100);
-    });
-    
-    showToast(`${selectedFoodsFromBase.length} aliment(s) ajouté(s) au journal`, 'success');
-    
-    // Reset
-    selectedFoodsFromBase = [];
-    multiSelectModeActive = false;
-    const btn = document.getElementById('toggle-multiselect-btn');
-    const icon = document.getElementById('multiselect-icon');
-    const hint = document.getElementById('food-list-hint');
-    const footer = document.getElementById('multiselect-footer');
-    
-    if (btn) {
-        btn.classList.remove('active');
-        btn.style.background = '';
-        btn.style.color = '';
-    }
-    if (icon) icon.textContent = '☐';
-    if (hint) hint.innerHTML = '💡 Cliquez sur un aliment pour l\'ajouter rapidement au journal du jour';
-    if (footer) footer.style.display = 'none';
-    
-    // Re-render et passer au journal
-    renderFoodsList();
-    document.querySelector('[data-tab="journal"]')?.click();
-}
-
-// Ajout rapide au journal depuis la base d'aliments
+// Ajout rapide au journal depuis la base d'aliments (tap simple)
 function quickAddToJournal(foodId) {
     const food = state.foods.find(f => f.id === foodId);
     if (!food) return;
@@ -230,10 +159,12 @@ function quickAddToJournal(foodId) {
     // Ajouter au journal
     addToJournalDirect(food.id, 100);
     
-    // Basculer vers l'onglet Journal
-    document.querySelector('[data-tab="journal"]')?.click();
+    // Incrémenter le compteur et afficher le badge
+    foodsAddedCount++;
+    showFoodCounterBadge();
     
-    showToast(`${food.name} ajouté au journal`, 'success');
+    // Toast simple
+    showToast(`${food.name} ajouté`, 'success');
 }
 
 function filterFoods() {

@@ -374,6 +374,7 @@ function selectProgram(programId) {
 
 /**
  * Affiche l'écran d'aperçu de séance avant de commencer
+ * Modifié: demande d'abord la durée, puis affiche la preview avec exercices filtrés
  */
 function showSessionPreview(splitIndex) {
     const program = trainingPrograms[state.wizardResults.selectedProgram];
@@ -423,18 +424,10 @@ function showSessionPreview(splitIndex) {
         }));
     }
 
-    // Afficher l'écran
-    document.getElementById('session-preview').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-
-    // Hide nav
-    const nav = document.querySelector('.nav');
-    const mobileNav = document.querySelector('.mobile-nav');
-    if (nav) nav.style.display = 'none';
-    if (mobileNav) mobileNav.style.display = 'none';
-
-    // Render UI
-    renderSessionPreviewUI();
+    // Nouveau flow: demander d'abord la durée
+    // Stocker splitIndex temporairement
+    previewSession.pendingSplitIndex = splitIndex;
+    showDurationPicker();
 }
 
 /**
@@ -492,8 +485,8 @@ function renderSessionPreviewUI() {
                     </span>
                     <span class="preview-exercise-meta">${ex.sets} séries × ${ex.reps} reps</span>
                 </div>
-                <button class="preview-exercise-edit" onclick="openExerciseSwapSheet(${idx})">
-                    ✏️ Changer
+                <button class="preview-exercise-edit" onclick="openExerciseSwapSheet(${idx})" title="Changer l'exercice">
+                    ⇄
                 </button>
             </div>
         `;
@@ -591,8 +584,11 @@ function startSessionFromPreview() {
         saveSessionTemplate(previewSession.splitIndex);
     }
 
-    // Afficher le duration picker
-    showDurationPicker();
+    // Fermer l'écran d'aperçu
+    document.getElementById('session-preview').style.display = 'none';
+
+    // Démarrer la séance full-screen avec les exercices (déjà filtrés par durée)
+    startFullScreenSessionWithCustomExercises(previewSession.splitIndex, previewSession.exercises);
 }
 
 function showDurationPicker() {
@@ -615,11 +611,22 @@ function selectDuration(duration) {
         }
     }
 
-    // Fermer l'écran d'aperçu
-    document.getElementById('session-preview').style.display = 'none';
+    // Mettre à jour previewSession avec les exercices filtrés
+    previewSession.exercises = filteredExercises;
+    previewSession.selectedDuration = duration;
+    
+    // Afficher l'écran d'aperçu avec les exercices filtrés
+    document.getElementById('session-preview').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 
-    // Démarrer la séance full-screen avec les exercices filtrés
-    startFullScreenSessionWithCustomExercises(previewSession.splitIndex, filteredExercises);
+    // Hide nav
+    const nav = document.querySelector('.nav');
+    const mobileNav = document.querySelector('.mobile-nav');
+    if (nav) nav.style.display = 'none';
+    if (mobileNav) mobileNav.style.display = 'none';
+
+    // Render UI avec les exercices filtrés
+    renderSessionPreviewUI();
 }
 
 function filterExercisesByDuration(exercises, duration) {
@@ -660,7 +667,9 @@ function saveSessionTemplate(splitIndex) {
     
     // Sync avec Supabase si connecté
     if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-        // Future: sync templates to Supabase
+        if (typeof saveTrainingSettingsToSupabase === 'function') {
+            saveTrainingSettingsToSupabase();
+        }
     }
 }
 
@@ -862,8 +871,10 @@ function validateCurrentSet() {
         fsSession.currentSetIndex++;
         renderCurrentExercise();
         
-        // Start rest timer
-        startRestTimer();
+        // Start rest timer (sauf si c'était la première série)
+        if (fsSession.currentSetIndex > 1) {
+            startRestTimer();
+        }
     } else if (isLastSet && !isLastExercise) {
         // Exercice terminé, mais pas le dernier - afficher bouton transition
         fsSession.exerciseCompleted = true;
@@ -1153,6 +1164,11 @@ function finishSession() {
                 }
             }
         });
+        
+        // Sync training progress
+        if (typeof saveTrainingSettingsToSupabase === 'function') {
+            saveTrainingSettingsToSupabase().catch(console.error);
+        }
     }
 
     // Update streak

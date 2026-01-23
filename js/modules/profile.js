@@ -254,6 +254,11 @@ function updateDashboard() {
         updateBodyWeightChart();
     }
 
+    // Séance du jour
+    if (typeof renderTodaySession === 'function') {
+        renderTodaySession();
+    }
+
     // Résumé de la semaine d'entraînement
     if (typeof renderTrainingWeekSummary === 'function') {
         renderTrainingWeekSummary();

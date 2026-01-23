@@ -1284,18 +1284,25 @@
 .preview-exercise-edit {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    padding: 10px 16px;
-    border-radius: var(--radius-sm, 6px);
+    padding: 10px;
+    border-radius: 50%;
     cursor: pointer;
     color: var(--text-secondary);
-    font-size: 0.85rem;
+    font-size: 1.2rem;
     transition: all 0.2s ease;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .preview-exercise-edit:hover {
     border-color: var(--accent-primary);
     color: var(--accent-primary);
     background: var(--accent-glow);
+    transform: scale(1.05);
 }
 
 .preview-footer {
@@ -1478,19 +1485,35 @@
     }
     
     .fs-input-section {
-        gap: 12px;
+        flex-direction: column;
+        gap: 20px;
+        padding: 30px 0;
+    }
+    
+    .fs-input-group {
+        width: 100%;
+        max-width: 280px;
     }
     
     .fs-input-btn {
-        width: 40px;
-        height: 50px;
-        font-size: 1.2rem;
+        width: 50px;
+        height: 60px;
+        font-size: 1.3rem;
     }
     
     .fs-input {
-        width: 60px;
-        height: 50px;
-        font-size: 1.5rem;
+        width: 100px;
+        height: 60px;
+        font-size: 1.8rem;
+    }
+    
+    .fs-input-wrapper {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .fs-input-separator {
+        display: none;
     }
     
     .fs-validate-btn {
@@ -1517,6 +1540,15 @@
 }
 
 /* ==================== EXERCISE & SESSION COMPLETE STATES ==================== */
+
+#fs-next-exercise-name {
+    display: inline-block;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
 
 .fs-exercise-complete,
 .fs-session-complete {
@@ -1723,6 +1755,65 @@
 .duration-skip:hover {
     background: var(--bg-tertiary);
     color: var(--text-primary);
+}
+
+/* ==================== TODAY'S SESSION (DASHBOARD) ==================== */
+
+.today-session-card {
+    padding: 20px;
+}
+
+.today-session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.today-session-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.today-session-split-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.today-exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.today-exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.today-exercise-bullet {
+    color: var(--accent-primary);
+    font-weight: 700;
+}
+
+.today-exercise-name {
+    color: var(--text-primary);
+}
+
+.today-exercise-more {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
 }
 
 /* ==================== TRAINING WEEK SUMMARY (DASHBOARD) ==================== */

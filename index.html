@@ -7,12 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=2">
-    <link rel="stylesheet" href="css/mobile-premium.css?v=2">
-    <link rel="stylesheet" href="css/session-manager.css?v=2">
-    <link rel="stylesheet" href="css/premium-components.css?v=2">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=2">
-    <link rel="stylesheet" href="css/journal-macros.css?v=2">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=4">
+    <link rel="stylesheet" href="css/mobile-premium.css?v=4">
+    <link rel="stylesheet" href="css/session-manager.css?v=4">
+    <link rel="stylesheet" href="css/premium-components.css?v=4">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=4">
+    <link rel="stylesheet" href="css/journal-macros.css?v=4">
 
 
 
@@ -91,6 +91,16 @@
                     <div class="stat-card">
                         <div class="stat-label">Séances/semaine</div>
                         <div class="stat-value" id="stat-days">--</div>
+                    </div>
+                </div>
+
+                <!-- Today's Session -->
+                <div class="card today-session-card" id="today-session-card" style="margin-top: 20px; display: none;">
+                    <div class="today-session-header">
+                        <span class="today-session-label">Séance du jour</span>
+                    </div>
+                    <div class="today-session-content" id="today-session-content">
+                        <!-- Rempli par renderTodaySession() -->
                     </div>
                 </div>
 
@@ -210,7 +220,8 @@
 
                 <div id="recommendations-card-container" style="margin-top: 20px;"></div>
 
-                <div class="card" style="margin-top: 20px;">
+                <!-- Widget caché: évolution du poids non pertinent sur dashboard -->
+                <div class="card" style="margin-top: 20px; display: none;">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">📈</span>
@@ -317,28 +328,21 @@
                                 Base d'Aliments
                             </div>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <button class="btn btn-sm btn-secondary" id="toggle-multiselect-btn" onclick="toggleMultiSelectMode()" title="Activer la sélection multiple" style="padding: 8px 12px; font-size: 0.85rem;">
-                                    <span id="multiselect-icon">☐</span> Multi
-                                </button>
                                 <button class="btn btn-sm btn-primary" onclick="openCustomFoodModal()" data-tooltip="Ajouter un aliment personnalisé">+ Ajouter</button>
                             </div>
                         </div>
                         <div class="form-group">
                             <input type="text" class="form-input" id="food-search" placeholder="Rechercher un aliment..." oninput="filterFoods()">
                         </div>
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;" id="food-list-hint">
-                            💡 Cliquez sur un aliment pour l'ajouter rapidement au journal du jour
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">
+                            💡 Tapez sur un aliment pour l'ajouter (100g par défaut)
                         </p>
                         <div id="foods-list"></div>
                         
-                        <!-- Multi-select footer -->
-                        <div class="multiselect-footer" id="multiselect-footer" style="display: none;">
-                            <div class="multiselect-count">
-                                <span id="multiselect-count">0</span> sélectionné(s)
-                            </div>
-                            <button class="btn btn-primary" onclick="addMultipleFromBase()">
-                                + Ajouter au journal
-                            </button>
+                        <!-- Badge flottant compteur -->
+                        <div class="food-counter-badge" id="food-counter-badge" style="display: none;">
+                            <span id="food-counter-text">+1 ajouté</span>
+                            <button class="btn btn-sm" onclick="switchTab('journal')">Voir</button>
                         </div>
                     </div>
                 </div>
@@ -1460,23 +1464,23 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/data/foods.js?v=2"></script>
-    <script src="js/data/exercises.js?v=2"></script>
-    <script src="js/data/programs.js?v=2"></script>
-    <script src="js/modules/state.js?v=2"></script>
-    <script src="js/modules/supabase.js?v=2"></script>
-    <script src="js/modules/profile.js?v=2"></script>
-    <script src="js/modules/nutrition.js?v=2"></script>
-    <script src="js/modules/training.js?v=2"></script>
-    <script src="js/modules/session-manager.js?v=2"></script>
-    <script src="js/modules/session-ui.js?v=2"></script>
-    <script src="js/modules/progress.js?v=2"></script>
-    <script src="js/modules/timer.js?v=2"></script>
-    <script src="js/modules/ui.js?v=2"></script>
-    <script src="js/modules/goals.js?v=2"></script>
-    <script src="js/modules/photos.js?v=2"></script>
-    <script src="js/modules/premium-ui.js?v=2"></script>
-    <script src="js/modules/mobile-gestures.js?v=2"></script>
-    <script src="js/app.js?v=2"></script>
+    <script src="js/data/foods.js?v=4"></script>
+    <script src="js/data/exercises.js?v=4"></script>
+    <script src="js/data/programs.js?v=4"></script>
+    <script src="js/modules/state.js?v=4"></script>
+    <script src="js/modules/supabase.js?v=4"></script>
+    <script src="js/modules/profile.js?v=4"></script>
+    <script src="js/modules/nutrition.js?v=4"></script>
+    <script src="js/modules/training.js?v=4"></script>
+    <script src="js/modules/session-manager.js?v=4"></script>
+    <script src="js/modules/session-ui.js?v=4"></script>
+    <script src="js/modules/progress.js?v=4"></script>
+    <script src="js/modules/timer.js?v=4"></script>
+    <script src="js/modules/ui.js?v=4"></script>
+    <script src="js/modules/goals.js?v=4"></script>
+    <script src="js/modules/photos.js?v=4"></script>
+    <script src="js/modules/premium-ui.js?v=4"></script>
+    <script src="js/modules/mobile-gestures.js?v=4"></script>
+    <script src="js/app.js?v=4"></script>
 </body>
 </html>

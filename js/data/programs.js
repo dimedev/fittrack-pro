@@ -1,4 +1,16 @@
 // Programmes d'entraînement
+// 
+// LOGIQUE DES TEMPS DE REPOS (rest en secondes):
+// - Force (3-6 reps): 180-240s
+// - Force/Hypertrophie (6-10 reps): 120-150s
+// - Hypertrophie (8-12 reps): 90-120s
+// - Hypertrophie/Endurance (12-15 reps): 60-75s
+// - Endurance (15-20 reps): 45-60s
+//
+// TYPE D'EXERCICE:
+// - compound: exercices poly-articulaires (temps de repos plus longs)
+// - isolation: exercices d'isolation (temps de repos plus courts)
+//
 const trainingPrograms = {
     'ppl': {
         name: 'Push Pull Legs',
@@ -14,36 +26,36 @@ const trainingPrograms = {
         },
         exercises: {
             'Push': [
-                { name: 'Développé Couché', sets: 4, reps: '8-10', muscle: 'chest' },
-                { name: 'Développé Incliné Haltères', sets: 3, reps: '10-12', muscle: 'chest' },
-                { name: 'Développé Militaire', sets: 4, reps: '8-10', muscle: 'shoulders' },
-                { name: 'Élévations Latérales', sets: 3, reps: '12-15', muscle: 'shoulders' },
-                { name: 'Dips', sets: 3, reps: '10-12', muscle: 'triceps' },
-                { name: 'Extensions Triceps Poulie', sets: 3, reps: '12-15', muscle: 'triceps' }
+                { name: 'Développé Couché', sets: 4, reps: '8-10', muscle: 'chest', rest: 120, type: 'compound' },
+                { name: 'Développé Incliné Haltères', sets: 3, reps: '10-12', muscle: 'chest', rest: 90, type: 'compound' },
+                { name: 'Développé Militaire', sets: 4, reps: '8-10', muscle: 'shoulders', rest: 120, type: 'compound' },
+                { name: 'Élévations Latérales', sets: 3, reps: '12-15', muscle: 'shoulders', rest: 60, type: 'isolation' },
+                { name: 'Dips', sets: 3, reps: '10-12', muscle: 'triceps', rest: 90, type: 'compound' },
+                { name: 'Extensions Triceps Poulie', sets: 3, reps: '12-15', muscle: 'triceps', rest: 60, type: 'isolation' }
             ],
             'Pull': [
-                { name: 'Tractions', sets: 4, reps: '6-10', muscle: 'back' },
-                { name: 'Rowing Barre', sets: 4, reps: '8-10', muscle: 'back' },
-                { name: 'Tirage Vertical', sets: 3, reps: '10-12', muscle: 'back' },
-                { name: 'Face Pull', sets: 3, reps: '15-20', muscle: 'rear-delts' },
-                { name: 'Curl Barre', sets: 3, reps: '10-12', muscle: 'biceps' },
-                { name: 'Curl Haltères', sets: 3, reps: '12-15', muscle: 'biceps' }
+                { name: 'Tractions', sets: 4, reps: '6-10', muscle: 'back', rest: 150, type: 'compound' },
+                { name: 'Rowing Barre', sets: 4, reps: '8-10', muscle: 'back', rest: 120, type: 'compound' },
+                { name: 'Tirage Vertical', sets: 3, reps: '10-12', muscle: 'back', rest: 90, type: 'compound' },
+                { name: 'Face Pull', sets: 3, reps: '15-20', muscle: 'rear-delts', rest: 45, type: 'isolation' },
+                { name: 'Curl Barre', sets: 3, reps: '10-12', muscle: 'biceps', rest: 75, type: 'isolation' },
+                { name: 'Curl Haltères', sets: 3, reps: '12-15', muscle: 'biceps', rest: 60, type: 'isolation' }
             ],
             'Legs': [
-                { name: 'Squat', sets: 4, reps: '6-8', muscle: 'quads' },
-                { name: 'Presse à Cuisses', sets: 3, reps: '10-12', muscle: 'quads' },
-                { name: 'Soulevé de Terre Roumain', sets: 4, reps: '8-10', muscle: 'hamstrings' },
-                { name: 'Leg Curl', sets: 3, reps: '12-15', muscle: 'hamstrings' },
-                { name: 'Mollets Debout', sets: 4, reps: '12-15', muscle: 'calves' },
-                { name: 'Fentes', sets: 3, reps: '10-12', muscle: 'glutes' }
+                { name: 'Squat', sets: 4, reps: '6-8', muscle: 'quads', rest: 180, type: 'compound' },
+                { name: 'Presse à Cuisses', sets: 3, reps: '10-12', muscle: 'quads', rest: 90, type: 'compound' },
+                { name: 'Soulevé de Terre Roumain', sets: 4, reps: '8-10', muscle: 'hamstrings', rest: 120, type: 'compound' },
+                { name: 'Leg Curl', sets: 3, reps: '12-15', muscle: 'hamstrings', rest: 60, type: 'isolation' },
+                { name: 'Mollets Debout', sets: 4, reps: '12-15', muscle: 'calves', rest: 45, type: 'isolation' },
+                { name: 'Fentes', sets: 3, reps: '10-12', muscle: 'glutes', rest: 90, type: 'compound' }
             ],
             'Upper': [
-                { name: 'Développé Couché', sets: 3, reps: '8-10', muscle: 'chest' },
-                { name: 'Rowing Haltères', sets: 3, reps: '10-12', muscle: 'back' },
-                { name: 'Développé Épaules', sets: 3, reps: '10-12', muscle: 'shoulders' },
-                { name: 'Tirage Vertical', sets: 3, reps: '10-12', muscle: 'back' },
-                { name: 'Curl Barre', sets: 2, reps: '12-15', muscle: 'biceps' },
-                { name: 'Extensions Triceps', sets: 2, reps: '12-15', muscle: 'triceps' }
+                { name: 'Développé Couché', sets: 3, reps: '8-10', muscle: 'chest', rest: 120, type: 'compound' },
+                { name: 'Rowing Haltères', sets: 3, reps: '10-12', muscle: 'back', rest: 90, type: 'compound' },
+                { name: 'Développé Épaules', sets: 3, reps: '10-12', muscle: 'shoulders', rest: 90, type: 'compound' },
+                { name: 'Tirage Vertical', sets: 3, reps: '10-12', muscle: 'back', rest: 90, type: 'compound' },
+                { name: 'Curl Barre', sets: 2, reps: '12-15', muscle: 'biceps', rest: 60, type: 'isolation' },
+                { name: 'Extensions Triceps', sets: 2, reps: '12-15', muscle: 'triceps', rest: 60, type: 'isolation' }
             ]
         }
     },

@@ -516,6 +516,60 @@ function getProgressionStats(exerciseName) {
 
 // ==================== TRAINING WEEK SUMMARY (DASHBOARD) ====================
 
+function renderTodaySession() {
+    const card = document.getElementById('today-session-card');
+    const content = document.getElementById('today-session-content');
+    if (!card || !content) return;
+
+    // Hide if no program configured
+    if (!state.wizardResults || !state.wizardResults.selectedProgram || !trainingPrograms) {
+        card.style.display = 'none';
+        return;
+    }
+
+    const program = trainingPrograms[state.wizardResults.selectedProgram];
+    if (!program) {
+        card.style.display = 'none';
+        return;
+    }
+
+    // Déterminer la prochaine séance
+    const splits = program.splits[state.wizardResults.frequency];
+    if (!splits || splits.length === 0) {
+        card.style.display = 'none';
+        return;
+    }
+
+    // Utiliser currentSplitIndex de trainingProgress
+    const currentIndex = state.trainingProgress?.currentSplitIndex || 0;
+    const splitName = splits[currentIndex];
+    const exercises = program.exercises[splitName] || [];
+
+    // Afficher la card
+    card.style.display = 'block';
+
+    // Rendre le contenu
+    const exercisesList = exercises.slice(0, 4).map(ex => 
+        `<div class="today-exercise-item">
+            <span class="today-exercise-bullet">•</span>
+            <span class="today-exercise-name">${ex.name}</span>
+        </div>`
+    ).join('');
+
+    const moreText = exercises.length > 4 ? `<div class="today-exercise-more">+${exercises.length - 4} autres exercices</div>` : '';
+
+    content.innerHTML = `
+        <div class="today-session-split-name">${splitName}</div>
+        <div class="today-exercises-list">
+            ${exercisesList}
+            ${moreText}
+        </div>
+        <button class="btn btn-primary btn-block" onclick="showSessionPreview(${currentIndex})" style="margin-top: 12px;">
+            Commencer la séance
+        </button>
+    `;
+}
+
 function renderTrainingWeekSummary() {
     const container = document.getElementById('training-week-summary');
     if (!container) return;
