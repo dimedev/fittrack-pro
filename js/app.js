@@ -216,13 +216,13 @@ function switchAuthTab(tab) {
     if (!loginTab || !signupTab) return;
     
     if (tab === 'login') {
-        loginTab.classList.replace('btn-secondary', 'btn-primary');
-        signupTab.classList.replace('btn-primary', 'btn-secondary');
+        loginTab.classList.add('active');
+        signupTab.classList.remove('active');
         if (loginForm) loginForm.style.display = 'block';
         if (signupForm) signupForm.style.display = 'none';
     } else {
-        signupTab.classList.replace('btn-secondary', 'btn-primary');
-        loginTab.classList.replace('btn-primary', 'btn-secondary');
+        signupTab.classList.add('active');
+        loginTab.classList.remove('active');
         if (signupForm) signupForm.style.display = 'block';
         if (loginForm) loginForm.style.display = 'none';
     }

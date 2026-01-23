@@ -558,6 +558,170 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 1;
 }
 
+/* ==================== AUTH MODAL PREMIUM ==================== */
+.modal-auth {
+    max-width: 440px;
+    padding: 0;
+}
+
+.auth-logo {
+    text-align: center;
+    padding: 48px 32px 32px;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.auth-logo-text {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #ffffff 0%, #a1a1a1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.auth-logo-tagline {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.modal-auth .modal-body {
+    padding: 32px;
+}
+
+.auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    margin-bottom: 28px;
+}
+
+.auth-tab {
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.auth-tab:hover {
+    color: var(--text-secondary);
+}
+
+.auth-tab.active {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-auth {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.btn-google-premium {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 20px;
+    background: #ffffff;
+    color: #1f1f1f;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.btn-google-premium:hover {
+    background: #f8f9fa;
+    border-color: #d0d0d0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+.btn-google-premium:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.btn-google-premium svg {
+    flex-shrink: 0;
+}
+
+.auth-offline {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.btn-offline {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    font-family: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.btn-offline:hover {
+    color: var(--text-secondary);
+}
+
+/* Auth modal mobile responsive */
+@media (max-width: 768px) {
+    .modal-auth {
+        max-width: 100%;
+    }
+    
+    .auth-logo {
+        padding: 40px 24px 24px;
+    }
+    
+    .auth-logo-text {
+        font-size: 2rem;
+    }
+    
+    .modal-auth .modal-body {
+        padding: 24px 20px;
+    }
+    
+    .auth-tabs {
+        margin-bottom: 24px;
+    }
+    
+    .btn-google-premium {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+}
+
 /* ==================== MOBILE DRAWER/SHEET ==================== */
 @media (max-width: 768px) {
     .modal-overlay {
