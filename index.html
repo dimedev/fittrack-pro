@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=6">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/session-manager.css?v=5">
+    <link rel="stylesheet" href="css/session-manager.css?v=8">
     <link rel="stylesheet" href="css/premium-components.css?v=5">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=6">
     <link rel="stylesheet" href="css/journal-macros.css?v=5">
@@ -238,9 +238,18 @@
                         </div>
                     </div>
 
-                    <!-- Search bar -->
-                    <div class="nutrition-search-bar" style="margin-bottom: 20px;">
-                        <input type="text" class="form-input" id="unified-food-search" placeholder="Rechercher un aliment..." oninput="searchUnifiedFoods()">
+                    <!-- Search bar avec toggle -->
+                    <div class="nutrition-search-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center;">
+                        <input type="text" class="form-input" id="unified-food-search" placeholder="Rechercher un aliment..." oninput="searchUnifiedFoods()" style="flex: 1;">
+                        <button class="btn-toggle-browse" id="toggle-browse-btn" onclick="toggleFoodBrowse()">
+                            <span id="browse-btn-text">Parcourir</span>
+                            <span id="browse-btn-icon">▼</span>
+                        </button>
+                    </div>
+
+                    <!-- Liste accordeon (cachee par defaut) -->
+                    <div id="foods-accordion-container" style="display: none; margin-bottom: 20px;">
+                        <div id="foods-list"></div>
                     </div>
 
                     <!-- Resultats recherche (apparait quand on tape) -->
@@ -1305,6 +1314,58 @@
         </div>
     </div>
 
+    <!-- Food Quantity Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="food-quantity-sheet" style="display: none;" onclick="closeFoodQuantitySheet()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title" id="quantity-food-name">Aliment</h3>
+            </div>
+            <div class="bottom-sheet-content">
+                <!-- Macros info -->
+                <div class="quantity-macros-info">
+                    <div class="quantity-macros-base">
+                        <span class="quantity-macros-label">Pour 100g :</span>
+                        <div class="quantity-macros-values" id="quantity-macros-base"></div>
+                    </div>
+                </div>
+
+                <!-- Presets rapides -->
+                <div class="quantity-section">
+                    <h4 class="quantity-section-title">Quantités rapides</h4>
+                    <div class="quantity-presets">
+                        <button class="quantity-preset" onclick="selectQuantityPreset(50)">50g</button>
+                        <button class="quantity-preset" onclick="selectQuantityPreset(100)">100g</button>
+                        <button class="quantity-preset" onclick="selectQuantityPreset(150)">150g</button>
+                        <button class="quantity-preset" onclick="selectQuantityPreset(200)">200g</button>
+                    </div>
+                </div>
+
+                <!-- Custom quantity -->
+                <div class="quantity-section">
+                    <h4 class="quantity-section-title">Quantité personnalisée</h4>
+                    <div class="quantity-custom">
+                        <button class="quantity-btn" onclick="adjustQuantity(-10)">-10</button>
+                        <input type="number" id="custom-quantity-input" value="100" min="1" step="10">
+                        <span>g</span>
+                        <button class="quantity-btn" onclick="adjustQuantity(10)">+10</button>
+                    </div>
+                </div>
+
+                <!-- Total dynamique -->
+                <div class="quantity-total">
+                    <div class="quantity-total-label">Total</div>
+                    <div class="quantity-total-values" id="quantity-total-display"></div>
+                </div>
+
+                <!-- CTA -->
+                <button class="btn btn-primary btn-block" onclick="confirmAddFood()" style="margin-top: 16px;">
+                    Ajouter au journal
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Duration Picker Bottom Sheet -->
     <div class="bottom-sheet-overlay" id="duration-picker-sheet" style="display: none;" onclick="closeDurationPicker()">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
@@ -1452,8 +1513,8 @@
     <script src="js/modules/state.js?v=5"></script>
     <script src="js/modules/supabase.js?v=5"></script>
     <script src="js/modules/profile.js?v=5"></script>
-    <script src="js/modules/nutrition.js?v=6"></script>
-    <script src="js/modules/training.js?v=5"></script>
+    <script src="js/modules/nutrition.js?v=7"></script>
+    <script src="js/modules/training.js?v=7"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=5"></script>
     <script src="js/modules/progress.js?v=5"></script>
@@ -1462,7 +1523,7 @@
     <script src="js/modules/goals.js?v=5"></script>
     <script src="js/modules/photos.js?v=5"></script>
     <script src="js/modules/premium-ui.js?v=5"></script>
-    <script src="js/modules/mobile-gestures.js?v=6"></script>
+    <script src="js/modules/mobile-gestures.js?v=7"></script>
     <script src="js/app.js?v=5"></script>
 </body>
 </html>

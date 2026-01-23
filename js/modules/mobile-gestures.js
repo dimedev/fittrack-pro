@@ -69,6 +69,16 @@
         }
         
         handleTouchStart(e) {
+            // Exclure les inputs, buttons et éléments interactifs du swipe
+            const target = e.target;
+            const isExcluded = target.matches('input, button, select, textarea') || 
+                               target.closest('input, button, select, textarea, .journal-entry-qty, .journal-entry-delete');
+            
+            if (isExcluded) {
+                this.isDragging = false;
+                return;
+            }
+            
             this.startX = e.touches[0].clientX;
             this.startY = e.touches[0].clientY;
             this.isDragging = true;

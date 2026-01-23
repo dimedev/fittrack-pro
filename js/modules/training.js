@@ -882,8 +882,8 @@ function validateCurrentSet() {
         fsSession.currentSetIndex++;
         renderCurrentExercise();
         
-        // Start rest timer (sauf si c'était la première série)
-        if (fsSession.currentSetIndex > 1) {
+        // Start rest timer (après la première série)
+        if (fsSession.currentSetIndex >= 1) {
             startRestTimer();
         }
     } else if (isLastSet && !isLastExercise) {

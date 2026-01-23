@@ -20,12 +20,11 @@ const foodCategories = {
 // ==================== BASE D'ALIMENTS ====================
 
 // Afficher la liste des aliments (accordéon par catégorie)
-// Note: Cette fonction est conservée pour compatibilité mais l'élément #foods-list n'existe plus
 function renderFoodsList() {
     const container = document.getElementById('foods-list');
-    if (!container) return; // Element supprimé dans la refonte Nutrition unifiée
+    if (!container) return;
     
-    const searchTerm = document.getElementById('food-search')?.value?.toLowerCase() || '';
+    const searchTerm = '';
     
     // Initialiser l'état des accordéons si nécessaire
     if (!state.foodAccordionState) {
@@ -57,7 +56,7 @@ function renderFoodsList() {
                 <div class="food-category-content" style="display: ${isOpen ? 'block' : 'none'};">
                     ${catFoods.map(food => {
                         return `
-                            <div class="food-select-item" onclick="quickAddToJournal('${food.id}')">
+                            <div class="food-select-item" onclick="quickAddFromSearch('${food.id}')">
                                 <div class="food-select-info">
                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                         <strong>${food.name}</strong>
@@ -217,20 +216,115 @@ function searchUnifiedFoods() {
 }
 
 /**
- * Ajout rapide depuis la recherche unifiée
+ * Variables pour le bottom sheet dosage
  */
-async function quickAddFromSearch(foodId) {
+let selectedFoodForQuantity = null;
+let currentQuantity = 100;
+
+/**
+ * Ouvrir le bottom sheet pour choisir la quantité
+ */
+function quickAddFromSearch(foodId) {
     const food = state.foods.find(f => f.id === foodId);
     if (!food) return;
     
+    // Stocker l'aliment sélectionné
+    selectedFoodForQuantity = food;
+    currentQuantity = 100;
+    
+    // Remplir le bottom sheet
+    document.getElementById('quantity-food-name').textContent = food.name;
+    document.getElementById('quantity-macros-base').innerHTML = `
+        <span>🔥 ${food.calories} kcal</span>
+        <span>P: ${food.protein}g</span>
+        <span>G: ${food.carbs}g</span>
+        <span>L: ${food.fat}g</span>
+    `;
+    document.getElementById('custom-quantity-input').value = currentQuantity;
+    
+    // Mettre à jour le total
+    updateQuantityTotal();
+    
+    // Afficher le bottom sheet
+    const sheet = document.getElementById('food-quantity-sheet');
+    if (sheet) {
+        sheet.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+/**
+ * Sélectionner un preset de quantité
+ */
+function selectQuantityPreset(quantity) {
+    currentQuantity = quantity;
+    document.getElementById('custom-quantity-input').value = quantity;
+    updateQuantityTotal();
+}
+
+/**
+ * Ajuster la quantité (+/-)
+ */
+function adjustQuantity(delta) {
+    const input = document.getElementById('custom-quantity-input');
+    const newValue = Math.max(1, parseInt(input.value) + delta);
+    input.value = newValue;
+    currentQuantity = newValue;
+    updateQuantityTotal();
+}
+
+/**
+ * Mettre à jour l'affichage du total
+ */
+function updateQuantityTotal() {
+    if (!selectedFoodForQuantity) return;
+    
+    const input = document.getElementById('custom-quantity-input');
+    const quantity = parseInt(input.value) || 100;
+    currentQuantity = quantity;
+    
+    const multiplier = quantity / 100;
+    const calories = Math.round(selectedFoodForQuantity.calories * multiplier);
+    const protein = Math.round(selectedFoodForQuantity.protein * multiplier * 10) / 10;
+    const carbs = Math.round(selectedFoodForQuantity.carbs * multiplier * 10) / 10;
+    const fat = Math.round(selectedFoodForQuantity.fat * multiplier * 10) / 10;
+    
+    document.getElementById('quantity-total-display').innerHTML = `
+        <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-primary);">${calories} kcal</div>
+        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px;">
+            P: ${protein}g · G: ${carbs}g · L: ${fat}g
+        </div>
+    `;
+}
+
+/**
+ * Confirmer et ajouter l'aliment au journal
+ */
+async function confirmAddFood() {
+    if (!selectedFoodForQuantity) return;
+    
+    const quantity = parseInt(document.getElementById('custom-quantity-input').value) || 100;
+    
     // Ajouter au journal
-    await addToJournalDirect(foodId, 100);
+    await addToJournalDirect(selectedFoodForQuantity.id, quantity);
     
-    // Animation de l'item
-    animateFoodAdded(foodId);
+    // Toast
+    showToast(`+${quantity}g de ${selectedFoodForQuantity.name} ajouté`, 'success', 3000);
     
-    // Toast persistant 4 secondes
-    showToast(`+100g de ${food.name} ajouté au journal`, 'success', 4000);
+    // Fermer le bottom sheet
+    closeFoodQuantitySheet();
+}
+
+/**
+ * Fermer le bottom sheet dosage
+ */
+function closeFoodQuantitySheet() {
+    const sheet = document.getElementById('food-quantity-sheet');
+    if (sheet) {
+        sheet.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    selectedFoodForQuantity = null;
 }
 
 /**
@@ -248,6 +342,44 @@ function animateFoodAdded(foodId) {
         item.style.background = '';
         item.style.transform = '';
     }, 300);
+}
+
+// Écouter les changements sur l'input pour mettre à jour le total en temps réel
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        const quantityInput = document.getElementById('custom-quantity-input');
+        if (quantityInput) {
+            quantityInput.addEventListener('input', updateQuantityTotal);
+        }
+    });
+}
+
+/**
+ * Toggle affichage de la liste accordéon
+ */
+function toggleFoodBrowse() {
+    const container = document.getElementById('foods-accordion-container');
+    const btnText = document.getElementById('browse-btn-text');
+    const btnIcon = document.getElementById('browse-btn-icon');
+    
+    if (!container) return;
+    
+    const isVisible = container.style.display !== 'none';
+    
+    if (isVisible) {
+        // Fermer
+        container.style.display = 'none';
+        btnText.textContent = 'Parcourir';
+        btnIcon.textContent = '▼';
+    } else {
+        // Ouvrir
+        container.style.display = 'block';
+        btnText.textContent = 'Masquer';
+        btnIcon.textContent = '▲';
+        
+        // Render la liste
+        renderFoodsList();
+    }
 }
 
 // ==================== ALIMENTS PERSONNALISÉS ====================
