@@ -370,6 +370,9 @@
         styles.textContent = `
             /* Swipe to Delete */
             .swipe-content {
+                display: flex;
+                width: 100%;
+                padding: 10px;
                 position: relative;
                 z-index: 1;
                 background: var(--bg-card);

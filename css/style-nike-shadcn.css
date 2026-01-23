@@ -2390,11 +2390,18 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ==================== MOBILE RESPONSIVE FIXES ==================== */
 @media (max-width: 768px) {
-    /* Card header stack on mobile */
+    /* Card header stack on mobile - SAUF sections avec nutrition-header-actions */
     .card-header {
         flex-direction: column !important;
         align-items: flex-start !important;
         gap: 12px;
+    }
+    
+    /* Exception pour Nutrition - garder horizontal */
+    #nutrition .card-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
     }
 
     /* Buttons container full width */
@@ -2403,6 +2410,12 @@ h1, h2, h3, h4, h5, h6 {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+    }
+    
+    /* Exception Nutrition - pas full width */
+    #nutrition .card-header .nutrition-header-actions {
+        width: auto !important;
+        flex-wrap: nowrap !important;
     }
 
     /* Buttons grow to fill space */
@@ -2418,13 +2431,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 480px) {
-    /* Stack buttons vertically on very small screens */
+    /* Stack buttons vertically on very small screens - SAUF Nutrition */
     .card-header > div:last-child {
         flex-direction: column;
+    }
+    
+    /* Exception Nutrition - garder horizontal */
+    #nutrition .card-header .nutrition-header-actions {
+        flex-direction: row !important;
     }
 
     .card-header > div:last-child .btn {
         width: 100%;
+    }
+    
+    /* Exception Nutrition - pas full width */
+    #nutrition .card-header .nutrition-header-actions .btn-icon {
+        width: 40px !important;
     }
 }
 
