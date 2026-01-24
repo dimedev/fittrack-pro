@@ -2,6 +2,11 @@
 
 // Fonction helper pour calculer BMR, TDEE et macros
 function calculateProfile(profile) {
+    // Validation des données requises
+    if (!profile.weight || !profile.height || !profile.age || !profile.activity) {
+        return null; // Données insuffisantes pour calculer
+    }
+    
     // Calcul du BMR avec la formule Mifflin-St Jeor
     let bmr;
     if (profile.gender === 'male') {
@@ -178,108 +183,130 @@ async function saveProfile() {
     }
 }
 
+// Protection contre les appels récursifs avec try/finally
+let _updateDashboardRunning = false;
+
 function updateDashboard() {
-    // Mise à jour du Quick Summary
-    updateQuickSummary();
+    if (_updateDashboardRunning) return;
+    _updateDashboardRunning = true;
     
-    // Mise à jour des stats avec animations
-    if (state.profile && state.profile.targetCalories && state.profile.macros) {
-        // Utiliser les animations si disponibles
-        if (typeof updateStatWithAnimation === 'function') {
-            updateStatWithAnimation('stat-calories', state.profile.targetCalories);
-            updateStatWithAnimation('stat-protein', state.profile.macros.protein);
-        } else {
-            const calEl = document.getElementById('stat-calories');
-            const protEl = document.getElementById('stat-protein');
-            if (calEl) calEl.textContent = state.profile.targetCalories;
-            if (protEl) protEl.textContent = state.profile.macros.protein;
-        }
-
-        // Résumé du profil SIMPLIFIÉ
-        const goalLabels = {
-            'cut': 'Sèche',
-            'maintain': 'Maintien',
-            'lean-bulk': 'Prise légère',
-            'bulk': 'Prise de masse'
-        };
-
-        const totalSessions = state.sessionHistory ? state.sessionHistory.length : 0;
-        const currentStreak = state.goals?.currentStreak || 0;
-        const longestStreak = state.goals?.longestStreak || 0;
+    try {
+        // Mise à jour du Quick Summary
+        updateQuickSummary();
         
-        // Profile summary compact
-        const profileSummary = document.getElementById('profile-summary');
-        if (profileSummary) {
-            profileSummary.innerHTML = `
-                <div class="profile-summary-compact">
-                    <div class="profile-stat-item">
-                        <span class="profile-stat-label">Objectif</span>
-                        <span class="profile-stat-value">${goalLabels[state.profile.goal] || state.profile.goal}</span>
+        // Mise à jour des stats avec animations
+        if (state.profile && state.profile.targetCalories && state.profile.macros) {
+            // Utiliser les animations si disponibles
+            if (typeof updateStatWithAnimation === 'function') {
+                updateStatWithAnimation('stat-calories', state.profile.targetCalories);
+                updateStatWithAnimation('stat-protein', state.profile.macros.protein);
+            } else {
+                const calEl = document.getElementById('stat-calories');
+                const protEl = document.getElementById('stat-protein');
+                if (calEl) calEl.textContent = state.profile.targetCalories;
+                if (protEl) protEl.textContent = state.profile.macros.protein;
+            }
+
+            // Résumé du profil SIMPLIFIÉ
+            const goalLabels = {
+                'cut': 'Sèche',
+                'maintain': 'Maintien',
+                'lean-bulk': 'Prise légère',
+                'bulk': 'Prise de masse'
+            };
+
+            const totalSessions = state.sessionHistory ? state.sessionHistory.length : 0;
+            const currentStreak = state.goals?.currentStreak || 0;
+            const longestStreak = state.goals?.longestStreak || 0;
+            
+            // Profile summary compact
+            const profileSummary = document.getElementById('profile-summary');
+            if (profileSummary) {
+                profileSummary.innerHTML = `
+                    <div class="profile-summary-compact">
+                        <div class="profile-stat-item">
+                            <span class="profile-stat-label">Objectif</span>
+                            <span class="profile-stat-value">${goalLabels[state.profile.goal] || state.profile.goal}</span>
+                        </div>
+                        <div class="profile-stat-item">
+                            <span class="profile-stat-label">Poids</span>
+                            <span class="profile-stat-value">${state.profile.weight} kg</span>
+                        </div>
+                        <div class="profile-stat-item">
+                            <span class="profile-stat-label">Séances</span>
+                            <span class="profile-stat-value">${totalSessions}</span>
+                        </div>
+                        <div class="profile-stat-item">
+                            <span class="profile-stat-label">Calories</span>
+                            <span class="profile-stat-value">${state.profile.targetCalories} kcal</span>
+                        </div>
                     </div>
-                    <div class="profile-stat-item">
-                        <span class="profile-stat-label">Poids</span>
-                        <span class="profile-stat-value">${state.profile.weight} kg</span>
-                    </div>
-                    <div class="profile-stat-item">
-                        <span class="profile-stat-label">Séances</span>
-                        <span class="profile-stat-value">${totalSessions}</span>
-                    </div>
-                    <div class="profile-stat-item">
-                        <span class="profile-stat-label">Calories</span>
-                        <span class="profile-stat-value">${state.profile.targetCalories} kcal</span>
-                    </div>
-                </div>
-                ${currentStreak > 0 || longestStreak > 0 ? `
-                <div class="profile-streak-badge">
-                    🔥 ${currentStreak} jours ${longestStreak > currentStreak ? `<span style="color: var(--text-muted); font-weight: 400;">• Record: ${longestStreak}</span>` : ''}
-                </div>` : ''}
-            `;
+                    ${currentStreak > 0 || longestStreak > 0 ? `
+                    <div class="profile-streak-badge">
+                        🔥 ${currentStreak} jours ${longestStreak > currentStreak ? `<span style="color: var(--text-muted); font-weight: 400;">• Record: ${longestStreak}</span>` : ''}
+                    </div>` : ''}
+                `;
+            }
+
+            // Mise à jour des barres de macros
+            updateMacroBars();
+        } else if (state.profile && state.profile.weight && state.profile.height && state.profile.age && state.profile.activity) {
+            // Profil existe mais macros non calculés - les recalculer
+            const calculated = calculateProfile(state.profile);
+            
+            // Ne recalculer que si calculateProfile a réussi
+            if (calculated) {
+                state.profile.bmr = calculated.bmr;
+                state.profile.tdee = calculated.tdee;
+                state.profile.targetCalories = calculated.targetCalories;
+                state.profile.macros = calculated.macros;
+                saveState();
+
+                // Re-appeler updateDashboard avec les données complètes
+                _updateDashboardRunning = false;
+                updateDashboard();
+                return;
+            }
         }
 
-        // Mise à jour des barres de macros
-        updateMacroBars();
-    } else if (state.profile && state.profile.weight && state.profile.height) {
-        // Profil existe mais macros non calculés - les recalculer
-        const calculated = calculateProfile(state.profile);
-        state.profile.bmr = calculated.bmr;
-        state.profile.tdee = calculated.tdee;
-        state.profile.targetCalories = calculated.targetCalories;
-        state.profile.macros = calculated.macros;
-        saveState();
+        // Stats du programme (hidden elements for compatibility)
+        if (state.selectedProgram && trainingPrograms[state.selectedProgram]) {
+            const program = trainingPrograms[state.selectedProgram];
+            const progEl = document.getElementById('stat-program');
+            const daysEl = document.getElementById('stat-days');
+            if (progEl) progEl.textContent = program.name;
+            if (daysEl) daysEl.textContent = state.trainingDays;
+        }
 
-        // Re-appeler updateDashboard avec les données complètes
-        updateDashboard();
-        return;
-    }
+        // Widget de recommandations
+        const recommendationsCard = document.getElementById('recommendations-card-container');
+        if (recommendationsCard && typeof renderRecommendationsCard === 'function') {
+            recommendationsCard.innerHTML = renderRecommendationsCard();
+        }
+        
+        // Graphique du poids corporel
+        if (typeof updateBodyWeightChart === 'function') {
+            updateBodyWeightChart();
+        }
 
-    // Stats du programme (hidden elements for compatibility)
-    if (state.selectedProgram && trainingPrograms[state.selectedProgram]) {
-        const program = trainingPrograms[state.selectedProgram];
-        const progEl = document.getElementById('stat-program');
-        const daysEl = document.getElementById('stat-days');
-        if (progEl) progEl.textContent = program.name;
-        if (daysEl) daysEl.textContent = state.trainingDays;
-    }
+        // Séance du jour
+        if (typeof renderTodaySession === 'function') {
+            renderTodaySession();
+        }
 
-    // Widget de recommandations
-    const recommendationsCard = document.getElementById('recommendations-card-container');
-    if (recommendationsCard && typeof renderRecommendationsCard === 'function') {
-        recommendationsCard.innerHTML = renderRecommendationsCard();
-    }
-    
-    // Graphique du poids corporel
-    if (typeof updateBodyWeightChart === 'function') {
-        updateBodyWeightChart();
-    }
-
-    // Séance du jour
-    if (typeof renderTodaySession === 'function') {
-        renderTodaySession();
-    }
-
-    // Résumé de la semaine d'entraînement
-    if (typeof renderTrainingWeekSummary === 'function') {
-        renderTrainingWeekSummary();
+        // Résumé de la semaine d'entraînement
+        if (typeof renderTrainingWeekSummary === 'function') {
+            renderTrainingWeekSummary();
+        }
+        
+        // Insights automatiques de la semaine
+        if (typeof renderInsightsWidget === 'function') {
+            renderInsightsWidget();
+        }
+    } catch (error) {
+        console.error('Erreur dans updateDashboard:', error);
+    } finally {
+        _updateDashboardRunning = false;
     }
 }
 

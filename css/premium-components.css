@@ -2298,3 +2298,136 @@
     cursor: pointer;
     border: none;
 }
+
+/* ==================== INSIGHTS AUTOMATIQUES ==================== */
+
+.insights-card .insights-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.insights-card .insights-title .icon {
+    font-size: 1rem;
+}
+
+#insights-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.insight-item:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-hover);
+}
+
+.insight-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    width: 24px;
+    text-align: center;
+}
+
+.insight-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.insight-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.insight-message {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Types d'insights avec couleurs subtiles */
+.insight-item.insight-progression {
+    border-left: 3px solid var(--success);
+}
+
+.insight-item.insight-volume {
+    border-left: 3px solid var(--info);
+}
+
+.insight-item.insight-recovery {
+    border-left: 3px solid var(--warning);
+}
+
+.insight-item.insight-nutrition {
+    border-left: 3px solid var(--accent-brand);
+}
+
+.insight-item.insight-streak {
+    border-left: 3px solid var(--success);
+}
+
+.insights-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 12px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.insights-empty-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    opacity: 0.5;
+}
+
+.insights-empty p {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .insights-card .insights-title {
+        font-size: 0.7rem;
+        margin-bottom: 12px;
+    }
+    
+    .insight-item {
+        padding: 10px;
+    }
+    
+    .insight-icon {
+        font-size: 1.1rem;
+        width: 22px;
+    }
+    
+    .insight-title {
+        font-size: 0.75rem;
+    }
+    
+    .insight-message {
+        font-size: 0.7rem;
+    }
+}

@@ -632,6 +632,20 @@ function getEquivalentExercises(exerciseId, favoriteExercises = []) {
 }
 
 /**
+ * Normalise une chaîne pour la recherche (accents + ligatures)
+ * @param {string} str - Chaîne à normaliser
+ * @returns {string} - Chaîne normalisée
+ */
+function normalizeSearchString(str) {
+    return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+        .replace(/œ/g, 'oe')             // Ligature œ → oe
+        .replace(/æ/g, 'ae');            // Ligature æ → ae
+}
+
+/**
  * Recherche des exercices par nom (pour le swap)
  * @param {string} query - Terme de recherche
  * @param {string} excludeId - ID de l'exercice à exclure
@@ -641,14 +655,14 @@ function getEquivalentExercises(exerciseId, favoriteExercises = []) {
 function searchExercises(query, excludeId = null, favoriteExercises = []) {
     if (!query || query.length < 2) return [];
     
-    const normalizedQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const normalizedQuery = normalizeSearchString(query);
     
     return defaultExercises
         .filter(e => {
             if (excludeId && e.id === excludeId) return false;
             
-            const normalizedName = e.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            const normalizedMuscle = (muscleGroups[e.muscle]?.name || e.muscle).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const normalizedName = normalizeSearchString(e.name);
+            const normalizedMuscle = normalizeSearchString(muscleGroups[e.muscle]?.name || e.muscle);
             
             return normalizedName.includes(normalizedQuery) || normalizedMuscle.includes(normalizedQuery);
         })

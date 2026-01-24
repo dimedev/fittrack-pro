@@ -1474,3 +1474,50 @@ html, body, main {
         outline: none;
     }
 }
+
+/* ==================== PERFORMANCE OPTIMIZATIONS ==================== */
+
+/* GPU acceleration pour les éléments animés */
+.skeleton,
+.btn,
+.card,
+.modal,
+.bottom-sheet,
+.toast,
+.mobile-nav-item {
+    will-change: transform;
+    contain: layout style;
+}
+
+/* Réduire les repaints sur les animations */
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Optimiser backdrop-filter coûteux */
+@media (max-width: 768px) {
+    .modal-overlay {
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+    
+    .mobile-nav {
+        background: rgba(0, 0, 0, 0.97);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+}
+
+/* Limiter les animations en mode batterie faible */
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+        background: var(--bg-tertiary);
+    }
+    
+    .badge-new {
+        animation: none;
+    }
+}

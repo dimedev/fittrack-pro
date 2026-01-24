@@ -148,16 +148,74 @@ async function syncPendingData() {
     updateSyncIndicator(SyncStatus.SYNCING);
     
     try {
-        // Re-sauvegarder les paramètres d'entraînement
+        // 1. Re-sauvegarder les paramètres d'entraînement
         await saveTrainingSettingsToSupabase();
         
-        // Re-sauvegarder le profil si présent
+        // 2. Re-sauvegarder le profil si présent
         if (state.profile && state.profile.age) {
             await saveProfileToSupabase(state.profile);
         }
         
+        // 3. Synchroniser le journal alimentaire non synchronisé
+        if (state.foodJournal) {
+            for (const [date, entries] of Object.entries(state.foodJournal)) {
+                for (const entry of entries) {
+                    if (!entry.supabaseId) {
+                        try {
+                            const id = await addJournalEntryToSupabase(
+                                entry.id || entry.name,
+                                entry.name,
+                                entry.calories,
+                                entry.protein,
+                                entry.carbs,
+                                entry.fat,
+                                entry.quantity,
+                                date
+                            );
+                            if (id) entry.supabaseId = id;
+                        } catch (err) {
+                            console.warn('Erreur sync journal entry:', err);
+                        }
+                    }
+                }
+            }
+            saveState();
+        }
+        
+        // 4. Synchroniser les logs de progression non synchronisés
+        if (state.progressLog) {
+            for (const [exercise, logs] of Object.entries(state.progressLog)) {
+                for (const log of logs) {
+                    if (!log.synced) {
+                        try {
+                            await saveProgressLogToSupabase(exercise, log);
+                            log.synced = true;
+                        } catch (err) {
+                            console.warn('Erreur sync progress log:', err);
+                        }
+                    }
+                }
+            }
+            saveState();
+        }
+        
+        // 5. Synchroniser les séances d'entraînement non synchronisées
+        if (state.sessionHistory) {
+            for (const session of state.sessionHistory) {
+                if (!session.synced) {
+                    try {
+                        await saveWorkoutSessionToSupabase(session);
+                        session.synced = true;
+                    } catch (err) {
+                        console.warn('Erreur sync workout session:', err);
+                    }
+                }
+            }
+            saveState();
+        }
+        
         updateSyncIndicator(SyncStatus.SUCCESS);
-        console.log('✅ Données synchronisées');
+        console.log('✅ Toutes les données synchronisées');
     } catch (error) {
         console.error('Erreur sync pending:', error);
         updateSyncIndicator(SyncStatus.ERROR);
@@ -480,6 +538,20 @@ async function loadAllDataFromSupabase() {
             .single();
         
         if (trainingSettings) {
+            // Détection de conflit multi-devices
+            if (typeof detectConflict === 'function' && trainingSettings.updated_at) {
+                const conflict = detectConflict(trainingSettings.updated_at);
+                if (conflict.hasConflict) {
+                    console.warn('⚠️ Conflit détecté entre données locales et serveur');
+                    if (conflict.serverIsNewer) {
+                        showToast('Données synchronisées depuis un autre appareil', 'info');
+                    } else {
+                        showToast('Modifications locales en cours de sync...', 'info');
+                        // Les données locales seront écrasées mais la sync les renverra
+                    }
+                }
+            }
+            
             state.selectedProgram = trainingSettings.selected_program;
             state.trainingDays = trainingSettings.training_days;
             
@@ -665,6 +737,13 @@ async function loadAllDataFromSupabase() {
         // Sauvegarder le state mergé dans localStorage pour persistance
         saveState();
         
+        // Marquer la sync comme terminée (pour détection conflits)
+        if (typeof markSyncComplete === 'function') {
+            markSyncComplete();
+        }
+        
+        console.log('✅ Données synchronisées');
+        
         // Rafraîchir l'UI
         refreshAllUI();
         
@@ -693,295 +772,405 @@ function refreshAllUI() {
 
 // Sauvegarder le profil
 async function saveProfileToSupabase(profileData) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: profil sauvegardé localement');
+        return false;
+    }
     
     try {
-        const { error } = await supabaseClient
-            .from('user_profiles')
-            .upsert({
-                user_id: currentUser.id,
-                pseudo: profileData.pseudo || null,
-                age: profileData.age,
-                gender: profileData.gender,
-                weight: profileData.weight,
-                height: profileData.height,
-                activity: profileData.activity,
-                goal: profileData.goal,
-                bmr: profileData.bmr,
-                tdee: profileData.tdee,
-                target_calories: profileData.targetCalories,
-                target_protein: profileData.macros.protein,
-                target_carbs: profileData.macros.carbs,
-                target_fat: profileData.macros.fat,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
-        
-        if (error) throw error;
-        console.log('✅ Profil sauvegardé');
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('user_profiles')
+                .upsert({
+                    user_id: currentUser.id,
+                    pseudo: profileData.pseudo || null,
+                    age: profileData.age,
+                    gender: profileData.gender,
+                    weight: profileData.weight,
+                    height: profileData.height,
+                    activity: profileData.activity,
+                    goal: profileData.goal,
+                    bmr: profileData.bmr,
+                    tdee: profileData.tdee,
+                    target_calories: profileData.targetCalories,
+                    target_protein: profileData.macros.protein,
+                    target_carbs: profileData.macros.carbs,
+                    target_fat: profileData.macros.fat,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+            
+            if (error) throw error;
+            console.log('✅ Profil sauvegardé');
+        }, { maxRetries: 3, critical: true });
+        return true;
     } catch (error) {
         console.error('Erreur sauvegarde profil:', error);
+        showToast('Erreur sync profil - sauvegardé localement', 'warning');
+        return false;
     }
 }
 
-// Sauvegarder un aliment personnalisé
+// Sauvegarder un aliment personnalisé (avec retry et feedback)
 async function saveCustomFoodToSupabase(food) {
-    if (!currentUser) return;
+    if (!currentUser) return null;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: aliment sauvegardé localement');
+        return null;
+    }
     
     try {
-        const { data, error } = await supabaseClient
-            .from('custom_foods')
-            .insert({
-                user_id: currentUser.id,
-                name: food.name,
-                calories: food.calories,
-                protein: food.protein,
-                carbs: food.carbs,
-                fat: food.fat,
-                category: food.category
-            })
-            .select()
-            .single();
-        
-        if (error) throw error;
-        console.log('✅ Aliment personnalisé sauvegardé');
-        return 'custom-' + data.id;
+        const result = await withRetry(async () => {
+            const { data, error } = await supabaseClient
+                .from('custom_foods')
+                .insert({
+                    user_id: currentUser.id,
+                    name: food.name,
+                    calories: food.calories,
+                    protein: food.protein,
+                    carbs: food.carbs,
+                    fat: food.fat,
+                    category: food.category
+                })
+                .select()
+                .single();
+            
+            if (error) throw error;
+            console.log('✅ Aliment personnalisé sauvegardé');
+            return data;
+        }, { maxRetries: 2, critical: false });
+        return result ? 'custom-' + result.id : null;
     } catch (error) {
         console.error('Erreur sauvegarde aliment:', error);
+        showToast('Erreur sync aliment - sauvegardé localement', 'warning');
+        return null;
     }
 }
 
-// Supprimer un aliment personnalisé
+// Supprimer un aliment personnalisé (avec retry et feedback)
 async function deleteCustomFoodFromSupabase(foodId) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: suppression en attente');
+        return false;
+    }
     
     const supabaseId = foodId.replace('custom-', '');
     
     try {
-        const { error } = await supabaseClient
-            .from('custom_foods')
-            .delete()
-            .eq('id', supabaseId)
-            .eq('user_id', currentUser.id);
-        
-        if (error) throw error;
-        console.log('✅ Aliment supprimé');
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('custom_foods')
+                .delete()
+                .eq('id', supabaseId)
+                .eq('user_id', currentUser.id);
+            
+            if (error) throw error;
+            console.log('✅ Aliment supprimé');
+        }, { maxRetries: 2, critical: false });
+        return true;
     } catch (error) {
         console.error('Erreur suppression aliment:', error);
+        showToast('Erreur suppression - réessayez', 'error');
+        return false;
     }
 }
 
-// Sauvegarder un exercice personnalisé
+// Sauvegarder un exercice personnalisé (avec retry et feedback)
 async function saveCustomExerciseToSupabase(exercise) {
-    if (!currentUser) return;
+    if (!currentUser) return null;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: exercice sauvegardé localement');
+        return null;
+    }
     
     try {
-        const { data, error } = await supabaseClient
-            .from('custom_exercises')
-            .insert({
-                user_id: currentUser.id,
-                name: exercise.name,
-                muscle: exercise.muscle,
-                equipment: exercise.equipment
-            })
-            .select()
-            .single();
-        
-        if (error) throw error;
-        console.log('✅ Exercice personnalisé sauvegardé');
-        return 'custom-' + data.id;
+        const result = await withRetry(async () => {
+            const { data, error } = await supabaseClient
+                .from('custom_exercises')
+                .insert({
+                    user_id: currentUser.id,
+                    name: exercise.name,
+                    muscle: exercise.muscle,
+                    equipment: exercise.equipment
+                })
+                .select()
+                .single();
+            
+            if (error) throw error;
+            console.log('✅ Exercice personnalisé sauvegardé');
+            return data;
+        }, { maxRetries: 2, critical: false });
+        return result ? 'custom-' + result.id : null;
     } catch (error) {
         console.error('Erreur sauvegarde exercice:', error);
+        showToast('Erreur sync exercice - sauvegardé localement', 'warning');
+        return null;
     }
 }
 
-// Sauvegarder un swap d'exercice
+// Sauvegarder un swap d'exercice (avec retry et feedback)
 async function saveExerciseSwapToSupabase(originalExercise, replacementId) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: swap sauvegardé localement');
+        return false;
+    }
     
     try {
-        const { error } = await supabaseClient
-            .from('exercise_swaps')
-            .upsert({
-                user_id: currentUser.id,
-                original_exercise: originalExercise,
-                replacement_exercise_id: replacementId
-            }, { onConflict: 'user_id,original_exercise' });
-        
-        if (error) throw error;
-        console.log('✅ Swap exercice sauvegardé');
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('exercise_swaps')
+                .upsert({
+                    user_id: currentUser.id,
+                    original_exercise: originalExercise,
+                    replacement_exercise_id: replacementId
+                }, { onConflict: 'user_id,original_exercise' });
+            
+            if (error) throw error;
+            console.log('✅ Swap exercice sauvegardé');
+        }, { maxRetries: 2, critical: false });
+        return true;
     } catch (error) {
         console.error('Erreur sauvegarde swap:', error);
+        showToast('Modification sauvegardée localement', 'warning');
+        return false;
     }
 }
 
-// Supprimer un swap d'exercice
+// Supprimer un swap d'exercice (avec retry)
 async function deleteExerciseSwapFromSupabase(originalExercise) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: suppression en attente');
+        return false;
+    }
     
     try {
-        const { error } = await supabaseClient
-            .from('exercise_swaps')
-            .delete()
-            .eq('user_id', currentUser.id)
-            .eq('original_exercise', originalExercise);
-        
-        if (error) throw error;
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('exercise_swaps')
+                .delete()
+                .eq('user_id', currentUser.id)
+                .eq('original_exercise', originalExercise);
+            
+            if (error) throw error;
+        }, { maxRetries: 2, critical: false });
+        return true;
     } catch (error) {
         console.error('Erreur suppression swap:', error);
+        showToast('Erreur suppression - réessayez', 'warning');
+        return false;
     }
 }
 
-// Sauvegarder les paramètres d'entraînement (avec retry)
+// Sauvegarder les paramètres d'entraînement (avec retry et feedback)
 async function saveTrainingSettingsToSupabase() {
-    if (!currentUser) return;
+    if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: sauvegarde locale uniquement');
-        return;
+        return false;
     }
     
-    return withRetry(async () => {
-        const { error } = await supabaseClient
-            .from('training_settings')
-            .upsert({
-                user_id: currentUser.id,
-                selected_program: state.selectedProgram,
-                training_days: state.trainingDays,
-                wizard_results: state.wizardResults || null,
-                training_progress: state.trainingProgress || null,
-                session_templates: state.sessionTemplates || null,
-                goals: state.goals || null,
-                body_weight_log: state.bodyWeightLog || null,
-                unlocked_achievements: state.unlockedAchievements || null,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
-        
-        if (error) throw error;
-        console.log('✅ Paramètres entraînement sauvegardés');
-    }, { maxRetries: 3, critical: false });
+    try {
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('training_settings')
+                .upsert({
+                    user_id: currentUser.id,
+                    selected_program: state.selectedProgram,
+                    training_days: state.trainingDays,
+                    wizard_results: state.wizardResults || null,
+                    training_progress: state.trainingProgress || null,
+                    session_templates: state.sessionTemplates || null,
+                    goals: state.goals || null,
+                    body_weight_log: state.bodyWeightLog || null,
+                    unlocked_achievements: state.unlockedAchievements || null,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+            
+            if (error) throw error;
+            console.log('✅ Paramètres entraînement sauvegardés');
+        }, { maxRetries: 3, critical: false });
+        return true;
+    } catch (error) {
+        console.error('Erreur sauvegarde paramètres:', error);
+        showToast('Erreur sync paramètres - sauvegardé localement', 'warning');
+        return false;
+    }
 }
 
-// Ajouter une entrée au journal
+// Ajouter une entrée au journal (avec retry et feedback)
 async function addJournalEntryToSupabase(date, foodId, quantity) {
-    if (!currentUser) return;
+    if (!currentUser) return null;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: entrée journal sauvegardée localement');
+        return null;
+    }
     
     try {
-        const { data, error } = await supabaseClient
-            .from('food_journal')
-            .insert({
-                user_id: currentUser.id,
-                date: date,
-                food_id: foodId,
-                quantity: quantity
-            })
-            .select()
-            .single();
-        
-        if (error) throw error;
-        console.log('✅ Entrée journal ajoutée');
-        return data.id;
+        return await withRetry(async () => {
+            const { data, error } = await supabaseClient
+                .from('food_journal')
+                .insert({
+                    user_id: currentUser.id,
+                    date: date,
+                    food_id: foodId,
+                    quantity: quantity
+                })
+                .select()
+                .single();
+            
+            if (error) throw error;
+            console.log('✅ Entrée journal ajoutée');
+            return data.id;
+        }, { maxRetries: 2, critical: false });
     } catch (error) {
         console.error('Erreur ajout journal:', error);
+        showToast('Aliment ajouté localement (sync en attente)', 'warning');
+        return null;
     }
 }
 
-// Mettre à jour une entrée du journal
+// Mettre à jour une entrée du journal (avec retry et feedback)
 async function updateJournalEntryInSupabase(entryId, quantity) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: modification en attente');
+        return false;
+    }
     
     try {
-        const { error } = await supabaseClient
-            .from('food_journal')
-            .update({ quantity: quantity })
-            .eq('id', entryId);
-        
-        if (error) throw error;
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('food_journal')
+                .update({ quantity: quantity })
+                .eq('id', entryId);
+            
+            if (error) throw error;
+        }, { maxRetries: 2, critical: false });
+        return true;
     } catch (error) {
         console.error('Erreur update journal:', error);
+        showToast('Erreur sync modification', 'warning');
+        return false;
     }
 }
 
-// Supprimer une entrée du journal
+// Supprimer une entrée du journal (avec retry et feedback)
 async function deleteJournalEntryFromSupabase(entryId) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: suppression en attente');
+        return false;
+    }
     
     try {
-        const { error } = await supabaseClient
-            .from('food_journal')
-            .delete()
-            .eq('id', entryId);
-        
-        if (error) throw error;
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('food_journal')
+                .delete()
+                .eq('id', entryId);
+            
+            if (error) throw error;
+        }, { maxRetries: 2, critical: false });
+        return true;
     } catch (error) {
         console.error('Erreur suppression journal:', error);
+        showToast('Erreur sync suppression', 'warning');
+        return false;
     }
 }
 
-// Vider le journal d'un jour
+// Vider le journal d'un jour (avec retry et feedback)
 async function clearJournalDayInSupabase(date) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: vidage en attente de connexion');
+        return false;
+    }
     
     try {
-        const { error } = await supabaseClient
-            .from('food_journal')
-            .delete()
-            .eq('user_id', currentUser.id)
-            .eq('date', date);
-        
-        if (error) throw error;
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('food_journal')
+                .delete()
+                .eq('user_id', currentUser.id)
+                .eq('date', date);
+            
+            if (error) throw error;
+        }, { maxRetries: 2, critical: false });
+        return true;
     } catch (error) {
         console.error('Erreur vidage journal:', error);
+        showToast('Erreur sync - journal vidé localement', 'warning');
+        return false;
     }
 }
 
-// Sauvegarder un log de progression (avec retry - CRITIQUE)
+// Sauvegarder un log de progression (avec retry et feedback - CRITIQUE)
 async function saveProgressLogToSupabase(exerciseName, logData) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: progression sauvegardée localement');
-        return;
+        return false;
     }
     
-    return withRetry(async () => {
-        const { error } = await supabaseClient
-            .from('progress_log')
-            .insert({
-                user_id: currentUser.id,
-                exercise_name: exerciseName,
-                date: logData.date,
-                sets: logData.sets,
-                reps: logData.reps,
-                weight: logData.weight,
-                achieved_reps: logData.achievedReps,
-                achieved_sets: logData.achievedSets
-            });
-        
-        if (error) throw error;
-        console.log('✅ Progression sauvegardée');
-    }, { maxRetries: 3, critical: true });
+    try {
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('progress_log')
+                .insert({
+                    user_id: currentUser.id,
+                    exercise_name: exerciseName,
+                    date: logData.date,
+                    sets: logData.sets,
+                    reps: logData.reps,
+                    weight: logData.weight,
+                    achieved_reps: logData.achievedReps,
+                    achieved_sets: logData.achievedSets
+                });
+            
+            if (error) throw error;
+            console.log('✅ Progression sauvegardée');
+        }, { maxRetries: 3, critical: true });
+        return true;
+    } catch (error) {
+        console.error('Erreur sauvegarde progression:', error);
+        showToast('Erreur sync progression - sauvegardé localement', 'warning');
+        return false;
+    }
 }
 
-// Sauvegarder une séance (avec retry - CRITIQUE)
+// Sauvegarder une séance (avec retry et feedback - CRITIQUE)
 async function saveWorkoutSessionToSupabase(sessionData) {
-    if (!currentUser) return;
+    if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: séance sauvegardée localement');
-        return;
+        return false;
     }
     
-    return withRetry(async () => {
-        const { error } = await supabaseClient
-            .from('workout_sessions')
-            .insert({
-                user_id: currentUser.id,
-                date: sessionData.date,
-                program: sessionData.program,
-                day_name: sessionData.day,
-                exercises: sessionData.exercises
-            });
-        
-        if (error) throw error;
-        console.log('✅ Séance sauvegardée');
-    }, { maxRetries: 3, critical: true });
+    try {
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('workout_sessions')
+                .insert({
+                    user_id: currentUser.id,
+                    date: sessionData.date,
+                    program: sessionData.program,
+                    day_name: sessionData.day,
+                    exercises: sessionData.exercises
+                });
+            
+            if (error) throw error;
+            console.log('✅ Séance sauvegardée');
+        }, { maxRetries: 3, critical: true });
+        return true;
+    } catch (error) {
+        console.error('Erreur sauvegarde séance:', error);
+        showToast('Erreur sync séance - sauvegardé localement', 'warning');
+        return false;
+    }
 }
 
 // ==================== UTILS ====================

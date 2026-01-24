@@ -1108,16 +1108,40 @@ function renderCompletedSets() {
     `).join('');
 }
 
+// Constantes de validation
+const MAX_REPS = 500;
+const MAX_WEIGHT = 500; // kg
+const MIN_REPS = 0;
+const MIN_WEIGHT = 0;
+
 function adjustWeight(delta) {
     const input = document.getElementById('fs-weight-input');
     const current = parseFloat(input.value) || 0;
-    input.value = Math.max(0, current + delta);
+    const newValue = current + delta;
+    
+    if (newValue > MAX_WEIGHT) {
+        showToast(`Maximum ${MAX_WEIGHT}kg`, 'warning');
+        input.value = MAX_WEIGHT;
+    } else if (newValue < MIN_WEIGHT) {
+        input.value = MIN_WEIGHT;
+    } else {
+        input.value = newValue;
+    }
 }
 
 function adjustReps(delta) {
     const input = document.getElementById('fs-reps-input');
     const current = parseInt(input.value) || 0;
-    input.value = Math.max(0, current + delta);
+    const newValue = current + delta;
+    
+    if (newValue > MAX_REPS) {
+        showToast(`Maximum ${MAX_REPS} répétitions`, 'warning');
+        input.value = MAX_REPS;
+    } else if (newValue < MIN_REPS) {
+        input.value = MIN_REPS;
+    } else {
+        input.value = newValue;
+    }
 }
 
 function validateCurrentSet() {
@@ -1125,8 +1149,24 @@ function validateCurrentSet() {
     const repsInput = document.getElementById('fs-reps-input');
     const reps = parseInt(repsInput.value) || parseInt(repsInput.placeholder) || 0;
 
-    if (weight <= 0 && reps <= 0) {
-        showToast('Entre un poids ou des reps', 'error');
+    // Validation stricte : reps obligatoires, poids optionnel (poids de corps)
+    if (reps <= 0) {
+        showToast('Entre au moins 1 répétition', 'error');
+        return;
+    }
+    
+    if (reps > MAX_REPS) {
+        showToast(`Maximum ${MAX_REPS} répétitions`, 'error');
+        return;
+    }
+    
+    if (weight < 0) {
+        showToast('Le poids ne peut pas être négatif', 'error');
+        return;
+    }
+    
+    if (weight > MAX_WEIGHT) {
+        showToast(`Maximum ${MAX_WEIGHT}kg`, 'error');
         return;
     }
 

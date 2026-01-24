@@ -1,6 +1,13 @@
 // ==================== NUTRITION MODULE ====================
 // Version MVP - Journal uniquement (Menu du Jour supprimé)
 
+// ==================== CONSTANTES DE VALIDATION ====================
+const MAX_CALORIES = 10000;     // kcal pour 100g
+const MAX_MACRO = 1000;         // g pour 100g (protéines, glucides, lipides)
+const MAX_NAME_LENGTH = 100;    // caractères pour nom d'aliment
+const MAX_QUANTITY = 10000;     // g (10kg max par entrée)
+const MIN_QUANTITY = 1;         // g minimum
+
 // Variables pour sélection multiple
 let selectedFoodsToAdd = [];
 let multiSelectModeActive = false;
@@ -176,8 +183,21 @@ function filterFoods() {
 /**
  * Recherche unifiée pour l'écran nutrition
  */
+/**
+ * Normalise une chaîne pour la recherche (accents + ligatures)
+ * Convertit : é→e, œ→oe, æ→ae, etc.
+ */
+function normalizeForSearch(str) {
+    return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+        .replace(/œ/g, 'oe')             // Ligature œ → oe
+        .replace(/æ/g, 'ae');            // Ligature æ → ae
+}
+
 function searchUnifiedFoods() {
-    const searchTerm = document.getElementById('unified-food-search').value.toLowerCase();
+    const searchTerm = document.getElementById('unified-food-search').value;
     const container = document.getElementById('search-results-list');
     const resultsContainer = document.getElementById('search-results-container');
 
@@ -186,7 +206,13 @@ function searchUnifiedFoods() {
         return;
     }
 
-    const results = state.foods.filter(f => f.name.toLowerCase().includes(searchTerm)).slice(0, 12);
+    // Normaliser la requête (boeuf = bœuf, oeuf = œuf)
+    const normalizedQuery = normalizeForSearch(searchTerm);
+    
+    const results = state.foods.filter(f => {
+        const normalizedName = normalizeForSearch(f.name);
+        return normalizedName.includes(normalizedQuery);
+    }).slice(0, 12);
 
     if (results.length === 0) {
         container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Aucun résultat</p>';
@@ -268,11 +294,20 @@ function selectQuantityPreset(quantity) {
 }
 
 /**
- * Ajuster la quantité (+/-)
+ * Ajuster la quantité (+/-) avec validation
  */
 function adjustQuantity(delta) {
     const input = document.getElementById('custom-quantity-input');
-    const newValue = Math.max(1, parseInt(input.value) + delta);
+    const current = parseInt(input.value) || 0;
+    let newValue = current + delta;
+    
+    if (newValue > MAX_QUANTITY) {
+        showToast(`Maximum ${MAX_QUANTITY}g`, 'warning');
+        newValue = MAX_QUANTITY;
+    } else if (newValue < MIN_QUANTITY) {
+        newValue = MIN_QUANTITY;
+    }
+    
     input.value = newValue;
     currentQuantity = newValue;
     updateQuantityTotal();
@@ -410,18 +445,46 @@ async function saveCustomFood() {
     try {
         const name = document.getElementById('custom-food-name').value.trim();
         const calories = parseFloat(document.getElementById('custom-food-calories').value);
-        const protein = parseFloat(document.getElementById('custom-food-protein').value);
-        const carbs = parseFloat(document.getElementById('custom-food-carbs').value);
-        const fat = parseFloat(document.getElementById('custom-food-fat').value);
+        const protein = parseFloat(document.getElementById('custom-food-protein').value) || 0;
+        const carbs = parseFloat(document.getElementById('custom-food-carbs').value) || 0;
+        const fat = parseFloat(document.getElementById('custom-food-fat').value) || 0;
         const category = document.getElementById('custom-food-category').value;
 
+        // Validation du nom
         if (!name) {
             showToast('Nom requis', 'error');
             return;
         }
         
+        if (name.length > MAX_NAME_LENGTH) {
+            showToast(`Nom trop long (max ${MAX_NAME_LENGTH} caractères)`, 'error');
+            return;
+        }
+        
+        // Validation des calories
         if (isNaN(calories) || calories < 0) {
             showToast('Calories invalides', 'error');
+            return;
+        }
+        
+        if (calories > MAX_CALORIES) {
+            showToast(`Maximum ${MAX_CALORIES} kcal`, 'error');
+            return;
+        }
+        
+        // Validation des macros
+        if (protein < 0 || protein > MAX_MACRO) {
+            showToast(`Protéines : 0-${MAX_MACRO}g`, 'error');
+            return;
+        }
+        
+        if (carbs < 0 || carbs > MAX_MACRO) {
+            showToast(`Glucides : 0-${MAX_MACRO}g`, 'error');
+            return;
+        }
+        
+        if (fat < 0 || fat > MAX_MACRO) {
+            showToast(`Lipides : 0-${MAX_MACRO}g`, 'error');
             return;
         }
 
@@ -497,7 +560,7 @@ function loadJournalDay() {
 
 // Recherche d'aliments pour le journal (sélection multiple)
 function searchFoodsForJournal() {
-    const searchTerm = document.getElementById('journal-food-search').value.toLowerCase();
+    const searchTerm = document.getElementById('journal-food-search').value;
     const container = document.getElementById('journal-food-results');
 
     if (searchTerm.length < 2) {
@@ -506,7 +569,13 @@ function searchFoodsForJournal() {
         return;
     }
 
-    const results = state.foods.filter(f => f.name.toLowerCase().includes(searchTerm)).slice(0, 12);
+    // Normaliser la requête (boeuf = bœuf, oeuf = œuf)
+    const normalizedQuery = normalizeForSearch(searchTerm);
+    
+    const results = state.foods.filter(f => {
+        const normalizedName = normalizeForSearch(f.name);
+        return normalizedName.includes(normalizedQuery);
+    }).slice(0, 12);
 
     if (results.length === 0) {
         container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 15px;">Aucun résultat</p>';
@@ -624,6 +693,13 @@ async function addToJournalDirect(foodId, quantity) {
     const food = state.foods.find(f => f.id === foodId);
 
     if (!food) return;
+    
+    // Validation stricte de la quantité
+    quantity = Math.max(MIN_QUANTITY, parseInt(quantity) || 100);
+    if (quantity > MAX_QUANTITY) {
+        showToast(`Quantité trop élevée (max ${MAX_QUANTITY/1000}kg)`, 'error');
+        return;
+    }
 
     if (!state.foodJournal) state.foodJournal = {};
     if (!state.foodJournal[date]) state.foodJournal[date] = [];
@@ -717,14 +793,33 @@ function renderJournalEntries() {
     }).join('');
 }
 
-// Mettre à jour la quantité d'une entrée
+// Mettre à jour la quantité d'une entrée (avec feedback)
 function updateJournalQuantity(index, quantity) {
     const date = document.getElementById('journal-date').value;
-    quantity = Math.max(1, parseInt(quantity) || 100);
+    const rawQuantity = parseInt(quantity) || 100;
+    
+    // Validation avec feedback si hors limites
+    if (rawQuantity < MIN_QUANTITY) {
+        showToast(`Minimum ${MIN_QUANTITY}g`, 'warning');
+        quantity = MIN_QUANTITY;
+    } else if (rawQuantity > MAX_QUANTITY) {
+        showToast(`Maximum ${MAX_QUANTITY}g`, 'warning');
+        quantity = MAX_QUANTITY;
+    } else {
+        quantity = rawQuantity;
+    }
 
     if (state.foodJournal[date] && state.foodJournal[date][index]) {
-        state.foodJournal[date][index].quantity = quantity;
+        const entry = state.foodJournal[date][index];
+        entry.quantity = quantity;
         saveState();
+        
+        // Sync avec Supabase si connecté
+        if (typeof isLoggedIn === 'function' && isLoggedIn() && entry.supabaseId) {
+            updateJournalEntryInSupabase(entry.supabaseId, quantity)
+                .catch(err => console.error('Erreur sync quantité:', err));
+        }
+        
         renderJournalEntries();
         updateJournalSummary();
         updateMacroRings();

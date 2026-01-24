@@ -50,16 +50,25 @@
         let confidence = 'medium';
         let message = '';
         
+        // NOUVEAU: Utiliser le taux de progression personnalisé
+        const personalRate = getPersonalProgressionRate(exerciseName);
+        
         // Si bien récupéré et tendance positive → progression
         if (daysSinceLastSession >= 2 && daysSinceLastSession <= 5) {
             // Récupération optimale
             if (trend >= 0) {
-                // Progression linéaire : +2.5kg pour exercices composés, +1.25kg pour isolation
-                const isCompound = isCompoundExercise(exerciseName);
-                progressionAmount = isCompound ? 2.5 : 1.25;
+                // Utiliser le taux personnalisé si confiance suffisante
+                if (personalRate.confidence === 'high' && personalRate.ratePerWeek > 0) {
+                    progressionAmount = Math.min(5, Math.max(0.5, personalRate.ratePerWeek));
+                } else {
+                    // Sinon, progression linéaire standard
+                    const isCompound = isCompoundExercise(exerciseName);
+                    progressionAmount = isCompound ? 2.5 : 1.25;
+                }
+                
                 suggestedWeight = Math.round((lastWeight + progressionAmount) * 4) / 4; // Arrondir à 0.25
-                confidence = 'high';
-                message = `+${progressionAmount}kg (progression)`;
+                confidence = personalRate.confidence === 'high' ? 'high' : 'medium';
+                message = `+${progressionAmount}kg (${personalRate.confidence === 'high' ? 'progression perso' : 'progression'})`;
             } else {
                 // Tendance négative - maintenir
                 suggestedWeight = lastWeight;
@@ -184,22 +193,305 @@
     // ==================== MUSCLE RECOVERY INDICATOR ====================
     
     const MUSCLE_GROUPS = {
-        chest: { name: 'Pectoraux', recoveryDays: 2 },
-        back: { name: 'Dos', recoveryDays: 2 },
-        shoulders: { name: 'Épaules', recoveryDays: 2 },
-        biceps: { name: 'Biceps', recoveryDays: 1.5 },
-        triceps: { name: 'Triceps', recoveryDays: 1.5 },
-        legs: { name: 'Jambes', recoveryDays: 3 },
-        quads: { name: 'Quadriceps', recoveryDays: 3 },
-        hamstrings: { name: 'Ischio-jambiers', recoveryDays: 3 },
-        glutes: { name: 'Fessiers', recoveryDays: 3 },
-        abs: { name: 'Abdominaux', recoveryDays: 1 },
-        calves: { name: 'Mollets', recoveryDays: 1.5 }
+        chest: { name: 'Pectoraux', recoveryDays: 2, baseVolume: 12 },
+        back: { name: 'Dos', recoveryDays: 2, baseVolume: 15 },
+        shoulders: { name: 'Épaules', recoveryDays: 2, baseVolume: 10 },
+        biceps: { name: 'Biceps', recoveryDays: 1.5, baseVolume: 8 },
+        triceps: { name: 'Triceps', recoveryDays: 1.5, baseVolume: 8 },
+        legs: { name: 'Jambes', recoveryDays: 3, baseVolume: 16 },
+        quads: { name: 'Quadriceps', recoveryDays: 3, baseVolume: 12 },
+        hamstrings: { name: 'Ischio-jambiers', recoveryDays: 3, baseVolume: 10 },
+        glutes: { name: 'Fessiers', recoveryDays: 3, baseVolume: 10 },
+        abs: { name: 'Abdominaux', recoveryDays: 1, baseVolume: 12 },
+        calves: { name: 'Mollets', recoveryDays: 1.5, baseVolume: 8 }
     };
+    
+    // ==================== FATIGUE CUMULATIVE ====================
+    
+    // Constante pour limiter le traitement
+    const MAX_SESSIONS_TO_PROCESS = 100;
+    
+    /**
+     * Calcule la fatigue cumulative pour un groupe musculaire sur 14 jours
+     * Prend en compte le volume total (sets * reps * poids) normalisé
+     * OPTIMISÉ: Limite le traitement aux 100 dernières sessions max
+     * @param {string} muscle - Groupe musculaire
+     * @param {number} days - Période d'analyse (défaut 14 jours)
+     * @returns {object} - { fatigue: 0-100, volume, avgVolume, trend }
+     */
+    function calculateCumulativeFatigue(muscle, days = 14) {
+        if (!state.sessionHistory || state.sessionHistory.length === 0) {
+            return { fatigue: 0, volume: 0, avgVolume: 0, trend: 'stable' };
+        }
+        
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - days);
+        
+        let totalVolume = 0;
+        let sessionCount = 0;
+        
+        // OPTIMISATION: Limiter aux N dernières sessions et utiliser slice
+        const recentSessions = state.sessionHistory.slice(-MAX_SESSIONS_TO_PROCESS);
+        
+        // Analyser les séances des N derniers jours
+        for (const session of recentSessions) {
+            const sessionDate = new Date(session.date);
+            if (sessionDate < cutoffDate) continue;
+            
+            for (const ex of (session.exercises || [])) {
+                const exMuscle = ex.muscle?.toLowerCase();
+                if (exMuscle !== muscle) continue;
+                
+                // Calculer le volume : sets * reps * poids
+                const sets = ex.achievedSets || ex.sets || 0;
+                const reps = ex.achievedReps || ex.reps || 0;
+                const weight = ex.weight || 0;
+                
+                const volume = sets * reps * (weight > 0 ? weight : 10);
+                totalVolume += volume;
+            }
+            
+            sessionCount++;
+        }
+        
+        // Calculer le volume moyen hebdomadaire de l'utilisateur
+        const userAvgVolume = getUserAverageVolume(muscle);
+        
+        // Normaliser la fatigue (0-100)
+        const fatigueRatio = userAvgVolume > 0 ? totalVolume / (userAvgVolume * (days / 7)) : 0;
+        const fatigue = Math.min(100, Math.round(fatigueRatio * 50));
+        
+        // Tendance (comparer semaine actuelle vs semaine précédente)
+        const trend = calculateVolumeTrend(muscle);
+        
+        return {
+            fatigue: fatigue,
+            volume: totalVolume,
+            avgVolume: userAvgVolume,
+            trend: trend,
+            sessionCount: sessionCount
+        };
+    }
+    
+    /**
+     * Calcule le volume moyen hebdomadaire pour un muscle sur les 4 dernières semaines
+     * OPTIMISÉ: Limite le traitement aux dernières sessions
+     */
+    function getUserAverageVolume(muscle) {
+        if (!state.sessionHistory || state.sessionHistory.length === 0) {
+            return MUSCLE_GROUPS[muscle]?.baseVolume * 100 || 1000; // Volume par défaut
+        }
+        
+        const fourWeeksAgo = new Date();
+        fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+        
+        // OPTIMISATION: Ne traiter que les sessions récentes
+        const recentSessions = state.sessionHistory.slice(-MAX_SESSIONS_TO_PROCESS);
+        
+        // Grouper par semaine
+        const weekVolumes = {};
+        
+        // OPTIMISATION: Utiliser les sessions récentes
+        for (const session of recentSessions) {
+            const sessionDate = new Date(session.date);
+            if (sessionDate < fourWeeksAgo) continue;
+            
+            const weekKey = getWeekKey(sessionDate);
+            if (!weekVolumes[weekKey]) weekVolumes[weekKey] = 0;
+            
+            for (const ex of (session.exercises || [])) {
+                if (ex.muscle?.toLowerCase() !== muscle) continue;
+                
+                const sets = ex.achievedSets || ex.sets || 0;
+                const reps = ex.achievedReps || ex.reps || 0;
+                const weight = ex.weight || 10;
+                
+                weekVolumes[weekKey] += sets * reps * weight;
+            }
+        }
+        
+        const volumes = Object.values(weekVolumes).filter(v => v > 0);
+        if (volumes.length === 0) return MUSCLE_GROUPS[muscle]?.baseVolume * 100 || 1000;
+        
+        return volumes.reduce((a, b) => a + b, 0) / volumes.length;
+    }
+    
+    /**
+     * Retourne la clé de semaine (année-semaine)
+     */
+    function getWeekKey(date) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+        const yearStart = new Date(d.getFullYear(), 0, 1);
+        const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return `${d.getFullYear()}-W${weekNum}`;
+    }
+    
+    /**
+     * Calcule la tendance du volume (up, down, stable)
+     * OPTIMISÉ: Limite aux 50 dernières sessions (2 semaines max)
+     */
+    function calculateVolumeTrend(muscle) {
+        const now = new Date();
+        const oneWeekAgo = new Date(now);
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const twoWeeksAgo = new Date(now);
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+        
+        let currentWeekVolume = 0;
+        let lastWeekVolume = 0;
+        
+        // OPTIMISATION: Ne traiter que les 50 dernières sessions
+        const recentSessions = (state.sessionHistory || []).slice(-50);
+        
+        for (const session of recentSessions) {
+            const sessionDate = new Date(session.date);
+            
+            for (const ex of (session.exercises || [])) {
+                if (ex.muscle?.toLowerCase() !== muscle) continue;
+                
+                const volume = (ex.achievedSets || ex.sets || 0) * 
+                              (ex.achievedReps || ex.reps || 0) * 
+                              (ex.weight || 10);
+                
+                if (sessionDate >= oneWeekAgo) {
+                    currentWeekVolume += volume;
+                } else if (sessionDate >= twoWeeksAgo && sessionDate < oneWeekAgo) {
+                    lastWeekVolume += volume;
+                }
+            }
+        }
+        
+        if (lastWeekVolume === 0) return 'stable';
+        const change = (currentWeekVolume - lastWeekVolume) / lastWeekVolume;
+        
+        if (change > 0.1) return 'up';
+        if (change < -0.1) return 'down';
+        return 'stable';
+    }
+    
+    // ==================== TAUX DE PROGRESSION PERSONNALISÉ ====================
+    
+    /**
+     * Calcule le taux de progression personnalisé pour un exercice
+     * Basé sur l'historique réel de l'utilisateur (90 derniers jours)
+     * @param {string} exerciseName - Nom de l'exercice
+     * @returns {object} - { ratePerWeek, confidence, recommendation }
+     */
+    function getPersonalProgressionRate(exerciseName) {
+        const logs = state.progressLog?.[exerciseName] || [];
+        
+        if (logs.length < 3) {
+            // Pas assez de données - utiliser les taux par défaut
+            const isCompound = isCompoundExercise(exerciseName);
+            return {
+                ratePerWeek: isCompound ? 2.5 : 1.25,
+                confidence: 'low',
+                recommendation: 'Pas assez de données - progression standard',
+                dataPoints: logs.length
+            };
+        }
+        
+        // Filtrer les 90 derniers jours
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        
+        const recentLogs = logs.filter(log => new Date(log.date) >= ninetyDaysAgo);
+        
+        if (recentLogs.length < 3) {
+            return {
+                ratePerWeek: isCompoundExercise(exerciseName) ? 2.5 : 1.25,
+                confidence: 'low',
+                recommendation: 'Reprenez l\'entraînement pour des données récentes',
+                dataPoints: recentLogs.length
+            };
+        }
+        
+        // Régression linéaire pour calculer la pente (progression)
+        const regression = calculateLinearRegression(recentLogs.map((log, i) => ({
+            x: i, // Index de la séance
+            y: log.weight || 0
+        })));
+        
+        // Estimer le nombre de semaines couvertes
+        const firstDate = new Date(recentLogs[0].date);
+        const lastDate = new Date(recentLogs[recentLogs.length - 1].date);
+        const weeksCovered = Math.max(1, (lastDate - firstDate) / (7 * 24 * 60 * 60 * 1000));
+        
+        // Calculer le taux par semaine
+        const totalProgress = recentLogs[recentLogs.length - 1].weight - recentLogs[0].weight;
+        const ratePerWeek = totalProgress / weeksCovered;
+        
+        // Déterminer la confiance basée sur la consistance (R²)
+        let confidence = 'low';
+        if (regression.r2 > 0.7 && recentLogs.length >= 8) {
+            confidence = 'high';
+        } else if (regression.r2 > 0.4 && recentLogs.length >= 5) {
+            confidence = 'medium';
+        }
+        
+        // Générer une recommandation
+        let recommendation = '';
+        if (ratePerWeek > 3) {
+            recommendation = '🚀 Progression rapide ! Continuez sur cette lancée.';
+        } else if (ratePerWeek > 1) {
+            recommendation = '📈 Bonne progression, rythme stable.';
+        } else if (ratePerWeek > 0) {
+            recommendation = '➡️ Progression lente - augmentez le volume ou l\'intensité.';
+        } else {
+            recommendation = '⚠️ Stagnation - changez de routine ou prenez du repos.';
+        }
+        
+        return {
+            ratePerWeek: Math.round(ratePerWeek * 100) / 100,
+            confidence: confidence,
+            recommendation: recommendation,
+            dataPoints: recentLogs.length,
+            r2: Math.round(regression.r2 * 100) / 100
+        };
+    }
+    
+    /**
+     * Régression linéaire simple
+     * @returns {object} - { slope, intercept, r2 }
+     */
+    function calculateLinearRegression(points) {
+        if (points.length < 2) return { slope: 0, intercept: 0, r2: 0 };
+        
+        const n = points.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+        
+        points.forEach(p => {
+            sumX += p.x;
+            sumY += p.y;
+            sumXY += p.x * p.y;
+            sumX2 += p.x * p.x;
+            sumY2 += p.y * p.y;
+        });
+        
+        const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+        
+        // Calculer R² (coefficient de détermination)
+        const yMean = sumY / n;
+        let ssRes = 0, ssTot = 0;
+        
+        points.forEach(p => {
+            const yPred = slope * p.x + intercept;
+            ssRes += (p.y - yPred) ** 2;
+            ssTot += (p.y - yMean) ** 2;
+        });
+        
+        const r2 = ssTot > 0 ? 1 - (ssRes / ssTot) : 0;
+        
+        return { slope, intercept, r2: Math.max(0, r2) };
+    }
     
     /**
      * Calcule la récupération de chaque groupe musculaire
-     * @returns {object} - { muscle: { recovery: 0-100, lastWorked: Date, status: string } }
+     * AMÉLIORÉ avec fatigue cumulative pour un calcul plus précis
+     * @returns {object} - { muscle: { recovery: 0-100, lastWorked: Date, status: string, fatigue: object } }
      */
     function calculateMuscleRecovery() {
         const recovery = {};
@@ -211,7 +503,8 @@
                 recovery: 100,
                 lastWorked: null,
                 status: 'ready',
-                daysAgo: null
+                daysAgo: null,
+                fatigue: null
             };
         });
         
@@ -239,7 +532,7 @@
                 const recoveryDays = muscleData.recoveryDays;
                 
                 // Calculer la récupération basée sur le temps écoulé
-                const recoveryPercent = Math.min(100, Math.round((daysAgo / recoveryDays) * 100));
+                let recoveryPercent = Math.min(100, Math.round((daysAgo / recoveryDays) * 100));
                 
                 // Garder la valeur la plus basse (muscle le plus sollicité récemment)
                 if (recovery[muscle].recovery > recoveryPercent || recovery[muscle].lastWorked === null) {
@@ -247,10 +540,27 @@
                         recovery: recoveryPercent,
                         lastWorked: sessionDate,
                         daysAgo: daysAgo,
-                        status: recoveryPercent >= 100 ? 'ready' : recoveryPercent >= 70 ? 'ok' : recoveryPercent >= 50 ? 'caution' : 'fatigue'
+                        status: recoveryPercent >= 100 ? 'ready' : recoveryPercent >= 70 ? 'ok' : recoveryPercent >= 50 ? 'caution' : 'fatigue',
+                        fatigue: null
                     };
                 }
             });
+        });
+        
+        // NOUVEAU: Ajuster avec la fatigue cumulative
+        Object.keys(recovery).forEach(muscle => {
+            const fatigue = calculateCumulativeFatigue(muscle);
+            recovery[muscle].fatigue = fatigue;
+            
+            // Si fatigue cumulative élevée, réduire le score de récupération
+            if (fatigue.fatigue > 70) {
+                const fatigueDeduction = Math.round((fatigue.fatigue - 70) * 0.5);
+                recovery[muscle].recovery = Math.max(0, recovery[muscle].recovery - fatigueDeduction);
+                
+                // Recalculer le statut
+                const r = recovery[muscle].recovery;
+                recovery[muscle].status = r >= 100 ? 'ready' : r >= 70 ? 'ok' : r >= 50 ? 'caution' : 'fatigue';
+            }
         });
         
         return recovery;
@@ -382,10 +692,18 @@
         renderMuscleRecoveryWidget,
         checkSessionRecovery,
         
+        // NOUVEAU: Fatigue cumulative
+        calculateCumulativeFatigue,
+        getUserAverageVolume,
+        calculateVolumeTrend,
+        
+        // NOUVEAU: Progression personnalisée
+        getPersonalProgressionRate,
+        
         // Constants
         MUSCLE_GROUPS
     };
     
-    console.log('🧠 Smart Training module loaded');
+    console.log('🧠 Smart Training module loaded (v2 - fatigue cumulative + progression perso)');
 
 })();

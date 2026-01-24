@@ -22,6 +22,17 @@ const defaultFoods = [
     { id: 'shrimp', name: 'Crevettes', calories: 99, protein: 24, carbs: 0.2, fat: 0.3, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 9 },
     { id: 'mussels', name: 'Moules', calories: 86, protein: 12, carbs: 3.7, fat: 2.2, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 7 },
     { id: 'duck-breast', name: 'Magret de Canard', calories: 135, protein: 19, carbs: 0, fat: 6.5, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 8 },
+    { id: 'lamb-chop', name: 'Côtelette d\'Agneau', calories: 294, protein: 25, carbs: 0, fat: 21, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 7 },
+    { id: 'lamb-leg', name: 'Gigot d\'Agneau', calories: 258, protein: 26, carbs: 0, fat: 17, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 7 },
+    { id: 'veal-cutlet', name: 'Escalope de Veau', calories: 109, protein: 21, carbs: 0, fat: 2.4, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 8 },
+    { id: 'rabbit', name: 'Lapin', calories: 173, protein: 33, carbs: 0, fat: 3.5, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'hake', name: 'Merlu/Colin', calories: 90, protein: 18.5, carbs: 0, fat: 1.8, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 8 },
+    { id: 'sea-bream', name: 'Daurade', calories: 96, protein: 19.4, carbs: 0, fat: 1.9, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 8 },
+    { id: 'mackerel', name: 'Maquereau', calories: 205, protein: 19, carbs: 0, fat: 14, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 9 },
+    { id: 'sardines', name: 'Sardines', calories: 208, protein: 25, carbs: 0, fat: 11, category: 'protein', mealTags: ['lunch', 'dinner', 'snack'], priority: 9 },
+    { id: 'trout', name: 'Truite', calories: 119, protein: 20, carbs: 0, fat: 3.5, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 8 },
+    { id: 'octopus', name: 'Poulpe', calories: 82, protein: 15, carbs: 2.2, fat: 1, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'squid', name: 'Calamar', calories: 92, protein: 15.6, carbs: 3.1, fat: 1.4, category: 'protein', mealTags: ['lunch', 'dinner'], priority: 7 },
     
     // ==================== GLUCIDES ====================
     { id: 'rice-white', name: 'Riz Blanc (cuit)', calories: 130, protein: 2.7, carbs: 28, fat: 0.3, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 10 },
@@ -43,6 +54,11 @@ const defaultFoods = [
     { id: 'chickpeas', name: 'Pois Chiches (cuits)', calories: 164, protein: 9, carbs: 27, fat: 2.6, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 8 },
     { id: 'black-beans', name: 'Haricots Noirs (cuits)', calories: 132, protein: 9, carbs: 24, fat: 0.5, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 7 },
     { id: 'corn', name: 'Maïs', calories: 86, protein: 3.3, carbs: 19, fat: 1.4, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'polenta', name: 'Polenta (cuite)', calories: 70, protein: 1.5, carbs: 13, fat: 0.6, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'barley', name: 'Orge (cuite)', calories: 123, protein: 2.3, carbs: 28, fat: 0.4, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'millet', name: 'Millet (cuit)', calories: 119, protein: 3.5, carbs: 23.7, fat: 1, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'tortilla', name: 'Tortilla de Blé', calories: 312, protein: 8, carbs: 51, fat: 8, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 7 },
+    { id: 'pita-bread', name: 'Pain Pita', calories: 275, protein: 9, carbs: 56, fat: 1.2, category: 'carbs', mealTags: ['lunch', 'dinner'], priority: 7 },
     
     // ==================== LIPIDES ====================
     { id: 'olive-oil', name: 'Huile d\'Olive', calories: 884, protein: 0, carbs: 0, fat: 100, category: 'fat', mealTags: ['lunch', 'dinner'], priority: 10 },
@@ -77,6 +93,15 @@ const defaultFoods = [
     { id: 'mushrooms', name: 'Champignons', calories: 22, protein: 3.1, carbs: 3.3, fat: 0.3, category: 'vegetable', mealTags: ['breakfast', 'lunch', 'dinner'], priority: 8 },
     { id: 'onion', name: 'Oignon', calories: 40, protein: 1.1, carbs: 9, fat: 0.1, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 7 },
     { id: 'eggplant', name: 'Aubergine', calories: 25, protein: 1, carbs: 6, fat: 0.2, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 7 },
+    { id: 'beetroot', name: 'Betterave', calories: 43, protein: 1.6, carbs: 10, fat: 0.2, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 8 },
+    { id: 'turnip', name: 'Navet', calories: 28, protein: 0.9, carbs: 6, fat: 0.1, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'celery', name: 'Céleri Branche', calories: 16, protein: 0.7, carbs: 3, fat: 0.2, category: 'vegetable', mealTags: ['lunch', 'snack'], priority: 7 },
+    { id: 'fennel', name: 'Fenouil', calories: 31, protein: 1.2, carbs: 7.3, fat: 0.2, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 7 },
+    { id: 'leek', name: 'Poireau', calories: 61, protein: 1.5, carbs: 14, fat: 0.3, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 7 },
+    { id: 'pumpkin', name: 'Potiron/Citrouille', calories: 26, protein: 1, carbs: 6.5, fat: 0.1, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 7 },
+    { id: 'butternut-squash', name: 'Courge Butternut', calories: 45, protein: 1, carbs: 12, fat: 0.1, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 8 },
+    { id: 'radish', name: 'Radis', calories: 16, protein: 0.7, carbs: 3.4, fat: 0.1, category: 'vegetable', mealTags: ['snack'], priority: 6 },
+    { id: 'artichoke', name: 'Artichaut', calories: 47, protein: 3.3, carbs: 11, fat: 0.2, category: 'vegetable', mealTags: ['lunch', 'dinner'], priority: 7 },
     
     // ==================== FRUITS ====================
     { id: 'banana', name: 'Banane', calories: 89, protein: 1.1, carbs: 23, fat: 0.3, category: 'fruit', mealTags: ['breakfast', 'snack'], priority: 10 },
@@ -91,6 +116,15 @@ const defaultFoods = [
     { id: 'kiwi', name: 'Kiwi', calories: 61, protein: 1.1, carbs: 15, fat: 0.5, category: 'fruit', mealTags: ['breakfast', 'snack'], priority: 8 },
     { id: 'watermelon', name: 'Pastèque', calories: 30, protein: 0.6, carbs: 8, fat: 0.2, category: 'fruit', mealTags: ['snack'], priority: 6 },
     { id: 'dates', name: 'Dattes', calories: 282, protein: 2.5, carbs: 75, fat: 0.4, category: 'fruit', mealTags: ['snack'], priority: 7 },
+    { id: 'pear', name: 'Poire', calories: 57, protein: 0.4, carbs: 15, fat: 0.1, category: 'fruit', mealTags: ['breakfast', 'snack'], priority: 9 },
+    { id: 'peach', name: 'Pêche', calories: 39, protein: 0.9, carbs: 10, fat: 0.3, category: 'fruit', mealTags: ['breakfast', 'snack'], priority: 9 },
+    { id: 'nectarine', name: 'Nectarine', calories: 44, protein: 1.1, carbs: 11, fat: 0.3, category: 'fruit', mealTags: ['breakfast', 'snack'], priority: 8 },
+    { id: 'plum', name: 'Prune', calories: 46, protein: 0.7, carbs: 11, fat: 0.3, category: 'fruit', mealTags: ['snack'], priority: 8 },
+    { id: 'apricot', name: 'Abricot', calories: 48, protein: 1.4, carbs: 11, fat: 0.4, category: 'fruit', mealTags: ['breakfast', 'snack'], priority: 8 },
+    { id: 'cherry', name: 'Cerise', calories: 63, protein: 1, carbs: 16, fat: 0.2, category: 'fruit', mealTags: ['snack'], priority: 8 },
+    { id: 'melon', name: 'Melon', calories: 34, protein: 0.8, carbs: 8, fat: 0.2, category: 'fruit', mealTags: ['breakfast', 'snack'], priority: 8 },
+    { id: 'grapefruit', name: 'Pamplemousse', calories: 42, protein: 0.8, carbs: 11, fat: 0.1, category: 'fruit', mealTags: ['breakfast'], priority: 7 },
+    { id: 'fig', name: 'Figue', calories: 74, protein: 0.8, carbs: 19, fat: 0.3, category: 'fruit', mealTags: ['snack'], priority: 7 },
     
     // ==================== PRODUITS LAITIERS ====================
     { id: 'greek-yogurt-0', name: 'Yaourt Grec 0%', calories: 59, protein: 10, carbs: 3.6, fat: 0.7, category: 'dairy', mealTags: ['breakfast', 'snack'], priority: 10 },
@@ -109,4 +143,9 @@ const defaultFoods = [
     { id: 'maple-syrup', name: 'Sirop d\'Érable', calories: 260, protein: 0, carbs: 67, fat: 0, category: 'other', mealTags: ['breakfast'], priority: 6 },
     { id: 'hummus', name: 'Houmous', calories: 166, protein: 8, carbs: 14, fat: 10, category: 'other', mealTags: ['snack'], priority: 8 },
     { id: 'tahini', name: 'Tahini', calories: 595, protein: 17, carbs: 21, fat: 54, category: 'other', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'ketchup', name: 'Ketchup', calories: 112, protein: 1.2, carbs: 27, fat: 0.1, category: 'other', mealTags: ['lunch', 'dinner'], priority: 5 },
+    { id: 'mayonnaise', name: 'Mayonnaise', calories: 680, protein: 1, carbs: 0.6, fat: 75, category: 'other', mealTags: ['lunch', 'dinner'], priority: 5 },
+    { id: 'mustard', name: 'Moutarde', calories: 66, protein: 4, carbs: 6, fat: 4, category: 'other', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'soy-sauce', name: 'Sauce Soja', calories: 53, protein: 5.6, carbs: 4.9, fat: 0.1, category: 'other', mealTags: ['lunch', 'dinner'], priority: 6 },
+    { id: 'balsamic-vinegar', name: 'Vinaigre Balsamique', calories: 88, protein: 0.5, carbs: 17, fat: 0, category: 'other', mealTags: ['lunch', 'dinner'], priority: 6 },
 ];

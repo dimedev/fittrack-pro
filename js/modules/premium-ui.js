@@ -279,9 +279,12 @@ const CommandPalette = {
     },
     
     search(query) {
-        query = query.toLowerCase().trim();
+        // Normalise la requête (accents + ligatures)
+        const normalizeStr = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae');
+        query = normalizeStr(query.trim());
+        
         this.filteredCommands = query === '' ? [...this.commands] : this.commands.filter(cmd => {
-            const searchText = `${cmd.title} ${cmd.description} ${(cmd.keywords || []).join(' ')}`.toLowerCase();
+            const searchText = normalizeStr(`${cmd.title} ${cmd.description} ${(cmd.keywords || []).join(' ')}`);
             return searchText.includes(query);
         });
         this.selectedIndex = 0;

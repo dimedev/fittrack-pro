@@ -889,3 +889,374 @@ function saveGoal() {
     setGoal(type, target, weeks);
     closeModal('set-goal-modal');
 }
+
+// ==================== INSIGHTS AUTOMATIQUES ====================
+
+/**
+ * Génère les insights hebdomadaires de l'utilisateur
+ * Analyse les performances, la nutrition, et la récupération
+ * @returns {Array} - Liste d'insights { type, title, message, priority, icon }
+ */
+function generateWeeklyInsights() {
+    const insights = [];
+    
+    // 1. Insight Volume d'entraînement
+    const volumeInsight = getVolumeInsight();
+    if (volumeInsight) insights.push(volumeInsight);
+    
+    // 2. Insight Progression (nouveaux PRs)
+    const progressionInsight = getProgressionInsight();
+    if (progressionInsight) insights.push(progressionInsight);
+    
+    // 3. Insight Récupération
+    const recoveryInsight = getRecoveryInsight();
+    if (recoveryInsight) insights.push(recoveryInsight);
+    
+    // 4. Insight Nutrition
+    const nutritionInsight = getNutritionInsight();
+    if (nutritionInsight) insights.push(nutritionInsight);
+    
+    // 5. Insight Streak/Constance
+    const streakInsight = getStreakInsight();
+    if (streakInsight) insights.push(streakInsight);
+    
+    // Trier par priorité
+    insights.sort((a, b) => b.priority - a.priority);
+    
+    return insights;
+}
+
+/**
+ * Analyse le volume d'entraînement de la semaine
+ * OPTIMISÉ: Limite aux 50 dernières sessions
+ */
+function getVolumeInsight() {
+    if (!state.sessionHistory || state.sessionHistory.length === 0) return null;
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    
+    let currentWeekSessions = 0;
+    let currentWeekVolume = 0;
+    let lastWeekSessions = 0;
+    let lastWeekVolume = 0;
+    
+    // OPTIMISATION: Ne traiter que les 50 dernières sessions
+    const recentSessions = state.sessionHistory.slice(-50);
+    
+    for (const session of recentSessions) {
+        const sessionDate = new Date(session.date);
+        
+        // Ignorer les sessions trop anciennes
+        if (sessionDate < twoWeeksAgo) continue;
+        
+        let sessionVolume = 0;
+        for (const ex of (session.exercises || [])) {
+            sessionVolume += (ex.achievedSets || ex.sets || 0) * 
+                            (ex.achievedReps || ex.reps || 0) * 
+                            (ex.weight || 10);
+        }
+        
+        if (sessionDate >= oneWeekAgo) {
+            currentWeekSessions++;
+            currentWeekVolume += sessionVolume;
+        } else {
+            lastWeekSessions++;
+            lastWeekVolume += sessionVolume;
+        }
+    }
+    
+    // Pas de données la semaine dernière
+    if (lastWeekSessions === 0 && currentWeekSessions === 0) return null;
+    
+    const volumeChange = lastWeekVolume > 0 
+        ? Math.round(((currentWeekVolume - lastWeekVolume) / lastWeekVolume) * 100)
+        : 0;
+    
+    let message, icon, priority;
+    
+    if (volumeChange > 20) {
+        message = `Volume +${volumeChange}% cette semaine ! Attention à ne pas sur-entraîner.`;
+        icon = '🔥';
+        priority = 3;
+    } else if (volumeChange > 0) {
+        message = `Volume en hausse de ${volumeChange}%. Bonne progression !`;
+        icon = '📈';
+        priority = 2;
+    } else if (volumeChange < -20) {
+        message = `Volume en baisse de ${Math.abs(volumeChange)}%. Période de récupération ?`;
+        icon = '💤';
+        priority = 2;
+    } else if (currentWeekSessions < lastWeekSessions) {
+        message = `${currentWeekSessions} séance${currentWeekSessions > 1 ? 's' : ''} vs ${lastWeekSessions} la semaine dernière.`;
+        icon = '📊';
+        priority = 1;
+    } else {
+        message = `${currentWeekSessions} séance${currentWeekSessions > 1 ? 's' : ''} cette semaine. Continue !`;
+        icon = '💪';
+        priority = 1;
+    }
+    
+    return {
+        type: 'volume',
+        title: 'Volume d\'entraînement',
+        message,
+        icon,
+        priority
+    };
+}
+
+/**
+ * Analyse les nouveaux records personnels
+ */
+function getProgressionInsight() {
+    if (!state.progressLog) return null;
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    let newPRs = 0;
+    const prExercises = [];
+    
+    Object.entries(state.progressLog).forEach(([exercise, logs]) => {
+        if (logs.length < 2) return;
+        
+        const recentLogs = logs.filter(l => new Date(l.date) >= oneWeekAgo);
+        if (recentLogs.length === 0) return;
+        
+        // Trouver le max historique avant cette semaine
+        const oldLogs = logs.filter(l => new Date(l.date) < oneWeekAgo);
+        if (oldLogs.length === 0) return;
+        
+        const maxOldWeight = Math.max(...oldLogs.map(l => l.weight || 0));
+        const maxRecentWeight = Math.max(...recentLogs.map(l => l.weight || 0));
+        
+        if (maxRecentWeight > maxOldWeight) {
+            newPRs++;
+            prExercises.push(exercise);
+        }
+    });
+    
+    if (newPRs === 0) return null;
+    
+    return {
+        type: 'progression',
+        title: 'Records personnels',
+        message: `🎉 ${newPRs} nouveau${newPRs > 1 ? 'x' : ''} PR cette semaine ! (${prExercises.slice(0, 2).join(', ')}${prExercises.length > 2 ? '...' : ''})`,
+        icon: '🏆',
+        priority: 4
+    };
+}
+
+/**
+ * Analyse la récupération musculaire
+ */
+function getRecoveryInsight() {
+    if (typeof SmartTraining === 'undefined') return null;
+    
+    const recovery = SmartTraining.calculateMuscleRecovery();
+    
+    // Compter les muscles fatigués
+    const fatiguedMuscles = Object.entries(recovery)
+        .filter(([_, data]) => data.recovery < 50 && data.lastWorked !== null)
+        .map(([muscle, data]) => ({
+            name: SmartTraining.MUSCLE_GROUPS[muscle]?.name || muscle,
+            recovery: data.recovery
+        }));
+    
+    // Compter les muscles sous-entraînés (>7 jours sans travail)
+    const undertrainedMuscles = Object.entries(recovery)
+        .filter(([_, data]) => data.daysAgo > 7 || (data.lastWorked === null && Object.keys(state.sessionHistory || {}).length > 3))
+        .map(([muscle, _]) => SmartTraining.MUSCLE_GROUPS[muscle]?.name || muscle);
+    
+    if (fatiguedMuscles.length > 0) {
+        return {
+            type: 'recovery',
+            title: 'Récupération',
+            message: `${fatiguedMuscles[0].name} fatigué (${fatiguedMuscles[0].recovery}%). Privilégiez d'autres muscles.`,
+            icon: '⚠️',
+            priority: 3
+        };
+    }
+    
+    if (undertrainedMuscles.length > 0) {
+        return {
+            type: 'recovery',
+            title: 'Muscles oubliés',
+            message: `${undertrainedMuscles.slice(0, 2).join(' et ')} pas entraîné${undertrainedMuscles.length > 1 ? 's' : ''} depuis longtemps.`,
+            icon: '🎯',
+            priority: 2
+        };
+    }
+    
+    return null;
+}
+
+/**
+ * Analyse la nutrition de la semaine
+ */
+function getNutritionInsight() {
+    if (!state.foodJournal || !state.profile?.macros) return null;
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    let daysWithDeficit = 0;
+    let daysWithSurplus = 0;
+    let totalProteinPercent = 0;
+    let daysLogged = 0;
+    
+    // Analyser les 7 derniers jours
+    for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const entries = state.foodJournal[dateStr] || [];
+        if (entries.length === 0) continue;
+        
+        daysLogged++;
+        
+        // Calculer les macros de la journée
+        let dayCalories = 0;
+        let dayProtein = 0;
+        
+        entries.forEach(entry => {
+            const food = state.foods?.find(f => f.id === entry.foodId);
+            if (!food) return;
+            
+            const ratio = (entry.quantity || 100) / 100;
+            dayCalories += (food.calories || 0) * ratio;
+            dayProtein += (food.protein || 0) * ratio;
+        });
+        
+        const targetCalories = state.profile.targetCalories || 2000;
+        const targetProtein = state.profile.macros.protein || 150;
+        
+        if (dayCalories < targetCalories * 0.8) daysWithDeficit++;
+        if (dayCalories > targetCalories * 1.2) daysWithSurplus++;
+        totalProteinPercent += (dayProtein / targetProtein) * 100;
+    }
+    
+    if (daysLogged === 0) {
+        return {
+            type: 'nutrition',
+            title: 'Nutrition',
+            message: 'Aucun repas logué cette semaine. Suivez votre alimentation !',
+            icon: '🍽️',
+            priority: 2
+        };
+    }
+    
+    const avgProteinPercent = Math.round(totalProteinPercent / daysLogged);
+    
+    if (daysWithDeficit >= 3) {
+        return {
+            type: 'nutrition',
+            title: 'Déficit calorique',
+            message: `${daysWithDeficit} jours en déficit cette semaine. Attention à la récupération.`,
+            icon: '📉',
+            priority: 3
+        };
+    }
+    
+    if (avgProteinPercent < 80) {
+        return {
+            type: 'nutrition',
+            title: 'Protéines insuffisantes',
+            message: `Moyenne ${avgProteinPercent}% de l'objectif protéines. Augmentez l'apport !`,
+            icon: '🥩',
+            priority: 3
+        };
+    }
+    
+    if (avgProteinPercent >= 100 && daysLogged >= 5) {
+        return {
+            type: 'nutrition',
+            title: 'Nutrition au top',
+            message: `Objectifs protéines atteints ${daysLogged}/7 jours. Excellent !`,
+            icon: '✅',
+            priority: 1
+        };
+    }
+    
+    return null;
+}
+
+/**
+ * Analyse le streak d'entraînement
+ */
+function getStreakInsight() {
+    const currentStreak = state.goals?.currentStreak || 0;
+    const longestStreak = state.goals?.longestStreak || 0;
+    
+    if (currentStreak === 0) return null;
+    
+    if (currentStreak >= longestStreak && currentStreak >= 5) {
+        return {
+            type: 'streak',
+            title: 'Record de constance !',
+            message: `${currentStreak} jours d'affilée ! Nouveau record personnel.`,
+            icon: '🔥',
+            priority: 4
+        };
+    }
+    
+    if (currentStreak >= 7) {
+        return {
+            type: 'streak',
+            title: 'Semaine complète',
+            message: `${currentStreak} jours consécutifs. La régularité paie !`,
+            icon: '📅',
+            priority: 2
+        };
+    }
+    
+    if (currentStreak >= 3) {
+        return {
+            type: 'streak',
+            title: 'Bien parti !',
+            message: `${currentStreak} jours d'entraînement. Continue !`,
+            icon: '💪',
+            priority: 1
+        };
+    }
+    
+    return null;
+}
+
+/**
+ * Affiche les insights sur le dashboard
+ */
+function renderInsightsWidget() {
+    const container = document.getElementById('insights-container');
+    if (!container) return;
+    
+    const insights = generateWeeklyInsights();
+    
+    if (insights.length === 0) {
+        container.innerHTML = `
+            <div class="insights-empty">
+                <span class="insights-empty-icon">📊</span>
+                <p>Entraînez-vous et loguez vos repas pour voir vos insights personnalisés.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = insights.slice(0, 4).map(insight => `
+        <div class="insight-item insight-${insight.type}">
+            <span class="insight-icon">${insight.icon}</span>
+            <div class="insight-content">
+                <div class="insight-title">${insight.title}</div>
+                <div class="insight-message">${insight.message}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Export pour utilisation globale
+window.generateWeeklyInsights = generateWeeklyInsights;
+window.renderInsightsWidget = renderInsightsWidget;

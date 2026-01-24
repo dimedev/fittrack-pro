@@ -498,14 +498,26 @@ function openAddExerciseModal() {
 }
 
 /**
+ * Normalise une chaîne pour la recherche (accents + ligatures)
+ */
+function normalizeForExerciseSearch(str) {
+    return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/œ/g, 'oe')
+        .replace(/æ/g, 'ae');
+}
+
+/**
  * Filtre la liste d'exercices à ajouter
  */
 function filterAddExerciseList() {
-    const search = document.getElementById('add-exercise-search').value.toLowerCase();
+    const search = normalizeForExerciseSearch(document.getElementById('add-exercise-search').value);
     const items = document.querySelectorAll('#add-exercise-list .add-exercise-item');
     
     items.forEach(item => {
-        const name = item.dataset.name;
+        const name = normalizeForExerciseSearch(item.dataset.name || '');
         item.style.display = name.includes(search) ? 'flex' : 'none';
     });
     
