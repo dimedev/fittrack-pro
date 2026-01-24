@@ -266,7 +266,10 @@ body, main {
     }
     
     #journal-entries .journal-entry-cals {
-        display: none !important; /* Masquer sur mobile pour gagner de la place */
+        font-size: 0.875rem !important;
+        font-weight: 700 !important;
+        min-width: 65px !important;
+        color: var(--accent-primary) !important;
     }
     
     #journal-entries .journal-entry-delete {

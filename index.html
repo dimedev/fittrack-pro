@@ -10,9 +10,9 @@
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=16">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/session-manager.css?v=16">
-    <link rel="stylesheet" href="css/premium-components.css?v=15">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=22">
-    <link rel="stylesheet" href="css/journal-macros.css?v=5">
+    <link rel="stylesheet" href="css/premium-components.css?v=16">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=23">
+    <link rel="stylesheet" href="css/journal-macros.css?v=11">
 
 
 
@@ -81,29 +81,91 @@
 
             <!-- Dashboard Section -->
             <section id="dashboard" class="section active">
-                <div class="grid grid-4">
-                    <div class="stat-card">
-                        <div class="stat-label">Calories Objectif</div>
-                        <div class="stat-value" id="stat-calories">--</div>
-                        <div class="stat-unit">kcal/jour</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Protéines</div>
-                        <div class="stat-value" id="stat-protein">--</div>
-                        <div class="stat-unit">g/jour</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Programme</div>
-                        <div class="stat-value" id="stat-program" style="font-size: 1.3rem;">--</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Séances/semaine</div>
-                        <div class="stat-value" id="stat-days">--</div>
+                <!-- Quick Summary Card - NEW -->
+                <div class="quick-summary-card" id="quick-summary-card">
+                    <div class="quick-summary-greeting" id="quick-summary-greeting">Bienvenue</div>
+                    <div class="quick-summary-stats">
+                        <div class="quick-stat">
+                            <span class="quick-stat-icon">🔥</span>
+                            <span class="quick-stat-value" id="quick-cals-remaining">--</span>
+                            <span class="quick-stat-label">kcal restantes</span>
+                        </div>
+                        <div class="quick-stat">
+                            <span class="quick-stat-icon">🏋️</span>
+                            <span class="quick-stat-value" id="quick-session-name">--</span>
+                            <span class="quick-stat-label">prévue</span>
+                        </div>
+                        <div class="quick-stat">
+                            <span class="quick-stat-icon">⚡</span>
+                            <span class="quick-stat-value" id="quick-streak">0</span>
+                            <span class="quick-stat-label">jours de série</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Today's Session -->
-                <div class="card today-session-card" id="today-session-card" style="margin-top: 20px; display: none;">
+                <!-- Macros du Jour - MOVED UP & FULL WIDTH -->
+                <div class="card macros-card-premium" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">🎯</span>
+                            Macros du Jour
+                        </div>
+                        <span class="badge badge-info" id="macros-status" style="display: none;">En cours</span>
+                    </div>
+                    <div id="daily-macros" class="macros-rings-container">
+                        <div class="macros-rings-grid macros-rings-grid-4">
+                            <div class="macro-ring-item">
+                                <div id="ring-calories" class="ring-container"></div>
+                                <span class="ring-subtitle" id="ring-calories-detail">-- / -- kcal</span>
+                            </div>
+                            <div class="macro-ring-item">
+                                <div id="ring-protein" class="ring-container"></div>
+                                <span class="ring-subtitle" id="ring-protein-detail">-- / --g</span>
+                            </div>
+                            <div class="macro-ring-item">
+                                <div id="ring-carbs" class="ring-container"></div>
+                                <span class="ring-subtitle" id="ring-carbs-detail">-- / --g</span>
+                            </div>
+                            <div class="macro-ring-item">
+                                <div id="ring-fat" class="ring-container"></div>
+                                <span class="ring-subtitle" id="ring-fat-detail">-- / --g</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Fallback bars pour mobile petit écran -->
+                    <div id="daily-macros-bars" class="macros-bars-fallback" style="display: none;">
+                        <div class="macro-bar">
+                            <div class="macro-bar-header">
+                                <span class="macro-bar-label">Protéines</span>
+                                <span class="macro-bar-value" id="macro-protein-value">-- / --g</span>
+                            </div>
+                            <div class="macro-bar-track">
+                                <div class="macro-bar-fill protein" id="macro-protein-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="macro-bar">
+                            <div class="macro-bar-header">
+                                <span class="macro-bar-label">Glucides</span>
+                                <span class="macro-bar-value" id="macro-carbs-value">-- / --g</span>
+                            </div>
+                            <div class="macro-bar-track">
+                                <div class="macro-bar-fill carbs" id="macro-carbs-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="macro-bar">
+                            <div class="macro-bar-header">
+                                <span class="macro-bar-label">Lipides</span>
+                                <span class="macro-bar-value" id="macro-fat-value">-- / --g</span>
+                            </div>
+                            <div class="macro-bar-track">
+                                <div class="macro-bar-fill fat" id="macro-fat-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Session - IMPROVED CTA -->
+                <div class="card today-session-card" id="today-session-card" style="margin-top: 16px; display: none;">
                     <div class="today-session-header">
                         <span class="today-session-label">Séance du jour</span>
                     </div>
@@ -113,7 +175,7 @@
                 </div>
 
                 <!-- Training Week Summary -->
-                <div class="card training-week-card" id="training-week-summary" style="margin-top: 20px;">
+                <div class="card training-week-card" id="training-week-summary" style="margin-top: 16px;">
                     <div class="week-progress-header">
                         <span class="week-title">Cette semaine</span>
                         <span class="week-count" id="week-sessions-count">0/0 séances</span>
@@ -144,88 +206,53 @@
                     </div>
                 </div>
 
-                <div class="grid grid-2" style="margin-top: 20px;">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">👤</span>
-                                Mon Profil
-                            </div>
-                            <button class="btn btn-sm btn-secondary" onclick="openProfileModal()" data-tooltip="Modifier votre profil">Modifier</button>
+                <!-- Profile Card - SIMPLIFIED -->
+                <div class="card profile-card-simplified" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">👤</span>
+                            Mon Profil
                         </div>
-                        <div id="profile-summary">
-                            <p style="color: var(--text-secondary);">Configurez votre profil pour commencer</p>
-                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="openProfileModal()">Modifier</button>
                     </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">🎯</span>
-                                Macros du Jour
-                            </div>
-                            <span class="badge badge-info" id="macros-status" style="display: none;">En cours</span>
-                        </div>
-                        <!-- Progress Rings Apple Watch Style -->
-                        <div id="daily-macros" class="macros-rings-container">
-                            <div class="macros-rings-grid">
-                                <div class="macro-ring-item">
-                                    <div id="ring-calories" class="ring-container"></div>
-                                    <span class="ring-subtitle" id="ring-calories-detail">-- / -- kcal</span>
-                                </div>
-                                <div class="macro-ring-item">
-                                    <div id="ring-protein" class="ring-container"></div>
-                                    <span class="ring-subtitle" id="ring-protein-detail">-- / --g</span>
-                                </div>
-                                <div class="macro-ring-item">
-                                    <div id="ring-carbs" class="ring-container"></div>
-                                    <span class="ring-subtitle" id="ring-carbs-detail">-- / --g</span>
-                                </div>
-                                <div class="macro-ring-item">
-                                    <div id="ring-fat" class="ring-container"></div>
-                                    <span class="ring-subtitle" id="ring-fat-detail">-- / --g</span>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Fallback bars pour mobile petit écran -->
-                        <div id="daily-macros-bars" class="macros-bars-fallback" style="display: none;">
-                            <div class="macro-bar">
-                                <div class="macro-bar-header">
-                                    <span class="macro-bar-label">Protéines</span>
-                                    <span class="macro-bar-value" id="macro-protein-value">-- / --g</span>
-                                </div>
-                                <div class="macro-bar-track">
-                                    <div class="macro-bar-fill protein" id="macro-protein-bar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="macro-bar">
-                                <div class="macro-bar-header">
-                                    <span class="macro-bar-label">Glucides</span>
-                                    <span class="macro-bar-value" id="macro-carbs-value">-- / --g</span>
-                                </div>
-                                <div class="macro-bar-track">
-                                    <div class="macro-bar-fill carbs" id="macro-carbs-bar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="macro-bar">
-                                <div class="macro-bar-header">
-                                    <span class="macro-bar-label">Lipides</span>
-                                    <span class="macro-bar-value" id="macro-fat-value">-- / --g</span>
-                                </div>
-                                <div class="macro-bar-track">
-                                    <div class="macro-bar-fill fat" id="macro-fat-bar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
+                    <div id="profile-summary" class="profile-summary-compact">
+                        <p style="color: var(--text-secondary);">Configurez votre profil pour commencer</p>
                     </div>
                 </div>
 
-                <div id="recommendations-card-container" style="margin-top: 20px;"></div>
+                <!-- Hidden stat values for JS compatibility -->
+                <div style="display: none;">
+                    <span id="stat-calories">--</span>
+                    <span id="stat-protein">--</span>
+                    <span id="stat-program">--</span>
+                    <span id="stat-days">--</span>
+                </div>
+
+                <div id="recommendations-card-container" style="margin-top: 16px;"></div>
 
             </section>
 
             <!-- Nutrition Section -->
             <section id="nutrition" class="section">
+                <!-- Sticky Header Macros -->
+                <div class="nutrition-sticky-header" id="nutrition-sticky-header">
+                    <div class="sticky-header-cals">
+                        <span class="sticky-cals-label">Restantes</span>
+                        <span class="sticky-cals-value" id="sticky-cals-remaining">—</span>
+                    </div>
+                    <div class="sticky-header-mini-bars">
+                        <div class="mini-bar mini-bar-protein">
+                            <div class="mini-bar-fill" id="sticky-bar-protein"></div>
+                        </div>
+                        <div class="mini-bar mini-bar-carbs">
+                            <div class="mini-bar-fill" id="sticky-bar-carbs"></div>
+                        </div>
+                        <div class="mini-bar mini-bar-fat">
+                            <div class="mini-bar-fill" id="sticky-bar-fat"></div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Header avec date -->
                 <div class="card">
                     <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
@@ -240,28 +267,8 @@
                         </div>
                     </div>
 
-                    <!-- Search bar avec toggle -->
-                    <div class="nutrition-search-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center;">
-                        <input type="text" class="form-input" id="unified-food-search" placeholder="Rechercher un aliment..." oninput="searchUnifiedFoods()" style="flex: 1;">
-                        <button class="btn-toggle-browse" id="toggle-browse-btn" onclick="toggleFoodBrowse()">
-                            <span id="browse-btn-text">Parcourir</span>
-                            <span id="browse-btn-icon">▼</span>
-                        </button>
-                    </div>
-
-                    <!-- Liste accordeon (cachee par defaut) -->
-                    <div id="foods-accordion-container" style="display: none; margin-bottom: 20px;">
-                        <div id="foods-list"></div>
-                    </div>
-
-                    <!-- Resultats recherche (apparait quand on tape) -->
-                    <div id="search-results-container" style="display: none; margin-bottom: 20px;">
-                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Résultats de recherche</h4>
-                        <div id="search-results-list" style="max-height: 300px; overflow-y: auto;"></div>
-                    </div>
-
-                    <!-- Macros du jour -->
-                    <div class="nutrition-macros-summary">
+                    <!-- Macros du jour - EN PREMIER -->
+                    <div class="nutrition-macros-summary" style="margin-bottom: 20px;">
                         <div id="journal-macros-bars" class="journal-macro-bars">
                             <div class="journal-macro-bar-item">
                                 <div class="journal-macro-bar-header">
@@ -303,7 +310,7 @@
                     </div>
 
                     <!-- Journal du jour -->
-                    <div class="nutrition-journal" style="margin-top: 20px;">
+                    <div class="nutrition-journal" style="margin-bottom: 20px;">
                         <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Journal du jour</h4>
                         <div id="journal-entries">
                             <div class="empty-state" style="padding: 30px;">
@@ -312,6 +319,26 @@
                                 <p>Recherchez et ajoutez ce que vous avez mangé aujourd'hui</p>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Search bar avec toggle -->
+                    <div class="nutrition-search-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center;">
+                        <input type="text" class="form-input" id="unified-food-search" placeholder="Rechercher un aliment..." oninput="searchUnifiedFoods()" style="flex: 1;">
+                        <button class="btn-toggle-browse" id="toggle-browse-btn" onclick="toggleFoodBrowse()">
+                            <span id="browse-btn-text">Parcourir</span>
+                            <span id="browse-btn-icon">▼</span>
+                        </button>
+                    </div>
+
+                    <!-- Liste accordeon (cachee par defaut) -->
+                    <div id="foods-accordion-container" style="display: none; margin-bottom: 20px;">
+                        <div id="foods-list"></div>
+                    </div>
+
+                    <!-- Resultats recherche (apparait quand on tape) -->
+                    <div id="search-results-container" style="display: none; margin-bottom: 20px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Résultats de recherche</h4>
+                        <div id="search-results-list" style="max-height: 300px; overflow-y: auto;"></div>
                     </div>
                 </div>
 
@@ -1612,18 +1639,18 @@
     <script src="js/data/programs.js?v=5"></script>
     <script src="js/modules/state.js?v=5"></script>
     <script src="js/modules/supabase.js?v=6"></script>
-    <script src="js/modules/profile.js?v=19"></script>
-    <script src="js/modules/nutrition.js?v=8"></script>
+    <script src="js/modules/profile.js?v=20"></script>
+    <script src="js/modules/nutrition.js?v=9"></script>
     <script src="js/modules/training.js?v=12"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=5"></script>
-    <script src="js/modules/progress.js?v=18"></script>
+    <script src="js/modules/progress.js?v=19"></script>
     <script src="js/modules/timer.js?v=5"></script>
     <script src="js/modules/ui.js?v=12"></script>
     <script src="js/modules/goals.js?v=5"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=5"></script>
-    <script src="js/modules/mobile-gestures.js?v=10"></script>
-    <script src="js/app.js?v=20"></script>
+    <script src="js/modules/mobile-gestures.js?v=11"></script>
+    <script src="js/app.js?v=21"></script>
 </body>
 </html>

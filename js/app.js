@@ -157,6 +157,11 @@ function init() {
     // Initialiser l'interface
     initUI();
     
+    // Initialiser le sticky header nutrition
+    if (typeof initNutritionStickyScroll === 'function') {
+        initNutritionStickyScroll();
+    }
+    
     // Initialiser le timer
     if (typeof initTimer === 'function') {
         initTimer();

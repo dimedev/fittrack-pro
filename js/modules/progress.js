@@ -610,7 +610,10 @@ function renderTodaySession() {
             ${exercisesList}
             ${moreText}
         </div>
-        <button class="btn btn-primary btn-block" onclick="showSessionPreview(${currentIndex})" style="margin-top: 12px;">
+        <button class="btn-start-session" onclick="showSessionPreview(${currentIndex})">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
             Commencer la séance
         </button>
     `;

@@ -867,3 +867,199 @@
         transform: translateY(0);
     }
 }
+
+/* ==================== QUICK SUMMARY CARD ==================== */
+.quick-summary-card {
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+    border-radius: var(--radius-xl);
+    padding: 20px 24px;
+    border: 1px solid var(--border-color);
+}
+
+.quick-summary-greeting {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.quick-summary-stats {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.quick-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 140px;
+}
+
+.quick-stat-icon {
+    font-size: 1.25rem;
+}
+
+.quick-stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.quick-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Mobile Quick Summary */
+@media (max-width: 640px) {
+    .quick-summary-card {
+        padding: 16px 18px;
+    }
+    
+    .quick-summary-greeting {
+        font-size: 1.25rem;
+        margin-bottom: 12px;
+    }
+    
+    .quick-summary-stats {
+        gap: 12px;
+    }
+    
+    .quick-stat {
+        min-width: 100%;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .quick-stat:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .quick-stat-value {
+        font-size: 1rem;
+    }
+}
+
+/* ==================== MACROS CARD PREMIUM ==================== */
+.macros-card-premium {
+    background: var(--bg-card);
+}
+
+.macros-card-premium .card-header {
+    padding-bottom: 8px;
+}
+
+.macros-rings-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 12px 0;
+}
+
+/* Mobile: 2x2 grid for better readability */
+@media (max-width: 640px) {
+    .macros-rings-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding: 16px 0;
+    }
+    
+    .macro-ring-item .ring-container {
+        width: 90px !important;
+        height: 90px !important;
+    }
+    
+    .macro-ring-item .ring-subtitle {
+        font-size: 0.75rem;
+        margin-top: 8px;
+    }
+}
+
+/* ==================== PROFILE CARD SIMPLIFIED ==================== */
+.profile-card-simplified {
+    background: var(--bg-card);
+}
+
+.profile-summary-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.profile-stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 100px;
+}
+
+.profile-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.profile-stat-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.profile-streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.15));
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 8px;
+}
+
+/* ==================== TODAY SESSION CTA IMPROVED ==================== */
+.today-session-card .btn-start-session {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--accent-brand) 0%, #ff4444 100%);
+    border: none;
+    border-radius: var(--radius-lg);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 16px;
+}
+
+.today-session-card .btn-start-session:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+}
+
+.today-session-card .btn-start-session:active {
+    transform: translateY(0);
+}
+
+.today-session-card .btn-start-session svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Mobile CTA */
+@media (max-width: 640px) {
+    .today-session-card .btn-start-session {
+        padding: 16px 24px;
+        font-size: 1.05rem;
+    }
+}

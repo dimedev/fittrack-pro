@@ -631,7 +631,8 @@ async function addToJournalDirect(foodId, quantity) {
     const entry = {
         foodId: food.id,
         quantity: quantity,
-        addedAt: Date.now()
+        addedAt: Date.now(),
+        isNew: true // Marquer comme nouvelle pour l'animation
     };
     
     // Sync avec Supabase si connecté
@@ -646,6 +647,13 @@ async function addToJournalDirect(foodId, quantity) {
     renderJournalEntries();
     updateJournalSummary();
     updateMacroRings();
+    
+    // Retirer le flag isNew après l'animation
+    setTimeout(() => {
+        if (state.foodJournal[date]) {
+            state.foodJournal[date].forEach(e => delete e.isNew);
+        }
+    }, 2000);
 }
 
 // Afficher les entrées du journal
@@ -679,25 +687,31 @@ function renderJournalEntries() {
         const carbs = Math.round(food.carbs * multiplier * 10) / 10;
         const fat = Math.round(food.fat * multiplier * 10) / 10;
 
+        const animationClass = entry.isNew ? 'entry-added entry-highlight' : '';
+        
         return `
-            <div class="journal-entry">
-                <div class="journal-entry-info">
-                    <div class="journal-entry-name">${food.name}</div>
+            <div class="journal-entry ${animationClass}">
+                <div class="journal-entry-main">
+                    <div class="journal-entry-header">
+                        <div class="journal-entry-name">${food.name}</div>
+                        <div class="journal-entry-cals">${cals} kcal</div>
+                    </div>
                     <div class="journal-entry-macros">
-                        <span style="color: #ff6b6b;">P: ${protein}g</span>
-                        <span style="color: #4ecdc4;">G: ${carbs}g</span>
-                        <span style="color: #ffd93d;">L: ${fat}g</span>
+                        <span class="macro-badge macro-badge-protein">P ${protein}g</span>
+                        <span class="macro-badge macro-badge-carbs">G ${carbs}g</span>
+                        <span class="macro-badge macro-badge-fat">L ${fat}g</span>
                     </div>
                 </div>
-                <div class="journal-entry-qty">
-                    <input type="number" value="${entry.quantity}" min="1" step="10" 
-                           onchange="updateJournalQuantity(${idx}, this.value)">
-                    <span>g</span>
+                <div class="journal-entry-actions">
+                    <div class="journal-entry-qty">
+                        <input type="number" value="${entry.quantity}" min="1" step="10" 
+                               onchange="updateJournalQuantity(${idx}, this.value)">
+                        <span>g</span>
+                    </div>
+                    <button class="journal-entry-delete" onclick="removeFromJournal(${idx})" title="Supprimer">
+                        🗑️
+                    </button>
                 </div>
-                <div class="journal-entry-cals">${cals} kcal</div>
-                <button class="journal-entry-delete" onclick="removeFromJournal(${idx})" title="Supprimer">
-                    🗑️
-                </button>
             </div>
         `;
     }).join('');
@@ -807,6 +821,9 @@ function updateJournalSummary() {
         carbs: state.profile?.macros?.carbs || 250,
         fat: state.profile?.macros?.fat || 70
     };
+    
+    // Mettre à jour le sticky header
+    updateNutritionStickyHeader(macros, targets);
 
     // Mettre à jour les barres de progression
     const bars = [
@@ -845,6 +862,66 @@ function calculateConsumedMacros() {
     // Maintenant, on utilise UNIQUEMENT le journal du jour
     const today = new Date().toISOString().split('T')[0];
     return calculateJournalMacros(today);
+}
+
+// Mettre à jour le sticky header avec calories restantes
+function updateNutritionStickyHeader(macros, targets) {
+    const caloriesRemaining = targets.calories - macros.calories;
+    const caloriesRemainingEl = document.getElementById('sticky-cals-remaining');
+    
+    if (caloriesRemainingEl) {
+        caloriesRemainingEl.textContent = `${caloriesRemaining} kcal`;
+        
+        // Couleur selon le status
+        if (caloriesRemaining < 0) {
+            caloriesRemainingEl.style.color = '#ff6b6b'; // Rouge si dépassé
+        } else if (caloriesRemaining < 200) {
+            caloriesRemainingEl.style.color = '#ffd93d'; // Jaune si proche
+        } else {
+            caloriesRemainingEl.style.color = 'var(--accent-primary)'; // Vert normal
+        }
+    }
+    
+    // Mettre à jour les mini barres
+    const bars = [
+        { id: 'protein', current: macros.protein, target: targets.protein },
+        { id: 'carbs', current: macros.carbs, target: targets.carbs },
+        { id: 'fat', current: macros.fat, target: targets.fat }
+    ];
+    
+    bars.forEach(bar => {
+        const fillEl = document.getElementById(`sticky-bar-${bar.id}`);
+        if (fillEl) {
+            const percent = Math.min((bar.current / bar.target) * 100, 100);
+            fillEl.style.width = `${percent}%`;
+        }
+    });
+}
+
+// Gérer la visibilité du sticky header au scroll
+function initNutritionStickyScroll() {
+    const stickyHeader = document.getElementById('nutrition-sticky-header');
+    if (!stickyHeader) return;
+    
+    let lastScroll = 0;
+    
+    window.addEventListener('scroll', () => {
+        const currentScroll = window.pageYOffset;
+        const nutritionSection = document.getElementById('nutrition');
+        
+        // Afficher le header uniquement si on est dans la section nutrition et qu'on a scrollé
+        if (nutritionSection && nutritionSection.classList.contains('active')) {
+            if (currentScroll > 150) {
+                stickyHeader.classList.add('visible');
+            } else {
+                stickyHeader.classList.remove('visible');
+            }
+        } else {
+            stickyHeader.classList.remove('visible');
+        }
+        
+        lastScroll = currentScroll;
+    });
 }
 
 // Mettre à jour les anneaux de macros du dashboard

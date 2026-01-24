@@ -18,18 +18,25 @@
     class SwipeToDelete {
         constructor(element, options = {}) {
             this.element = element;
-            this.threshold = options.threshold || 80;
+            // Seuil proportionnel : 50% de la largeur de l'élément
+            this.thresholdRatio = options.thresholdRatio || 0.5;
             this.onDelete = options.onDelete || (() => {});
             this.onSwipeStart = options.onSwipeStart || (() => {});
             
             this.startX = 0;
             this.currentX = 0;
+            this.startY = 0;
             this.isDragging = false;
             this.deleteBackground = null;
             
             if (this.isTouchDevice()) {
                 this.init();
             }
+        }
+        
+        getThreshold() {
+            // Calculer le seuil dynamiquement (50% de la largeur)
+            return this.element.offsetWidth * this.thresholdRatio;
         }
         
         isTouchDevice() {
@@ -102,12 +109,18 @@
             // Seulement swipe vers la gauche
             if (diffX < 0) {
                 e.preventDefault();
-                const translateX = Math.max(diffX, -120);
+                const maxSwipe = this.element.offsetWidth * 0.7; // Max 70% de la largeur
+                const translateX = Math.max(diffX, -maxSwipe);
                 this.content.style.transform = `translateX(${translateX}px)`;
                 
-                // Feedback visuel progressif
-                const progress = Math.min(Math.abs(diffX) / this.threshold, 1);
-                this.deleteBackground.style.opacity = progress;
+                // Feedback visuel progressif avec opacité progressive
+                const threshold = this.getThreshold();
+                const progress = Math.min(Math.abs(diffX) / threshold, 1);
+                this.deleteBackground.style.opacity = progress * 0.95; // Opacité max 95%
+                
+                // Échelle progressive du fond
+                const scale = 0.95 + (progress * 0.05); // De 0.95 à 1
+                this.deleteBackground.style.transform = `scaleX(${scale})`;
                 
                 if (progress >= 1) {
                     this.deleteBackground.classList.add('ready');
@@ -126,10 +139,13 @@
             if (!this.isDragging) return;
             this.isDragging = false;
             this.content.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            this.deleteBackground.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             
             const diffX = this.currentX - this.startX;
+            const threshold = this.getThreshold();
             
-            if (diffX < -this.threshold) {
+            // Utiliser le seuil proportionnel (50% de la largeur)
+            if (Math.abs(diffX) > threshold) {
                 this.confirmDelete();
             } else {
                 this.reset();
@@ -162,6 +178,7 @@
         reset() {
             this.content.style.transform = 'translateX(0)';
             this.deleteBackground.style.opacity = '0';
+            this.deleteBackground.style.transform = 'scaleX(0.95)';
             this.deleteBackground.classList.remove('ready');
         }
     }
