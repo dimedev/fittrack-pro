@@ -677,37 +677,34 @@ function renderRecommendationsCard() {
     }
     
     let html = `
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
+        <div class="recommendations-card">
+            <div class="recommendations-header">
+                <div class="recommendations-title">
                     <span class="icon">💡</span>
                     Recommandations
                 </div>
             </div>
-            <div style="padding: 20px;">
+            <div class="recommendations-content">
     `;
     
     // Recommandations nutrition
     if (analysis && analysis.recommendations.length > 0) {
-        html += `<div style="margin-bottom: 15px;">`;
         analysis.recommendations.forEach(rec => {
             html += `
-                <div style="padding: 12px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 1.2rem; margin-right: 8px;">${rec.icon}</span>
-                    <strong>${rec.message}</strong>
+                <div class="rec-item">
+                    <span class="rec-icon">${rec.icon}</span>
+                    <span class="rec-text">${rec.message}</span>
                 </div>
             `;
         });
         
         if (analysis.calorieAdjustment) {
             html += `
-                <button class="btn btn-primary" onclick="applyCalorieAdjustment()" style="width: 100%; margin-top: 10px;">
+                <button class="btn btn-primary btn-sm" onclick="applyCalorieAdjustment()" style="width: 100%; margin-top: 8px;">
                     Appliquer l'ajustement
                 </button>
             `;
         }
-        
-        html += `</div>`;
     }
     
     // Top 3 recommandations training
@@ -716,21 +713,16 @@ function renderRecommendationsCard() {
         .slice(0, 3);
     
     if (topTraining.length > 0) {
-        html += `
-            <div style="padding-top: 15px; border-top: 1px solid var(--border-color);">
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Progression exercices :</div>
-        `;
+        html += `<div class="rec-section-label">Progression exercices :</div>`;
         
         topTraining.forEach(([exercise, rec]) => {
             html += `
-                <div style="padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem;">
-                    <div style="font-weight: 600; margin-bottom: 4px;">${rec.icon} ${exercise}</div>
-                    <div style="color: var(--text-secondary);">${rec.message}</div>
+                <div class="rec-exercise-item">
+                    <div class="rec-exercise-name">${rec.icon} ${exercise}</div>
+                    <div class="rec-exercise-detail">${rec.message}</div>
                 </div>
             `;
         });
-        
-        html += `</div>`;
     }
     
     html += `

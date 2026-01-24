@@ -2754,7 +2754,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ==================== MOBILE RESPONSIVE FIXES ==================== */
 @media (max-width: 768px) {
-    /* Card header stack on mobile - SAUF sections avec nutrition-header-actions */
+    /* Card header stack on mobile - SAUF Dashboard et Nutrition */
     .card-header {
         flex-direction: column !important;
         align-items: flex-start !important;
@@ -2766,6 +2766,13 @@ h1, h2, h3, h4, h5, h6 {
         flex-direction: row !important;
         align-items: center !important;
         flex-wrap: wrap !important;
+    }
+    
+    /* Exception pour Profile card - garder horizontal */
+    #dashboard .profile-card-simplified .card-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
     }
 
     /* Buttons container full width */
@@ -2781,16 +2788,31 @@ h1, h2, h3, h4, h5, h6 {
         width: auto !important;
         flex-wrap: nowrap !important;
     }
+    
+    /* Exception Dashboard Profile - pas full width pour les boutons */
+    #dashboard .profile-card-simplified .card-header > * {
+        width: auto !important;
+    }
 
     /* Buttons grow to fill space */
     .card-header > div:last-child .btn {
         flex: 1;
         justify-content: center;
     }
+    
+    /* Exception Dashboard - boutons normaux */
+    #dashboard .profile-card-simplified .card-header .btn {
+        flex: 0 0 auto !important;
+    }
 
     /* Card title full width */
     .card-title {
         width: 100%;
+    }
+    
+    /* Exception Dashboard Profile - titre pas full width */
+    #dashboard .profile-card-simplified .card-title {
+        width: auto !important;
     }
 }
 
