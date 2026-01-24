@@ -752,7 +752,7 @@ function removeFromJournal(index) {
     }
 }
 
-// Vider le journal du jour
+// Vider le menu du jour
 function clearJournalDay() {
     const date = document.getElementById('journal-date').value;
 
@@ -859,7 +859,7 @@ function updateJournalSummary() {
 
 // Fonction de compatibilité pour l'ancien système (utilisée par updateMacroBars dans profile.js)
 function calculateConsumedMacros() {
-    // Maintenant, on utilise UNIQUEMENT le journal du jour
+    // Maintenant, on utilise UNIQUEMENT le menu du jour
     const today = new Date().toISOString().split('T')[0];
     return calculateJournalMacros(today);
 }

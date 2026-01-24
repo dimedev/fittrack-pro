@@ -9,9 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=18">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/session-manager.css?v=17">
+    <link rel="stylesheet" href="css/session-manager.css?v=18">
     <link rel="stylesheet" href="css/premium-components.css?v=23">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=23">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=24">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
 
 
@@ -319,9 +319,9 @@
                         </div>
                     </div>
 
-                    <!-- Journal du jour -->
+                    <!-- Menu du jour -->
                     <div class="nutrition-journal" style="margin-bottom: 20px;">
-                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Journal du jour</h4>
+                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Menu du jour</h4>
                         <div id="journal-entries">
                             <div class="empty-state" style="padding: 30px;">
                                 <div class="empty-state-icon">📋</div>
@@ -1433,48 +1433,54 @@
                 <h3 class="bottom-sheet-title">Remplacer l'exercice</h3>
             </div>
             <div class="bottom-sheet-content swap-sheet-content">
-                <!-- Exercice actuel -->
-                <div class="swap-current-exercise">
-                    <span class="swap-current-label">Exercice actuel</span>
-                    <p class="swap-current-name" id="swap-current-name">Développé Couché Barre</p>
-                </div>
-                
-                <!-- Barre de recherche -->
-                <div class="swap-search-container">
-                    <div class="swap-search-input-wrapper">
-                        <svg class="swap-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="m21 21-4.35-4.35"/>
-                        </svg>
-                        <input 
-                            type="text" 
-                            id="swap-search-input" 
-                            class="swap-search-input" 
-                            placeholder="Rechercher un exercice..."
-                            oninput="handleSwapSearch(this.value)"
-                            autocomplete="off"
-                        >
-                        <button class="swap-search-clear" onclick="clearSwapSearch()" style="display: none;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 6 6 18M6 6l12 12"/>
+                <!-- Header sticky (exercice + recherche) -->
+                <div class="swap-sticky-header">
+                    <!-- Exercice actuel -->
+                    <div class="swap-current-exercise">
+                        <span class="swap-current-label">Exercice actuel</span>
+                        <p class="swap-current-name" id="swap-current-name">Développé Couché Barre</p>
+                    </div>
+                    
+                    <!-- Barre de recherche -->
+                    <div class="swap-search-container">
+                        <div class="swap-search-input-wrapper">
+                            <svg class="swap-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
                             </svg>
-                        </button>
+                            <input 
+                                type="text" 
+                                id="swap-search-input" 
+                                class="swap-search-input" 
+                                placeholder="Rechercher un exercice..."
+                                oninput="handleSwapSearch(this.value)"
+                                autocomplete="off"
+                            >
+                            <button class="swap-search-clear" onclick="clearSwapSearch()" style="display: none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6 6 18M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Résultats de recherche (caché par défaut) -->
-                <div id="swap-search-results" class="swap-search-results" style="display: none;">
-                    <!-- Rempli dynamiquement -->
-                </div>
-                
-                <!-- Sections d'exercices -->
-                <div id="swap-sections" class="swap-sections">
-                    <!-- Rempli dynamiquement -->
-                </div>
-                
-                <!-- Container legacy pour compatibilité -->
-                <div class="swap-options" id="swap-options-list" style="display: none;">
-                    <!-- Filled dynamically (legacy) -->
+                <!-- Contenu scrollable -->
+                <div class="swap-scrollable-content">
+                    <!-- Résultats de recherche (caché par défaut) -->
+                    <div id="swap-search-results" class="swap-search-results" style="display: none;">
+                        <!-- Rempli dynamiquement -->
+                    </div>
+                    
+                    <!-- Sections d'exercices -->
+                    <div id="swap-sections" class="swap-sections">
+                        <!-- Rempli dynamiquement -->
+                    </div>
+                    
+                    <!-- Container legacy pour compatibilité -->
+                    <div class="swap-options" id="swap-options-list" style="display: none;">
+                        <!-- Filled dynamically (legacy) -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -1752,8 +1758,8 @@
     <script src="js/modules/state.js?v=6"></script>
     <script src="js/modules/supabase.js?v=8"></script>
     <script src="js/modules/profile.js?v=22"></script>
-    <script src="js/modules/nutrition.js?v=9"></script>
-    <script src="js/modules/training.js?v=13"></script>
+    <script src="js/modules/nutrition.js?v=10"></script>
+    <script src="js/modules/training.js?v=14"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=6"></script>
     <script src="js/modules/progress.js?v=20"></script>
@@ -1764,7 +1770,7 @@
     <script src="js/modules/ui.js?v=12"></script>
     <script src="js/modules/goals.js?v=7"></script>
     <script src="js/modules/photos.js?v=6"></script>
-    <script src="js/modules/premium-ui.js?v=5"></script>
+    <script src="js/modules/premium-ui.js?v=6"></script>
     <script src="js/modules/mobile-gestures.js?v=11"></script>
     <script src="js/app.js?v=23"></script>
 </body>

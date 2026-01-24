@@ -204,7 +204,7 @@ const CommandPalette = {
         { id: 'add-food', icon: '➕', title: 'Ajouter un aliment', description: 'Au menu du jour', group: 'Actions rapides', action: () => typeof openAddFoodModal === 'function' && openAddFoodModal(), shortcut: ['A'] },
         { id: 'start-session', icon: '💪', title: 'Démarrer une séance', description: 'Commencer l\'entraînement', group: 'Actions rapides', action: () => { navigateToSection('training'); setTimeout(() => document.querySelector('[data-tab="session"]')?.click(), 100); } },
         { id: 'timer', icon: '⏱️', title: 'Timer de repos', description: 'Ouvrir le timer', group: 'Actions rapides', action: () => { navigateToSection('training'); setTimeout(() => document.querySelector('[data-tab="timer"]')?.click(), 100); } },
-        { id: 'journal', icon: '📝', title: 'Journal alimentaire', description: 'Voir le journal du jour', group: 'Actions rapides', action: () => { navigateToSection('nutrition'); setTimeout(() => document.querySelector('[data-tab="journal"]')?.click(), 100); } },
+        { id: 'journal', icon: '📝', title: 'Menu du jour', description: 'Voir le menu du jour', group: 'Actions rapides', action: () => { navigateToSection('nutrition'); setTimeout(() => document.querySelector('[data-tab="journal"]')?.click(), 100); } },
         { id: 'profile', icon: '👤', title: 'Mon profil', description: 'Modifier mes informations', group: 'Profil', action: () => typeof openProfileModal === 'function' && openProfileModal() },
     ],
     

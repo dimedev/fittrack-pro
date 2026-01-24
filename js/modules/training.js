@@ -641,6 +641,9 @@ function openExerciseSwapSheet(exerciseIndex) {
     sheet.classList.remove('animate-in');
     void sheet.offsetWidth;
     sheet.classList.add('animate-in');
+    
+    // Initialiser le swipe to dismiss
+    initSwapSheetSwipe();
 }
 
 /**
@@ -1802,4 +1805,88 @@ function closeExerciseInfo() {
         sheet.style.display = 'none';
         document.body.style.overflow = '';
     }
+}
+
+/**
+ * Initialiser le swipe to dismiss pour le bottom sheet swap exercice
+ */
+let swapSheetSwipeInitialized = false;
+let swapSwipeStartY = 0;
+let swapSwipeCurrentY = 0;
+let isSwapSwipeDragging = false;
+
+function initSwapSheetSwipe() {
+    if (swapSheetSwipeInitialized) return;
+    
+    const sheetContainer = document.querySelector('#swap-bottom-sheet .bottom-sheet');
+    const scrollableContent = sheetContainer?.querySelector('.swap-scrollable-content');
+    const stickyHeader = sheetContainer?.querySelector('.swap-sticky-header');
+    
+    if (!sheetContainer) return;
+    
+    // Permettre le swipe depuis le header sticky ou depuis le handle
+    const dragTargets = [stickyHeader, sheetContainer.querySelector('.bottom-sheet-header')].filter(Boolean);
+    
+    dragTargets.forEach(target => {
+        target.addEventListener('touchstart', (e) => {
+            swapSwipeStartY = e.touches[0].clientY;
+            swapSwipeCurrentY = swapSwipeStartY;
+            isSwapSwipeDragging = true;
+        }, { passive: true });
+    });
+    
+    // Permettre aussi le swipe depuis le contenu si on est en haut du scroll
+    if (scrollableContent) {
+        scrollableContent.addEventListener('touchstart', (e) => {
+            swapSwipeStartY = e.touches[0].clientY;
+            swapSwipeCurrentY = swapSwipeStartY;
+            // Ne permettre le drag que si on est en haut du scroll
+            isSwapSwipeDragging = scrollableContent.scrollTop <= 5;
+        }, { passive: true });
+    }
+    
+    sheetContainer.addEventListener('touchmove', (e) => {
+        if (!isSwapSwipeDragging) return;
+        
+        swapSwipeCurrentY = e.touches[0].clientY;
+        const deltaY = swapSwipeCurrentY - swapSwipeStartY;
+        
+        // Uniquement si on swipe vers le bas
+        if (deltaY > 0) {
+            sheetContainer.classList.add('dragging');
+            sheetContainer.style.transform = `translateY(${deltaY}px)`;
+            // Empêcher le scroll du contenu pendant le drag
+            if (deltaY > 10) {
+                e.preventDefault();
+            }
+        }
+    }, { passive: false });
+    
+    sheetContainer.addEventListener('touchend', () => {
+        if (!isSwapSwipeDragging) return;
+        
+        const deltaY = swapSwipeCurrentY - swapSwipeStartY;
+        sheetContainer.classList.remove('dragging');
+        
+        // Si on a swipé plus de 100px vers le bas, on ferme
+        if (deltaY > 100) {
+            // Animation de fermeture vers le bas
+            sheetContainer.style.transition = 'transform 0.3s ease-out';
+            sheetContainer.style.transform = 'translateY(100%)';
+            setTimeout(() => {
+                closeBottomSheet();
+                sheetContainer.style.transform = '';
+                sheetContainer.style.transition = '';
+            }, 300);
+        } else {
+            // Sinon on revient en position
+            sheetContainer.style.transform = '';
+        }
+        
+        isSwapSwipeDragging = false;
+        swapSwipeStartY = 0;
+        swapSwipeCurrentY = 0;
+    }, { passive: true });
+    
+    swapSheetSwipeInitialized = true;
 }
