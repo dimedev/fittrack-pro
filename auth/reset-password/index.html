@@ -85,8 +85,9 @@
         const SUPABASE_URL = 'https://erszjvaajztewcukvwbj.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyc3pqdmFhanp0ZXdjdWt2d2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODAzNjAsImV4cCI6MjA4NDU1NjM2MH0.jK2keM5VtaLkGR8kD2xhjEgqzmfymdNVmbw509ZO2t4';
         
-        // Get the base URL for redirect
-        const baseUrl = window.location.origin;
+        // Get the base URL for redirect (supports GitHub Pages subdirectory)
+        const pathParts = window.location.pathname.split('/auth/')[0];
+        const baseUrl = window.location.origin + pathParts;
         const redirectUrl = baseUrl + '/auth/update-password/';
         
         // Initialize Supabase client

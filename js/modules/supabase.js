@@ -256,10 +256,16 @@ async function signIn(email, password) {
 // Connexion avec Google
 async function signInWithGoogle() {
     try {
+        // Get base URL (supports GitHub Pages subdirectory)
+        const basePath = window.location.pathname.includes('/fittrack-pro') 
+            ? '/fittrack-pro' 
+            : '';
+        const redirectUrl = window.location.origin + basePath + '/auth/callback/';
+        
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin + '/auth/callback/'
+                redirectTo: redirectUrl
             }
         });
         
@@ -282,7 +288,11 @@ async function signOut() {
 // Réinitialisation du mot de passe (envoi email)
 async function resetPassword(email) {
     try {
-        const redirectUrl = window.location.origin + '/auth/update-password/';
+        // Get base URL (supports GitHub Pages subdirectory)
+        const basePath = window.location.pathname.includes('/fittrack-pro') 
+            ? '/fittrack-pro' 
+            : '';
+        const redirectUrl = window.location.origin + basePath + '/auth/update-password/';
         
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
             redirectTo: redirectUrl
