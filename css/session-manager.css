@@ -2673,6 +2673,13 @@
     max-height: 85vh;
     padding-top: 0;
     overflow: hidden;
+    transition: transform 0.2s ease-out;
+    will-change: transform;
+}
+
+/* Désactiver la transition pendant le drag */
+.exercise-info-premium.dragging {
+    transition: none;
 }
 
 .exercise-info-premium .bottom-sheet-content {

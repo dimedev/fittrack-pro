@@ -1568,7 +1568,79 @@ function openExerciseTips(exerciseName) {
         void sheet.offsetWidth;
         sheet.classList.add('animate-in');
         document.body.style.overflow = 'hidden';
+        
+        // Initialiser le swipe to dismiss (une seule fois)
+        initExerciseSheetSwipe();
     }
+}
+
+/**
+ * Initialiser le swipe to dismiss pour la bottom sheet exercice
+ */
+let exerciseSheetSwipeInitialized = false;
+let swipeStartY = 0;
+let swipeCurrentY = 0;
+let isSwipeDragging = false;
+
+function initExerciseSheetSwipe() {
+    if (exerciseSheetSwipeInitialized) return;
+    
+    const sheetContainer = document.querySelector('#exercise-info-sheet .bottom-sheet');
+    const content = sheetContainer.querySelector('.bottom-sheet-content');
+    
+    if (!sheetContainer || !content) return;
+    
+    sheetContainer.addEventListener('touchstart', (e) => {
+        swipeStartY = e.touches[0].clientY;
+        swipeCurrentY = swipeStartY;
+        // Ne permettre le drag que si on est en haut du scroll
+        isSwipeDragging = content.scrollTop === 0;
+    }, { passive: true });
+    
+    sheetContainer.addEventListener('touchmove', (e) => {
+        if (!isSwipeDragging) return;
+        
+        swipeCurrentY = e.touches[0].clientY;
+        const deltaY = swipeCurrentY - swipeStartY;
+        
+        // Uniquement si on swipe vers le bas
+        if (deltaY > 0) {
+            sheetContainer.classList.add('dragging');
+            sheetContainer.style.transform = `translateY(${deltaY}px)`;
+            // Empêcher le scroll du contenu pendant le drag
+            if (deltaY > 10) {
+                e.preventDefault();
+            }
+        }
+    }, { passive: false });
+    
+    sheetContainer.addEventListener('touchend', () => {
+        if (!isSwipeDragging) return;
+        
+        const deltaY = swipeCurrentY - swipeStartY;
+        sheetContainer.classList.remove('dragging');
+        
+        // Si on a swipé plus de 100px vers le bas, on ferme
+        if (deltaY > 100) {
+            // Animation de fermeture vers le bas
+            sheetContainer.style.transition = 'transform 0.3s ease-out';
+            sheetContainer.style.transform = 'translateY(100%)';
+            setTimeout(() => {
+                closeExerciseInfo();
+                sheetContainer.style.transform = '';
+                sheetContainer.style.transition = '';
+            }, 300);
+        } else {
+            // Sinon on revient en position
+            sheetContainer.style.transform = '';
+        }
+        
+        isSwipeDragging = false;
+        swipeStartY = 0;
+        swipeCurrentY = 0;
+    }, { passive: true });
+    
+    exerciseSheetSwipeInitialized = true;
 }
 
 /**
