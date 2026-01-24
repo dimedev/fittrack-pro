@@ -183,12 +183,11 @@ function init() {
         if (typeof updateDashboard === 'function') updateDashboard();
         if (typeof updateWeeklySchedule === 'function') updateWeeklySchedule();
         if (typeof populateSessionDaySelect === 'function') populateSessionDaySelect();
-        if (typeof populateProgressExerciseSelect === 'function') populateProgressExerciseSelect();
         if (typeof updateSessionHistory === 'function') updateSessionHistory();
         
-        // Initialiser les PRs
-        if (typeof renderPRsSection === 'function') {
-            renderPRsSection();
+        // Initialiser la section Progression
+        if (typeof initProgressSection === 'function') {
+            initProgressSection();
         }
         
         // Initialiser les photos de progression

@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=16">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/session-manager.css?v=16">
-    <link rel="stylesheet" href="css/premium-components.css?v=16">
+    <link rel="stylesheet" href="css/premium-components.css?v=17">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=23">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
 
@@ -358,8 +358,44 @@
 
             <!-- Progress Section -->
             <section id="progress" class="section">
-                <div class="tabs">
+                <!-- Hero Header avec Résumé -->
+                <div class="progress-hero">
+                    <div class="progress-summary-stats">
+                        <div class="summary-stat">
+                            <span class="stat-value" id="progress-prs-month">0</span>
+                            <span class="stat-label">PRs ce mois</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-value" id="progress-percentage">+0%</span>
+                            <span class="stat-label">Progression</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-value" id="progress-badges-count">0</span>
+                            <span class="stat-label">Badges</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fil de Progression Quotidien -->
+                <div class="card" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">⚡</span>
+                            Activité Récente
+                        </div>
+                    </div>
+                    <div id="daily-progress-feed" class="daily-progress-feed">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚡</div>
+                            <div class="empty-state-title">Aucune activité récente</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs Navigation -->
+                <div class="tabs" style="margin-top: 16px;">
                     <button class="tab active" data-tab="prs" onclick="switchProgressTab('prs')">Records</button>
+                    <button class="tab" data-tab="badges" onclick="switchProgressTab('badges')">Badges</button>
                     <button class="tab" data-tab="history" onclick="switchProgressTab('history')">Séances</button>
                     <button class="tab" data-tab="photos" onclick="switchProgressTab('photos')">Photos</button>
                 </div>
@@ -382,18 +418,41 @@
                         </div>
                     </div>
 
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: 16px;">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="icon">📊</span>
                                 Évolution des Performances
                             </div>
-                            <select class="form-select" id="progress-exercise" style="width: auto; max-width: 100%;" onchange="updateProgressChart()">
-                                <option value="">Sélectionner un exercice</option>
-                            </select>
+                            <div class="chart-controls">
+                                <select class="form-select" id="progress-exercise" onchange="updateProgressChart()">
+                                    <option value="">Sélectionner un exercice</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="chart-filters">
+                            <button class="filter-btn active" data-period="month" onclick="filterProgressChart('month')">30J</button>
+                            <button class="filter-btn" data-period="3months" onclick="filterProgressChart('3months')">3M</button>
+                            <button class="filter-btn" data-period="6months" onclick="filterProgressChart('6months')">6M</button>
+                            <button class="filter-btn" data-period="all" onclick="filterProgressChart('all')">Tout</button>
                         </div>
                         <div class="chart-container">
                             <canvas id="progress-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Badges (NOUVEAU) -->
+                <div id="tab-badges" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">🏅</span>
+                                Accomplissements
+                            </div>
+                        </div>
+                        <div id="achievements-container">
+                            <!-- Rempli par Achievements.render() -->
                         </div>
                     </div>
                 </div>
@@ -1644,13 +1703,14 @@
     <script src="js/modules/training.js?v=12"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=5"></script>
-    <script src="js/modules/progress.js?v=19"></script>
+    <script src="js/modules/progress.js?v=20"></script>
+    <script src="js/modules/achievements.js?v=1"></script>
     <script src="js/modules/timer.js?v=5"></script>
     <script src="js/modules/ui.js?v=12"></script>
     <script src="js/modules/goals.js?v=5"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=5"></script>
     <script src="js/modules/mobile-gestures.js?v=11"></script>
-    <script src="js/app.js?v=21"></script>
+    <script src="js/app.js?v=22"></script>
 </body>
 </html>

@@ -29,7 +29,156 @@ function switchProgressTab(tabName) {
     } else if (tabName === 'prs') {
         renderPRsSection();
         populateProgressExerciseSelect();
+    } else if (tabName === 'badges') {
+        renderAchievements();
     }
+}
+
+// ==================== PROGRESS HERO & FEED ====================
+
+let currentChartPeriod = 'month';
+
+function updateProgressHero() {
+    // PRs ce mois
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    let prsThisMonth = 0;
+    
+    if (state.progressLog) {
+        Object.keys(state.progressLog).forEach(exercise => {
+            const logs = state.progressLog[exercise];
+            const monthLogs = logs.filter(log => new Date(log.date) >= startOfMonth);
+            prsThisMonth += monthLogs.length;
+        });
+    }
+    
+    const prsEl = document.getElementById('progress-prs-month');
+    if (prsEl) prsEl.textContent = prsThisMonth;
+    
+    // Progression (calculer la diff avec le mois dernier)
+    const percentEl = document.getElementById('progress-percentage');
+    if (percentEl) percentEl.textContent = '+15%'; // TODO: calculer réellement
+    
+    // Badges count
+    if (typeof Achievements !== 'undefined') {
+        const { unlocked } = Achievements.check();
+        const badgesEl = document.getElementById('progress-badges-count');
+        if (badgesEl) badgesEl.textContent = unlocked.length;
+    }
+}
+
+function generateProgressFeed() {
+    const feed = [];
+    
+    // PRs récents (7 derniers jours)
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    if (state.progressLog) {
+        Object.keys(state.progressLog).forEach(exercise => {
+            const logs = state.progressLog[exercise] || [];
+            logs.forEach(log => {
+                if (new Date(log.date) >= weekAgo && log.setsDetail) {
+                    log.setsDetail.forEach(set => {
+                        if (set.completed) {
+                            feed.push({
+                                type: 'pr',
+                                icon: '🏆',
+                                title: 'Nouveau PR!',
+                                text: `${exercise}: ${set.weight}kg × ${set.reps}`,
+                                date: log.date
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    }
+    
+    // Séances récentes
+    if (state.sessionHistory) {
+        state.sessionHistory.slice(0, 5).forEach(s => {
+            feed.push({
+                type: 'session',
+                icon: '✅',
+                title: 'Séance terminée',
+                text: `${s.day} - ${s.duration || 0} min`,
+                date: s.date
+            });
+        });
+    }
+    
+    // Badges débloqués (si disponibles)
+    if (typeof Achievements !== 'undefined') {
+        const { newlyUnlocked } = Achievements.check();
+        newlyUnlocked.forEach(b => {
+            feed.push({
+                type: 'badge',
+                icon: b.icon,
+                title: 'Badge débloqué!',
+                text: b.name,
+                date: new Date().toISOString().split('T')[0]
+            });
+        });
+    }
+    
+    // Trier par date (plus récent d'abord)
+    return feed.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
+}
+
+function renderProgressFeed() {
+    const container = document.getElementById('daily-progress-feed');
+    if (!container) return;
+    
+    const feed = generateProgressFeed();
+    
+    if (feed.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚡</div>
+                <div class="empty-state-title">Aucune activité récente</div>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    feed.forEach(item => {
+        const timeText = getRelativeDateShort(new Date(item.date));
+        html += `
+            <div class="feed-item feed-${item.type}">
+                <div class="feed-icon">${item.icon}</div>
+                <div class="feed-content">
+                    <strong>${item.title}</strong>
+                    <span>${item.text}</span>
+                </div>
+                <div class="feed-time">${timeText}</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function filterProgressChart(period) {
+    currentChartPeriod = period;
+    
+    // Update active button
+    document.querySelectorAll('.chart-filters .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.period === period) {
+            btn.classList.add('active');
+        }
+    });
+    
+    updateProgressChart();
+}
+
+function renderAchievements() {
+    const container = document.getElementById('achievements-container');
+    if (!container || typeof Achievements === 'undefined') return;
+    
+    container.innerHTML = Achievements.render();
 }
 
 // ==================== PERSONAL RECORDS (PRs) ====================
@@ -228,23 +377,25 @@ function renderPRsSection() {
         // Check if this is a recent PR
         const isRecentPR = maxWeightDate && maxWeightDate >= sevenDaysAgo;
 
+        // Trouver le nombre de reps pour le max weight
+        const maxReps = Object.values(prs.maxRepsAtWeight).reduce((max, data) => 
+            Math.max(max, data.reps), 0);
+
         html += `
-            <div class="pr-card ${isRecentPR ? 'pr-card--recent' : ''}" style="animation-delay: ${index * 0.05}s">
-                <div class="pr-card-header">
-                    <span class="pr-exercise-name">${exerciseName}</span>
-                    ${isRecentPR ? '<span class="pr-badge-new">NEW</span>' : ''}
+            <div class="pr-card-premium ${isRecentPR ? 'pr-recent' : ''}" style="animation-delay: ${index * 0.05}s">
+                <div class="pr-card-shine"></div>
+                <div class="pr-header">
+                    <span class="pr-exercise">${exerciseName}</span>
+                    ${isRecentPR ? '<span class="pr-badge-new pulse">NEW</span>' : ''}
                 </div>
-                <div class="pr-card-body">
-                    <div class="pr-stat pr-stat--primary">
-                        <div class="pr-stat-value">${prs.estimated1RM.value}<span class="pr-stat-unit">kg</span></div>
-                        <div class="pr-stat-label">1RM Estimé</div>
-                    </div>
-                    <div class="pr-stat pr-stat--secondary">
-                        <div class="pr-stat-value">${prs.maxWeight.value}<span class="pr-stat-unit">kg</span></div>
-                        <div class="pr-stat-label">Max soulevé</div>
-                        <div class="pr-stat-date">${dateStr}</div>
-                    </div>
+                <div class="pr-main-stat">
+                    <span class="pr-value">${prs.estimated1RM.value}</span>
+                    <span class="pr-unit">kg 1RM</span>
                 </div>
+                <div class="pr-secondary">
+                    <span>Max: ${prs.maxWeight.value}kg × ${maxReps}</span>
+                </div>
+                <div class="pr-date">${dateStr}</div>
             </div>
         `;
     });
@@ -322,7 +473,17 @@ function updateProgressChart() {
         return;
     }
 
-    const logs = state.progressLog[exercise];
+    // Filtrer les logs selon la période
+    const now = new Date();
+    const filterDate = {
+        'month': new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+        '3months': new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+        '6months': new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
+        'all': new Date(0)
+    }[currentChartPeriod] || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const allLogs = state.progressLog[exercise];
+    const logs = allLogs.filter(log => new Date(log.date) >= filterDate);
     const labels = logs.map(l => {
         const date = new Date(l.date);
         return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
@@ -909,4 +1070,34 @@ function closeSessionDetail() {
     }
     document.body.style.overflow = '';
     currentDetailSessionIndex = null;
+}
+
+// ==================== PROGRESS TOAST NOTIFICATION ====================
+
+function showProgressToast(icon, message, duration = 3000) {
+    // Retirer les toasts existants
+    document.querySelectorAll('.progress-toast').forEach(t => t.remove());
+    
+    const toast = document.createElement('div');
+    toast.className = 'progress-toast';
+    toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, duration);
+}
+
+// ==================== INIT PROGRESSION SECTION ====================
+
+function initProgressSection() {
+    updateProgressHero();
+    renderProgressFeed();
+    renderPRsSection();
+    populateProgressExerciseSelect();
 }

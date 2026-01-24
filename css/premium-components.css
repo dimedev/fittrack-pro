@@ -1063,3 +1063,510 @@
         font-size: 1.05rem;
     }
 }
+
+/* ==================== PROGRESS HERO ==================== */
+.progress-hero {
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+    border-radius: var(--radius-xl);
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 16px;
+}
+
+.progress-summary-stats {
+    display: flex;
+    gap: 24px;
+    justify-content: space-around;
+}
+
+.summary-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.summary-stat .stat-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.summary-stat .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+@media (max-width: 640px) {
+    .progress-hero {
+        padding: 16px;
+    }
+    
+    .progress-summary-stats {
+        gap: 16px;
+    }
+    
+    .summary-stat .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .summary-stat .stat-label {
+        font-size: 0.65rem;
+    }
+}
+
+/* ==================== DAILY PROGRESS FEED ==================== */
+.daily-progress-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.feed-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    border-left: 3px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.feed-item:hover {
+    background: var(--bg-secondary);
+    transform: translateX(4px);
+}
+
+.feed-item.feed-pr {
+    border-left-color: var(--accent-brand);
+}
+
+.feed-item.feed-session {
+    border-left-color: var(--success);
+}
+
+.feed-item.feed-badge {
+    border-left-color: var(--warning);
+}
+
+.feed-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.feed-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.feed-content strong {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.feed-content span {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.feed-time {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* ==================== PR CARDS PREMIUM ==================== */
+.pr-card-premium {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+}
+
+.pr-card-premium.pr-recent {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+    border-color: var(--accent-brand);
+}
+
+.pr-card-premium:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.pr-card-shine {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+}
+
+.pr-card-premium:hover .pr-card-shine {
+    transform: translateX(100%);
+}
+
+.pr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.pr-exercise {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.pr-badge-new {
+    background: linear-gradient(135deg, var(--accent-brand), #ff6b6b);
+    color: white;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.pr-badge-new.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.pr-main-stat {
+    text-align: center;
+    margin: 16px 0;
+}
+
+.pr-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.pr-unit {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
+.pr-secondary {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.pr-date {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== CHART FILTERS ==================== */
+.chart-filters {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-btn {
+    padding: 6px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--text-muted);
+}
+
+.filter-btn.active {
+    background: var(--accent-brand);
+    border-color: var(--accent-brand);
+    color: white;
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ==================== ACHIEVEMENTS SHOWCASE ==================== */
+.achievements-showcase {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.achievement-category {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.category-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    padding-left: 4px;
+}
+
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 16px;
+}
+
+.badge-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 12px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.badge-item.unlocked {
+    border-color: var(--accent-brand);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+}
+
+.badge-item.locked {
+    opacity: 0.5;
+}
+
+.badge-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.badge-icon {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+}
+
+.badge-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.badge-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.badge-progress-fill {
+    height: 100%;
+    background: var(--accent-brand);
+    transition: width 0.3s ease;
+}
+
+.badge-progress-text {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+    .badges-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 12px;
+    }
+    
+    .badge-item {
+        padding: 16px 8px;
+    }
+    
+    .badge-icon {
+        font-size: 2rem;
+    }
+}
+
+/* ==================== COMPARE SLIDER ==================== */
+.compare-slider {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    --split-position: 50%;
+}
+
+.compare-before,
+.compare-after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.compare-before {
+    clip-path: inset(0 50% 0 0);
+}
+
+.compare-before img,
+.compare-after img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.compare-info {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(10px);
+}
+
+.compare-date,
+.compare-weight {
+    display: block;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.compare-date {
+    opacity: 0.8;
+}
+
+.compare-handle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 4px;
+    height: 100%;
+    background: white;
+    cursor: ew-resize;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+.compare-handle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.compare-handle::after {
+    content: '⟷';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--bg-primary);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+@media (max-width: 640px) {
+    .compare-slider {
+        height: 400px;
+    }
+    
+    .compare-handle::before {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* ==================== PROGRESS TOAST ==================== */
+.progress-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10000;
+    max-width: 90%;
+}
+
+.progress-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.toast-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.progress-toast span:not(.toast-icon) {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}

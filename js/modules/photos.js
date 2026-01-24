@@ -511,6 +511,70 @@ async function updateCompareImages() {
         diffEl.textContent = `${diff > 0 ? '+' : ''}${diff.toFixed(1)} kg`;
         diffEl.style.color = diff < 0 ? 'var(--success)' : diff > 0 ? 'var(--warning)' : 'var(--text-primary)';
     }
+    
+    // Init slider après màj des images
+    initCompareSlider();
+}
+
+// ==================== COMPARE SLIDER ====================
+
+function initCompareSlider() {
+    const slider = document.querySelector('.compare-slider');
+    if (!slider) return;
+    
+    const handle = slider.querySelector('.compare-handle');
+    const beforeImg = slider.querySelector('.compare-before');
+    
+    if (!handle || !beforeImg) return;
+    
+    let isDragging = false;
+    
+    function updateSliderPosition(clientX) {
+        const rect = slider.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        
+        slider.style.setProperty('--split-position', `${percent}%`);
+        if (handle) handle.style.left = `${percent}%`;
+        if (beforeImg) beforeImg.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
+    }
+    
+    // Touch events
+    handle.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        e.preventDefault();
+    }, { passive: false });
+    
+    slider.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        updateSliderPosition(e.touches[0].clientX);
+    }, { passive: false });
+    
+    slider.addEventListener('touchend', () => {
+        isDragging = false;
+    });
+    
+    // Mouse events
+    handle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        e.preventDefault();
+    });
+    
+    slider.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        updateSliderPosition(e.clientX);
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    
+    // Click sur le slider
+    slider.addEventListener('click', (e) => {
+        if (e.target === handle) return;
+        updateSliderPosition(e.clientX);
+    });
 }
 
 // Init
