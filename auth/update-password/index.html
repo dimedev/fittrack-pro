@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Nouveau mot de passe | REPZY</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../../css/auth.css">
+    
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Logo -->
+            <div class="auth-logo">
+                <div class="auth-logo-text">REP<span>ZY</span></div>
+            </div>
+            
+            <!-- Loader state (shown while checking session) -->
+            <div class="auth-loader-container" id="loader-state">
+                <div class="auth-loader"></div>
+                <p class="auth-loader-text">Vérification...</p>
+            </div>
+            
+            <!-- Form state -->
+            <div id="form-state" style="display: none;">
+                <!-- Header -->
+                <div class="auth-header">
+                    <h1 class="auth-title">Nouveau mot de passe</h1>
+                    <p class="auth-subtitle">Créez un nouveau mot de passe sécurisé pour votre compte</p>
+                </div>
+                
+                <!-- Form -->
+                <form class="auth-form" id="update-form">
+                    <div class="input-group">
+                        <label class="input-label" for="password">Nouveau mot de passe</label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password"
+                                class="auth-input" 
+                                placeholder="••••••••"
+                                required
+                                minlength="8"
+                                autocomplete="new-password"
+                            >
+                            <button type="button" class="password-toggle" id="toggle-password" aria-label="Afficher le mot de passe">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" id="eye-open"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <span class="input-error" id="password-error" style="display: none;"></span>
+                        
+                        <!-- Password strength indicator -->
+                        <div class="password-strength" id="password-strength">
+                            <div class="password-strength-bar" id="strength-1"></div>
+                            <div class="password-strength-bar" id="strength-2"></div>
+                            <div class="password-strength-bar" id="strength-3"></div>
+                            <div class="password-strength-bar" id="strength-4"></div>
+                        </div>
+                        <p class="password-strength-text" id="strength-text"></p>
+                        
+                        <!-- Password requirements -->
+                        <div class="password-requirements">
+                            <p class="password-requirements-title">Le mot de passe doit contenir :</p>
+                            <div class="password-requirement" id="req-length">
+                                <span class="password-requirement-icon">○</span>
+                                Au moins 8 caractères
+                            </div>
+                            <div class="password-requirement" id="req-upper">
+                                <span class="password-requirement-icon">○</span>
+                                Une majuscule
+                            </div>
+                            <div class="password-requirement" id="req-lower">
+                                <span class="password-requirement-icon">○</span>
+                                Une minuscule
+                            </div>
+                            <div class="password-requirement" id="req-number">
+                                <span class="password-requirement-icon">○</span>
+                                Un chiffre
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label" for="confirm-password">Confirmer le mot de passe</label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="confirm-password" 
+                                name="confirm-password"
+                                class="auth-input" 
+                                placeholder="••••••••"
+                                required
+                                autocomplete="new-password"
+                            >
+                            <button type="button" class="password-toggle" id="toggle-confirm" aria-label="Afficher le mot de passe">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <span class="input-error" id="confirm-error" style="display: none;"></span>
+                    </div>
+                    
+                    <button type="submit" class="auth-btn" id="submit-btn">
+                        Mettre à jour le mot de passe
+                    </button>
+                </form>
+                
+                <!-- Error message -->
+                <div class="auth-message error" id="form-error" style="display: none; margin-top: 16px;"></div>
+            </div>
+            
+            <!-- Success state -->
+            <div id="success-state" style="display: none;">
+                <div class="auth-header">
+                    <h1 class="auth-title">Mot de passe mis à jour !</h1>
+                    <p class="auth-subtitle">Votre nouveau mot de passe a été enregistré avec succès.</p>
+                </div>
+                
+                <div class="auth-message success" style="margin-bottom: 24px;">
+                    Vous allez être redirigé vers l'application...
+                </div>
+                
+                <a href="../../index.html" class="auth-btn auth-btn-secondary" style="display: block; text-align: center; text-decoration: none;">
+                    Aller à l'application
+                </a>
+            </div>
+            
+            <!-- Error state (invalid/expired link) -->
+            <div id="error-state" style="display: none;">
+                <div class="auth-header">
+                    <h1 class="auth-title">Lien invalide</h1>
+                    <p class="auth-subtitle">Ce lien de réinitialisation est invalide ou a expiré.</p>
+                </div>
+                
+                <div class="auth-message error" style="margin-bottom: 24px;">
+                    Veuillez demander un nouveau lien de réinitialisation.
+                </div>
+                
+                <a href="../reset-password/" class="auth-btn" style="display: block; text-align: center; text-decoration: none;">
+                    Demander un nouveau lien
+                </a>
+                
+                <div class="auth-links">
+                    <a href="../../index.html" class="auth-link">← Retour à la connexion</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== UPDATE PASSWORD PAGE ====================
+        
+        // Configuration Supabase
+        const SUPABASE_URL = 'https://erszjvaajztewcukvwbj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyc3pqdmFhanp0ZXdjdWt2d2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODAzNjAsImV4cCI6MjA4NDU1NjM2MH0.jK2keM5VtaLkGR8kD2xhjEgqzmfymdNVmbw509ZO2t4';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // DOM Elements
+        const loaderState = document.getElementById('loader-state');
+        const formState = document.getElementById('form-state');
+        const successState = document.getElementById('success-state');
+        const errorState = document.getElementById('error-state');
+        
+        const updateForm = document.getElementById('update-form');
+        const passwordInput = document.getElementById('password');
+        const confirmInput = document.getElementById('confirm-password');
+        const passwordError = document.getElementById('password-error');
+        const confirmError = document.getElementById('confirm-error');
+        const submitBtn = document.getElementById('submit-btn');
+        const formError = document.getElementById('form-error');
+        
+        const togglePassword = document.getElementById('toggle-password');
+        const toggleConfirm = document.getElementById('toggle-confirm');
+        
+        // Password strength elements
+        const strengthBars = [
+            document.getElementById('strength-1'),
+            document.getElementById('strength-2'),
+            document.getElementById('strength-3'),
+            document.getElementById('strength-4')
+        ];
+        const strengthText = document.getElementById('strength-text');
+        
+        // Requirement elements
+        const reqLength = document.getElementById('req-length');
+        const reqUpper = document.getElementById('req-upper');
+        const reqLower = document.getElementById('req-lower');
+        const reqNumber = document.getElementById('req-number');
+        
+        /**
+         * Show specific state
+         */
+        function showState(state) {
+            loaderState.style.display = 'none';
+            formState.style.display = 'none';
+            successState.style.display = 'none';
+            errorState.style.display = 'none';
+            
+            switch (state) {
+                case 'loader':
+                    loaderState.style.display = 'flex';
+                    break;
+                case 'form':
+                    formState.style.display = 'block';
+                    passwordInput.focus();
+                    break;
+                case 'success':
+                    successState.style.display = 'block';
+                    break;
+                case 'error':
+                    errorState.style.display = 'block';
+                    break;
+            }
+        }
+        
+        /**
+         * Check password requirements
+         */
+        function checkRequirements(password) {
+            const requirements = {
+                length: password.length >= 8,
+                upper: /[A-Z]/.test(password),
+                lower: /[a-z]/.test(password),
+                number: /[0-9]/.test(password)
+            };
+            
+            // Update requirement UI
+            updateRequirement(reqLength, requirements.length);
+            updateRequirement(reqUpper, requirements.upper);
+            updateRequirement(reqLower, requirements.lower);
+            updateRequirement(reqNumber, requirements.number);
+            
+            return requirements;
+        }
+        
+        /**
+         * Update requirement UI
+         */
+        function updateRequirement(element, valid) {
+            if (valid) {
+                element.classList.add('valid');
+                element.querySelector('.password-requirement-icon').textContent = '✓';
+            } else {
+                element.classList.remove('valid');
+                element.querySelector('.password-requirement-icon').textContent = '○';
+            }
+        }
+        
+        /**
+         * Calculate password strength (0-4)
+         */
+        function calculateStrength(password) {
+            let score = 0;
+            
+            if (password.length >= 8) score++;
+            if (password.length >= 12) score++;
+            if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+            if (/[0-9]/.test(password)) score++;
+            if (/[^A-Za-z0-9]/.test(password)) score++;
+            
+            return Math.min(score, 4);
+        }
+        
+        /**
+         * Update password strength UI
+         */
+        function updateStrengthUI(password) {
+            const strength = calculateStrength(password);
+            
+            const strengthLabels = ['', 'Faible', 'Moyen', 'Fort', 'Très fort'];
+            const strengthClasses = ['', 'weak', 'medium', 'strong', 'strong'];
+            
+            strengthBars.forEach((bar, index) => {
+                bar.className = 'password-strength-bar';
+                if (index < strength) {
+                    bar.classList.add(strengthClasses[strength]);
+                }
+            });
+            
+            strengthText.textContent = password ? strengthLabels[strength] : '';
+        }
+        
+        /**
+         * Validate password
+         */
+        function validatePassword(password) {
+            const reqs = checkRequirements(password);
+            return reqs.length && reqs.upper && reqs.lower && reqs.number;
+        }
+        
+        /**
+         * Show error
+         */
+        function showError(message) {
+            formError.textContent = message;
+            formError.style.display = 'block';
+        }
+        
+        /**
+         * Hide error
+         */
+        function hideError() {
+            formError.style.display = 'none';
+        }
+        
+        /**
+         * Show field error
+         */
+        function showFieldError(element, errorElement, message) {
+            element.classList.add('error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+        
+        /**
+         * Hide field error
+         */
+        function hideFieldError(element, errorElement) {
+            element.classList.remove('error');
+            errorElement.style.display = 'none';
+        }
+        
+        /**
+         * Set loading state
+         */
+        function setLoading(loading) {
+            submitBtn.disabled = loading;
+            if (loading) {
+                submitBtn.classList.add('loading');
+            } else {
+                submitBtn.classList.remove('loading');
+            }
+        }
+        
+        /**
+         * Toggle password visibility
+         */
+        function togglePasswordVisibility(input, button) {
+            const type = input.type === 'password' ? 'text' : 'password';
+            input.type = type;
+            
+            // Update icon (simplified - just change opacity)
+            button.style.opacity = type === 'text' ? '1' : '0.5';
+        }
+        
+        /**
+         * Update password
+         */
+        async function updatePassword(newPassword) {
+            setLoading(true);
+            hideError();
+            
+            try {
+                const { error } = await supabase.auth.updateUser({
+                    password: newPassword
+                });
+                
+                if (error) {
+                    console.error('Update error:', error);
+                    
+                    if (error.message.includes('session')) {
+                        showState('error');
+                    } else if (error.message.includes('same')) {
+                        showError('Le nouveau mot de passe doit être différent de l\'ancien.');
+                    } else {
+                        showError('Une erreur est survenue. Veuillez réessayer.');
+                    }
+                    return;
+                }
+                
+                // Success
+                console.log('✅ Password updated successfully');
+                showState('success');
+                
+                // Redirect after 3 seconds
+                setTimeout(() => {
+                    window.location.href = '../../index.html';
+                }, 3000);
+                
+            } catch (err) {
+                console.error('Unexpected error:', err);
+                
+                if (!navigator.onLine) {
+                    showError('Pas de connexion internet. Vérifiez votre réseau.');
+                } else {
+                    showError('Une erreur inattendue est survenue.');
+                }
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        /**
+         * Handle form submission
+         */
+        function handleSubmit(e) {
+            e.preventDefault();
+            
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+            
+            hideError();
+            hideFieldError(passwordInput, passwordError);
+            hideFieldError(confirmInput, confirmError);
+            
+            // Validate password
+            if (!validatePassword(password)) {
+                showFieldError(passwordInput, passwordError, 'Le mot de passe ne respecte pas les critères');
+                passwordInput.focus();
+                return;
+            }
+            
+            // Check confirmation
+            if (password !== confirm) {
+                showFieldError(confirmInput, confirmError, 'Les mots de passe ne correspondent pas');
+                confirmInput.focus();
+                return;
+            }
+            
+            // Update password
+            updatePassword(password);
+        }
+        
+        /**
+         * Handle password input
+         */
+        function handlePasswordInput() {
+            const password = passwordInput.value;
+            checkRequirements(password);
+            updateStrengthUI(password);
+            hideFieldError(passwordInput, passwordError);
+            hideError();
+        }
+        
+        /**
+         * Handle confirm input
+         */
+        function handleConfirmInput() {
+            hideFieldError(confirmInput, confirmError);
+            hideError();
+        }
+        
+        /**
+         * Check if user has valid recovery session
+         */
+        async function checkRecoverySession() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error || !session) {
+                    console.error('No valid session');
+                    showState('error');
+                    return;
+                }
+                
+                // Valid session - show form
+                console.log('✅ Valid recovery session');
+                showState('form');
+                
+            } catch (err) {
+                console.error('Session check error:', err);
+                showState('error');
+            }
+        }
+        
+        // Event listeners
+        updateForm.addEventListener('submit', handleSubmit);
+        passwordInput.addEventListener('input', handlePasswordInput);
+        confirmInput.addEventListener('input', handleConfirmInput);
+        
+        togglePassword.addEventListener('click', () => {
+            togglePasswordVisibility(passwordInput, togglePassword);
+        });
+        
+        toggleConfirm.addEventListener('click', () => {
+            togglePasswordVisibility(confirmInput, toggleConfirm);
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check network
+            if (!navigator.onLine) {
+                showState('error');
+                return;
+            }
+            
+            // Check recovery session
+            checkRecoverySession();
+        });
+    </script>
+</body>
+</html>

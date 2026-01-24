@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mot de passe oublié | REPZY</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../../css/auth.css">
+    
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Logo -->
+            <div class="auth-logo">
+                <div class="auth-logo-text">REP<span>ZY</span></div>
+            </div>
+            
+            <!-- Header -->
+            <div class="auth-header">
+                <h1 class="auth-title">Mot de passe oublié</h1>
+                <p class="auth-subtitle">Entrez votre email pour recevoir un lien de réinitialisation</p>
+            </div>
+            
+            <!-- Form state: idle -->
+            <form class="auth-form" id="reset-form">
+                <div class="input-group">
+                    <label class="input-label" for="email">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email"
+                        class="auth-input" 
+                        placeholder="votre@email.com"
+                        required
+                        autocomplete="email"
+                        autofocus
+                    >
+                    <span class="input-error" id="email-error" style="display: none;"></span>
+                </div>
+                
+                <button type="submit" class="auth-btn" id="submit-btn">
+                    Envoyer le lien
+                </button>
+            </form>
+            
+            <!-- Success state (hidden by default) -->
+            <div id="success-state" style="display: none;">
+                <div class="auth-message success">
+                    <strong>Email envoyé !</strong><br>
+                    Vérifiez votre boîte de réception et cliquez sur le lien pour réinitialiser votre mot de passe.
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 16px; text-align: center;">
+                    Vous n'avez pas reçu l'email ?<br>
+                    <a href="#" class="auth-link-primary" id="resend-link">Renvoyer</a>
+                </p>
+            </div>
+            
+            <!-- Error message (shown inline) -->
+            <div class="auth-message error" id="form-error" style="display: none; margin-top: 16px;"></div>
+            
+            <!-- Links -->
+            <div class="auth-links">
+                <a href="../../index.html" class="auth-link">← Retour à la connexion</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== RESET PASSWORD PAGE ====================
+        
+        // Configuration Supabase
+        const SUPABASE_URL = 'https://erszjvaajztewcukvwbj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyc3pqdmFhanp0ZXdjdWt2d2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODAzNjAsImV4cCI6MjA4NDU1NjM2MH0.jK2keM5VtaLkGR8kD2xhjEgqzmfymdNVmbw509ZO2t4';
+        
+        // Get the base URL for redirect
+        const baseUrl = window.location.origin;
+        const redirectUrl = baseUrl + '/auth/update-password/';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // DOM Elements
+        const resetForm = document.getElementById('reset-form');
+        const emailInput = document.getElementById('email');
+        const emailError = document.getElementById('email-error');
+        const submitBtn = document.getElementById('submit-btn');
+        const successState = document.getElementById('success-state');
+        const formError = document.getElementById('form-error');
+        const resendLink = document.getElementById('resend-link');
+        
+        // State
+        let lastEmail = '';
+        
+        /**
+         * Validate email format
+         */
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        /**
+         * Show error message
+         */
+        function showError(message) {
+            formError.textContent = message;
+            formError.style.display = 'block';
+        }
+        
+        /**
+         * Hide error message
+         */
+        function hideError() {
+            formError.style.display = 'none';
+        }
+        
+        /**
+         * Show field error
+         */
+        function showFieldError(message) {
+            emailInput.classList.add('error');
+            emailError.textContent = message;
+            emailError.style.display = 'block';
+        }
+        
+        /**
+         * Hide field error
+         */
+        function hideFieldError() {
+            emailInput.classList.remove('error');
+            emailError.style.display = 'none';
+        }
+        
+        /**
+         * Set button loading state
+         */
+        function setLoading(loading) {
+            submitBtn.disabled = loading;
+            if (loading) {
+                submitBtn.classList.add('loading');
+            } else {
+                submitBtn.classList.remove('loading');
+            }
+        }
+        
+        /**
+         * Show success state
+         */
+        function showSuccess() {
+            resetForm.style.display = 'none';
+            successState.style.display = 'block';
+            hideError();
+        }
+        
+        /**
+         * Send reset password email
+         */
+        async function sendResetEmail(email) {
+            setLoading(true);
+            hideError();
+            hideFieldError();
+            
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: redirectUrl
+                });
+                
+                if (error) {
+                    console.error('Reset error:', error);
+                    
+                    // Handle specific errors
+                    if (error.message.includes('rate limit')) {
+                        showError('Trop de tentatives. Veuillez patienter quelques minutes.');
+                    } else if (error.message.includes('not found') || error.message.includes('invalid')) {
+                        // Don't reveal if email exists for security
+                        showSuccess(); // Show success anyway
+                    } else {
+                        showError('Une erreur est survenue. Veuillez réessayer.');
+                    }
+                    return;
+                }
+                
+                // Success
+                lastEmail = email;
+                showSuccess();
+                console.log('✅ Reset email sent to:', email);
+                
+            } catch (err) {
+                console.error('Unexpected error:', err);
+                
+                if (!navigator.onLine) {
+                    showError('Pas de connexion internet. Vérifiez votre réseau.');
+                } else {
+                    showError('Une erreur inattendue est survenue.');
+                }
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        /**
+         * Handle form submission
+         */
+        function handleSubmit(e) {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            
+            // Validate
+            if (!email) {
+                showFieldError('Veuillez entrer votre email');
+                emailInput.focus();
+                return;
+            }
+            
+            if (!isValidEmail(email)) {
+                showFieldError('Format d\'email invalide');
+                emailInput.focus();
+                return;
+            }
+            
+            // Send reset email
+            sendResetEmail(email);
+        }
+        
+        /**
+         * Handle resend link click
+         */
+        function handleResend(e) {
+            e.preventDefault();
+            
+            if (lastEmail) {
+                successState.style.display = 'none';
+                resetForm.style.display = 'flex';
+                emailInput.value = lastEmail;
+                sendResetEmail(lastEmail);
+            }
+        }
+        
+        /**
+         * Clear field error on input
+         */
+        function handleInput() {
+            hideFieldError();
+            hideError();
+        }
+        
+        // Event listeners
+        resetForm.addEventListener('submit', handleSubmit);
+        emailInput.addEventListener('input', handleInput);
+        resendLink.addEventListener('click', handleResend);
+        
+        // Auto-focus email input
+        document.addEventListener('DOMContentLoaded', () => {
+            emailInput.focus();
+        });
+    </script>
+</body>
+</html>

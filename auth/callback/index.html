@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Connexion... | REPZY</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../../css/auth.css">
+    
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Logo -->
+            <div class="auth-logo">
+                <div class="auth-logo-text">REP<span>ZY</span></div>
+            </div>
+            
+            <!-- Loader -->
+            <div class="auth-loader-container" id="loader">
+                <div class="auth-loader"></div>
+                <p class="auth-loader-text">Connexion en cours...</p>
+            </div>
+            
+            <!-- Error state (hidden by default) -->
+            <div id="error-state" style="display: none;">
+                <div class="auth-message error" id="error-message">
+                    Une erreur est survenue
+                </div>
+                <div class="auth-links" style="margin-top: 24px;">
+                    <a href="../../index.html" class="auth-link">Retour à l'accueil</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== AUTH CALLBACK HANDLER ====================
+        
+        // Configuration Supabase
+        const SUPABASE_URL = 'https://erszjvaajztewcukvwbj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyc3pqdmFhanp0ZXdjdWt2d2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODAzNjAsImV4cCI6MjA4NDU1NjM2MH0.jK2keM5VtaLkGR8kD2xhjEgqzmfymdNVmbw509ZO2t4';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // DOM Elements
+        const loader = document.getElementById('loader');
+        const errorState = document.getElementById('error-state');
+        const errorMessage = document.getElementById('error-message');
+        
+        /**
+         * Show error state
+         */
+        function showError(message) {
+            loader.style.display = 'none';
+            errorState.style.display = 'block';
+            errorMessage.textContent = message;
+        }
+        
+        /**
+         * Check if user is new (first login)
+         */
+        function isNewUser(user) {
+            if (!user) return false;
+            
+            // Compare created_at and last_sign_in_at
+            // If they're very close (within 10 seconds), it's a new user
+            const createdAt = new Date(user.created_at).getTime();
+            const lastSignIn = new Date(user.last_sign_in_at).getTime();
+            const diff = Math.abs(lastSignIn - createdAt);
+            
+            return diff < 10000; // 10 seconds threshold
+        }
+        
+        /**
+         * Redirect to main app
+         */
+        function redirectToApp(isNew = false) {
+            // Store new user flag in sessionStorage for wizard trigger
+            if (isNew) {
+                sessionStorage.setItem('repzy_new_user', 'true');
+            }
+            
+            // Redirect to main app
+            window.location.href = '../../index.html';
+        }
+        
+        /**
+         * Handle authentication callback
+         */
+        async function handleAuthCallback() {
+            try {
+                // Get current session
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('Session error:', error);
+                    showError('Erreur lors de la récupération de la session');
+                    return;
+                }
+                
+                if (!session) {
+                    // No session found, check URL for auth tokens
+                    // Supabase might still be processing the callback
+                    
+                    // Wait a moment and try again
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    const { data: { session: retrySession }, error: retryError } = await supabase.auth.getSession();
+                    
+                    if (retryError || !retrySession) {
+                        showError('Session invalide ou expirée');
+                        return;
+                    }
+                    
+                    // Success on retry
+                    const newUser = isNewUser(retrySession.user);
+                    console.log('✅ Auth callback successful (retry)', { newUser, email: retrySession.user.email });
+                    redirectToApp(newUser);
+                    return;
+                }
+                
+                // Session found
+                const newUser = isNewUser(session.user);
+                console.log('✅ Auth callback successful', { newUser, email: session.user.email });
+                redirectToApp(newUser);
+                
+            } catch (err) {
+                console.error('Callback error:', err);
+                showError('Une erreur inattendue est survenue');
+            }
+        }
+        
+        /**
+         * Handle network errors
+         */
+        function handleNetworkError() {
+            if (!navigator.onLine) {
+                showError('Pas de connexion internet. Vérifiez votre réseau.');
+            }
+        }
+        
+        // Listen for online/offline events
+        window.addEventListener('offline', handleNetworkError);
+        
+        // Start auth callback handling
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check network first
+            if (!navigator.onLine) {
+                handleNetworkError();
+                return;
+            }
+            
+            // Handle callback
+            handleAuthCallback();
+        });
+        
+        // Timeout fallback - redirect after 10 seconds even if something fails
+        setTimeout(() => {
+            if (loader.style.display !== 'none') {
+                console.warn('Callback timeout - redirecting anyway');
+                redirectToApp(false);
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

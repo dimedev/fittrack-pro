@@ -259,7 +259,7 @@ async function signInWithGoogle() {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin
+                redirectTo: window.location.origin + '/auth/callback/'
             }
         });
         
@@ -276,6 +276,44 @@ async function signOut() {
         showToast('Déconnecté', 'success');
     } catch (error) {
         showToast(error.message, 'error');
+    }
+}
+
+// Réinitialisation du mot de passe (envoi email)
+async function resetPassword(email) {
+    try {
+        const redirectUrl = window.location.origin + '/auth/update-password/';
+        
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: redirectUrl
+        });
+        
+        if (error) throw error;
+        
+        showToast('Email de réinitialisation envoyé !', 'success');
+        return { success: true };
+    } catch (error) {
+        console.error('Reset password error:', error);
+        showToast(error.message, 'error');
+        return { success: false, error: error.message };
+    }
+}
+
+// Mise à jour du mot de passe
+async function updatePassword(newPassword) {
+    try {
+        const { error } = await supabaseClient.auth.updateUser({
+            password: newPassword
+        });
+        
+        if (error) throw error;
+        
+        showToast('Mot de passe mis à jour !', 'success');
+        return { success: true };
+    } catch (error) {
+        console.error('Update password error:', error);
+        showToast(error.message, 'error');
+        return { success: false, error: error.message };
     }
 }
 
