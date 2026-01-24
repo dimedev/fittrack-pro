@@ -979,137 +979,61 @@
     }
 }
 
-/* ==================== PROFILE CARD SIMPLIFIED - PREMIUM ==================== */
+/* ==================== PROFILE CARD SIMPLIFIED ==================== */
 .profile-card-simplified {
     background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    overflow: hidden;
 }
 
 .profile-card-simplified .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 24px !important;
+    padding: 16px 20px !important;
     border-bottom: 1px solid var(--border-color);
-    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-card) 100%);
-}
-
-.profile-card-simplified .card-header .card-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.profile-card-simplified .card-header .card-title .icon {
-    font-size: 1.4rem;
 }
 
 .profile-summary-compact {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    padding: 20px 24px;
+    padding: 16px 0;
+}
+
+@media (max-width: 640px) {
+    .profile-summary-compact {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
 }
 
 .profile-stat-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     text-align: center;
-    padding: 16px 12px;
+    padding: 8px;
     background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg, 16px);
-    transition: all 0.2s ease;
-}
-
-.profile-stat-item:hover {
-    border-color: var(--accent-primary);
-    transform: translateY(-2px);
+    border-radius: var(--radius-md);
 }
 
 .profile-stat-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 600;
-    line-height: 1.2;
 }
 
 .profile-stat-value {
-    font-size: 1.15rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
-    line-height: 1.2;
 }
 
-/* Desktop large screens */
-@media (min-width: 1024px) {
-    .profile-summary-compact {
-        gap: 20px;
-        padding: 24px 28px;
-    }
-    
-    .profile-stat-item {
-        padding: 20px 16px;
-    }
-    
-    .profile-stat-value {
-        font-size: 1.25rem;
-    }
-    
-    .profile-stat-label {
-        font-size: 0.75rem;
-    }
-}
-
-/* Tablet */
-@media (max-width: 1023px) and (min-width: 641px) {
-    .profile-summary-compact {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-    }
-}
-
-/* Mobile */
 @media (max-width: 640px) {
-    .profile-card-simplified .card-header {
-        padding: 16px 16px !important;
-    }
-    
-    .profile-card-simplified .card-header .card-title {
-        font-size: 1rem;
-        gap: 10px;
-    }
-    
-    .profile-card-simplified .card-header .card-title .icon {
-        font-size: 1.2rem;
-    }
-    
-    .profile-summary-compact {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        padding: 16px;
-    }
-    
-    .profile-stat-item {
-        padding: 14px 10px;
-    }
-    
-    .profile-stat-item:hover {
-        transform: none;
-    }
-    
     .profile-stat-value {
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
     
     .profile-stat-label {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
     }
 }
 
@@ -1125,44 +1049,6 @@
     font-weight: 600;
     color: var(--text-primary);
     margin-top: 8px;
-}
-
-/* ==================== DASHBOARD SECTION TITLES - UNIFIED ==================== */
-.dashboard-section-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.2;
-}
-
-@media (max-width: 640px) {
-    .dashboard-section-title {
-        font-size: 0.8rem;
-    }
-}
-
-/* Apply unified style to existing title classes */
-.week-title,
-.readiness-title,
-.recovery-title,
-.today-session-label {
-    font-size: 0.85rem !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    color: var(--text-secondary) !important;
-}
-
-@media (max-width: 640px) {
-    .week-title,
-    .readiness-title,
-    .recovery-title,
-    .today-session-label {
-        font-size: 0.8rem !important;
-    }
 }
 
 /* ==================== TODAY SESSION CTA IMPROVED ==================== */

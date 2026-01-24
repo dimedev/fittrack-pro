@@ -641,9 +641,6 @@ function openExerciseSwapSheet(exerciseIndex) {
     sheet.classList.remove('animate-in');
     void sheet.offsetWidth;
     sheet.classList.add('animate-in');
-    
-    // Initialiser le swipe to dismiss
-    initSwapSheetSwipe();
 }
 
 /**
@@ -1805,83 +1802,4 @@ function closeExerciseInfo() {
         sheet.style.display = 'none';
         document.body.style.overflow = '';
     }
-}
-
-/**
- * Initialiser le swipe to dismiss pour la bottom sheet swap exercice
- */
-let swapSheetSwipeInitialized = false;
-let swapSwipeStartY = 0;
-let swapSwipeCurrentY = 0;
-let isSwapSwipeDragging = false;
-
-function initSwapSheetSwipe() {
-    if (swapSheetSwipeInitialized) return;
-    
-    const sheetContainer = document.querySelector('#swap-bottom-sheet .bottom-sheet');
-    const content = sheetContainer?.querySelector('.bottom-sheet-content');
-    
-    if (!sheetContainer || !content) return;
-    
-    // Zone de handle pour le swipe (header)
-    const header = sheetContainer.querySelector('.bottom-sheet-header');
-    
-    sheetContainer.addEventListener('touchstart', (e) => {
-        swapSwipeStartY = e.touches[0].clientY;
-        swapSwipeCurrentY = swapSwipeStartY;
-        
-        // Permettre le drag si on touche le header ou si on est en haut du scroll
-        const touchTarget = e.target;
-        const isOnHeader = header && header.contains(touchTarget);
-        const sectionsContainer = document.getElementById('swap-sections');
-        const searchResults = document.getElementById('swap-search-results');
-        const scrollableContent = sectionsContainer || searchResults;
-        
-        isSwapSwipeDragging = isOnHeader || (scrollableContent && scrollableContent.scrollTop === 0);
-    }, { passive: true });
-    
-    sheetContainer.addEventListener('touchmove', (e) => {
-        if (!isSwapSwipeDragging) return;
-        
-        swapSwipeCurrentY = e.touches[0].clientY;
-        const deltaY = swapSwipeCurrentY - swapSwipeStartY;
-        
-        // Uniquement si on swipe vers le bas
-        if (deltaY > 0) {
-            sheetContainer.classList.add('dragging');
-            sheetContainer.style.transform = `translateY(${deltaY}px)`;
-            // Empêcher le scroll du contenu pendant le drag
-            if (deltaY > 10) {
-                e.preventDefault();
-            }
-        }
-    }, { passive: false });
-    
-    sheetContainer.addEventListener('touchend', () => {
-        if (!isSwapSwipeDragging) return;
-        
-        const deltaY = swapSwipeCurrentY - swapSwipeStartY;
-        sheetContainer.classList.remove('dragging');
-        
-        // Si on a swipé plus de 100px vers le bas, on ferme
-        if (deltaY > 100) {
-            // Animation de fermeture vers le bas
-            sheetContainer.style.transition = 'transform 0.3s ease-out';
-            sheetContainer.style.transform = 'translateY(100%)';
-            setTimeout(() => {
-                closeBottomSheet();
-                sheetContainer.style.transform = '';
-                sheetContainer.style.transition = '';
-            }, 300);
-        } else {
-            // Sinon on revient en position
-            sheetContainer.style.transform = '';
-        }
-        
-        isSwapSwipeDragging = false;
-        swapSwipeStartY = 0;
-        swapSwipeCurrentY = 0;
-    }, { passive: true });
-    
-    swapSheetSwipeInitialized = true;
 }

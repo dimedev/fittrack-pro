@@ -9,9 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=16">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/session-manager.css?v=18">
-    <link rel="stylesheet" href="css/premium-components.css?v=20">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=24">
+    <link rel="stylesheet" href="css/session-manager.css?v=17">
+    <link rel="stylesheet" href="css/premium-components.css?v=19">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=23">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
 
 
@@ -279,7 +279,6 @@
 
                     <!-- Macros du jour - EN PREMIER -->
                     <div class="nutrition-macros-summary" style="margin-bottom: 20px;">
-                        <h4 class="dashboard-section-title" style="margin-bottom: 12px;">Macros du jour</h4>
                         <div id="journal-macros-bars" class="journal-macro-bars">
                             <div class="journal-macro-bar-item">
                                 <div class="journal-macro-bar-header">
@@ -320,9 +319,9 @@
                         </div>
                     </div>
 
-                    <!-- Menu du jour -->
+                    <!-- Journal du jour -->
                     <div class="nutrition-journal" style="margin-bottom: 20px;">
-                        <h4 class="dashboard-section-title" style="margin-bottom: 12px;">Menu du jour</h4>
+                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Journal du jour</h4>
                         <div id="journal-entries">
                             <div class="empty-state" style="padding: 30px;">
                                 <div class="empty-state-icon">📋</div>
@@ -347,11 +346,9 @@
                     </div>
 
                     <!-- Resultats recherche (apparait quand on tape) -->
-                    <div id="search-results-container" class="search-results-section" style="display: none; margin-bottom: 20px;">
-                        <h4 class="dashboard-section-title search-results-title" style="margin-bottom: 12px;">
-                            <span class="search-icon">🔍</span> Résultats de recherche
-                        </h4>
-                        <div id="search-results-list" class="search-results-list"></div>
+                    <div id="search-results-container" style="display: none; margin-bottom: 20px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Résultats de recherche</h4>
+                        <div id="search-results-list" style="max-height: 300px; overflow-y: auto;"></div>
                     </div>
                 </div>
 
@@ -1705,14 +1702,13 @@
             </div>
         </div>
 
-        <!-- Footer with Timer - Premium -->
+        <!-- Footer with Timer -->
         <div class="fs-footer">
             <div class="fs-timer" id="fs-timer">
-                <span class="fs-timer-label">Repos</span>
                 <span class="fs-timer-value" id="fs-timer-display">00:00</span>
                 <div class="fs-timer-controls">
-                    <button class="fs-timer-btn" onclick="adjustFsTimer(-15)">-15s</button>
                     <button class="fs-timer-btn" onclick="resetFsTimer()">↺</button>
+                    <button class="fs-timer-btn" onclick="adjustFsTimer(-15)">-15s</button>
                     <button class="fs-timer-btn" onclick="adjustFsTimer(15)">+15s</button>
                 </div>
             </div>
@@ -1757,7 +1753,7 @@
     <script src="js/modules/supabase.js?v=8"></script>
     <script src="js/modules/profile.js?v=22"></script>
     <script src="js/modules/nutrition.js?v=9"></script>
-    <script src="js/modules/training.js?v=14"></script>
+    <script src="js/modules/training.js?v=13"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=6"></script>
     <script src="js/modules/progress.js?v=20"></script>
