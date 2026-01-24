@@ -75,10 +75,22 @@
     overscroll-behavior-x: none !important;
     -webkit-overflow-scrolling: touch;
     max-width: 100vw !important;
+    width: 100% !important;
 }
 
 #nutrition * {
     max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+#nutrition .card,
+#nutrition .card-header,
+#nutrition .card-body,
+#nutrition .nutrition-macros-summary,
+#nutrition .journal-macro-bars {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 /* Cacher le titre dans la section nutrition (desktop et mobile) */
@@ -94,6 +106,15 @@
 /* ==================== MOBILE NUTRITION OPTIMIZATIONS ==================== */
 
 @media (max-width: 768px) {
+    /* Réduire l'espace en haut de la section nutrition */
+    #nutrition {
+        padding-top: 0 !important;
+    }
+    
+    #nutrition > .card:first-child {
+        margin-top: 0 !important;
+    }
+    
     /* Fix overflow des noms d'exercices dans les records */
     .pr-exercise-name,
     .preview-exercise-name {
