@@ -174,7 +174,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyc3pqdmFhanp0ZXdjdWt2d2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODAzNjAsImV4cCI6MjA4NDU1NjM2MH0.jK2keM5VtaLkGR8kD2xhjEgqzmfymdNVmbw509ZO2t4';
         
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // DOM Elements
         const loaderState = document.getElementById('loader-state');
@@ -372,7 +372,7 @@
             hideError();
             
             try {
-                const { error } = await supabase.auth.updateUser({
+                const { error } = await supabaseClient.auth.updateUser({
                     password: newPassword
                 });
                 
@@ -466,7 +466,7 @@
          */
         async function checkRecoverySession() {
             try {
-                const { data: { session }, error } = await supabase.auth.getSession();
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
                 
                 if (error || !session) {
                     console.error('No valid session');

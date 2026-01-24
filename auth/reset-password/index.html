@@ -91,7 +91,7 @@
         const redirectUrl = baseUrl + '/auth/update-password/';
         
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // DOM Elements
         const resetForm = document.getElementById('reset-form');
@@ -175,7 +175,7 @@
             hideFieldError();
             
             try {
-                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
                     redirectTo: redirectUrl
                 });
                 

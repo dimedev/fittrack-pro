@@ -54,7 +54,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyc3pqdmFhanp0ZXdjdWt2d2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODAzNjAsImV4cCI6MjA4NDU1NjM2MH0.jK2keM5VtaLkGR8kD2xhjEgqzmfymdNVmbw509ZO2t4';
         
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // DOM Elements
         const loader = document.getElementById('loader');
@@ -98,50 +98,23 @@
             window.location.href = '../../index.html';
         }
         
+        // Track if we've already handled the auth
+        let authHandled = false;
+        
         /**
-         * Handle authentication callback
+         * Handle successful authentication
          */
-        async function handleAuthCallback() {
-            try {
-                // Get current session
-                const { data: { session }, error } = await supabase.auth.getSession();
-                
-                if (error) {
-                    console.error('Session error:', error);
-                    showError('Erreur lors de la récupération de la session');
-                    return;
-                }
-                
-                if (!session) {
-                    // No session found, check URL for auth tokens
-                    // Supabase might still be processing the callback
-                    
-                    // Wait a moment and try again
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    const { data: { session: retrySession }, error: retryError } = await supabase.auth.getSession();
-                    
-                    if (retryError || !retrySession) {
-                        showError('Session invalide ou expirée');
-                        return;
-                    }
-                    
-                    // Success on retry
-                    const newUser = isNewUser(retrySession.user);
-                    console.log('✅ Auth callback successful (retry)', { newUser, email: retrySession.user.email });
-                    redirectToApp(newUser);
-                    return;
-                }
-                
-                // Session found
-                const newUser = isNewUser(session.user);
-                console.log('✅ Auth callback successful', { newUser, email: session.user.email });
-                redirectToApp(newUser);
-                
-            } catch (err) {
-                console.error('Callback error:', err);
-                showError('Une erreur inattendue est survenue');
-            }
+        function handleAuthSuccess(session) {
+            if (authHandled) return;
+            authHandled = true;
+            
+            const newUser = isNewUser(session.user);
+            console.log('✅ Auth callback successful', { 
+                newUser, 
+                email: session.user.email,
+                provider: session.user.app_metadata?.provider 
+            });
+            redirectToApp(newUser);
         }
         
         /**
@@ -153,28 +126,69 @@
             }
         }
         
-        // Listen for online/offline events
-        window.addEventListener('offline', handleNetworkError);
+        // Listen for auth state changes (this is the reliable way for OAuth)
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('Auth event:', event, session ? 'has session' : 'no session');
+            
+            if (event === 'SIGNED_IN' && session) {
+                handleAuthSuccess(session);
+            } else if (event === 'TOKEN_REFRESHED' && session) {
+                handleAuthSuccess(session);
+            } else if (event === 'SIGNED_OUT') {
+                showError('Session expirée. Veuillez vous reconnecter.');
+            }
+        });
         
-        // Start auth callback handling
-        document.addEventListener('DOMContentLoaded', () => {
+        // Also check for existing session on load
+        document.addEventListener('DOMContentLoaded', async () => {
             // Check network first
             if (!navigator.onLine) {
                 handleNetworkError();
                 return;
             }
             
-            // Handle callback
-            handleAuthCallback();
+            // Check if URL has hash with tokens (OAuth callback)
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const hasAuthTokens = hashParams.has('access_token') || hashParams.has('error');
+            
+            if (hasAuthTokens) {
+                // Let Supabase handle the hash - onAuthStateChange will fire
+                console.log('OAuth tokens detected in URL, waiting for Supabase...');
+                return;
+            }
+            
+            // No hash tokens, check for existing session
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                
+                if (error) {
+                    console.error('Session error:', error);
+                    showError('Erreur lors de la récupération de la session');
+                    return;
+                }
+                
+                if (session) {
+                    handleAuthSuccess(session);
+                } else {
+                    // No session and no tokens - invalid state
+                    showError('Session invalide ou expirée');
+                }
+            } catch (err) {
+                console.error('Callback error:', err);
+                showError('Une erreur inattendue est survenue');
+            }
         });
         
-        // Timeout fallback - redirect after 10 seconds even if something fails
+        // Listen for online/offline events
+        window.addEventListener('offline', handleNetworkError);
+        
+        // Timeout fallback - redirect after 8 seconds even if something fails
         setTimeout(() => {
-            if (loader.style.display !== 'none') {
+            if (!authHandled && loader.style.display !== 'none') {
                 console.warn('Callback timeout - redirecting anyway');
                 redirectToApp(false);
             }
-        }, 10000);
+        }, 8000);
     </script>
 </body>
 </html>
