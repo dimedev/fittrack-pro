@@ -100,20 +100,77 @@ function setupNavigation() {
 }
 
 function navigateToSection(sectionId) {
+    // Ordre des sections pour les animations directionnelles
+    const sectionOrder = ['progression', 'dashboard', 'training', 'nutrition'];
+    
+    // Déterminer la direction de l'animation
+    const currentIndex = sectionOrder.indexOf(currentSection);
+    const targetIndex = sectionOrder.indexOf(sectionId);
+    const direction = targetIndex > currentIndex ? 'right' : 'left';
+    
     // Mettre à jour les onglets
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.mobile-nav-item').forEach(t => t.classList.remove('active'));
     document.querySelectorAll(`[data-section="${sectionId}"]`).forEach(t => t.classList.add('active'));
     
-    // Afficher la section
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById(sectionId).classList.add('active');
+    // Déplacer l'indicateur du menu mobile
+    updateMobileNavIndicator(sectionId);
+    
+    // Afficher la section avec animation directionnelle
+    document.querySelectorAll('.section').forEach(s => {
+        s.classList.remove('active', 'slide-left', 'slide-right');
+    });
+    
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+        // Appliquer l'animation uniquement si on change de section
+        if (currentSection && currentSection !== sectionId) {
+            targetSection.classList.add(`slide-${direction}`);
+        }
+    }
     
     // Mettre à jour la section actuelle
     currentSection = sectionId;
     
     // Scroll en haut
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * Déplace l'indicateur du menu mobile vers l'onglet actif
+ */
+function updateMobileNavIndicator(sectionId) {
+    const indicator = document.querySelector('.mobile-nav-indicator');
+    if (!indicator) return;
+    
+    // Mapping des sections vers leur index dans le menu mobile
+    // Ordre dans le HTML: dashboard, nutrition, training, progress
+    const navOrder = {
+        'dashboard': 0,
+        'nutrition': 1,
+        'training': 2,
+        'progress': 3,
+        'progression': 3 // Alias pour progress
+    };
+    
+    const index = navOrder[sectionId];
+    if (index !== undefined) {
+        // Chaque onglet fait 25% de la largeur (4 onglets)
+        const translateX = index * 100;
+        indicator.style.transform = `translateX(${translateX}%)`;
+    }
+}
+
+/**
+ * Initialiser la position de l'indicateur au chargement
+ */
+function initMobileNavIndicator() {
+    const activeItem = document.querySelector('.mobile-nav-item.active');
+    if (activeItem) {
+        const sectionId = activeItem.dataset.section;
+        updateMobileNavIndicator(sectionId);
+    }
 }
 
 // Tabs internes
@@ -331,6 +388,9 @@ function initUI() {
     setupNavigation();
     setupTabs();
     setupModals();
+    
+    // Initialiser la position de l'indicateur du menu mobile
+    initMobileNavIndicator();
     
     // Mettre à jour le sélecteur de jours (legacy - peut ne plus exister)
     const trainingDaysSelect = document.getElementById('training-days');

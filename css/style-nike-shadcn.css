@@ -335,9 +335,28 @@ h1, h2, h3, h4, h5, h6 {
     animation: fadeIn var(--transition-base) ease-out;
 }
 
+/* Animations directionnelles pour navigation */
+.section.slide-right {
+    animation: slideInRight 0.25s ease-out;
+}
+
+.section.slide-left {
+    animation: slideInLeft 0.25s ease-out;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 /* ==================== SKELETON LOADERS ==================== */
@@ -2368,6 +2387,19 @@ h1, h2, h3, h4, h5, h6 {
 .mobile-nav-items {
     display: flex;
     justify-content: space-around;
+    position: relative;
+}
+
+/* Indicateur actif anime */
+.mobile-nav-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: var(--accent-primary);
+    border-radius: 3px 3px 0 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 25%;
 }
 
 .mobile-nav-item {
@@ -2382,6 +2414,8 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.6875rem;
     cursor: pointer;
     transition: color var(--transition-fast);
+    flex: 1;
+    position: relative;
 }
 
 .mobile-nav-item svg {
