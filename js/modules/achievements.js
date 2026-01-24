@@ -265,6 +265,11 @@
         if (newlyUnlocked.length > 0) {
             state.unlockedAchievements = unlocked.map(a => a.id);
             saveState();
+            
+            // Sync avec Supabase
+            if (typeof saveTrainingSettingsToSupabase === 'function') {
+                saveTrainingSettingsToSupabase();
+            }
         }
 
         return { unlocked, locked, newlyUnlocked, data };

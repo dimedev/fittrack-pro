@@ -444,17 +444,29 @@ async function loadAllDataFromSupabase() {
             if (trainingSettings.session_templates) {
                 state.sessionTemplates = trainingSettings.session_templates;
             }
+            // Charger goals et streak
+            if (trainingSettings.goals) {
+                state.goals = trainingSettings.goals;
+            }
+            // Charger le log de poids corporel
+            if (trainingSettings.body_weight_log) {
+                state.bodyWeightLog = trainingSettings.body_weight_log;
+            }
+            // Charger les achievements débloqués
+            if (trainingSettings.unlocked_achievements) {
+                state.unlockedAchievements = trainingSettings.unlocked_achievements;
+            }
         }
         
-        // Charger le journal alimentaire (7 derniers jours)
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        // Charger le journal alimentaire (30 derniers jours pour historique complet)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
         const { data: journal } = await supabaseClient
             .from('food_journal')
             .select('*')
             .eq('user_id', currentUser.id)
-            .gte('date', sevenDaysAgo.toISOString().split('T')[0]);
+            .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
         
         if (journal) {
             state.foodJournal = {};
@@ -787,6 +799,9 @@ async function saveTrainingSettingsToSupabase() {
                 wizard_results: state.wizardResults || null,
                 training_progress: state.trainingProgress || null,
                 session_templates: state.sessionTemplates || null,
+                goals: state.goals || null,
+                body_weight_log: state.bodyWeightLog || null,
+                unlocked_achievements: state.unlockedAchievements || null,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' });
         

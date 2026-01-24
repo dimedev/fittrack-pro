@@ -88,6 +88,7 @@ function loadSessionDayV2() {
                     </div>
                 </div>
                 <div class="exercise-card-body">
+                    ${typeof SmartTraining !== 'undefined' ? SmartTraining.renderWeightSuggestion(exercise.effectiveName, parseInt(exercise.targetReps)) : ''}
                     <div class="sets-header">
                         <span>#</span>
                         <span>Poids</span>
@@ -248,6 +249,8 @@ function handleSetComplete(exerciseId, setId, btn) {
     // Auto-remplir les reps si vide
     const row = btn.closest('.set-row');
     const repsInput = row.querySelector('.set-reps');
+    const weightInput = row.querySelector('.set-weight');
+    
     if (!wasChecked && !repsInput.value) {
         repsInput.value = repsInput.placeholder;
         SessionManager.updateSet(exerciseId, setId, { reps: parseInt(repsInput.placeholder) || 0 });
@@ -258,8 +261,29 @@ function handleSetComplete(exerciseId, setId, btn) {
     // Mettre à jour les stats
     renderSessionStats();
     
-    // Déclencher le timer auto
+    // Audio Feedback pour set validé
     if (!wasChecked) {
+        if (typeof AudioFeedback !== 'undefined') {
+            // Vérifier si c'est un nouveau PR
+            const exerciseCard = btn.closest('.exercise-card');
+            const exerciseName = exerciseCard?.dataset?.exercise;
+            const weight = parseFloat(weightInput?.value) || 0;
+            const reps = parseInt(repsInput?.value) || 0;
+            
+            if (exerciseName && weight > 0 && reps > 0 && typeof checkForNewPR === 'function') {
+                const prResult = checkForNewPR(exerciseName, weight, reps);
+                if (prResult && prResult.isNewPR) {
+                    AudioFeedback.playNewPR();
+                    showToast('🏆 Nouveau PR !', 'success');
+                } else {
+                    AudioFeedback.playSetComplete();
+                }
+            } else {
+                AudioFeedback.playSetComplete();
+            }
+        }
+        
+        // Déclencher le timer auto
         const exerciseCard = btn.closest('.exercise-card');
         if (exerciseCard && typeof startAutoTimer === 'function') {
             const exerciseName = exerciseCard.dataset.exercise;

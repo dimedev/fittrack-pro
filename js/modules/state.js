@@ -25,7 +25,14 @@ let state = {
     },
     
     // Templates de séances personnalisés par slot
-    sessionTemplates: {} // Clé: "programId-splitIndex" -> { splitIndex, splitName, exercises[], savedAt }
+    sessionTemplates: {}, // Clé: "programId-splitIndex" -> { splitIndex, splitName, exercises[], savedAt }
+    
+    // Objectifs et tracking (SYNCED avec Supabase)
+    goals: null, // { type, target, deadline, startDate, startWeight, currentStreak, longestStreak, weeklyProgress }
+    bodyWeightLog: [], // [{ date, weight }]
+    
+    // Achievements débloqués (SYNCED avec Supabase)
+    unlockedAchievements: [] // [achievementId, ...]
 };
 
 // Charger l'état depuis localStorage

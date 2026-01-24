@@ -326,6 +326,131 @@ function updateQuickSummary() {
         const currentStreak = state.goals?.currentStreak || 0;
         streakEl.textContent = currentStreak;
     }
+    
+    // Update Readiness Score
+    updateReadinessScore();
+}
+
+// ==================== DAILY READINESS SCORE ====================
+function calculateReadinessScore() {
+    let score = 0;
+    let details = {
+        nutrition: 0,
+        recovery: 0,
+        streak: 0
+    };
+    
+    // Nutrition (40%) - macros atteints
+    if (state.profile && state.profile.targetCalories) {
+        const consumed = calculateConsumedMacros();
+        if (consumed) {
+            const caloriePercent = Math.min(100, (consumed.calories / state.profile.targetCalories) * 100);
+            const proteinPercent = state.profile.macros?.protein 
+                ? Math.min(100, (consumed.protein / state.profile.macros.protein) * 100)
+                : 0;
+            
+            // Pénaliser si trop au-dessus des objectifs
+            const nutritionScore = caloriePercent > 120 ? Math.max(0, 100 - (caloriePercent - 120)) : caloriePercent;
+            details.nutrition = Math.round((nutritionScore + proteinPercent) / 2);
+        }
+    }
+    
+    // Recovery (40%) - récupération musculaire moyenne
+    if (typeof SmartTraining !== 'undefined') {
+        const recovery = SmartTraining.calculateMuscleRecovery();
+        const recoveryValues = Object.values(recovery)
+            .filter(r => r.lastWorked !== null)
+            .map(r => r.recovery);
+        
+        if (recoveryValues.length > 0) {
+            details.recovery = Math.round(recoveryValues.reduce((a, b) => a + b, 0) / recoveryValues.length);
+        } else {
+            details.recovery = 100; // Pas d'entraînement récent = bien récupéré
+        }
+    } else {
+        details.recovery = 80; // Valeur par défaut
+    }
+    
+    // Streak (20%) - bonus pour la constance
+    const currentStreak = state.goals?.currentStreak || 0;
+    details.streak = Math.min(100, currentStreak * 10); // Max 100 à 10 jours de streak
+    
+    // Calcul du score final pondéré
+    score = Math.round(
+        (details.nutrition * 0.4) +
+        (details.recovery * 0.4) +
+        (details.streak * 0.2)
+    );
+    
+    return {
+        score: Math.min(100, Math.max(0, score)),
+        details: details,
+        status: score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'moderate' : 'low'
+    };
+}
+
+function updateReadinessScore() {
+    const container = document.getElementById('readiness-score-container');
+    if (!container) return;
+    
+    const { score, details, status } = calculateReadinessScore();
+    
+    const statusColors = {
+        excellent: 'var(--success)',
+        good: 'var(--success)',
+        moderate: 'var(--warning)',
+        low: 'var(--danger)'
+    };
+    
+    const statusLabels = {
+        excellent: 'Excellent',
+        good: 'Bon',
+        moderate: 'Moyen',
+        low: 'Faible'
+    };
+    
+    container.innerHTML = `
+        <div class="readiness-card">
+            <div class="readiness-header">
+                <span class="readiness-title">Score de Préparation</span>
+                <span class="readiness-status" style="color: ${statusColors[status]}">${statusLabels[status]}</span>
+            </div>
+            <div class="readiness-score-display">
+                <div class="readiness-ring">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="readiness-ring-bg" cx="50" cy="50" r="42" />
+                        <circle class="readiness-ring-fill" cx="50" cy="50" r="42" 
+                                style="stroke: ${statusColors[status]}; 
+                                       stroke-dasharray: ${score * 2.64} 264" />
+                    </svg>
+                    <div class="readiness-score-value">${score}</div>
+                </div>
+            </div>
+            <div class="readiness-details">
+                <div class="readiness-detail">
+                    <span class="detail-label">Nutrition</span>
+                    <div class="detail-bar">
+                        <div class="detail-bar-fill" style="width: ${details.nutrition}%"></div>
+                    </div>
+                    <span class="detail-value">${details.nutrition}%</span>
+                </div>
+                <div class="readiness-detail">
+                    <span class="detail-label">Récupération</span>
+                    <div class="detail-bar">
+                        <div class="detail-bar-fill" style="width: ${details.recovery}%"></div>
+                    </div>
+                    <span class="detail-value">${details.recovery}%</span>
+                </div>
+                <div class="readiness-detail">
+                    <span class="detail-label">Constance</span>
+                    <div class="detail-bar">
+                        <div class="detail-bar-fill" style="width: ${details.streak}%"></div>
+                    </div>
+                    <span class="detail-value">${details.streak}%</span>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function updateMacroBars() {

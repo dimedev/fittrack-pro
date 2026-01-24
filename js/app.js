@@ -190,6 +190,14 @@ function init() {
             initProgressSection();
         }
         
+        // Initialiser Smart Training (Recovery Widget)
+        if (typeof SmartTraining !== 'undefined') {
+            const recoveryContainer = document.getElementById('muscle-recovery-container');
+            if (recoveryContainer) {
+                recoveryContainer.innerHTML = SmartTraining.renderMuscleRecoveryWidget();
+            }
+        }
+        
         // Initialiser les photos de progression
         if (typeof renderPhotosGallery === 'function') {
             renderPhotosGallery();

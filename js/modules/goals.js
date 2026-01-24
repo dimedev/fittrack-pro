@@ -81,9 +81,13 @@ function logBodyWeight(weight, date = null) {
     
     saveState();
     
-    // Sync Supabase
-    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-        saveBodyWeightToSupabase(date, weight);
+    // Sync Supabase (bodyWeightLog est inclus dans training_settings)
+    if (typeof saveTrainingSettingsToSupabase === 'function') {
+        saveTrainingSettingsToSupabase();
+    }
+    // Sync profil aussi
+    if (typeof saveProfileToSupabase === 'function' && state.profile) {
+        saveProfileToSupabase(state.profile);
     }
     
     // Mettre à jour les graphiques
@@ -159,6 +163,12 @@ function setGoal(type, targetValue, weeks) {
     }
     
     saveState();
+    
+    // Sync avec Supabase
+    if (typeof saveTrainingSettingsToSupabase === 'function') {
+        saveTrainingSettingsToSupabase();
+    }
+    
     renderGoalCard();
     updateDashboard();
     showToast('Objectif défini ! 🎯', 'success');
@@ -253,6 +263,11 @@ function updateStreak() {
     }
     
     saveState();
+    
+    // Sync avec Supabase
+    if (typeof saveTrainingSettingsToSupabase === 'function') {
+        saveTrainingSettingsToSupabase();
+    }
 }
 
 // ==================== RECOMMANDATIONS INTELLIGENTES ====================

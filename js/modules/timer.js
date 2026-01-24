@@ -272,6 +272,11 @@ function showTimerFinishedNotification() {
         }, 2000);
     }
 
+    // Audio feedback
+    if (typeof AudioFeedback !== 'undefined') {
+        AudioFeedback.playTimerEnd();
+    }
+
     showToast('⏱️ Repos terminé ! Prêt pour la série suivante', 'success');
 }
 

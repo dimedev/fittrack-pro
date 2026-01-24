@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=16">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/session-manager.css?v=16">
-    <link rel="stylesheet" href="css/premium-components.css?v=17">
+    <link rel="stylesheet" href="css/premium-components.css?v=18">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=23">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
 
@@ -100,6 +100,16 @@
                             <span class="quick-stat-value" id="quick-streak">0</span>
                             <span class="quick-stat-label">jours de série</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Readiness Score & Recovery - NEW PREMIUM FEATURES -->
+                <div class="dashboard-smart-grid" style="margin-top: 16px;">
+                    <div id="readiness-score-container">
+                        <!-- Rempli par updateReadinessScore() -->
+                    </div>
+                    <div id="muscle-recovery-container">
+                        <!-- Rempli par SmartTraining.renderMuscleRecoveryWidget() -->
                     </div>
                 </div>
 
@@ -1696,21 +1706,23 @@
     <script src="js/data/foods.js?v=5"></script>
     <script src="js/data/exercises.js?v=9"></script>
     <script src="js/data/programs.js?v=5"></script>
-    <script src="js/modules/state.js?v=5"></script>
-    <script src="js/modules/supabase.js?v=6"></script>
-    <script src="js/modules/profile.js?v=20"></script>
+    <script src="js/modules/state.js?v=6"></script>
+    <script src="js/modules/supabase.js?v=7"></script>
+    <script src="js/modules/profile.js?v=21"></script>
     <script src="js/modules/nutrition.js?v=9"></script>
     <script src="js/modules/training.js?v=12"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
-    <script src="js/modules/session-ui.js?v=5"></script>
+    <script src="js/modules/session-ui.js?v=6"></script>
     <script src="js/modules/progress.js?v=20"></script>
-    <script src="js/modules/achievements.js?v=1"></script>
-    <script src="js/modules/timer.js?v=5"></script>
+    <script src="js/modules/achievements.js?v=2"></script>
+    <script src="js/modules/smart-training.js?v=1"></script>
+    <script src="js/modules/audio-feedback.js?v=1"></script>
+    <script src="js/modules/timer.js?v=6"></script>
     <script src="js/modules/ui.js?v=12"></script>
-    <script src="js/modules/goals.js?v=5"></script>
+    <script src="js/modules/goals.js?v=6"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=5"></script>
     <script src="js/modules/mobile-gestures.js?v=11"></script>
-    <script src="js/app.js?v=22"></script>
+    <script src="js/app.js?v=23"></script>
 </body>
 </html>
