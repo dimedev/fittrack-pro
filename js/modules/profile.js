@@ -55,6 +55,7 @@ function calculateMacros(targetCalories, weight, goal) {
 
 function openProfileModal() {
     if (state.profile) {
+        document.getElementById('profile-pseudo').value = state.profile.pseudo || '';
         document.getElementById('profile-age').value = state.profile.age || '';
         document.getElementById('profile-gender').value = state.profile.gender || 'male';
         document.getElementById('profile-weight').value = state.profile.weight || '';
@@ -76,6 +77,7 @@ async function saveProfile() {
     
     try {
         const profile = {
+            pseudo: document.getElementById('profile-pseudo').value.trim() || null,
             age: parseInt(document.getElementById('profile-age').value),
             gender: document.getElementById('profile-gender').value,
             weight: parseFloat(document.getElementById('profile-weight').value),
@@ -290,7 +292,7 @@ function updateQuickSummary() {
     
     if (!greetingEl) return;
     
-    // Greeting based on time of day
+    // Greeting based on time of day + pseudo
     const hour = new Date().getHours();
     let greeting = 'Bienvenue';
     if (hour >= 5 && hour < 12) greeting = 'Bonjour';
@@ -298,7 +300,8 @@ function updateQuickSummary() {
     else if (hour >= 18 && hour < 22) greeting = 'Bonsoir';
     else greeting = 'Bonne nuit';
     
-    greetingEl.textContent = greeting + ' 👋';
+    const pseudo = state.profile?.pseudo;
+    greetingEl.textContent = pseudo ? `${greeting}, ${pseudo} 👋` : `${greeting} 👋`;
     
     // Calories remaining
     if (state.profile && state.profile.targetCalories) {
@@ -333,17 +336,20 @@ function updateQuickSummary() {
 
 // ==================== DAILY READINESS SCORE ====================
 function calculateReadinessScore() {
-    let score = 0;
     let details = {
         nutrition: 0,
-        recovery: 0,
+        recovery: 100,
         streak: 0
     };
+    
+    // Vérifier si nouvel utilisateur (pas de sessions)
+    const isNewUser = !state.sessionHistory || state.sessionHistory.length === 0;
+    const hasEatenToday = state.foodJournal && state.foodJournal[new Date().toISOString().split('T')[0]]?.length > 0;
     
     // Nutrition (40%) - macros atteints
     if (state.profile && state.profile.targetCalories) {
         const consumed = calculateConsumedMacros();
-        if (consumed) {
+        if (consumed && consumed.calories > 0) {
             const caloriePercent = Math.min(100, (consumed.calories / state.profile.targetCalories) * 100);
             const proteinPercent = state.profile.macros?.protein 
                 ? Math.min(100, (consumed.protein / state.profile.macros.protein) * 100)
@@ -352,7 +358,12 @@ function calculateReadinessScore() {
             // Pénaliser si trop au-dessus des objectifs
             const nutritionScore = caloriePercent > 120 ? Math.max(0, 100 - (caloriePercent - 120)) : caloriePercent;
             details.nutrition = Math.round((nutritionScore + proteinPercent) / 2);
+        } else if (isNewUser) {
+            // Nouvel utilisateur sans repas = neutre, pas pénalisé
+            details.nutrition = 50;
         }
+    } else if (isNewUser) {
+        details.nutrition = 50;
     }
     
     // Recovery (40%) - récupération musculaire moyenne
@@ -367,25 +378,33 @@ function calculateReadinessScore() {
         } else {
             details.recovery = 100; // Pas d'entraînement récent = bien récupéré
         }
-    } else {
-        details.recovery = 80; // Valeur par défaut
     }
     
     // Streak (20%) - bonus pour la constance
     const currentStreak = state.goals?.currentStreak || 0;
-    details.streak = Math.min(100, currentStreak * 10); // Max 100 à 10 jours de streak
+    if (currentStreak > 0) {
+        details.streak = Math.min(100, currentStreak * 15); // Plus rapide à monter
+    } else if (isNewUser) {
+        details.streak = 50; // Neutre pour nouveaux utilisateurs
+    }
     
     // Calcul du score final pondéré
-    score = Math.round(
+    let score = Math.round(
         (details.nutrition * 0.4) +
         (details.recovery * 0.4) +
         (details.streak * 0.2)
     );
     
+    // Boost pour nouveaux utilisateurs prêts à commencer
+    if (isNewUser && details.recovery === 100) {
+        score = Math.max(score, 70); // Minimum 70 pour nouveaux users bien reposés
+    }
+    
     return {
         score: Math.min(100, Math.max(0, score)),
         details: details,
-        status: score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'moderate' : 'low'
+        status: score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'moderate' : 'low',
+        isNewUser: isNewUser
     };
 }
 
@@ -393,7 +412,7 @@ function updateReadinessScore() {
     const container = document.getElementById('readiness-score-container');
     if (!container) return;
     
-    const { score, details, status } = calculateReadinessScore();
+    const { score, details, status, isNewUser } = calculateReadinessScore();
     
     const statusColors = {
         excellent: 'var(--success)',
@@ -409,10 +428,24 @@ function updateReadinessScore() {
         low: 'Faible'
     };
     
+    // Message contextuel
+    let message = '';
+    if (isNewUser) {
+        message = 'Prêt à commencer ! Loguez repas et séances pour un score précis.';
+    } else if (score >= 80) {
+        message = 'Tu es en forme, fonce !';
+    } else if (score >= 60) {
+        message = 'Bonne forme générale';
+    } else if (details.recovery < 70) {
+        message = 'Repos conseillé pour certains muscles';
+    } else if (details.nutrition < 50) {
+        message = 'Pense à manger pour performer';
+    }
+    
     container.innerHTML = `
-        <div class="readiness-card">
+        <div class="readiness-card ${isNewUser ? 'new-user' : ''}">
             <div class="readiness-header">
-                <span class="readiness-title">Score de Préparation</span>
+                <span class="readiness-title">Préparation</span>
                 <span class="readiness-status" style="color: ${statusColors[status]}">${statusLabels[status]}</span>
             </div>
             <div class="readiness-score-display">
@@ -426,6 +459,7 @@ function updateReadinessScore() {
                     <div class="readiness-score-value">${score}</div>
                 </div>
             </div>
+            ${message ? `<div class="readiness-message">${message}</div>` : ''}
             <div class="readiness-details">
                 <div class="readiness-detail">
                     <span class="detail-label">Nutrition</span>

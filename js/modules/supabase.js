@@ -338,6 +338,7 @@ async function loadAllDataFromSupabase() {
         
         if (profile) {
             state.profile = {
+                pseudo: profile.pseudo || null,
                 age: profile.age,
                 gender: profile.gender,
                 weight: parseFloat(profile.weight),
@@ -651,6 +652,7 @@ async function saveProfileToSupabase(profileData) {
             .from('user_profiles')
             .upsert({
                 user_id: currentUser.id,
+                pseudo: profileData.pseudo || null,
                 age: profileData.age,
                 gender: profileData.gender,
                 weight: profileData.weight,

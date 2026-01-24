@@ -603,43 +603,36 @@ function renderSessionPreviewUI() {
 
 /**
  * Ouvre le bottom sheet pour changer un exercice
+ * Version améliorée avec sections hiérarchiques et recherche
  */
 function openExerciseSwapSheet(exerciseIndex) {
     const exercise = previewSession.exercises[exerciseIndex];
     if (!exercise) return;
 
-    // Stocker l'index pour le swap
+    // Stocker l'index et l'exercice ID pour le swap
     previewSession.currentSwapIndex = exerciseIndex;
+    const originalExerciseId = getExerciseIdByName(exercise.originalName, exercise.muscle);
+    previewSession.currentSwapExerciseId = originalExerciseId;
 
     // Nom actuel
     const displayName = exercise.swappedName || exercise.originalName;
     document.getElementById('swap-current-name').textContent = displayName;
 
-    // Obtenir les exercices équivalents
-    const favoriteExercises = state.wizardResults?.favoriteExercises || [];
-    const originalExerciseId = getExerciseIdByName(exercise.originalName, exercise.muscle);
-    const equivalents = getEquivalentExercises(originalExerciseId, favoriteExercises);
-
-    const container = document.getElementById('swap-options-list');
-    
-    if (equivalents.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state" style="padding: 20px;">
-                <p style="color: var(--text-muted);">Pas d'exercices équivalents trouvés</p>
-            </div>
-        `;
-    } else {
-        container.innerHTML = equivalents.map(eq => `
-            <div class="swap-option-item ${eq.isFavorite ? 'is-favorite' : ''}" 
-                 onclick="swapExerciseInPreview('${eq.id}')">
-                <span class="swap-option-name">
-                    ${eq.name}
-                    ${eq.isFavorite ? '<span class="swap-option-favorite-badge">★ Favori</span>' : ''}
-                </span>
-                <span class="swap-option-equip">${equipmentTypes[eq.equipment] || eq.equipment}</span>
-            </div>
-        `).join('');
+    // Réinitialiser la recherche
+    const searchInput = document.getElementById('swap-search-input');
+    if (searchInput) {
+        searchInput.value = '';
     }
+
+    // Obtenir les exercices équivalents et du même muscle
+    const favoriteExercises = state.wizardResults?.favoriteExercises || [];
+    const exerciseData = getEquivalentExercises(originalExerciseId, favoriteExercises);
+
+    // Stocker pour la recherche
+    previewSession.swapExerciseData = exerciseData;
+
+    // Render les sections
+    renderSwapSections(exerciseData.equivalents, exerciseData.sameMuscle, []);
 
     // Afficher le bottom sheet avec animation iOS-like
     const sheet = document.getElementById('swap-bottom-sheet');
@@ -648,6 +641,163 @@ function openExerciseSwapSheet(exerciseIndex) {
     sheet.classList.remove('animate-in');
     void sheet.offsetWidth;
     sheet.classList.add('animate-in');
+}
+
+/**
+ * Render les sections du swap bottom sheet
+ */
+function renderSwapSections(equivalents, sameMuscle, searchResults) {
+    const container = document.getElementById('swap-options-list');
+    const searchResultsSection = document.getElementById('swap-search-results');
+    const sectionsContainer = document.getElementById('swap-sections');
+    
+    // Si on a des résultats de recherche, les afficher
+    if (searchResults && searchResults.length > 0) {
+        if (searchResultsSection) searchResultsSection.style.display = 'block';
+        if (sectionsContainer) sectionsContainer.style.display = 'none';
+        
+        if (searchResultsSection) {
+            searchResultsSection.innerHTML = `
+                <div class="swap-section">
+                    <div class="swap-section-header">
+                        <span class="swap-section-icon">🔍</span>
+                        <span class="swap-section-title">Résultats de recherche</span>
+                        <span class="swap-section-count">${searchResults.length}</span>
+                    </div>
+                    <div class="swap-section-list">
+                        ${renderSwapItems(searchResults)}
+                    </div>
+                </div>
+            `;
+        }
+        return;
+    }
+    
+    // Sinon, afficher les sections normales
+    if (searchResultsSection) searchResultsSection.style.display = 'none';
+    if (sectionsContainer) sectionsContainer.style.display = 'block';
+    
+    let html = '';
+    
+    // Section 1: Exercices équivalents (même pattern)
+    if (equivalents && equivalents.length > 0) {
+        html += `
+            <div class="swap-section">
+                <div class="swap-section-header">
+                    <span class="swap-section-icon">⚡</span>
+                    <span class="swap-section-title">Exercices équivalents</span>
+                    <span class="swap-section-count">${equivalents.length}</span>
+                </div>
+                <p class="swap-section-subtitle">Même mouvement, résultats similaires</p>
+                <div class="swap-section-list">
+                    ${renderSwapItems(equivalents)}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Section 2: Autres exercices du même muscle
+    if (sameMuscle && sameMuscle.length > 0) {
+        const currentExercise = previewSession.exercises[previewSession.currentSwapIndex];
+        const muscleName = muscleGroups[currentExercise?.muscle]?.name || 'ce muscle';
+        
+        html += `
+            <div class="swap-section">
+                <div class="swap-section-header">
+                    <span class="swap-section-icon">💪</span>
+                    <span class="swap-section-title">Autres exercices ${muscleName}</span>
+                    <span class="swap-section-count">${sameMuscle.length}</span>
+                </div>
+                <p class="swap-section-subtitle">Même groupe musculaire</p>
+                <div class="swap-section-list">
+                    ${renderSwapItems(sameMuscle)}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Message si aucun exercice
+    if ((!equivalents || equivalents.length === 0) && (!sameMuscle || sameMuscle.length === 0)) {
+        html = `
+            <div class="empty-state" style="padding: 30px;">
+                <p style="color: var(--text-muted);">Utilise la recherche pour trouver un exercice</p>
+            </div>
+        `;
+    }
+    
+    if (sectionsContainer) {
+        sectionsContainer.innerHTML = html;
+    }
+}
+
+/**
+ * Render les items d'une section de swap
+ */
+function renderSwapItems(exercises) {
+    if (!exercises || exercises.length === 0) return '';
+    
+    return exercises.map(eq => `
+        <div class="swap-option-item ${eq.isFavorite ? 'is-favorite' : ''}" 
+             onclick="swapExerciseInPreview('${eq.id}')">
+            <div class="swap-option-info">
+                <span class="swap-option-name">
+                    ${eq.name}
+                    ${eq.isFavorite ? '<span class="swap-option-favorite-badge">★</span>' : ''}
+                </span>
+                <span class="swap-option-muscle">${muscleGroups[eq.muscle]?.name || eq.muscle}</span>
+            </div>
+            <span class="swap-option-equip">${equipmentTypes[eq.equipment] || eq.equipment}</span>
+        </div>
+    `).join('');
+}
+
+/**
+ * Gère la recherche dans le swap bottom sheet
+ */
+function handleSwapSearch(query) {
+    const favoriteExercises = state.wizardResults?.favoriteExercises || [];
+    const excludeId = previewSession.currentSwapExerciseId;
+    
+    // Afficher/masquer le bouton clear
+    const clearBtn = document.querySelector('.swap-search-clear');
+    if (clearBtn) {
+        clearBtn.style.display = query && query.length > 0 ? 'flex' : 'none';
+    }
+    
+    if (!query || query.length < 2) {
+        // Réafficher les sections normales
+        const exerciseData = previewSession.swapExerciseData;
+        if (exerciseData) {
+            renderSwapSections(exerciseData.equivalents, exerciseData.sameMuscle, []);
+        }
+        return;
+    }
+    
+    // Rechercher les exercices
+    const results = searchExercises(query, excludeId, favoriteExercises);
+    renderSwapSections([], [], results);
+}
+
+/**
+ * Efface la recherche et revient aux sections
+ */
+function clearSwapSearch() {
+    const searchInput = document.getElementById('swap-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+    
+    // Masquer le bouton clear
+    const clearBtn = document.querySelector('.swap-search-clear');
+    if (clearBtn) {
+        clearBtn.style.display = 'none';
+    }
+    
+    const exerciseData = previewSession.swapExerciseData;
+    if (exerciseData) {
+        renderSwapSections(exerciseData.equivalents, exerciseData.sameMuscle, []);
+    }
 }
 
 /**

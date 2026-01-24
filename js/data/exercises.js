@@ -553,20 +553,29 @@ function findExerciseGroup(exerciseId) {
 
 /**
  * Retourne les exercices équivalents pour un exercice donné
- * Trie les favoris en premier
+ * Structure: { equivalents: [], sameMuscle: [], allExercises: [] }
+ * - equivalents: exercices du même pattern de mouvement (prioritaires)
+ * - sameMuscle: autres exercices du même muscle (non inclus dans equivalents)
+ * - allExercises: tous les exercices (pour la recherche)
  * @param {string} exerciseId - ID de l'exercice à remplacer
  * @param {string[]} favoriteExercises - Liste des IDs des exercices favoris
- * @returns {Object[]} - Liste des exercices équivalents avec leurs détails
+ * @returns {Object} - { equivalents: [], sameMuscle: [], allExercises: [] }
  */
 function getEquivalentExercises(exerciseId, favoriteExercises = []) {
-    const group = findExerciseGroup(exerciseId);
+    const currentExercise = defaultExercises.find(e => e.id === exerciseId);
+    if (!currentExercise) {
+        return { equivalents: [], sameMuscle: [], allExercises: [] };
+    }
     
+    const group = findExerciseGroup(exerciseId);
+    let equivalents = [];
+    let equivalentIds = [];
+    
+    // 1. Exercices équivalents (même pattern de mouvement)
     if (group) {
-        // Exercices du même groupe
-        const equivalentIds = exerciseEquivalents[group].filter(id => id !== exerciseId);
+        equivalentIds = exerciseEquivalents[group].filter(id => id !== exerciseId);
         
-        // Récupérer les détails et trier (favoris en premier)
-        const equivalents = equivalentIds
+        equivalents = equivalentIds
             .map(id => {
                 const exercise = defaultExercises.find(e => e.id === id);
                 if (!exercise) return null;
@@ -582,16 +591,15 @@ function getEquivalentExercises(exerciseId, favoriteExercises = []) {
                 if (!a.isFavorite && b.isFavorite) return 1;
                 return 0;
             });
-        
-        return equivalents;
     }
     
-    // Fallback: exercices du même muscle
-    const exercise = defaultExercises.find(e => e.id === exerciseId);
-    if (!exercise) return [];
-    
-    return defaultExercises
-        .filter(e => e.muscle === exercise.muscle && e.id !== exerciseId)
+    // 2. Autres exercices du même muscle (exclure l'exercice actuel et les équivalents)
+    const sameMuscle = defaultExercises
+        .filter(e => 
+            e.muscle === currentExercise.muscle && 
+            e.id !== exerciseId && 
+            !equivalentIds.includes(e.id)
+        )
         .map(e => ({
             ...e,
             isFavorite: favoriteExercises.includes(e.id)
@@ -600,8 +608,61 @@ function getEquivalentExercises(exerciseId, favoriteExercises = []) {
             if (a.isFavorite && !b.isFavorite) return -1;
             if (!a.isFavorite && b.isFavorite) return 1;
             return 0;
+        });
+    
+    // 3. Tous les autres exercices (pour la recherche libre)
+    const allExercises = defaultExercises
+        .filter(e => e.id !== exerciseId)
+        .map(e => ({
+            ...e,
+            isFavorite: favoriteExercises.includes(e.id)
+        }))
+        .sort((a, b) => {
+            // Même muscle d'abord, puis par nom
+            if (a.muscle === currentExercise.muscle && b.muscle !== currentExercise.muscle) return -1;
+            if (a.muscle !== currentExercise.muscle && b.muscle === currentExercise.muscle) return 1;
+            return a.name.localeCompare(b.name);
+        });
+    
+    return {
+        equivalents,
+        sameMuscle,
+        allExercises
+    };
+}
+
+/**
+ * Recherche des exercices par nom (pour le swap)
+ * @param {string} query - Terme de recherche
+ * @param {string} excludeId - ID de l'exercice à exclure
+ * @param {string[]} favoriteExercises - Liste des IDs des exercices favoris
+ * @returns {Object[]} - Liste des exercices correspondants
+ */
+function searchExercises(query, excludeId = null, favoriteExercises = []) {
+    if (!query || query.length < 2) return [];
+    
+    const normalizedQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    
+    return defaultExercises
+        .filter(e => {
+            if (excludeId && e.id === excludeId) return false;
+            
+            const normalizedName = e.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const normalizedMuscle = (muscleGroups[e.muscle]?.name || e.muscle).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            
+            return normalizedName.includes(normalizedQuery) || normalizedMuscle.includes(normalizedQuery);
         })
-        .slice(0, 5); // Limiter à 5 suggestions
+        .map(e => ({
+            ...e,
+            isFavorite: favoriteExercises.includes(e.id)
+        }))
+        .sort((a, b) => {
+            // Favoris d'abord
+            if (a.isFavorite && !b.isFavorite) return -1;
+            if (!a.isFavorite && b.isFavorite) return 1;
+            return a.name.localeCompare(b.name);
+        })
+        .slice(0, 15); // Limiter à 15 résultats
 }
 
 // ==================== EXERCISE IMAGES (SUPABASE STORAGE) ====================

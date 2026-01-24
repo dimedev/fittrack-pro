@@ -1592,6 +1592,190 @@
     color: var(--text-muted);
 }
 
+/* ==================== SWAP SHEET PREMIUM ==================== */
+
+.swap-sheet-premium {
+    max-height: 85vh;
+}
+
+.swap-sheet-content {
+    padding-top: 0;
+}
+
+/* Exercice actuel */
+.swap-current-exercise {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md, 12px);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.swap-current-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.swap-current-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Barre de recherche */
+.swap-search-container {
+    margin-bottom: 20px;
+}
+
+.swap-search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.swap-search-icon {
+    position: absolute;
+    left: 14px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.swap-search-input {
+    width: 100%;
+    padding: 14px 40px 14px 44px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 12px);
+    font-size: 1rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.swap-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.swap-search-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.swap-search-clear {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.swap-search-clear:hover {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+}
+
+/* Sections */
+.swap-sections,
+.swap-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.swap-section {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.swap-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.swap-section-icon {
+    font-size: 1rem;
+}
+
+.swap-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.swap-section-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.swap-section-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0 0 12px 0;
+    padding-left: 26px;
+}
+
+.swap-section-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Option items améliorés */
+.swap-option-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.swap-option-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.swap-option-muscle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.swap-option-favorite-badge {
+    font-size: 0.7rem;
+    color: var(--warning);
+    background: rgba(var(--warning-rgb), 0.1);
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
 /* ==================== EXERCISE INFO SHEET ==================== */
 
 .info-section {
@@ -1966,6 +2150,28 @@
     .swap-option-item {
         padding: 14px;
         min-height: 56px;
+    }
+    
+    /* Swap sheet mobile */
+    .swap-sheet-premium {
+        max-height: 90vh;
+    }
+    
+    .swap-search-input {
+        padding: 12px 38px 12px 40px;
+        font-size: 0.95rem;
+    }
+    
+    .swap-section-title {
+        font-size: 0.8rem;
+    }
+    
+    .swap-section-subtitle {
+        font-size: 0.7rem;
+    }
+    
+    .swap-current-exercise {
+        padding: 10px 14px;
     }
 }
 

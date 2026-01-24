@@ -271,10 +271,12 @@
             return `
                 <div class="recovery-widget">
                     <div class="recovery-header">
-                        <span class="recovery-title">💪 Récupération Musculaire</span>
+                        <span class="recovery-title">💪 Récupération</span>
                     </div>
                     <div class="recovery-empty">
-                        Commencez à vous entraîner pour voir votre récupération
+                        <div class="recovery-empty-icon">✅</div>
+                        <div>Tous vos muscles sont prêts !</div>
+                        <div style="margin-top: 8px; font-size: 0.75rem;">Commencez à vous entraîner pour voir le suivi de récupération</div>
                     </div>
                 </div>
             `;

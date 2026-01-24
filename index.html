@@ -9,8 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=16">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/session-manager.css?v=16">
-    <link rel="stylesheet" href="css/premium-components.css?v=18">
+    <link rel="stylesheet" href="css/session-manager.css?v=17">
+    <link rel="stylesheet" href="css/premium-components.css?v=19">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=23">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
 
@@ -512,6 +512,10 @@
                 <button class="modal-close" onclick="closeModal('profile-modal')">&times;</button>
             </div>
             <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Pseudo</label>
+                    <input type="text" class="form-input" id="profile-pseudo" placeholder="Ton pseudo" maxlength="20">
+                </div>
                 <div class="grid grid-2">
                     <div class="form-group">
                         <label class="form-label">Âge</label>
@@ -1421,17 +1425,56 @@
         </div>
     </div>
 
-    <!-- Exercise Swap Bottom Sheet -->
+    <!-- Exercise Swap Bottom Sheet - Version Améliorée -->
     <div class="bottom-sheet-overlay" id="swap-bottom-sheet" style="display: none;" onclick="closeBottomSheet()">
-        <div class="bottom-sheet" onclick="event.stopPropagation()">
+        <div class="bottom-sheet swap-sheet-premium" onclick="event.stopPropagation()">
             <div class="bottom-sheet-header">
                 <div class="bottom-sheet-handle"></div>
                 <h3 class="bottom-sheet-title">Remplacer l'exercice</h3>
             </div>
-            <div class="bottom-sheet-content">
-                <p class="bottom-sheet-current" id="swap-current-name">Développé Couché Barre</p>
-                <div class="swap-options" id="swap-options-list">
-                    <!-- Filled dynamically -->
+            <div class="bottom-sheet-content swap-sheet-content">
+                <!-- Exercice actuel -->
+                <div class="swap-current-exercise">
+                    <span class="swap-current-label">Exercice actuel</span>
+                    <p class="swap-current-name" id="swap-current-name">Développé Couché Barre</p>
+                </div>
+                
+                <!-- Barre de recherche -->
+                <div class="swap-search-container">
+                    <div class="swap-search-input-wrapper">
+                        <svg class="swap-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input 
+                            type="text" 
+                            id="swap-search-input" 
+                            class="swap-search-input" 
+                            placeholder="Rechercher un exercice..."
+                            oninput="handleSwapSearch(this.value)"
+                            autocomplete="off"
+                        >
+                        <button class="swap-search-clear" onclick="clearSwapSearch()" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Résultats de recherche (caché par défaut) -->
+                <div id="swap-search-results" class="swap-search-results" style="display: none;">
+                    <!-- Rempli dynamiquement -->
+                </div>
+                
+                <!-- Sections d'exercices -->
+                <div id="swap-sections" class="swap-sections">
+                    <!-- Rempli dynamiquement -->
+                </div>
+                
+                <!-- Container legacy pour compatibilité -->
+                <div class="swap-options" id="swap-options-list" style="display: none;">
+                    <!-- Filled dynamically (legacy) -->
                 </div>
             </div>
         </div>
@@ -1704,18 +1747,18 @@
 
     <!-- Scripts -->
     <script src="js/data/foods.js?v=5"></script>
-    <script src="js/data/exercises.js?v=9"></script>
+    <script src="js/data/exercises.js?v=10"></script>
     <script src="js/data/programs.js?v=5"></script>
     <script src="js/modules/state.js?v=6"></script>
-    <script src="js/modules/supabase.js?v=7"></script>
-    <script src="js/modules/profile.js?v=21"></script>
+    <script src="js/modules/supabase.js?v=8"></script>
+    <script src="js/modules/profile.js?v=22"></script>
     <script src="js/modules/nutrition.js?v=9"></script>
-    <script src="js/modules/training.js?v=12"></script>
+    <script src="js/modules/training.js?v=13"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=6"></script>
     <script src="js/modules/progress.js?v=20"></script>
     <script src="js/modules/achievements.js?v=2"></script>
-    <script src="js/modules/smart-training.js?v=1"></script>
+    <script src="js/modules/smart-training.js?v=2"></script>
     <script src="js/modules/audio-feedback.js?v=1"></script>
     <script src="js/modules/timer.js?v=6"></script>
     <script src="js/modules/ui.js?v=12"></script>
