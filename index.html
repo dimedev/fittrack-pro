@@ -1654,6 +1654,81 @@
         </div>
     </div>
 
+    <!-- Params Confirmation Bottom Sheet - Adaptation intelligente des paramètres -->
+    <div class="bottom-sheet-overlay" id="params-confirmation-sheet" style="display: none;" onclick="closeParamsConfirmationSheet()">
+        <div class="bottom-sheet params-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Adapter les paramètres ?</h3>
+            </div>
+            <div class="bottom-sheet-content params-content">
+                <!-- Exercice info -->
+                <div class="params-exercise-info">
+                    <span class="params-exercise-name" id="params-exercise-name">Leg Extension</span>
+                    <span class="params-exercise-type" id="params-exercise-type">🎯 Exercice Isolation</span>
+                </div>
+
+                <!-- Comparaison -->
+                <div class="params-comparison">
+                    <!-- Paramètres suggérés -->
+                    <div class="params-box params-suggested">
+                        <div class="params-box-header">
+                            <span class="params-box-icon">✨</span>
+                            <span class="params-box-title">Suggéré</span>
+                        </div>
+                        <div class="params-box-values">
+                            <div class="params-value-item">
+                                <span class="params-value-label">Séries</span>
+                                <span class="params-value-number" id="params-suggested-sets">3</span>
+                            </div>
+                            <div class="params-value-item">
+                                <span class="params-value-label">Reps</span>
+                                <span class="params-value-number" id="params-suggested-reps">10-12</span>
+                            </div>
+                            <div class="params-value-item">
+                                <span class="params-value-label">Repos</span>
+                                <span class="params-value-number" id="params-suggested-rest">90s</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Paramètres actuels -->
+                    <div class="params-box params-current">
+                        <div class="params-box-header">
+                            <span class="params-box-icon">📋</span>
+                            <span class="params-box-title">Actuel</span>
+                        </div>
+                        <div class="params-box-values">
+                            <div class="params-value-item">
+                                <span class="params-value-label">Séries</span>
+                                <span class="params-value-number" id="params-current-sets">4</span>
+                            </div>
+                            <div class="params-value-item">
+                                <span class="params-value-label">Reps</span>
+                                <span class="params-value-number" id="params-current-reps">8-10</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explication -->
+                <div class="params-explanation">
+                    <p>Les exercices d'isolation sont généralement plus efficaces avec moins de séries et plus de répétitions pour une meilleure congestion musculaire.</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="params-actions">
+                    <button class="params-btn params-btn-apply" onclick="applySwapWithSuggestedParams()">
+                        Appliquer les suggestions
+                    </button>
+                    <button class="params-btn params-btn-keep" onclick="applySwapKeepParams()">
+                        Garder mes paramètres
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Full Screen Session Overlay -->
     <div class="fullscreen-session" id="fullscreen-session" style="display: none;">
         <div class="fs-header">

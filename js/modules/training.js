@@ -810,26 +810,145 @@ function closeBottomSheet() {
     document.getElementById('swap-bottom-sheet').style.display = 'none';
 }
 
+// Variable pour stocker le swap en attente (pour confirmation des paramètres)
+let pendingSwap = null;
+
 /**
  * Swap un exercice dans l'aperçu
+ * Détecte si le type d'exercice change et propose une adaptation des paramètres
  */
 function swapExerciseInPreview(exerciseId) {
     const exercise = state.exercises.find(e => e.id === exerciseId);
     if (!exercise || previewSession.currentSwapIndex === null) return;
 
     const idx = previewSession.currentSwapIndex;
+    const currentExercise = previewSession.exercises[idx];
     
-    // Mettre à jour l'exercice dans previewSession
+    // Récupérer l'ID original (soit swappedId si déjà modifié, soit l'original)
+    const originalId = currentExercise.swappedId || previewSession.currentSwapExerciseId;
+    
+    // Détecter si le type d'exercice change
+    const typeChange = detectTypeChange(originalId, exerciseId);
+    
+    if (typeChange.changed) {
+        // Stocker le swap en attente
+        pendingSwap = {
+            exerciseId: exerciseId,
+            exerciseName: exercise.name,
+            idx: idx,
+            fromType: typeChange.from,
+            toType: typeChange.to,
+            originalSets: currentExercise.sets,
+            originalReps: currentExercise.reps
+        };
+        
+        // Récupérer les paramètres suggérés (hypertrophie par défaut)
+        const suggested = getSuggestedParams(exerciseId, 'hypertrophy');
+        
+        // Fermer le sheet de swap et afficher le sheet de confirmation
+        closeBottomSheet();
+        showParamsConfirmationSheet(exercise.name, typeChange.to, suggested, currentExercise);
+    } else {
+        // Pas de changement de type, faire le swap direct
+        executeSwap(exerciseId, exercise.name, idx);
+    }
+}
+
+/**
+ * Exécute le swap d'exercice (sans modification des paramètres)
+ */
+function executeSwap(exerciseId, exerciseName, idx) {
     previewSession.exercises[idx].swappedId = exerciseId;
-    previewSession.exercises[idx].swappedName = exercise.name;
+    previewSession.exercises[idx].swappedName = exerciseName;
     previewSession.exercises[idx].isModified = true;
     previewSession.hasChanges = true;
 
     closeBottomSheet();
-    showToast(`Exercice changé pour ${exercise.name}`, 'success');
+    closeParamsConfirmationSheet();
+    showToast(`Exercice changé pour ${exerciseName}`, 'success');
 
     // Re-render
     renderSessionPreviewUI();
+}
+
+/**
+ * Exécute le swap avec les nouveaux paramètres suggérés
+ */
+function executeSwapWithParams(exerciseId, exerciseName, idx, newSets, newRepsMin, newRepsMax) {
+    previewSession.exercises[idx].swappedId = exerciseId;
+    previewSession.exercises[idx].swappedName = exerciseName;
+    previewSession.exercises[idx].sets = newSets;
+    previewSession.exercises[idx].reps = `${newRepsMin}-${newRepsMax}`;
+    previewSession.exercises[idx].isModified = true;
+    previewSession.hasChanges = true;
+
+    closeParamsConfirmationSheet();
+    showToast(`${exerciseName} : ${newSets}x${newRepsMin}-${newRepsMax}`, 'success');
+
+    // Re-render
+    renderSessionPreviewUI();
+}
+
+/**
+ * Affiche le bottom sheet de confirmation des paramètres
+ */
+function showParamsConfirmationSheet(exerciseName, exerciseType, suggested, currentExercise) {
+    const sheet = document.getElementById('params-confirmation-sheet');
+    if (!sheet) return;
+    
+    const typeLabel = exerciseType === 'isolation' ? 'Isolation' : 'Composé';
+    const typeIcon = exerciseType === 'isolation' ? '🎯' : '💪';
+    
+    document.getElementById('params-exercise-name').textContent = exerciseName;
+    document.getElementById('params-exercise-type').textContent = `${typeIcon} Exercice ${typeLabel}`;
+    document.getElementById('params-suggested-sets').textContent = suggested.sets;
+    document.getElementById('params-suggested-reps').textContent = suggested.reps;
+    document.getElementById('params-suggested-rest').textContent = `${suggested.rest}s`;
+    document.getElementById('params-current-sets').textContent = currentExercise.sets;
+    document.getElementById('params-current-reps').textContent = currentExercise.reps || '-';
+    
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
+}
+
+/**
+ * Ferme le bottom sheet de confirmation des paramètres
+ */
+function closeParamsConfirmationSheet() {
+    const sheet = document.getElementById('params-confirmation-sheet');
+    if (sheet) {
+        sheet.style.display = 'none';
+    }
+    pendingSwap = null;
+}
+
+/**
+ * Applique les paramètres suggérés
+ */
+function applySwapWithSuggestedParams() {
+    if (!pendingSwap) return;
+    
+    const suggested = getSuggestedParams(pendingSwap.exerciseId, 'hypertrophy');
+    executeSwapWithParams(
+        pendingSwap.exerciseId,
+        pendingSwap.exerciseName,
+        pendingSwap.idx,
+        suggested.sets,
+        suggested.repsMin,
+        suggested.repsMax
+    );
+}
+
+/**
+ * Garde les anciens paramètres lors du swap
+ */
+function applySwapKeepParams() {
+    if (!pendingSwap) return;
+    
+    executeSwap(pendingSwap.exerciseId, pendingSwap.exerciseName, pendingSwap.idx);
 }
 
 /**

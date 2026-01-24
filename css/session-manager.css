@@ -3126,3 +3126,204 @@
         font-size: 0.85rem;
     }
 }
+
+/* ==================== PARAMS CONFIRMATION SHEET ==================== */
+/* Bottom sheet pour l'adaptation intelligente des paramètres lors du swap */
+
+.params-sheet {
+    max-height: 85vh;
+}
+
+.params-content {
+    padding: 16px 4px 24px;
+}
+
+/* Exercise Info */
+.params-exercise-info {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.params-exercise-name {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.params-exercise-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--accent-primary);
+    background: rgba(var(--accent-primary-rgb, 99, 102, 241), 0.1);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* Comparison Boxes */
+.params-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 0 4px;
+}
+
+.params-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg, 16px);
+    padding: 18px 16px;
+    transition: all 0.2s ease;
+}
+
+.params-box-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.params-box-icon {
+    font-size: 1.2rem;
+}
+
+.params-box-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.params-box-values {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.params-value-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.params-value-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.params-value-number {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Suggested Box - Highlighted */
+.params-suggested {
+    border-color: #f97316;
+    border-width: 2px;
+    background: rgba(249, 115, 22, 0.08);
+}
+
+.params-suggested .params-value-number {
+    color: #f97316;
+}
+
+.params-suggested .params-box-title {
+    color: #f97316;
+}
+
+/* Current Box */
+.params-current {
+    opacity: 0.9;
+    background: var(--bg-tertiary);
+}
+
+/* Explanation */
+.params-explanation {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md, 12px);
+    padding: 16px 18px;
+    margin: 0 4px 24px;
+}
+
+.params-explanation p {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Actions */
+.params-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 4px;
+}
+
+.params-btn {
+    width: 100%;
+    padding: 16px 24px;
+    border-radius: var(--radius-md, 12px);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-align: center;
+}
+
+.params-btn-apply {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: #ffffff !important;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
+}
+
+.params-btn-apply:hover {
+    background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+}
+
+.params-btn-apply:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+.params-btn-keep {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    min-height: 52px;
+}
+
+.params-btn-keep:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 400px) {
+    .params-comparison {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .params-exercise-name {
+        font-size: 1.2rem;
+    }
+    
+    .params-box {
+        padding: 16px 14px;
+    }
+}

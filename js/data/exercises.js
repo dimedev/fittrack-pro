@@ -537,6 +537,108 @@ const REP_RANGES = {
     'strength':    { min: 3,  max: 6,  label: '3-6' }
 };
 
+// ==================== PARAMÈTRES OPTIMAUX PAR TYPE D'EXERCICE ====================
+// Utilisé pour adapter automatiquement sets/reps lors du swap d'exercice
+
+const EXERCISE_TYPE_PARAMS = {
+    compound: {
+        strength:    { sets: 4, reps: '4-6',   rest: 180, repsMin: 4,  repsMax: 6  },
+        hypertrophy: { sets: 4, reps: '8-10',  rest: 120, repsMin: 8,  repsMax: 10 },
+        endurance:   { sets: 3, reps: '12-15', rest: 60,  repsMin: 12, repsMax: 15 }
+    },
+    isolation: {
+        strength:    { sets: 3, reps: '6-8',   rest: 120, repsMin: 6,  repsMax: 8  },
+        hypertrophy: { sets: 3, reps: '10-12', rest: 90,  repsMin: 10, repsMax: 12 },
+        endurance:   { sets: 3, reps: '15-20', rest: 45,  repsMin: 15, repsMax: 20 }
+    }
+};
+
+// Exercices explicitement d'isolation (IDs)
+const ISOLATION_EXERCISES = [
+    // Biceps - tous sont isolation
+    'barbell-curl', 'ez-curl', 'dumbbell-curl', 'alternating-curl', 'hammer-curl',
+    'incline-curl', 'concentration-curl', 'preacher-curl', 'preacher-curl-db',
+    'cable-curl', 'cable-curl-high', 'machine-curl', 'spider-curl', 'drag-curl',
+    // Triceps - extensions
+    'tricep-pushdown', 'tricep-pushdown-rope', 'tricep-pushdown-vbar',
+    'overhead-tricep', 'overhead-tricep-db', 'skull-crusher', 'skull-crusher-db',
+    'kickback', 'kickback-cable', 'tricep-machine',
+    // Épaules - élévations et isolation
+    'lateral-raise', 'lateral-raise-cable', 'lateral-raise-machine',
+    'front-raise', 'front-raise-cable', 'front-raise-plate',
+    'face-pull', 'reverse-fly', 'reverse-fly-machine', 'reverse-fly-cable', 'rear-delt-row',
+    // Pectoraux - isolation
+    'chest-fly-db', 'chest-fly-cable', 'cable-crossover', 'pec-deck', 'pullover',
+    // Quadriceps - isolation
+    'leg-extension',
+    // Ischio-jambiers - isolation
+    'leg-curl-lying', 'leg-curl-seated', 'leg-curl-standing', 'nordic-curl',
+    // Fessiers - isolation
+    'cable-kickback', 'glute-kickback-machine', 'glute-bridge', 'frog-pump', 'abductor-machine',
+    // Mollets - tous sont isolation
+    'standing-calf', 'standing-calf-smith', 'seated-calf', 'leg-press-calf', 'donkey-calf', 'single-leg-calf',
+    // Trapèzes - shrugs
+    'barbell-shrug', 'dumbbell-shrug', 'smith-shrug', 'trap-bar-shrug', 'cable-shrug',
+    // Abdominaux - isolation
+    'crunch', 'crunch-machine', 'cable-crunch', 'leg-raise', 'hanging-leg-raise',
+    'russian-twist', 'ab-wheel', 'decline-crunch',
+    // Avant-bras
+    'wrist-curl', 'reverse-wrist-curl', 'reverse-curl',
+    // Dos - isolation
+    'pullover-cable', 'straight-arm-pulldown', 'hyperextension'
+];
+
+/**
+ * Récupère le type d'un exercice (compound ou isolation)
+ * Utilise d'abord le type explicite, puis la liste d'isolation, puis défaut à compound
+ * @param {string} exerciseId - ID de l'exercice
+ * @returns {string} - 'compound' ou 'isolation'
+ */
+function getExerciseType(exerciseId) {
+    const exercise = defaultExercises.find(e => e.id === exerciseId);
+    
+    // Si le type est explicitement défini, l'utiliser
+    if (exercise?.type) {
+        return exercise.type;
+    }
+    
+    // Sinon, vérifier dans la liste d'isolation
+    if (ISOLATION_EXERCISES.includes(exerciseId)) {
+        return 'isolation';
+    }
+    
+    // Par défaut, c'est un exercice composé
+    return 'compound';
+}
+
+/**
+ * Récupère les paramètres suggérés pour un exercice selon son type et l'objectif
+ * @param {string} exerciseId - ID de l'exercice
+ * @param {string} goal - Objectif ('strength', 'hypertrophy', 'endurance')
+ * @returns {Object} - { sets, reps, rest, repsMin, repsMax }
+ */
+function getSuggestedParams(exerciseId, goal = 'hypertrophy') {
+    const type = getExerciseType(exerciseId);
+    const validGoal = ['strength', 'hypertrophy', 'endurance'].includes(goal) ? goal : 'hypertrophy';
+    return EXERCISE_TYPE_PARAMS[type][validGoal];
+}
+
+/**
+ * Détermine si le type d'exercice change lors d'un swap
+ * @param {string} originalId - ID de l'exercice original
+ * @param {string} newId - ID du nouvel exercice
+ * @returns {Object} - { changed: boolean, from: string, to: string }
+ */
+function detectTypeChange(originalId, newId) {
+    const originalType = getExerciseType(originalId);
+    const newType = getExerciseType(newId);
+    return {
+        changed: originalType !== newType,
+        from: originalType,
+        to: newType
+    };
+}
+
 /**
  * Trouve le groupe d'équivalence d'un exercice
  * @param {string} exerciseId - ID de l'exercice

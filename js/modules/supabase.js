@@ -435,12 +435,16 @@ async function loadAllDataFromSupabase() {
             showInitialSkeletons();
         }
         
-        // Charger le profil
-        const { data: profile } = await supabaseClient
+        // Charger le profil (maybeSingle pour éviter erreur si pas de données)
+        const { data: profile, error: profileError } = await supabaseClient
             .from('user_profiles')
             .select('*')
             .eq('user_id', currentUser.id)
-            .single();
+            .maybeSingle();
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:loadAllData:profile',message:'Profile loaded',data:{hasData:!!profile,hasError:!!profileError,errorCode:profileError?.code,errorMsg:profileError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
         
         if (profile) {
             state.profile = {
@@ -516,26 +520,30 @@ async function loadAllDataFromSupabase() {
             // Merger : Supabase prioritaire, mais conserver les swaps locaux non présents
             state.exerciseSwaps = { ...supabaseSwaps };
             
-            // Ajouter les swaps locaux manquants et les sync
+            // Ajouter les swaps locaux manquants - NE PAS sync automatiquement pour éviter cascade d'erreurs
+            // Les swaps seront syncés individuellement quand l'utilisateur fait un changement
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:loadAllData:swapLoop',message:'Local swaps merged (no auto-sync)',data:{localSwapsCount:Object.keys(localSwaps).length,supabaseSwapsCount:Object.keys(supabaseSwaps).length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+            // #endregion
             Object.keys(localSwaps).forEach(originalExercise => {
                 if (!supabaseSwaps[originalExercise]) {
-                    // Swap local non présent dans Supabase, le garder et le sync
+                    // Swap local non présent dans Supabase, le garder localement
+                    // Sera syncé lors de la prochaine sauvegarde utilisateur
                     state.exerciseSwaps[originalExercise] = localSwaps[originalExercise];
-                    
-                    // Tenter de sync ce swap manquant
-                    saveExerciseSwapToSupabase(originalExercise, localSwaps[originalExercise]).catch(err => {
-                        console.warn('Sync rattrapage swap:', err);
-                    });
                 }
             });
         }
         
-        // Charger les paramètres d'entraînement
-        const { data: trainingSettings } = await supabaseClient
+        // Charger les paramètres d'entraînement (maybeSingle pour éviter erreur si pas de données)
+        const { data: trainingSettings, error: trainingError } = await supabaseClient
             .from('training_settings')
             .select('*')
             .eq('user_id', currentUser.id)
-            .single();
+            .maybeSingle();
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:loadAllData:trainingSettings',message:'Training settings loaded',data:{hasData:!!trainingSettings,hasError:!!trainingError,errorCode:trainingError?.code,errorMsg:trainingError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
         
         if (trainingSettings) {
             // Détection de conflit multi-devices
@@ -911,6 +919,9 @@ async function saveCustomExerciseToSupabase(exercise) {
 
 // Sauvegarder un swap d'exercice (avec retry et feedback)
 async function saveExerciseSwapToSupabase(originalExercise, replacementId) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:saveExerciseSwapToSupabase:entry',message:'Swap save called',data:{originalExercise,replacementId,hasUser:!!currentUser,isOnline},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
     if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: swap sauvegardé localement');
@@ -918,22 +929,37 @@ async function saveExerciseSwapToSupabase(originalExercise, replacementId) {
     }
     
     try {
-        await withRetry(async () => {
-            const { error } = await supabaseClient
-                .from('exercise_swaps')
-                .upsert({
-                    user_id: currentUser.id,
-                    original_exercise: originalExercise,
-                    replacement_exercise_id: replacementId
-                }, { onConflict: 'user_id,original_exercise' });
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:saveExerciseSwapToSupabase:upsert',message:'Attempting upsert',data:{originalExercise,replacementId,userId:currentUser.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+        
+        // Essai direct sans retry excessif - les erreurs FK sont permanentes
+        const { error } = await supabaseClient
+            .from('exercise_swaps')
+            .upsert({
+                user_id: currentUser.id,
+                original_exercise: originalExercise,
+                replacement_exercise_id: replacementId
+            }, { onConflict: 'user_id,original_exercise' });
+        
+        if (error) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:saveExerciseSwapToSupabase:error',message:'Upsert failed',data:{errorCode:error.code,errorMsg:error.message,errorDetails:error.details,originalExercise},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+            // #endregion
             
-            if (error) throw error;
-            console.log('✅ Swap exercice sauvegardé');
-        }, { maxRetries: 2, critical: false });
+            // Erreur 23503 = Foreign Key violation - l'utilisateur n'existe pas dans la table users
+            // Ne pas retry, c'est une erreur permanente tant que le profil n'est pas créé
+            if (error.code === '23503') {
+                console.warn('⚠️ Swap sauvegardé localement (profil serveur non créé)');
+                return false;
+            }
+            throw error;
+        }
+        console.log('✅ Swap exercice sauvegardé');
         return true;
     } catch (error) {
         console.error('Erreur sauvegarde swap:', error);
-        showToast('Modification sauvegardée localement', 'warning');
+        // Ne pas afficher de toast pour chaque erreur - trop intrusif
         return false;
     }
 }
