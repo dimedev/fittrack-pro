@@ -17,6 +17,55 @@ const muscleGroups = {
     'forearms': { name: 'Avant-bras', icon: '✊' }
 };
 
+// ==================== GÉNÉRATION AUTOMATIQUE DES TAGS ====================
+
+/**
+ * Génère automatiquement les tags pour un exercice basé sur son équipement et niveau
+ * @param {string} equipment - Type d'équipement
+ * @param {string} level - Niveau de difficulté
+ * @returns {Array<string>} Tags générés
+ */
+function generateExerciseTags(equipment, level) {
+    const tags = [];
+    
+    // Tags d'environnement basés sur l'équipement
+    const equipmentTags = {
+        'bodyweight': ['home', 'bodyweight-only', 'outdoor', 'minimal-equipment'],
+        'dumbbell': ['home', 'home-gym', 'dumbbells-only'],
+        'barbell': ['home-gym', 'gym'],
+        'cable': ['gym'],
+        'machine': ['gym'],
+        'smith': ['gym'],
+        'plate': ['home-gym', 'gym', 'minimal-equipment'],
+        'other': ['home', 'gym']
+    };
+    
+    // Ajouter les tags d'environnement
+    if (equipmentTags[equipment]) {
+        tags.push(...equipmentTags[equipment]);
+    }
+    
+    // Ajouter le tag de niveau
+    if (level) {
+        tags.push(level);
+    }
+    
+    // Retourner les tags uniques
+    return [...new Set(tags)];
+}
+
+/**
+ * Enrichit les exercices avec les tags automatiques
+ * @param {Array} exercises - Liste des exercices
+ * @returns {Array} Exercices avec tags
+ */
+function enrichExercisesWithTags(exercises) {
+    return exercises.map(ex => ({
+        ...ex,
+        tags: ex.tags || generateExerciseTags(ex.equipment, ex.level)
+    }));
+}
+
 // Base d'exercices par défaut - STRUCTURE ENRICHIE COACH
 const defaultExercises = [
     // ==================== PECTORAUX ====================
@@ -877,6 +926,52 @@ const equipmentMapping = {
 };
 
 /**
+ * Vérifie si un exercice est compatible avec l'équipement disponible
+ * @param {Object} exercise - Exercice à vérifier
+ * @param {string} userEquipment - Type d'équipement utilisateur (full-gym, home-gym, etc.)
+ * @returns {boolean} - true si compatible
+ */
+function isCompatibleWithEquipment(exercise, userEquipment = 'full-gym') {
+    if (!exercise) return false;
+    const allowedEquipment = equipmentMapping[userEquipment] || equipmentMapping['full-gym'];
+    return allowedEquipment.includes(exercise.equipment);
+}
+
+/**
+ * Filtre une liste d'exercices pour un environnement spécifique
+ * @param {Array} exercises - Liste d'exercices
+ * @param {string} userEquipment - Type d'équipement (full-gym, home-gym, etc.)
+ * @param {Array} sensitivities - Sensibilités utilisateur
+ * @returns {Array} - Exercices filtrés et adaptés
+ */
+function filterExercisesForEnvironment(exercises, userEquipment = 'full-gym', sensitivities = []) {
+    return exercises.map(ex => {
+        // Si c'est déjà un objet exercice complet, l'utiliser directement
+        const exerciseName = typeof ex === 'string' ? ex : ex.name;
+        
+        // Trouver l'exercice dans la base
+        const exerciseData = defaultExercises.find(e => e.name === exerciseName || e.id === exerciseName);
+        
+        if (!exerciseData) {
+            console.warn(`Exercice non trouvé: ${exerciseName}`);
+            return ex;
+        }
+        
+        // Vérifier compatibilité
+        if (!isCompatibleWithEquipment(exerciseData, userEquipment) || 
+            exerciseData.contraindications?.some(c => sensitivities.includes(c))) {
+            // Chercher une alternative
+            const alternative = findSafeExercise(exerciseName, sensitivities, userEquipment);
+            if (alternative && !alternative.hasWarning) {
+                return typeof ex === 'string' ? alternative.name : { ...ex, ...alternative };
+            }
+        }
+        
+        return ex;
+    });
+}
+
+/**
  * Trouve une alternative sûre pour un exercice selon sensibilités et équipement
  * @param {string} exerciseName - Nom de l'exercice
  * @param {string[]} sensitivities - Sensibilités (shoulder, knee, back, wrist)
@@ -921,7 +1016,8 @@ function findSafeExercise(exerciseName, sensitivities = [], equipment = 'full-gy
     }
     
     // Chercher dans les équivalents
-    const equivalents = getEquivalentExercises(exercise.id);
+    const eqResult = getEquivalentExercises(exercise.id);
+    const equivalents = eqResult?.equivalents || [];
     for (const eq of equivalents) {
         const eqHasContraindication = eq.contraindications?.some(c => sensitivities.includes(c));
         const eqHasEquipment = allowedEquipment.includes(eq.equipment);

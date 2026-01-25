@@ -227,7 +227,7 @@ function sanitizeCorruptedValues(obj, path = '') {
 let state = {
     profile: null,
     foods: [...defaultFoods],
-    exercises: [...defaultExercises],
+    exercises: enrichExercisesWithTags([...defaultExercises]), // Exercices avec tags auto-générés
     exerciseSwaps: {}, // Exercices remplacés par l'utilisateur { "Développé Couché": "chest-press-machine" }
     foodJournal: {}, // Journal alimentaire par date { "2025-01-21": [{ foodId, quantity, mealType }] }
     
@@ -236,6 +236,7 @@ let state = {
     
     // Habitudes alimentaires (pour suggestions intelligentes)
     mealHistory: {}, // { mealSignature: { count, lastUsed, avgRating } } - pour suggestions
+    mealCombos: [], // Combos favoris utilisateur [{ id, name, icon, foods, mealTypes, usageCount, createdAt, lastUsed }]
     
     selectedProgram: null,
     trainingDays: 4,
@@ -290,9 +291,9 @@ function loadState() {
             const customFoods = (state.foods || []).filter(f => !defaultFoods.find(df => df.id === f.id));
             state.foods = [...defaultFoods, ...customFoods];
             
-            // S'assurer que les exercices par défaut sont inclus
+            // S'assurer que les exercices par défaut sont inclus avec tags
             const customExercises = (state.exercises || []).filter(e => !defaultExercises.find(de => de.id === e.id));
-            state.exercises = [...defaultExercises, ...customExercises];
+            state.exercises = enrichExercisesWithTags([...defaultExercises, ...customExercises]);
             
             // Initialiser les champs manquants
             if (!state.exerciseSwaps) state.exerciseSwaps = {};
@@ -303,6 +304,7 @@ function loadState() {
             if (!state.foodJournal) state.foodJournal = {};
             if (!state.cardioLog) state.cardioLog = {};
             if (!state.mealHistory) state.mealHistory = {};
+            if (!state.mealCombos) state.mealCombos = [];
             
             // Migration: ajouter mealType aux entrées existantes
             migrateFoodJournalToMeals();

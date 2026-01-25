@@ -100,6 +100,9 @@ function setupNavigation() {
 }
 
 function navigateToSection(sectionId) {
+    // 1. RESET scroll AVANT animation (instant pour éviter conflit visuel)
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    
     // Ordre des sections pour les animations directionnelles
     const sectionOrder = ['progression', 'dashboard', 'training', 'nutrition'];
     
@@ -132,9 +135,6 @@ function navigateToSection(sectionId) {
     
     // Mettre à jour la section actuelle
     currentSection = sectionId;
-    
-    // Scroll en haut
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /**

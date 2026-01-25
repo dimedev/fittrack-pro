@@ -13,6 +13,11 @@ let selectedFoodsToAdd = [];
 let multiSelectModeActive = false;
 let selectedFoodsFromBase = [];
 
+// Variables pour suggestions refresh
+let suggestionRefreshCount = 0;
+const MAX_SUGGESTION_REFRESHES = 2;
+let shownSuggestionIds = [];
+
 // Catégories d'aliments
 const foodCategories = {
     'protein': { name: 'Protéines', icon: '🥩' },
@@ -1451,6 +1456,9 @@ function openMealSheet(mealType) {
     if (suggestionsSection) suggestionsSection.style.display = 'block';
     if (quickSection) quickSection.style.display = 'block';
     
+    // Réinitialiser le compteur de refresh des suggestions
+    resetSuggestionRefresh();
+    
     // Charger les suggestions fraîches
     renderMealSuggestions(mealType);
     renderQuickMeals(mealType);
@@ -1803,7 +1811,7 @@ function removeMealItem(mealType, idx) {
 }
 
 // Rendre les suggestions pour un repas (max 3, scoring intelligent)
-function renderMealSuggestions(mealType) {
+function renderMealSuggestions(mealType, excludeIds = []) {
     const container = document.getElementById('meal-suggestions-list');
     if (!container) return;
     
@@ -1811,11 +1819,12 @@ function renderMealSuggestions(mealType) {
     let suggestions = [];
     
     if (window.NutritionSuggestions) {
-        suggestions = NutritionSuggestions.generate(mealType);
+        suggestions = NutritionSuggestions.generate(mealType, excludeIds);
     } else {
         // Fallback si le module n'est pas chargé
         const popularFoods = state.foods
             .filter(f => f.priority >= 8 && f.mealTags?.includes(mealType))
+            .filter(f => !excludeIds.includes(f.id))
             .slice(0, 3);
         suggestions = popularFoods.map(f => ({
             food: f,
@@ -1825,9 +1834,17 @@ function renderMealSuggestions(mealType) {
     }
     
     if (suggestions.length === 0) {
-        container.innerHTML = '<div class="meal-empty">Pas de suggestions disponibles</div>';
+        container.innerHTML = '<div class="meal-empty">Plus de suggestions disponibles</div>';
+        updateRefreshButtonVisibility();
         return;
     }
+    
+    // Ajouter les IDs des suggestions affichées
+    suggestions.forEach(s => {
+        if (!shownSuggestionIds.includes(s.food.id)) {
+            shownSuggestionIds.push(s.food.id);
+        }
+    });
     
     // Icône contextuelle selon le type de suggestion
     const typeIcons = {
@@ -1861,6 +1878,44 @@ function renderMealSuggestions(mealType) {
             </div>
         `;
     }).join('');
+    
+    // Mettre à jour la visibilité du bouton refresh
+    updateRefreshButtonVisibility();
+}
+
+// Rafraîchir les suggestions (max 2 fois)
+function refreshSuggestions(mealType) {
+    if (suggestionRefreshCount >= MAX_SUGGESTION_REFRESHES) {
+        showToast('Plus de suggestions disponibles', 'info');
+        return;
+    }
+    
+    suggestionRefreshCount++;
+    
+    // Recharger avec exclusion des suggestions déjà montrées
+    renderMealSuggestions(mealType, shownSuggestionIds);
+}
+
+// Mettre à jour la visibilité du bouton refresh
+function updateRefreshButtonVisibility() {
+    const btn = document.getElementById('suggestions-refresh-btn');
+    if (!btn) return;
+    
+    if (suggestionRefreshCount >= MAX_SUGGESTION_REFRESHES) {
+        btn.style.display = 'none';
+    } else {
+        btn.style.display = 'block';
+        btn.textContent = suggestionRefreshCount === 0 
+            ? 'Autres suggestions' 
+            : `Autres suggestions (${MAX_SUGGESTION_REFRESHES - suggestionRefreshCount} restant)`;
+    }
+}
+
+// Réinitialiser le compteur de refresh quand on ouvre un nouveau repas
+function resetSuggestionRefresh() {
+    suggestionRefreshCount = 0;
+    shownSuggestionIds = [];
+    updateRefreshButtonVisibility();
 }
 
 // Ajouter une suggestion directement (1 tap)
@@ -1885,41 +1940,16 @@ async function addSuggestionDirect(foodId, quantity, mealType) {
 
 // Rendre les repas rapides
 function renderQuickMeals(mealType) {
-    const container = document.getElementById('meal-quick-list');
-    if (!container) return;
-    
-    // Repas rapides prédéfinis selon le type de repas
-    const quickMeals = {
-        breakfast: [
-            { name: 'Omelette 3 oeufs', foods: ['eggs'], qty: 150, cals: 220 },
-            { name: 'Flocons + Lait', foods: ['oatmeal', 'whole-milk'], qty: [50, 200], cals: 320 }
-        ],
-        lunch: [
-            { name: 'Poulet + Riz', foods: ['chicken-breast', 'rice-white'], qty: [150, 150], cals: 480 },
-            { name: 'Salade thon', foods: ['tuna-canned', 'mixed-salad'], qty: [100, 150], cals: 180 }
-        ],
-        snack: [
-            { name: 'Pomme + Amandes', foods: ['apple', 'almonds'], qty: [150, 30], cals: 250 },
-            { name: 'Yaourt grec', foods: ['greek-yogurt'], qty: 150, cals: 150 }
-        ],
-        dinner: [
-            { name: 'Saumon + Légumes', foods: ['salmon-fillet', 'broccoli'], qty: [150, 200], cals: 380 },
-            { name: 'Steak + Patates', foods: ['beef-steak', 'potato'], qty: [150, 200], cals: 450 }
-        ]
-    };
-    
-    const meals = quickMeals[mealType] || quickMeals.lunch;
-    
-    container.innerHTML = meals.map((meal, idx) => `
-        <div class="meal-quick-item" onclick="addQuickMeal('${mealType}', ${idx})">
-            <div class="meal-item-icon-wrap">⚡</div>
-            <div class="meal-item-text">
-                <div class="meal-item-title">${meal.name}</div>
-                <div class="meal-item-subtitle">Ajout rapide</div>
-            </div>
-            <div class="meal-item-cals">${meal.cals} kcal</div>
-        </div>
-    `).join('');
+    // Utiliser le nouveau système de templates
+    if (window.MealTemplates) {
+        MealTemplates.render(mealType);
+    } else {
+        // Fallback simple si module pas chargé
+        const container = document.getElementById('meal-quick-list');
+        if (container) {
+            container.innerHTML = '<div class="meal-empty">Templates non disponibles</div>';
+        }
+    }
 }
 
 // Ajouter un repas rapide
@@ -2270,36 +2300,8 @@ function loadJournalDay() {
 // Override confirmAddFood pour supporter le mealType
 const originalConfirmAddFood = typeof confirmAddFood === 'function' ? confirmAddFood : null;
 
-function confirmAddFood() {
-    const sheet = document.getElementById('food-quantity-sheet');
-    const foodId = sheet?.dataset.foodId || window.currentFoodToAdd?.id;
-    const mealType = sheet?.dataset.mealType || inferMealType(Date.now());
-    
-    if (!foodId) {
-        console.error('confirmAddFood: pas de foodId');
-        return;
-    }
-    
-    const food = state.foods.find(f => f.id === foodId);
-    if (!food) {
-        showToast('Aliment introuvable', 'error');
-        return;
-    }
-    
-    const quantityInput = document.getElementById('custom-quantity-input');
-    const quantity = Math.max(MIN_QUANTITY, parseInt(quantityInput?.value) || 100);
-    
-    if (quantity > MAX_QUANTITY) {
-        showToast(`Quantité trop élevée (max ${MAX_QUANTITY/1000}kg)`, 'error');
-        return;
-    }
-    
-    // Fermer le sheet
-    closeFoodQuantitySheet();
-    
-    // Ajouter avec le mealType
-    addToJournalWithMealType(foodId, quantity, mealType);
-}
+// NOTE: Cette fonction est définie plus haut dans le fichier (ligne ~615)
+// avec gestion complète des unités naturelles et mode édition
 
 // Ajouter au journal avec mealType (supporte les unités naturelles)
 async function addToJournalWithMealType(foodId, quantity, mealType) {
@@ -2476,4 +2478,72 @@ function applySuggestion() {
     else if (hour >= 18) mealType = 'dinner';
     
     openMealSheet(mealType);
+}
+
+// ==================== SWIPE-DOWN TO CLOSE BOTTOM SHEETS ====================
+
+function initNutritionSwipeToClose() {
+    const sheets = [
+        { id: 'food-quantity-sheet', closeFunc: closeFoodQuantitySheet },
+        { id: 'meal-add-sheet', closeFunc: closeMealSheet },
+        { id: 'cardio-add-sheet', closeFunc: closeCardioSheet }
+    ];
+    
+    sheets.forEach(({ id, closeFunc }) => {
+        const overlay = document.getElementById(id);
+        if (!overlay) return;
+        
+        const sheet = overlay.querySelector('.bottom-sheet');
+        if (!sheet) return;
+        
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+        
+        sheet.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+        }, { passive: true });
+        
+        sheet.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+            
+            if (diff > 0) {
+                sheet.style.transform = `translateY(${diff}px)`;
+                sheet.style.transition = 'none';
+            }
+        }, { passive: true });
+        
+        sheet.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            
+            const diff = currentY - startY;
+            
+            sheet.style.transition = 'transform 0.3s ease';
+            
+            if (diff > 100) {
+                // Fermer le sheet
+                sheet.style.transform = 'translateY(100%)';
+                setTimeout(() => {
+                    if (closeFunc) closeFunc();
+                    sheet.style.transform = '';
+                }, 300);
+            } else {
+                // Retour à la position initiale
+                sheet.style.transform = '';
+            }
+            
+            isDragging = false;
+        });
+    });
+}
+
+// Initialiser au chargement du DOM
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initNutritionSwipeToClose();
+    });
 }

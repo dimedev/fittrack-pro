@@ -341,16 +341,24 @@ function wizardBack() {
     }
 }
 
-function getProgramRecommendations(frequency) {
-    // Simple recommendations based on frequency
-    const recommendations = {
+function getProgramRecommendations(frequency, userEquipment = null) {
+    // Détecter l'équipement utilisateur
+    const equipment = userEquipment || state.profile?.equipment || 'full-gym';
+    
+    // Recommendations basées sur fréquence
+    const baseRecommendations = {
         3: ['full-body', 'ppl', 'upper-lower'],
         4: ['upper-lower', 'ppl', 'full-body'],
         5: ['ppl', 'bro-split', 'upper-lower'],
         6: ['ppl', 'arnold', 'bro-split']
     };
 
-    return recommendations[frequency] || ['ppl', 'upper-lower', 'full-body'];
+    const recommended = baseRecommendations[frequency] || ['ppl', 'upper-lower', 'full-body'];
+    
+    // Filtrer les programmes selon l'équipement disponible
+    // Pour l'instant tous les programmes sont potentiellement compatibles car on adapte les exercices
+    // Mais on pourrait vouloir ne pas recommander certains programmes si trop d'adaptations nécessaires
+    return recommended;
 }
 
 function renderProgramRecommendations() {

@@ -1521,3 +1521,24 @@ html, body, main {
         animation: none;
     }
 }
+
+/* ==================== SAFE AREAS & TOUCH TARGETS ADDITIONNELS ==================== */
+
+/* Safe areas pour tous les bottom sheets */
+@media (max-width: 768px) {
+    .bottom-sheet {
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+    
+    /* S'assurer que tous les boutons ont des touch targets de 44px minimum */
+    .btn, 
+    .nav-btn, 
+    .tab-btn,
+    .quantity-btn,
+    .meal-item-edit,
+    .meal-item-delete,
+    .suggestion-add-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}

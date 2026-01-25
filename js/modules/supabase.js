@@ -141,6 +141,28 @@ function initNetworkDetection() {
 }
 
 // Synchroniser les données en attente (appelé au retour en ligne)
+// Vérifier si une entrée identique existe déjà dans Supabase
+async function checkExistingEntry(date, foodId, quantity) {
+    if (!currentUser || !isOnline) return null;
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('food_journal')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .eq('date', date)
+            .eq('food_id', foodId)
+            .eq('quantity', quantity)
+            .maybeSingle();
+        
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.warn('Erreur vérification entrée existante:', error);
+        return null;
+    }
+}
+
 async function syncPendingData() {
     if (!currentUser || !isOnline) return;
     
@@ -156,19 +178,31 @@ async function syncPendingData() {
             await saveProfileToSupabase(state.profile);
         }
         
-        // 3. Synchroniser le journal alimentaire non synchronisé
+        // 3. Synchroniser le journal alimentaire non synchronisé (anti-duplication)
         if (state.foodJournal) {
             for (const [date, entries] of Object.entries(state.foodJournal)) {
                 for (const entry of entries) {
                     // Vérifier que l'entrée a un foodId valide et n'est pas déjà synchronisée
                     if (!entry.supabaseId && entry.foodId && entry.quantity) {
                         try {
-                            const id = await addJournalEntryToSupabase(
-                                date,
-                                entry.foodId,
-                                entry.quantity
-                            );
-                            if (id) entry.supabaseId = id;
+                            // Vérifier si une entrée identique existe déjà
+                            const existing = await checkExistingEntry(date, entry.foodId, entry.quantity);
+                            
+                            if (existing) {
+                                // Utiliser l'ID existant au lieu de créer un doublon
+                                entry.supabaseId = existing.id;
+                                console.log('✓ Entrée existante trouvée, doublon évité');
+                            } else {
+                                // Créer une nouvelle entrée
+                                const id = await addJournalEntryToSupabase(
+                                    date,
+                                    entry.foodId,
+                                    entry.quantity,
+                                    entry.unitType,
+                                    entry.unitCount
+                                );
+                                if (id) entry.supabaseId = id;
+                            }
                         } catch (err) {
                             console.warn('Erreur sync journal entry:', err);
                         }
@@ -438,10 +472,6 @@ async function loadAllDataFromSupabase() {
             .eq('user_id', currentUser.id)
             .maybeSingle();
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:loadAllData:profile',message:'Profile loaded',data:{hasData:!!profile,hasError:!!profileError,errorCode:profileError?.code,errorMsg:profileError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-        // #endregion
-        
         if (profile) {
             state.profile = {
                 pseudo: profile.pseudo || null,
@@ -518,9 +548,6 @@ async function loadAllDataFromSupabase() {
             
             // Ajouter les swaps locaux manquants - NE PAS sync automatiquement pour éviter cascade d'erreurs
             // Les swaps seront syncés individuellement quand l'utilisateur fait un changement
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:loadAllData:swapLoop',message:'Local swaps merged (no auto-sync)',data:{localSwapsCount:Object.keys(localSwaps).length,supabaseSwapsCount:Object.keys(supabaseSwaps).length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-            // #endregion
             Object.keys(localSwaps).forEach(originalExercise => {
                 if (!supabaseSwaps[originalExercise]) {
                     // Swap local non présent dans Supabase, le garder localement
@@ -536,10 +563,6 @@ async function loadAllDataFromSupabase() {
             .select('*')
             .eq('user_id', currentUser.id)
             .maybeSingle();
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:loadAllData:trainingSettings',message:'Training settings loaded',data:{hasData:!!trainingSettings,hasError:!!trainingError,errorCode:trainingError?.code,errorMsg:trainingError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-        // #endregion
         
         if (trainingSettings) {
             // Détection de conflit multi-devices
@@ -939,9 +962,6 @@ async function saveCustomExerciseToSupabase(exercise) {
 
 // Sauvegarder un swap d'exercice (avec retry et feedback)
 async function saveExerciseSwapToSupabase(originalExercise, replacementId) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:saveExerciseSwapToSupabase:entry',message:'Swap save called',data:{originalExercise,replacementId,hasUser:!!currentUser,isOnline},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
     if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: swap sauvegardé localement');
@@ -949,10 +969,6 @@ async function saveExerciseSwapToSupabase(originalExercise, replacementId) {
     }
     
     try {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:saveExerciseSwapToSupabase:upsert',message:'Attempting upsert',data:{originalExercise,replacementId,userId:currentUser.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
-        
         // Essai direct sans retry excessif - les erreurs FK sont permanentes
         const { error } = await supabaseClient
             .from('exercise_swaps')
@@ -963,10 +979,6 @@ async function saveExerciseSwapToSupabase(originalExercise, replacementId) {
             }, { onConflict: 'user_id,original_exercise' });
         
         if (error) {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:saveExerciseSwapToSupabase:error',message:'Upsert failed',data:{errorCode:error.code,errorMsg:error.message,errorDetails:error.details,originalExercise},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-            // #endregion
-            
             // Erreur 23503 = Foreign Key violation - l'utilisateur n'existe pas dans la table users
             // Ne pas retry, c'est une erreur permanente tant que le profil n'est pas créé
             if (error.code === '23503') {

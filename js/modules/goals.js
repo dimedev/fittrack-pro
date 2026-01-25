@@ -669,10 +669,22 @@ function renderStreakCard() {
 }
 
 function renderRecommendationsCard() {
+    const container = document.getElementById('recommendations-card');
     const analysis = state.progressionAnalysis;
     const trainingRecs = state.progressionRecommendations || {};
     
+    // Fallback si pas de données
     if (!analysis && Object.keys(trainingRecs).length === 0) {
+        if (container) {
+            container.innerHTML = `
+                <div class="readiness-card">
+                    <h3>Recommandations</h3>
+                    <p class="rec-empty" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">
+                        Complète quelques séances pour recevoir des conseils personnalisés.
+                    </p>
+                </div>
+            `;
+        }
         return '';
     }
     

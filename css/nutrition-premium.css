@@ -354,6 +354,31 @@
     background: #ea580c;
 }
 
+/* Bouton refresh suggestions */
+.suggestions-refresh-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.suggestions-refresh-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+.suggestions-refresh-btn:active {
+    transform: scale(0.98);
+}
+
 /* ==================== MEAL ADD SHEET ==================== */
 
 .meal-sheet {

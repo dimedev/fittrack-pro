@@ -292,7 +292,7 @@ function scoreSuggestion(food, context) {
 
 // ==================== GÉNÉRATION DES SUGGESTIONS ====================
 
-function generateSmartSuggestions(mealType) {
+function generateSmartSuggestions(mealType, excludeIds = []) {
     const training = getTrainingContext();
     const time = getTimeContext();
     const nutrition = getNutritionContext();
@@ -302,6 +302,9 @@ function generateSmartSuggestions(mealType) {
     
     // Filtrer les aliments candidats
     let candidates = state.foods.filter(food => {
+        // Exclure les IDs déjà montrés
+        if (excludeIds.includes(food.id)) return false;
+        
         // Exclure si déjà mangé 2+ fois aujourd'hui
         const today = new Date().toISOString().split('T')[0];
         const todayCount = (state.foodJournal?.[today] || [])
