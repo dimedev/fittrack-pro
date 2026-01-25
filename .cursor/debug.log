@@ -1,0 +1,6 @@
+{"location":"supabase.js:onUserLoggedIn:entry","message":"User logged in","data":{"userId":"19f32b35-c8cf-4c94-ae42-5c9cd3c4f9a4","email":"dimitri@avent-media.fr"},"timestamp":1769368368122,"sessionId":"debug-session","hypothesisId":"H4"}
+{"location":"supabase.js:loadAllData:start","message":"Starting data load","data":{"userId":"19f32b35-c8cf-4c94-ae42-5c9cd3c4f9a4"},"timestamp":1769368368125,"sessionId":"debug-session","hypothesisId":"H1"}
+{"location":"supabase.js:loadAllData:profile","message":"Profile query done","data":{"hasProfile":false,"profileError":null,"profileErrorCode":null},"timestamp":1769368368828,"sessionId":"debug-session","hypothesisId":"H1"}
+{"location":"supabase.js:loadAllData:training","message":"Training settings query done","data":{"hasSettings":false,"trainingError":null,"trainingErrorCode":null},"timestamp":1769368369377,"sessionId":"debug-session","hypothesisId":"H2"}
+{"location":"supabase.js:loadAllData:complete","message":"All data loaded successfully","data":{"hasProfile":true,"hasTrainingSettings":true},"timestamp":1769368369885,"sessionId":"debug-session","hypothesisId":"H5"}
+{"location":"supabase.js:onUserLoggedIn:success","message":"Data loaded successfully","data":{},"timestamp":1769368369899,"sessionId":"debug-session","hypothesisId":"H4"}

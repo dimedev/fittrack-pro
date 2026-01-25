@@ -721,7 +721,30 @@ function renderTodaySession() {
     // Utiliser currentSplitIndex de trainingProgress
     const currentIndex = state.trainingProgress?.currentSplitIndex || 0;
     const splitName = splits[currentIndex];
-    const exercises = program.exercises[splitName] || [];
+    let exercises = program.exercises[splitName] || [];
+
+    // Vérifier si un template existe pour cette séance (avec exercices remplacés)
+    const templateKey = `${state.wizardResults.selectedProgram}-${currentIndex}`;
+    const template = state.sessionTemplates?.[templateKey];
+    
+    if (template && template.exercises) {
+        // Utiliser les exercices du template (avec swaps appliqués)
+        exercises = template.exercises.map(templateEx => {
+            // Trouver l'exercice original dans le programme
+            const originalEx = exercises.find(ex => ex.name === templateEx.originalName);
+            if (!originalEx) return null;
+            
+            // Utiliser le nom remplacé si disponible, sinon le nom original
+            return {
+                ...originalEx,
+                name: templateEx.swappedName || templateEx.originalName,
+                muscle: originalEx.muscle,
+                sets: templateEx.sets || originalEx.sets,
+                reps: templateEx.reps || originalEx.reps,
+                type: originalEx.type
+            };
+        }).filter(Boolean); // Retirer les null
+    }
 
     // Afficher la card
     card.style.display = 'block';

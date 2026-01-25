@@ -78,7 +78,7 @@
     width: 100% !important;
 }
 
-#nutrition * {
+#nutrition *:not(.bottom-sheet-overlay):not(.bottom-sheet):not(.bottom-sheet *) {
     max-width: 100% !important;
     overflow-x: hidden !important;
 }

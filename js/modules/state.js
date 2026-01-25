@@ -17,6 +17,7 @@ const CARDIO_TYPES = {
     cycling: { id: 'cycling', label: 'Vélo', icon: '🚴', met: { light: 4, moderate: 6.8, intense: 10 } },
     walking: { id: 'walking', label: 'Marche', icon: '🚶', met: { light: 2.5, moderate: 3.5, intense: 5 } },
     swimming: { id: 'swimming', label: 'Natation', icon: '🏊', met: { light: 5, moderate: 7, intense: 10 } },
+    boxing: { id: 'boxing', label: 'Boxe', icon: '🥊', met: { light: 7, moderate: 10, intense: 13 } },
     other: { id: 'other', label: 'Autre', icon: '💪', met: { light: 4, moderate: 6, intense: 8 } }
 };
 

@@ -2496,6 +2496,13 @@ function initNutritionSwipeToClose() {
         const sheet = overlay.querySelector('.bottom-sheet');
         if (!sheet) return;
         
+        // Fermer si on clique sur l'overlay (pas sur le sheet)
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay && closeFunc) {
+                closeFunc();
+            }
+        });
+        
         let startY = 0;
         let currentY = 0;
         let isDragging = false;

@@ -1635,8 +1635,8 @@
     </div>
 
     <!-- Food Quantity Bottom Sheet (Adaptatif: unités ou grammes) -->
-    <div class="bottom-sheet-overlay" id="food-quantity-sheet" style="display: none;" onclick="closeFoodQuantitySheet()">
-        <div class="bottom-sheet" onclick="event.stopPropagation()">
+    <div class="bottom-sheet-overlay" id="food-quantity-sheet" style="display: none;">
+        <div class="bottom-sheet">
             <div class="bottom-sheet-header">
                 <div class="bottom-sheet-handle"></div>
                 <h3 class="bottom-sheet-title" id="quantity-food-name">Aliment</h3>
@@ -1757,6 +1757,10 @@
                         <button class="cardio-type-btn" data-type="swimming" onclick="selectCardioType('swimming')">
                             <span class="cardio-type-icon">🏊</span>
                             <span class="cardio-type-label">Natation</span>
+                        </button>
+                        <button class="cardio-type-btn" data-type="boxing" onclick="selectCardioType('boxing')">
+                            <span class="cardio-type-icon">🥊</span>
+                            <span class="cardio-type-label">Boxe</span>
                         </button>
                         <button class="cardio-type-btn" data-type="other" onclick="selectCardioType('other')">
                             <span class="cardio-type-icon">💪</span>
