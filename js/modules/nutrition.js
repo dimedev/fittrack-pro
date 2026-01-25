@@ -2591,7 +2591,14 @@ function applySuggestion() {
 
 // ==================== SWIPE-DOWN TO CLOSE BOTTOM SHEETS ====================
 
+// Flag pour éviter les event listeners en double
+let nutritionSwipeInitialized = false;
+
 function initNutritionSwipeToClose() {
+    // Éviter d'ajouter les listeners plusieurs fois
+    if (nutritionSwipeInitialized) return;
+    nutritionSwipeInitialized = true;
+    
     const sheets = [
         { id: 'food-quantity-sheet', closeFunc: closeFoodQuantitySheet },
         { id: 'meal-add-sheet', closeFunc: closeMealSheet },
@@ -2610,6 +2617,11 @@ function initNutritionSwipeToClose() {
             if (e.target === overlay && closeFunc) {
                 closeFunc();
             }
+        });
+        
+        // Empêcher la propagation des clics dans le bottom sheet
+        sheet.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
         
         let startY = 0;
