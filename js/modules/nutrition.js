@@ -2186,9 +2186,18 @@ let cardioState = {
 };
 
 // Ouvrir le bottom sheet cardio
+// Flag pour éviter les ouvertures/fermetures en double
+let cardioSheetClosing = false;
+
 function openCardioSheet() {
     const sheet = document.getElementById('cardio-add-sheet');
     if (!sheet) return;
+    
+    // Ne pas ouvrir si en train de fermer
+    if (cardioSheetClosing) return;
+    
+    // Ne pas ouvrir si déjà ouvert
+    if (sheet.style.display === 'flex') return;
     
     // Reset état
     cardioState = { type: 'running', duration: 30, intensity: 'moderate' };
@@ -2212,8 +2221,16 @@ function closeCardioSheet() {
     const sheet = document.getElementById('cardio-add-sheet');
     if (!sheet) return;
     
+    // Ne pas fermer si déjà en train de fermer ou déjà fermé
+    if (cardioSheetClosing || sheet.style.display === 'none') return;
+    
+    cardioSheetClosing = true;
     sheet.classList.remove('active');
-    setTimeout(() => sheet.style.display = 'none', 300);
+    
+    setTimeout(() => {
+        sheet.style.display = 'none';
+        cardioSheetClosing = false;
+    }, 300);
 }
 
 // Sélectionner le type de cardio
@@ -2624,29 +2641,34 @@ function initNutritionSwipeToClose() {
             e.stopPropagation();
         });
         
+        // Swipe-to-close - variables locales pour chaque sheet
         let startY = 0;
         let currentY = 0;
-        let isDragging = false;
+        let hasMoved = false;
         
         sheet.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
-            isDragging = true;
+            currentY = startY; // Initialiser currentY à startY
+            hasMoved = false;
         }, { passive: true });
         
         sheet.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            
             currentY = e.touches[0].clientY;
             const diff = currentY - startY;
             
-            if (diff > 0) {
+            // Ne déplacer que si on swipe vers le bas
+            if (diff > 10) {
+                hasMoved = true;
                 sheet.style.transform = `translateY(${diff}px)`;
                 sheet.style.transition = 'none';
             }
         }, { passive: true });
         
         sheet.addEventListener('touchend', () => {
-            if (!isDragging) return;
+            // Ne rien faire si c'était juste un tap (pas de mouvement)
+            if (!hasMoved) {
+                return;
+            }
             
             const diff = currentY - startY;
             
@@ -2664,7 +2686,10 @@ function initNutritionSwipeToClose() {
                 sheet.style.transform = '';
             }
             
-            isDragging = false;
+            // Reset des variables
+            startY = 0;
+            currentY = 0;
+            hasMoved = false;
         });
     });
 }
