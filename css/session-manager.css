@@ -1537,6 +1537,17 @@
     padding: 20px;
 }
 
+/* Fix bottom sheet content padding pour safe-area */
+@media (max-width: 768px) {
+    .bottom-sheet-content {
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 20px));
+    }
+    
+    .cardio-sheet .bottom-sheet-content {
+        padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+    }
+}
+
 .bottom-sheet-current {
     font-size: 1rem;
     font-weight: 600;

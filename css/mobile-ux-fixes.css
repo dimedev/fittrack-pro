@@ -70,28 +70,19 @@
 /* ==================== NUTRITION CSS CLEANUP ==================== */
 
 /* Fix scroll horizontal sur la section Nutrition */
+/* Fix overflow pour scroll fluide sur nutrition */
 #nutrition {
-    overflow-x: hidden !important;
-    overscroll-behavior-x: none !important;
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior: none;
+    max-width: 100vw;
+    width: 100%;
     -webkit-overflow-scrolling: touch;
-    max-width: 100vw !important;
-    width: 100% !important;
 }
 
-#nutrition *:not(.bottom-sheet-overlay):not(.bottom-sheet):not(.bottom-sheet *) {
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-}
-
-#nutrition .card,
-#nutrition .card-header,
-#nutrition .card-body,
-#nutrition .nutrition-macros-summary,
-#nutrition .journal-macro-bars {
-    overflow-x: hidden !important;
-    overflow-y: visible !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+#nutrition .card {
+    overflow: visible;
+    max-width: 100%;
 }
 
 /* Cacher le titre dans la section nutrition (desktop et mobile) */
@@ -1603,4 +1594,46 @@ html, body, main {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     color: var(--text-primary);
+}
+
+/* ==================== BTN-BLOCK FIX ==================== */
+.btn-block {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+}
+
+/* Fix CTA dans bottom sheets */
+.bottom-sheet .btn-block,
+.cardio-sheet .btn-block {
+    width: calc(100% - 40px);
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 768px) {
+    .bottom-sheet .btn-block,
+    .cardio-sheet .btn-block {
+        width: 100%;
+        border-radius: 12px;
+    }
+}
+
+/* ==================== CARDIO SUBMIT BUTTON ==================== */
+.cardio-submit-btn {
+    margin-top: 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 14px 24px;
+}
+
+@media (max-width: 768px) {
+    .cardio-submit-btn {
+        position: sticky;
+        bottom: 0;
+        margin-top: 20px;
+        padding: 16px 24px;
+        border-radius: 12px;
+    }
 }

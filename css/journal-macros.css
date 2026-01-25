@@ -211,23 +211,25 @@
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-color);
     padding: 0;
-    height: 0;
+    max-height: 0;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     opacity: 0;
+    visibility: hidden;
     transform: translateY(-100%);
-    transition: opacity 0.3s ease, transform 0.3s ease, height 0.3s ease, padding 0.3s ease;
+    transition: max-height 0.3s ease, opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease, padding 0.3s ease;
     pointer-events: none;
 }
 
 .nutrition-sticky-header.visible {
+    max-height: 60px;
     opacity: 1;
+    visibility: visible;
     transform: translateY(0);
     pointer-events: all;
-    height: auto;
     padding: 12px 16px;
 }
 
