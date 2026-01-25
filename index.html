@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/session-manager.css?v=19">
     <link rel="stylesheet" href="css/premium-components.css?v=23">
+    <link rel="stylesheet" href="css/nutrition-premium.css?v=1">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=25">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
 
@@ -330,36 +331,96 @@
                         </div>
                     </div>
 
-                    <!-- Menu du jour -->
-                    <div class="nutrition-journal" style="margin-bottom: 20px;">
-                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Menu du jour</h4>
-                        <div id="journal-entries">
-                            <div class="empty-state" style="padding: 30px;">
-                                <div class="empty-state-icon">📋</div>
-                                <div class="empty-state-title">Journal vide</div>
-                                <p>Recherchez et ajoutez ce que vous avez mangé aujourd'hui</p>
+                    <!-- Repas du jour - 4 sections -->
+                    <div class="meals-container" id="meals-container">
+                        <!-- Petit-déjeuner -->
+                        <div class="meal-section" data-meal="breakfast">
+                            <div class="meal-header" onclick="toggleMealSection('breakfast')">
+                                <div class="meal-info">
+                                    <span class="meal-icon">🌅</span>
+                                    <span class="meal-name">Petit-déjeuner</span>
+                                </div>
+                                <div class="meal-meta">
+                                    <span class="meal-calories" id="meal-cals-breakfast">0 kcal</span>
+                                    <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('breakfast')" title="Ajouter">+</button>
+                                </div>
+                            </div>
+                            <div class="meal-content" id="meal-content-breakfast">
+                                <div class="meal-items" id="meal-items-breakfast"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Déjeuner -->
+                        <div class="meal-section" data-meal="lunch">
+                            <div class="meal-header" onclick="toggleMealSection('lunch')">
+                                <div class="meal-info">
+                                    <span class="meal-icon">☀️</span>
+                                    <span class="meal-name">Déjeuner</span>
+                                </div>
+                                <div class="meal-meta">
+                                    <span class="meal-calories" id="meal-cals-lunch">0 kcal</span>
+                                    <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('lunch')" title="Ajouter">+</button>
+                                </div>
+                            </div>
+                            <div class="meal-content" id="meal-content-lunch">
+                                <div class="meal-items" id="meal-items-lunch"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Collation -->
+                        <div class="meal-section" data-meal="snack">
+                            <div class="meal-header" onclick="toggleMealSection('snack')">
+                                <div class="meal-info">
+                                    <span class="meal-icon">🍎</span>
+                                    <span class="meal-name">Collation</span>
+                                </div>
+                                <div class="meal-meta">
+                                    <span class="meal-calories" id="meal-cals-snack">0 kcal</span>
+                                    <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('snack')" title="Ajouter">+</button>
+                                </div>
+                            </div>
+                            <div class="meal-content" id="meal-content-snack">
+                                <div class="meal-items" id="meal-items-snack"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dîner -->
+                        <div class="meal-section" data-meal="dinner">
+                            <div class="meal-header" onclick="toggleMealSection('dinner')">
+                                <div class="meal-info">
+                                    <span class="meal-icon">🌙</span>
+                                    <span class="meal-name">Dîner</span>
+                                </div>
+                                <div class="meal-meta">
+                                    <span class="meal-calories" id="meal-cals-dinner">0 kcal</span>
+                                    <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('dinner')" title="Ajouter">+</button>
+                                </div>
+                            </div>
+                            <div class="meal-content" id="meal-content-dinner">
+                                <div class="meal-items" id="meal-items-dinner"></div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Search bar avec toggle -->
-                    <div class="nutrition-search-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center;">
-                        <input type="text" class="form-input" id="unified-food-search" placeholder="Rechercher un aliment..." oninput="searchUnifiedFoods()" style="flex: 1;">
-                        <button class="btn-toggle-browse" id="toggle-browse-btn" onclick="toggleFoodBrowse()">
-                            <span id="browse-btn-text">Parcourir</span>
-                            <span id="browse-btn-icon">▼</span>
-                        </button>
+                    
+                    <!-- Section Cardio -->
+                    <div class="cardio-section" id="cardio-section">
+                        <div class="cardio-header">
+                            <div class="cardio-info">
+                                <span class="cardio-icon">🔥</span>
+                                <span class="cardio-title">Activité du jour</span>
+                            </div>
+                            <div class="cardio-meta">
+                                <span class="cardio-calories" id="cardio-total-calories">0 kcal</span>
+                                <button class="meal-add-btn" onclick="openCardioSheet()" title="Ajouter">+</button>
+                            </div>
+                        </div>
+                        <div class="cardio-items" id="cardio-items"></div>
                     </div>
-
-                    <!-- Liste accordeon (cachee par defaut) -->
-                    <div id="foods-accordion-container" style="display: none; margin-bottom: 20px;">
-                        <div id="foods-list"></div>
-                    </div>
-
-                    <!-- Resultats recherche (apparait quand on tape) -->
-                    <div id="search-results-container" style="display: none; margin-bottom: 20px;">
-                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Résultats de recherche</h4>
-                        <div id="search-results-list" style="max-height: 300px; overflow-y: auto;"></div>
+                    
+                    <!-- Suggestion intelligente quotidienne -->
+                    <div class="nutrition-suggestion" id="nutrition-suggestion" style="display: none;">
+                        <span id="suggestion-icon">💡</span>
+                        <span id="suggestion-text"></span>
                     </div>
                 </div>
 
@@ -1573,7 +1634,7 @@
         </div>
     </div>
 
-    <!-- Food Quantity Bottom Sheet -->
+    <!-- Food Quantity Bottom Sheet (Adaptatif: unités ou grammes) -->
     <div class="bottom-sheet-overlay" id="food-quantity-sheet" style="display: none;" onclick="closeFoodQuantitySheet()">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
             <div class="bottom-sheet-header">
@@ -1581,34 +1642,35 @@
                 <h3 class="bottom-sheet-title" id="quantity-food-name">Aliment</h3>
             </div>
             <div class="bottom-sheet-content">
-                <!-- Macros info -->
+                <!-- Macros info (adaptatif selon unité) -->
                 <div class="quantity-macros-info">
                     <div class="quantity-macros-base">
-                        <span class="quantity-macros-label">Pour 100g :</span>
+                        <span class="quantity-macros-label" id="quantity-base-label">Pour 100g :</span>
                         <div class="quantity-macros-values" id="quantity-macros-base"></div>
                     </div>
                 </div>
 
-                <!-- Presets rapides -->
+                <!-- Presets rapides (générés dynamiquement) -->
                 <div class="quantity-section">
-                    <h4 class="quantity-section-title">Quantités rapides</h4>
-                    <div class="quantity-presets">
-                        <button class="quantity-preset" onclick="selectQuantityPreset(50)">50g</button>
-                        <button class="quantity-preset" onclick="selectQuantityPreset(100)">100g</button>
-                        <button class="quantity-preset" onclick="selectQuantityPreset(150)">150g</button>
-                        <button class="quantity-preset" onclick="selectQuantityPreset(200)">200g</button>
+                    <h4 class="quantity-section-title" id="quantity-presets-title">Combien ?</h4>
+                    <div class="quantity-presets" id="quantity-presets-container">
+                        <!-- Rempli par JS -->
                     </div>
                 </div>
 
-                <!-- Custom quantity -->
+                <!-- Quantité personnalisée (adaptatif) -->
                 <div class="quantity-section">
-                    <h4 class="quantity-section-title">Quantité personnalisée</h4>
-                    <div class="quantity-custom">
-                        <button class="quantity-btn" onclick="adjustQuantity(-10)">-10</button>
-                        <input type="number" id="custom-quantity-input" value="100" min="1" step="10">
-                        <span>g</span>
-                        <button class="quantity-btn" onclick="adjustQuantity(10)">+10</button>
+                    <h4 class="quantity-section-title">Ajuster</h4>
+                    <div class="quantity-custom" id="quantity-custom-container">
+                        <button class="quantity-btn" id="qty-minus-btn" onclick="adjustQuantityUnit(-1)">-</button>
+                        <div class="quantity-input-wrapper">
+                            <input type="number" id="custom-quantity-input" value="1" min="0.5" step="0.5">
+                            <span id="quantity-unit-label">unité(s)</span>
+                        </div>
+                        <button class="quantity-btn" id="qty-plus-btn" onclick="adjustQuantityUnit(1)">+</button>
                     </div>
+                    <!-- Input grammes caché pour stockage -->
+                    <input type="hidden" id="quantity-grams-value" value="100">
                 </div>
 
                 <!-- Total dynamique -->
@@ -1618,8 +1680,132 @@
                 </div>
 
                 <!-- CTA -->
-                <button class="btn btn-primary btn-block" onclick="confirmAddFood()" style="margin-top: 16px;">
-                    Ajouter au journal
+                <button class="btn btn-primary btn-block" id="quantity-confirm-btn" onclick="confirmAddFood()" style="margin-top: 16px;">
+                    Ajouter au repas
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meal Add Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="meal-add-sheet" style="display: none;" onclick="closeMealSheet()">
+        <div class="bottom-sheet meal-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title" id="meal-sheet-title">Ajouter au repas</h3>
+            </div>
+            <div class="bottom-sheet-content">
+                <!-- Recherche -->
+                <div class="meal-search-section">
+                    <input type="text" class="form-input meal-search-input" id="meal-food-search" placeholder="Rechercher un aliment..." oninput="searchFoodsForMeal()">
+                </div>
+                
+                <!-- Suggestions intelligentes -->
+                <div class="meal-suggestions-section" id="meal-suggestions-section">
+                    <h4 class="meal-section-title">💡 Suggestions pour toi</h4>
+                    <div class="meal-suggestions-list" id="meal-suggestions-list"></div>
+                </div>
+                
+                <!-- Habitudes -->
+                <div class="meal-habits-section" id="meal-habits-section" style="display: none;">
+                    <h4 class="meal-section-title">🔄 Tes habitudes</h4>
+                    <div class="meal-habits-list" id="meal-habits-list"></div>
+                </div>
+                
+                <!-- Résultats de recherche -->
+                <div class="meal-results-section" id="meal-results-section" style="display: none;">
+                    <h4 class="meal-section-title">Résultats</h4>
+                    <div class="meal-results-list" id="meal-results-list"></div>
+                </div>
+                
+                <!-- Repas rapides -->
+                <div class="meal-quick-section" id="meal-quick-section">
+                    <h4 class="meal-section-title">⚡ Repas rapides</h4>
+                    <div class="meal-quick-list" id="meal-quick-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cardio Add Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="cardio-add-sheet" style="display: none;" onclick="closeCardioSheet()">
+        <div class="bottom-sheet cardio-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Ajouter une activité</h3>
+            </div>
+            <div class="bottom-sheet-content">
+                <!-- Type d'activité -->
+                <div class="cardio-type-section">
+                    <h4 class="cardio-section-title">Type</h4>
+                    <div class="cardio-type-grid" id="cardio-type-grid">
+                        <button class="cardio-type-btn selected" data-type="running" onclick="selectCardioType('running')">
+                            <span class="cardio-type-icon">🏃</span>
+                            <span class="cardio-type-label">Course</span>
+                        </button>
+                        <button class="cardio-type-btn" data-type="cycling" onclick="selectCardioType('cycling')">
+                            <span class="cardio-type-icon">🚴</span>
+                            <span class="cardio-type-label">Vélo</span>
+                        </button>
+                        <button class="cardio-type-btn" data-type="walking" onclick="selectCardioType('walking')">
+                            <span class="cardio-type-icon">🚶</span>
+                            <span class="cardio-type-label">Marche</span>
+                        </button>
+                        <button class="cardio-type-btn" data-type="swimming" onclick="selectCardioType('swimming')">
+                            <span class="cardio-type-icon">🏊</span>
+                            <span class="cardio-type-label">Natation</span>
+                        </button>
+                        <button class="cardio-type-btn" data-type="other" onclick="selectCardioType('other')">
+                            <span class="cardio-type-icon">💪</span>
+                            <span class="cardio-type-label">Autre</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Durée -->
+                <div class="cardio-duration-section">
+                    <h4 class="cardio-section-title">Durée</h4>
+                    <div class="cardio-duration-presets">
+                        <button class="cardio-duration-btn" onclick="selectCardioDuration(15)">15 min</button>
+                        <button class="cardio-duration-btn selected" onclick="selectCardioDuration(30)">30 min</button>
+                        <button class="cardio-duration-btn" onclick="selectCardioDuration(45)">45 min</button>
+                        <button class="cardio-duration-btn" onclick="selectCardioDuration(60)">60 min</button>
+                    </div>
+                    <div class="cardio-duration-custom">
+                        <input type="number" id="cardio-duration-input" value="30" min="5" max="300" step="5">
+                        <span>min</span>
+                    </div>
+                </div>
+                
+                <!-- Intensité -->
+                <div class="cardio-intensity-section">
+                    <h4 class="cardio-section-title">Intensité</h4>
+                    <div class="cardio-intensity-options">
+                        <button class="cardio-intensity-btn" data-intensity="light" onclick="selectCardioIntensity('light')">
+                            <span class="intensity-label">Légère</span>
+                            <span class="intensity-desc">Conversation facile</span>
+                        </button>
+                        <button class="cardio-intensity-btn selected" data-intensity="moderate" onclick="selectCardioIntensity('moderate')">
+                            <span class="intensity-label">Modérée</span>
+                            <span class="intensity-desc">Respiration accélérée</span>
+                        </button>
+                        <button class="cardio-intensity-btn" data-intensity="intense" onclick="selectCardioIntensity('intense')">
+                            <span class="intensity-label">Intense</span>
+                            <span class="intensity-desc">Essoufflement</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Estimation calories -->
+                <div class="cardio-estimate">
+                    <div class="cardio-estimate-label">Calories brûlées estimées</div>
+                    <div class="cardio-estimate-value" id="cardio-estimate-calories">~280 kcal</div>
+                    <div class="cardio-estimate-note">Basé sur ton poids : <span id="cardio-user-weight">70</span> kg</div>
+                </div>
+                
+                <!-- CTA -->
+                <button class="btn btn-primary btn-block" onclick="addCardioSession()" style="margin-top: 16px;">
+                    Ajouter l'activité
                 </button>
             </div>
         </div>
@@ -1847,7 +2033,9 @@
     <script src="js/modules/state.js?v=6"></script>
     <script src="js/modules/supabase.js?v=8"></script>
     <script src="js/modules/profile.js?v=22"></script>
-    <script src="js/modules/nutrition.js?v=10"></script>
+    <script src="js/modules/nutrition.js?v=11"></script>
+    <script src="js/modules/nutrition-suggestions.js?v=1"></script>
+    <script src="js/modules/cardio.js?v=1"></script>
     <script src="js/modules/training.js?v=14"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=6"></script>

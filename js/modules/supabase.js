@@ -160,17 +160,13 @@ async function syncPendingData() {
         if (state.foodJournal) {
             for (const [date, entries] of Object.entries(state.foodJournal)) {
                 for (const entry of entries) {
-                    if (!entry.supabaseId) {
+                    // Vérifier que l'entrée a un foodId valide et n'est pas déjà synchronisée
+                    if (!entry.supabaseId && entry.foodId && entry.quantity) {
                         try {
                             const id = await addJournalEntryToSupabase(
-                                entry.id || entry.name,
-                                entry.name,
-                                entry.calories,
-                                entry.protein,
-                                entry.carbs,
-                                entry.fat,
-                                entry.quantity,
-                                date
+                                date,
+                                entry.foodId,
+                                entry.quantity
                             );
                             if (id) entry.supabaseId = id;
                         } catch (err) {
@@ -607,9 +603,33 @@ async function loadAllDataFromSupabase() {
                     foodId: entry.food_id,
                     quantity: entry.quantity,
                     addedAt: new Date(entry.added_at).getTime(),
-                    supabaseId: entry.id
+                    supabaseId: entry.id,
+                    mealType: entry.meal_type || inferMealType(new Date(entry.added_at).getTime())
                 });
             });
+        }
+        
+        // Charger les sessions cardio (si la table existe)
+        try {
+            const cardioSessions = await loadCardioSessionsFromSupabase(30);
+            if (cardioSessions && cardioSessions.length > 0) {
+                state.cardioLog = {};
+                cardioSessions.forEach(session => {
+                    if (!state.cardioLog[session.date]) {
+                        state.cardioLog[session.date] = [];
+                    }
+                    state.cardioLog[session.date].push({
+                        type: session.type,
+                        duration: session.duration_minutes,
+                        intensity: session.intensity,
+                        calories: session.calories_burned,
+                        addedAt: new Date(session.created_at).getTime(),
+                        supabaseId: session.id
+                    });
+                });
+            }
+        } catch (e) {
+            console.log('Table cardio_sessions non disponible:', e.message);
         }
         
         // Charger l'historique de progression avec MERGE intelligent
@@ -1027,7 +1047,8 @@ async function saveTrainingSettingsToSupabase() {
 }
 
 // Ajouter une entrée au journal (avec retry et feedback)
-async function addJournalEntryToSupabase(date, foodId, quantity) {
+// Supporte les unités naturelles avec unit_type et unit_count optionnels
+async function addJournalEntryToSupabase(date, foodId, quantity, unitType = null, unitCount = null) {
     if (!currentUser) return null;
     if (!isOnline) {
         console.log('📴 Hors-ligne: entrée journal sauvegardée localement');
@@ -1036,14 +1057,28 @@ async function addJournalEntryToSupabase(date, foodId, quantity) {
     
     try {
         return await withRetry(async () => {
+            // Données de base
+            const insertData = {
+                user_id: currentUser.id,
+                date: date,
+                food_id: foodId,
+                quantity: quantity // Toujours en grammes pour les calculs
+            };
+            
+            // Ajouter les colonnes d'unités si elles sont fournies
+            // Note: ces colonnes doivent exister dans la table Supabase
+            // SQL: ALTER TABLE food_journal ADD COLUMN unit_type text DEFAULT 'g';
+            // SQL: ALTER TABLE food_journal ADD COLUMN unit_count numeric;
+            if (unitType && unitType !== 'g') {
+                insertData.unit_type = unitType;
+            }
+            if (unitCount && unitCount !== quantity) {
+                insertData.unit_count = unitCount;
+            }
+            
             const { data, error } = await supabaseClient
                 .from('food_journal')
-                .insert({
-                    user_id: currentUser.id,
-                    date: date,
-                    food_id: foodId,
-                    quantity: quantity
-                })
+                .insert(insertData)
                 .select()
                 .single();
             
@@ -1131,6 +1166,95 @@ async function clearJournalDayInSupabase(date) {
         console.error('Erreur vidage journal:', error);
         showToast('Erreur sync - journal vidé localement', 'warning');
         return false;
+    }
+}
+
+// ==================== CARDIO SESSIONS ====================
+
+// Sauvegarder une session cardio
+async function saveCardioSessionToSupabase(date, session) {
+    if (!currentUser) return null;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: session cardio sauvegardée localement');
+        return null;
+    }
+    
+    try {
+        return await withRetry(async () => {
+            const { data, error } = await supabaseClient
+                .from('cardio_sessions')
+                .insert({
+                    user_id: currentUser.id,
+                    date: date,
+                    type: session.type,
+                    duration_minutes: session.duration,
+                    intensity: session.intensity,
+                    calories_burned: session.calories
+                })
+                .select('id')
+                .maybeSingle();
+            
+            if (error) throw error;
+            return data?.id || null;
+        }, { maxRetries: 2, critical: false });
+    } catch (error) {
+        console.error('Erreur sauvegarde cardio:', error);
+        showToast('Cardio sauvegardé localement', 'warning');
+        return null;
+    }
+}
+
+// Supprimer une session cardio
+async function deleteCardioSessionFromSupabase(sessionId) {
+    if (!currentUser) return false;
+    if (!isOnline) return false;
+    
+    try {
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('cardio_sessions')
+                .delete()
+                .eq('id', sessionId)
+                .eq('user_id', currentUser.id);
+            
+            if (error) throw error;
+        }, { maxRetries: 2, critical: false });
+        return true;
+    } catch (error) {
+        console.error('Erreur suppression cardio:', error);
+        return false;
+    }
+}
+
+// Charger les sessions cardio depuis Supabase
+async function loadCardioSessionsFromSupabase(days = 30) {
+    if (!currentUser) return [];
+    if (!isOnline) return [];
+    
+    try {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        
+        const { data, error } = await supabaseClient
+            .from('cardio_sessions')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .gte('date', startDate.toISOString().split('T')[0])
+            .order('date', { ascending: false });
+        
+        if (error) {
+            // Table n'existe peut-être pas encore
+            if (error.code === '42P01') {
+                console.log('Table cardio_sessions non créée');
+                return [];
+            }
+            throw error;
+        }
+        
+        return data || [];
+    } catch (error) {
+        console.error('Erreur chargement cardio:', error);
+        return [];
     }
 }
 

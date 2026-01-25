@@ -24,6 +24,106 @@ const foodCategories = {
     'other': { name: 'Autre', icon: '📦' }
 };
 
+// ==================== UNITÉS NATURELLES ====================
+
+// Labels pour les types d'unités
+const UNIT_LABELS = {
+    g: { singular: 'g', plural: 'g' },
+    piece: { singular: '', plural: '' }, // Le label est dans unitLabel de l'aliment
+    slice: { singular: 'tranche', plural: 'tranches' },
+    cup: { singular: 'pot', plural: 'pots' },
+    tbsp: { singular: 'c. à soupe', plural: 'c. à soupe' }
+};
+
+// Pluraliser un label français
+function pluralizeFr(label, count) {
+    if (count <= 1) return label;
+    
+    // Règles de pluriel français simples
+    const irregulars = {
+        'œuf': 'œufs',
+        'blanc': 'blancs'
+    };
+    
+    if (irregulars[label]) return irregulars[label];
+    
+    // Terminaisons qui ne changent pas au pluriel
+    if (label.endsWith('s') || label.endsWith('x') || label.endsWith('z')) {
+        return label;
+    }
+    
+    return label + 's';
+}
+
+// Formater la quantité pour l'affichage
+function formatQuantityDisplay(food, quantityGrams) {
+    // Aliment sans unité spéciale ou unité gramme
+    if (!food.unit || food.unit === 'g') {
+        return `${quantityGrams}g`;
+    }
+    
+    // Calculer le nombre d'unités
+    const units = Math.round((quantityGrams / food.unitWeight) * 10) / 10;
+    
+    // Obtenir le label approprié
+    let label;
+    if (food.unit === 'piece' && food.unitLabel) {
+        label = pluralizeFr(food.unitLabel, units);
+    } else {
+        const unitInfo = UNIT_LABELS[food.unit] || UNIT_LABELS.g;
+        label = units > 1 ? unitInfo.plural : unitInfo.singular;
+    }
+    
+    // Format d'affichage
+    if (units === Math.floor(units)) {
+        // Nombre entier
+        return `${Math.floor(units)} ${label}`;
+    } else {
+        // Nombre décimal - montrer approximation en grammes
+        return `${units} ${label} (~${quantityGrams}g)`;
+    }
+}
+
+// Obtenir les presets de quantité adaptés à l'aliment
+function getQuantityPresets(food) {
+    if (!food.unit || food.unit === 'g') {
+        // Presets en grammes
+        return [
+            { value: 50, label: '50g' },
+            { value: 100, label: '100g' },
+            { value: 150, label: '150g' },
+            { value: 200, label: '200g' }
+        ];
+    }
+    
+    // Presets en unités
+    const unitWeight = food.unitWeight || 100;
+    const unitLabel = food.unitLabel || '';
+    
+    return [
+        { value: unitWeight, label: `1 ${unitLabel}` },
+        { value: unitWeight * 2, label: `2 ${pluralizeFr(unitLabel, 2)}` },
+        { value: unitWeight * 3, label: `3 ${pluralizeFr(unitLabel, 3)}` }
+    ];
+}
+
+// Vérifier si un aliment utilise des unités naturelles
+function hasNaturalUnit(food) {
+    return food.unit && food.unit !== 'g' && food.unitWeight;
+}
+
+// Convertir une quantité en unités vers grammes
+function unitsToGrams(food, unitCount) {
+    if (!food.unitWeight) return unitCount;
+    return Math.round(unitCount * food.unitWeight);
+}
+
+// Convertir une quantité en grammes vers unités
+function gramsToUnits(food, grams) {
+    if (!food.unitWeight) return grams;
+    return Math.round((grams / food.unitWeight) * 10) / 10;
+}
+
 // ==================== BASE D'ALIMENTS ====================
 
 // Afficher la liste des aliments (accordéon par catégorie)
@@ -246,55 +346,202 @@ function searchUnifiedFoods() {
  */
 let selectedFoodForQuantity = null;
 let currentQuantity = 100;
+let currentUnitCount = 1;
+let isEditMode = false;
+let editMealType = null;
 
 /**
- * Ouvrir le bottom sheet pour choisir la quantité
+ * Ouvrir le bottom sheet pour choisir la quantité (adaptatif: unités ou grammes)
  */
 function quickAddFromSearch(foodId) {
     const food = state.foods.find(f => f.id === foodId);
     if (!food) return;
     
-    // Stocker l'aliment sélectionné
-    selectedFoodForQuantity = food;
-    currentQuantity = 100;
+    isEditMode = false;
+    editMealType = null;
+    openQuantitySheet(food, hasNaturalUnit(food) ? food.unitWeight : 100);
+}
+
+/**
+ * Ouvrir le sheet en mode édition
+ */
+function openFoodQuantitySheetForEdit(food, currentGrams, mealType) {
+    isEditMode = true;
+    editMealType = mealType;
+    openQuantitySheet(food, currentGrams);
     
-    // Remplir le bottom sheet
+    // Changer le texte du bouton
+    const confirmBtn = document.getElementById('quantity-confirm-btn');
+    if (confirmBtn) confirmBtn.textContent = 'Modifier';
+}
+
+/**
+ * Ouvrir le bottom sheet de quantité (interne)
+ */
+function openQuantitySheet(food, initialGrams) {
+    selectedFoodForQuantity = food;
+    currentQuantity = initialGrams;
+    
+    const isUnitFood = hasNaturalUnit(food);
+    currentUnitCount = isUnitFood ? gramsToUnits(food, initialGrams) : initialGrams;
+    
+    // Titre
     document.getElementById('quantity-food-name').textContent = food.name;
-    document.getElementById('quantity-macros-base').innerHTML = `
-        <span>🔥 ${food.calories} kcal</span>
-        <span>P: ${food.protein}g</span>
-        <span>G: ${food.carbs}g</span>
-        <span>L: ${food.fat}g</span>
-    `;
-    document.getElementById('custom-quantity-input').value = currentQuantity;
+    
+    // Label de base (adaptatif)
+    const baseLabel = document.getElementById('quantity-base-label');
+    if (isUnitFood) {
+        const unitLabel = food.unitLabel || 'unité';
+        baseLabel.textContent = `Pour 1 ${unitLabel} (~${food.unitWeight}g) :`;
+        const multiplier = food.unitWeight / 100;
+        document.getElementById('quantity-macros-base').innerHTML = `
+            <span>🔥 ${Math.round(food.calories * multiplier)} kcal</span>
+            <span>P: ${Math.round(food.protein * multiplier * 10) / 10}g</span>
+            <span>G: ${Math.round(food.carbs * multiplier * 10) / 10}g</span>
+            <span>L: ${Math.round(food.fat * multiplier * 10) / 10}g</span>
+        `;
+    } else {
+        baseLabel.textContent = 'Pour 100g :';
+        document.getElementById('quantity-macros-base').innerHTML = `
+            <span>🔥 ${food.calories} kcal</span>
+            <span>P: ${food.protein}g</span>
+            <span>G: ${food.carbs}g</span>
+            <span>L: ${food.fat}g</span>
+        `;
+    }
+    
+    // Générer les presets adaptés
+    renderQuantityPresets(food);
+    
+    // Configurer l'input personnalisé
+    const input = document.getElementById('custom-quantity-input');
+    const unitLabel = document.getElementById('quantity-unit-label');
+    const gramsInput = document.getElementById('quantity-grams-value');
+    
+    if (isUnitFood) {
+        input.value = currentUnitCount;
+        input.step = '0.5';
+        input.min = '0.5';
+        unitLabel.textContent = pluralizeFr(food.unitLabel || 'unité', currentUnitCount);
+        gramsInput.value = unitsToGrams(food, currentUnitCount);
+    } else {
+        input.value = initialGrams;
+        input.step = '10';
+        input.min = '10';
+        unitLabel.textContent = 'g';
+        gramsInput.value = initialGrams;
+    }
+    
+    // Configurer les boutons +/-
+    const minusBtn = document.getElementById('qty-minus-btn');
+    const plusBtn = document.getElementById('qty-plus-btn');
+    minusBtn.textContent = isUnitFood ? '-1' : '-10';
+    plusBtn.textContent = isUnitFood ? '+1' : '+10';
+    minusBtn.onclick = () => adjustQuantityUnit(isUnitFood ? -1 : -10);
+    plusBtn.onclick = () => adjustQuantityUnit(isUnitFood ? 1 : 10);
     
     // Mettre à jour le total
     updateQuantityTotal();
     
-    // Afficher le bottom sheet avec animation iOS-like
+    // Reset le texte du bouton
+    const confirmBtn = document.getElementById('quantity-confirm-btn');
+    if (confirmBtn && !isEditMode) confirmBtn.textContent = 'Ajouter au repas';
+    
+    // Afficher le bottom sheet
     const sheet = document.getElementById('food-quantity-sheet');
     if (sheet) {
         sheet.style.display = 'flex';
-        // Force reflow to trigger animation
         sheet.offsetHeight;
-        sheet.classList.remove('animate-in');
-        void sheet.offsetWidth;
         sheet.classList.add('animate-in');
         document.body.style.overflow = 'hidden';
     }
 }
 
 /**
- * Sélectionner un preset de quantité
+ * Générer les presets de quantité adaptés
+ */
+function renderQuantityPresets(food) {
+    const container = document.getElementById('quantity-presets-container');
+    if (!container) return;
+    
+    const presets = getQuantityPresets(food);
+    
+    container.innerHTML = presets.map(preset => `
+        <button class="quantity-preset" onclick="selectQuantityPresetAdaptive(${preset.value})">${preset.label}</button>
+    `).join('');
+}
+
+/**
+ * Sélectionner un preset de quantité (adaptatif)
+ */
+function selectQuantityPresetAdaptive(gramsValue) {
+    if (!selectedFoodForQuantity) return;
+    
+    currentQuantity = gramsValue;
+    const isUnitFood = hasNaturalUnit(selectedFoodForQuantity);
+    
+    const input = document.getElementById('custom-quantity-input');
+    const unitLabel = document.getElementById('quantity-unit-label');
+    const gramsInput = document.getElementById('quantity-grams-value');
+    
+    if (isUnitFood) {
+        currentUnitCount = gramsToUnits(selectedFoodForQuantity, gramsValue);
+        input.value = currentUnitCount;
+        unitLabel.textContent = pluralizeFr(selectedFoodForQuantity.unitLabel || 'unité', currentUnitCount);
+    } else {
+        input.value = gramsValue;
+    }
+    
+    gramsInput.value = gramsValue;
+    updateQuantityTotal();
+    
+    // Highlight le preset sélectionné
+    document.querySelectorAll('.quantity-preset').forEach(btn => {
+        btn.classList.remove('selected');
+        if (parseInt(btn.textContent) === gramsValue || btn.textContent.includes(currentUnitCount)) {
+            btn.classList.add('selected');
+        }
+    });
+}
+
+/**
+ * Sélectionner un preset de quantité (legacy)
  */
 function selectQuantityPreset(quantity) {
-    currentQuantity = quantity;
-    document.getElementById('custom-quantity-input').value = quantity;
+    selectQuantityPresetAdaptive(quantity);
+}
+
+/**
+ * Ajuster la quantité en unités ou grammes
+ */
+function adjustQuantityUnit(delta) {
+    if (!selectedFoodForQuantity) return;
+    
+    const isUnitFood = hasNaturalUnit(selectedFoodForQuantity);
+    const input = document.getElementById('custom-quantity-input');
+    const gramsInput = document.getElementById('quantity-grams-value');
+    const unitLabel = document.getElementById('quantity-unit-label');
+    
+    if (!input) return;
+    
+    if (isUnitFood) {
+        currentUnitCount = Math.max(0.5, (parseFloat(input.value) || 1) + delta);
+        input.value = currentUnitCount;
+        currentQuantity = unitsToGrams(selectedFoodForQuantity, currentUnitCount);
+        if (unitLabel) {
+            unitLabel.textContent = pluralizeFr(selectedFoodForQuantity.unitLabel || 'unité', currentUnitCount);
+        }
+    } else {
+        currentQuantity = Math.max(10, (parseInt(input.value) || 100) + delta);
+        input.value = currentQuantity;
+    }
+    
+    if (gramsInput) gramsInput.value = currentQuantity;
     updateQuantityTotal();
 }
 
 /**
- * Ajuster la quantité (+/-) avec validation
+ * Ajuster la quantité (+/-) avec validation (legacy)
  */
 function adjustQuantity(delta) {
     const input = document.getElementById('custom-quantity-input');
@@ -319,21 +566,46 @@ function adjustQuantity(delta) {
 function updateQuantityTotal() {
     if (!selectedFoodForQuantity) return;
     
+    const isUnitFood = hasNaturalUnit(selectedFoodForQuantity);
     const input = document.getElementById('custom-quantity-input');
-    const quantity = parseInt(input.value) || 100;
-    currentQuantity = quantity;
+    const gramsInput = document.getElementById('quantity-grams-value');
+    const unitLabel = document.getElementById('quantity-unit-label');
     
-    const multiplier = quantity / 100;
+    if (!input) return;
+    
+    // Calculer les grammes à partir des unités ou directement
+    if (isUnitFood) {
+        currentUnitCount = parseFloat(input.value) || 1;
+        currentQuantity = unitsToGrams(selectedFoodForQuantity, currentUnitCount);
+        if (unitLabel) {
+            unitLabel.textContent = pluralizeFr(selectedFoodForQuantity.unitLabel || 'unité', currentUnitCount);
+        }
+    } else {
+        currentQuantity = parseInt(input.value) || 100;
+    }
+    
+    // IMPORTANT: Mettre à jour l'input caché avec les grammes calculés
+    if (gramsInput) {
+        gramsInput.value = currentQuantity;
+    }
+    
+    const multiplier = currentQuantity / 100;
     const calories = Math.round(selectedFoodForQuantity.calories * multiplier);
     const protein = Math.round(selectedFoodForQuantity.protein * multiplier * 10) / 10;
     const carbs = Math.round(selectedFoodForQuantity.carbs * multiplier * 10) / 10;
     const fat = Math.round(selectedFoodForQuantity.fat * multiplier * 10) / 10;
+    
+    // Affichage adaptatif
+    const qtyDisplay = isUnitFood 
+        ? formatQuantityDisplay(selectedFoodForQuantity, currentQuantity)
+        : `${currentQuantity}g`;
     
     document.getElementById('quantity-total-display').innerHTML = `
         <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-primary);">${calories} kcal</div>
         <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px;">
             P: ${protein}g · G: ${carbs}g · L: ${fat}g
         </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">${qtyDisplay}</div>
     `;
 }
 
@@ -343,13 +615,33 @@ function updateQuantityTotal() {
 async function confirmAddFood() {
     if (!selectedFoodForQuantity) return;
     
-    const quantity = parseInt(document.getElementById('custom-quantity-input').value) || 100;
+    // S'assurer que currentQuantity est à jour
+    updateQuantityTotal();
     
-    // Ajouter au journal
-    await addToJournalDirect(selectedFoodForQuantity.id, quantity);
+    // Utiliser currentQuantity qui est déjà en grammes
+    const gramsInput = document.getElementById('quantity-grams-value');
+    const quantity = currentQuantity || parseInt(gramsInput?.value) || 100;
     
-    // Toast
-    showToast(`+${quantity}g de ${selectedFoodForQuantity.name} ajouté`, 'success', 3000);
+    // Mode édition ?
+    if (isEditMode && window.editingMealItem) {
+        // Mettre à jour l'entrée existante
+        const { mealType, idx, entry } = window.editingMealItem;
+        updateMealItemQuantity(mealType, idx, quantity);
+        closeFoodQuantitySheet();
+        showToast('Quantité modifiée', 'success');
+        window.editingMealItem = null;
+        return;
+    }
+    
+    // Ajouter au journal avec mealType si disponible
+    const sheet = document.getElementById('food-quantity-sheet');
+    const mealType = sheet?.dataset.mealType || inferMealType(Date.now());
+    
+    await addToJournalWithMealType(selectedFoodForQuantity.id, quantity, mealType);
+    
+    // Toast avec format adaptatif
+    const qtyDisplay = formatQuantityDisplay(selectedFoodForQuantity, quantity);
+    showToast(`${qtyDisplay} de ${selectedFoodForQuantity.name} ajouté`, 'success', 3000);
     
     // Fermer le bottom sheet
     closeFoodQuantitySheet();
@@ -689,10 +981,21 @@ async function addToJournal(foodId) {
 
 // Ajouter directement au journal (sans UI)
 async function addToJournalDirect(foodId, quantity) {
+    // Validation stricte du foodId
+    if (!foodId || typeof foodId !== 'string') {
+        console.error('addToJournalDirect: foodId invalide', foodId);
+        showToast('Erreur: aliment non valide', 'error');
+        return;
+    }
+    
     const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
     const food = state.foods.find(f => f.id === foodId);
 
-    if (!food) return;
+    if (!food) {
+        console.error('addToJournalDirect: aliment non trouvé', foodId);
+        showToast('Aliment introuvable', 'error');
+        return;
+    }
     
     // Validation stricte de la quantité
     quantity = Math.max(MIN_QUANTITY, parseInt(quantity) || 100);
@@ -1103,4 +1406,1074 @@ function updateMacroBars() {
     const fatBar = document.getElementById('macro-fat-bar');
     if (fatValue) fatValue.textContent = `${consumed.fat} / ${targets.fat}g`;
     if (fatBar) fatBar.style.width = `${fatPercent}%`;
+}
+
+// ==================== GESTION PAR REPAS ====================
+
+// État du meal sheet
+let currentMealType = null;
+let mealSectionStates = { breakfast: true, lunch: true, snack: false, dinner: true };
+
+// Toggle une section de repas
+function toggleMealSection(mealType) {
+    const section = document.querySelector(`.meal-section[data-meal="${mealType}"]`);
+    if (!section) return;
+    
+    mealSectionStates[mealType] = !mealSectionStates[mealType];
+    section.classList.toggle('expanded', mealSectionStates[mealType]);
+}
+
+// Ouvrir le bottom sheet d'ajout de repas
+function openMealSheet(mealType) {
+    currentMealType = mealType;
+    const sheet = document.getElementById('meal-add-sheet');
+    const title = document.getElementById('meal-sheet-title');
+    
+    if (!sheet) return;
+    
+    const mealLabels = {
+        breakfast: 'Petit-déjeuner',
+        lunch: 'Déjeuner', 
+        snack: 'Collation',
+        dinner: 'Dîner'
+    };
+    
+    title.textContent = `Ajouter au ${mealLabels[mealType] || 'repas'}`;
+    
+    // RESET: Vider la recherche et réinitialiser les sections
+    const searchInput = document.getElementById('meal-food-search');
+    const resultsSection = document.getElementById('meal-results-section');
+    const suggestionsSection = document.getElementById('meal-suggestions-section');
+    const quickSection = document.getElementById('meal-quick-section');
+    
+    if (searchInput) searchInput.value = '';
+    if (resultsSection) resultsSection.style.display = 'none';
+    if (suggestionsSection) suggestionsSection.style.display = 'block';
+    if (quickSection) quickSection.style.display = 'block';
+    
+    // Charger les suggestions fraîches
+    renderMealSuggestions(mealType);
+    renderQuickMeals(mealType);
+    
+    sheet.style.display = 'flex';
+    setTimeout(() => sheet.classList.add('active'), 10);
+}
+
+// Fermer le bottom sheet d'ajout de repas
+function closeMealSheet() {
+    const sheet = document.getElementById('meal-add-sheet');
+    if (!sheet) return;
+    
+    sheet.classList.remove('active');
+    setTimeout(() => {
+        sheet.style.display = 'none';
+        currentMealType = null;
+        
+        // Reset complet pour la prochaine ouverture
+        const searchInput = document.getElementById('meal-food-search');
+        const resultsSection = document.getElementById('meal-results-section');
+        if (searchInput) searchInput.value = '';
+        if (resultsSection) resultsSection.style.display = 'none';
+    }, 300);
+}
+
+// Recherche d'aliments pour un repas
+function searchFoodsForMeal() {
+    const searchInput = document.getElementById('meal-food-search');
+    const resultsSection = document.getElementById('meal-results-section');
+    const resultsList = document.getElementById('meal-results-list');
+    const suggestionsSection = document.getElementById('meal-suggestions-section');
+    const quickSection = document.getElementById('meal-quick-section');
+    
+    if (!searchInput || !resultsSection || !resultsList) return;
+    
+    const query = searchInput.value.trim();
+    
+    if (query.length < 2) {
+        resultsSection.style.display = 'none';
+        if (suggestionsSection) suggestionsSection.style.display = 'block';
+        if (quickSection) quickSection.style.display = 'block';
+        return;
+    }
+    
+    // Masquer les autres sections
+    if (suggestionsSection) suggestionsSection.style.display = 'none';
+    if (quickSection) quickSection.style.display = 'none';
+    
+    // Recherche avec normalisation
+    const normalizedQuery = normalizeForSearch(query);
+    const results = state.foods.filter(f => {
+        const normalizedName = normalizeForSearch(f.name);
+        return normalizedName.includes(normalizedQuery);
+    }).slice(0, 12);
+    
+    if (results.length === 0) {
+        resultsList.innerHTML = '<div class="meal-empty">Aucun résultat</div>';
+    } else {
+        resultsList.innerHTML = results.map(food => `
+            <div class="meal-result-item" onclick="selectFoodForMeal('${food.id}')">
+                <div class="meal-item-icon-wrap">${foodCategories[food.category]?.icon || '📦'}</div>
+                <div class="meal-item-text">
+                    <div class="meal-item-title">${food.name}</div>
+                    <div class="meal-item-subtitle">P: ${food.protein}g · G: ${food.carbs}g · L: ${food.fat}g</div>
+                </div>
+                <div class="meal-item-cals">${food.calories} kcal</div>
+            </div>
+        `).join('');
+    }
+    
+    resultsSection.style.display = 'block';
+}
+
+// Sélectionner un aliment pour le repas
+function selectFoodForMeal(foodId) {
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) return;
+    
+    closeMealSheet();
+    
+    // Ouvrir le bottom sheet de quantité avec le mealType
+    openFoodQuantitySheetForMeal(food, currentMealType);
+}
+
+// Ouvrir le sheet de quantité pour un repas spécifique
+function openFoodQuantitySheetForMeal(food, mealType) {
+    const sheet = document.getElementById('food-quantity-sheet');
+    if (!sheet) return;
+    
+    // Stocker le mealType pour l'ajout
+    sheet.dataset.mealType = mealType;
+    sheet.dataset.foodId = food.id;
+    
+    // Stocker l'aliment sélectionné
+    selectedFoodForQuantity = food;
+    isEditMode = false;
+    
+    // Calculer la quantité initiale selon le type d'unité
+    const isUnitFood = hasNaturalUnit(food);
+    const initialGrams = isUnitFood ? food.unitWeight : 100; // 1 unité ou 100g
+    currentQuantity = initialGrams;
+    currentUnitCount = isUnitFood ? 1 : initialGrams;
+    
+    // Mettre à jour le titre
+    document.getElementById('quantity-food-name').textContent = food.name;
+    
+    // Label de base (adaptatif)
+    const baseLabel = document.getElementById('quantity-base-label');
+    const baseMacros = document.getElementById('quantity-macros-base');
+    
+    if (isUnitFood) {
+        const unitLabel = food.unitLabel || 'unité';
+        if (baseLabel) baseLabel.textContent = `Pour 1 ${unitLabel} (~${food.unitWeight}g) :`;
+        const multiplier = food.unitWeight / 100;
+        if (baseMacros) {
+            baseMacros.innerHTML = `
+                <span>🔥 ${Math.round(food.calories * multiplier)} kcal</span>
+                <span>P: ${Math.round(food.protein * multiplier * 10) / 10}g</span>
+                <span>G: ${Math.round(food.carbs * multiplier * 10) / 10}g</span>
+                <span>L: ${Math.round(food.fat * multiplier * 10) / 10}g</span>
+            `;
+        }
+    } else {
+        if (baseLabel) baseLabel.textContent = 'Pour 100g :';
+        if (baseMacros) {
+            baseMacros.innerHTML = `
+                <span>🔥 ${food.calories} kcal</span>
+                <span>P: ${food.protein}g</span>
+                <span>G: ${food.carbs}g</span>
+                <span>L: ${food.fat}g</span>
+            `;
+        }
+    }
+    
+    // Générer les presets adaptés
+    renderQuantityPresets(food);
+    
+    // Configurer l'input personnalisé
+    const input = document.getElementById('custom-quantity-input');
+    const unitLabel = document.getElementById('quantity-unit-label');
+    const gramsInput = document.getElementById('quantity-grams-value');
+    
+    if (isUnitFood) {
+        if (input) {
+            input.value = 1; // 1 unité par défaut
+            input.step = '0.5';
+            input.min = '0.5';
+        }
+        if (unitLabel) unitLabel.textContent = food.unitLabel || 'unité';
+        if (gramsInput) gramsInput.value = food.unitWeight;
+    } else {
+        if (input) {
+            input.value = 100;
+            input.step = '10';
+            input.min = '10';
+        }
+        if (unitLabel) unitLabel.textContent = 'g';
+        if (gramsInput) gramsInput.value = 100;
+    }
+    
+    // Configurer les boutons +/-
+    const minusBtn = document.getElementById('qty-minus-btn');
+    const plusBtn = document.getElementById('qty-plus-btn');
+    if (minusBtn) {
+        minusBtn.textContent = isUnitFood ? '-1' : '-10';
+        minusBtn.onclick = () => adjustQuantityUnit(isUnitFood ? -1 : -10);
+    }
+    if (plusBtn) {
+        plusBtn.textContent = isUnitFood ? '+1' : '+10';
+        plusBtn.onclick = () => adjustQuantityUnit(isUnitFood ? 1 : 10);
+    }
+    
+    // Mettre à jour le total
+    updateQuantityTotal();
+    
+    // Reset le texte du bouton
+    const confirmBtn = document.getElementById('quantity-confirm-btn');
+    if (confirmBtn) confirmBtn.textContent = 'Ajouter au repas';
+    
+    sheet.style.display = 'flex';
+    setTimeout(() => sheet.classList.add('active'), 10);
+}
+
+// Rendre les entrées par repas
+function renderMealsByType() {
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    const entries = state.foodJournal?.[date] || [];
+    
+    // Grouper par type de repas
+    const mealGroups = {
+        breakfast: [],
+        lunch: [],
+        snack: [],
+        dinner: []
+    };
+    
+    entries.forEach(entry => {
+        const mealType = entry.mealType || inferMealType(entry.addedAt);
+        if (mealGroups[mealType]) {
+            mealGroups[mealType].push(entry);
+        }
+    });
+    
+    // Rendre chaque groupe
+    Object.keys(mealGroups).forEach(mealType => {
+        renderMealItems(mealType, mealGroups[mealType]);
+        updateMealCalories(mealType, mealGroups[mealType]);
+    });
+    
+    // Mettre à jour la suggestion
+    updateNutritionSuggestion();
+}
+
+// Rendre les items d'un repas
+function renderMealItems(mealType, entries) {
+    const container = document.getElementById(`meal-items-${mealType}`);
+    if (!container) return;
+    
+    if (entries.length === 0) {
+        container.innerHTML = '<div class="meal-empty">Aucun aliment ajouté</div>';
+        return;
+    }
+    
+    container.innerHTML = entries.map((entry, idx) => {
+        const food = state.foods.find(f => f.id === entry.foodId);
+        if (!food) return '';
+        
+        const cals = Math.round((food.calories * entry.quantity) / 100);
+        const qtyDisplay = formatQuantityDisplay(food, entry.quantity);
+        
+        return `
+            <div class="meal-item" data-entry-idx="${idx}">
+                <div class="meal-item-info">
+                    <div class="meal-item-name">${food.name}</div>
+                    <div class="meal-item-details">${qtyDisplay} · ${cals} kcal</div>
+                </div>
+                <div class="meal-item-actions">
+                    <button class="meal-item-edit" onclick="editMealItemQuantity('${mealType}', ${idx})">✏️</button>
+                    <button class="meal-item-delete" onclick="removeMealItem('${mealType}', ${idx})">🗑️</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Ouvrir la section si elle a des items
+    const section = document.querySelector(`.meal-section[data-meal="${mealType}"]`);
+    if (section && entries.length > 0) {
+        mealSectionStates[mealType] = true;
+        section.classList.add('expanded');
+    }
+}
+
+// Mettre à jour les calories d'un repas
+function updateMealCalories(mealType, entries) {
+    const caloriesEl = document.getElementById(`meal-cals-${mealType}`);
+    if (!caloriesEl) return;
+    
+    let totalCals = 0;
+    entries.forEach(entry => {
+        const food = state.foods.find(f => f.id === entry.foodId);
+        if (food) {
+            totalCals += Math.round((food.calories * entry.quantity) / 100);
+        }
+    });
+    
+    caloriesEl.textContent = totalCals > 0 ? `${totalCals} kcal` : '0 kcal';
+    caloriesEl.classList.toggle('has-items', totalCals > 0);
+}
+
+// Mettre à jour la quantité d'un item de repas
+function updateMealItemQuantity(mealType, idx, newQuantity) {
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    const entries = state.foodJournal?.[date] || [];
+    
+    // Trouver l'entrée correspondante
+    const mealEntries = entries.filter(e => (e.mealType || inferMealType(e.addedAt)) === mealType);
+    const entry = mealEntries[idx];
+    
+    if (!entry) return;
+    
+    const quantity = Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, parseInt(newQuantity) || 100));
+    entry.quantity = quantity;
+    
+    // Sync Supabase si connecté
+    if (entry.supabaseId && typeof updateJournalEntryInSupabase === 'function') {
+        updateJournalEntryInSupabase(entry.supabaseId, quantity);
+    }
+    
+    saveState();
+    renderMealsByType();
+    updateJournalSummary();
+    updateMacroRings();
+}
+
+// Éditer la quantité d'un item de repas
+function editMealItemQuantity(mealType, idx) {
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    const entries = state.foodJournal?.[date] || [];
+    
+    const mealEntries = entries.filter(e => (e.mealType || inferMealType(e.addedAt)) === mealType);
+    const entry = mealEntries[idx];
+    
+    if (!entry) return;
+    
+    const food = state.foods.find(f => f.id === entry.foodId);
+    if (!food) return;
+    
+    // Stocker l'info pour l'édition
+    window.editingMealItem = {
+        mealType: mealType,
+        idx: idx,
+        entry: entry,
+        food: food
+    };
+    
+    // Ouvrir le bottom sheet de quantité en mode édition
+    openFoodQuantitySheetForEdit(food, entry.quantity, mealType);
+}
+
+// Supprimer un item de repas
+function removeMealItem(mealType, idx) {
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    
+    if (!state.foodJournal?.[date]) return;
+    
+    // Trouver et supprimer l'entrée
+    const entries = state.foodJournal[date];
+    const mealEntries = entries.filter(e => (e.mealType || inferMealType(e.addedAt)) === mealType);
+    const entryToRemove = mealEntries[idx];
+    
+    if (!entryToRemove) return;
+    
+    // Supprimer de Supabase si synchronisé
+    if (entryToRemove.supabaseId && typeof deleteJournalEntryFromSupabase === 'function') {
+        deleteJournalEntryFromSupabase(entryToRemove.supabaseId);
+    }
+    
+    // Trouver l'index réel dans le tableau
+    const realIdx = entries.indexOf(entryToRemove);
+    if (realIdx > -1) {
+        entries.splice(realIdx, 1);
+    }
+    
+    saveState();
+    renderMealsByType();
+    updateJournalSummary();
+    updateMacroRings();
+    showToast('Aliment supprimé', 'success');
+}
+
+// Rendre les suggestions pour un repas (max 3, scoring intelligent)
+function renderMealSuggestions(mealType) {
+    const container = document.getElementById('meal-suggestions-list');
+    if (!container) return;
+    
+    // Utiliser le nouveau module de suggestions intelligentes
+    let suggestions = [];
+    
+    if (window.NutritionSuggestions) {
+        suggestions = NutritionSuggestions.generate(mealType);
+    } else {
+        // Fallback si le module n'est pas chargé
+        const popularFoods = state.foods
+            .filter(f => f.priority >= 8 && f.mealTags?.includes(mealType))
+            .slice(0, 3);
+        suggestions = popularFoods.map(f => ({
+            food: f,
+            reason: 'Populaire',
+            quantity: f.unitWeight || 100
+        }));
+    }
+    
+    if (suggestions.length === 0) {
+        container.innerHTML = '<div class="meal-empty">Pas de suggestions disponibles</div>';
+        return;
+    }
+    
+    // Icône contextuelle selon le type de suggestion
+    const typeIcons = {
+        habit: '🔄',
+        objective: '🎯',
+        post_workout: '💪',
+        post_cardio: '🏃',
+        rest_day: '🧘',
+        quick: '⚡',
+        balanced: '⚖️',
+        time_based: '🕐'
+    };
+    
+    container.innerHTML = suggestions.map(s => {
+        const icon = typeIcons[s.type] || foodCategories[s.food.category]?.icon || '📦';
+        const qtyDisplay = hasNaturalUnit(s.food) 
+            ? formatQuantityDisplay(s.food, s.quantity)
+            : `${s.quantity}g`;
+        const cals = Math.round((s.food.calories * s.quantity) / 100);
+        const protein = Math.round((s.food.protein * s.quantity) / 100);
+        
+        return `
+            <div class="meal-suggestion-item premium" onclick="addSuggestionDirect('${s.food.id}', ${s.quantity}, '${mealType}')">
+                <div class="suggestion-icon">${icon}</div>
+                <div class="suggestion-content">
+                    <div class="suggestion-title">${s.food.name}</div>
+                    <div class="suggestion-reason">${s.reason}</div>
+                    <div class="suggestion-macros">${qtyDisplay} · ${cals} kcal · ${protein}g prot</div>
+                </div>
+                <button class="suggestion-add-btn" title="Ajouter">+</button>
+            </div>
+        `;
+    }).join('');
+}
+
+// Ajouter une suggestion directement (1 tap)
+async function addSuggestionDirect(foodId, quantity, mealType) {
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) return;
+    
+    await addToJournalWithMealType(foodId, quantity, mealType);
+    
+    const qtyDisplay = formatQuantityDisplay(food, quantity);
+    showToast(`${qtyDisplay} de ${food.name} ajouté`, 'success');
+    
+    // Animation feedback
+    closeMealSheet();
+    renderMealsByType();
+    updateJournalSummary();
+    updateMacroRings();
+    
+    // Check goal
+    checkGoalReached();
+}
+
+// Rendre les repas rapides
+function renderQuickMeals(mealType) {
+    const container = document.getElementById('meal-quick-list');
+    if (!container) return;
+    
+    // Repas rapides prédéfinis selon le type de repas
+    const quickMeals = {
+        breakfast: [
+            { name: 'Omelette 3 oeufs', foods: ['eggs'], qty: 150, cals: 220 },
+            { name: 'Flocons + Lait', foods: ['oatmeal', 'whole-milk'], qty: [50, 200], cals: 320 }
+        ],
+        lunch: [
+            { name: 'Poulet + Riz', foods: ['chicken-breast', 'rice-white'], qty: [150, 150], cals: 480 },
+            { name: 'Salade thon', foods: ['tuna-canned', 'mixed-salad'], qty: [100, 150], cals: 180 }
+        ],
+        snack: [
+            { name: 'Pomme + Amandes', foods: ['apple', 'almonds'], qty: [150, 30], cals: 250 },
+            { name: 'Yaourt grec', foods: ['greek-yogurt'], qty: 150, cals: 150 }
+        ],
+        dinner: [
+            { name: 'Saumon + Légumes', foods: ['salmon-fillet', 'broccoli'], qty: [150, 200], cals: 380 },
+            { name: 'Steak + Patates', foods: ['beef-steak', 'potato'], qty: [150, 200], cals: 450 }
+        ]
+    };
+    
+    const meals = quickMeals[mealType] || quickMeals.lunch;
+    
+    container.innerHTML = meals.map((meal, idx) => `
+        <div class="meal-quick-item" onclick="addQuickMeal('${mealType}', ${idx})">
+            <div class="meal-item-icon-wrap">⚡</div>
+            <div class="meal-item-text">
+                <div class="meal-item-title">${meal.name}</div>
+                <div class="meal-item-subtitle">Ajout rapide</div>
+            </div>
+            <div class="meal-item-cals">${meal.cals} kcal</div>
+        </div>
+    `).join('');
+}
+
+// Ajouter un repas rapide
+async function addQuickMeal(mealType, mealIdx) {
+    const quickMeals = {
+        breakfast: [
+            { foods: ['eggs'], qty: [150] },
+            { foods: ['oatmeal', 'whole-milk'], qty: [50, 200] }
+        ],
+        lunch: [
+            { foods: ['chicken-breast', 'rice-white'], qty: [150, 150] },
+            { foods: ['tuna-canned', 'mixed-salad'], qty: [100, 150] }
+        ],
+        snack: [
+            { foods: ['apple', 'almonds'], qty: [150, 30] },
+            { foods: ['greek-yogurt'], qty: [150] }
+        ],
+        dinner: [
+            { foods: ['salmon-fillet', 'broccoli'], qty: [150, 200] },
+            { foods: ['beef-steak', 'potato'], qty: [150, 200] }
+        ]
+    };
+    
+    const meal = quickMeals[mealType]?.[mealIdx];
+    if (!meal) return;
+    
+    closeMealSheet();
+    
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    
+    if (!state.foodJournal) state.foodJournal = {};
+    if (!state.foodJournal[date]) state.foodJournal[date] = [];
+    
+    for (let i = 0; i < meal.foods.length; i++) {
+        const foodId = meal.foods[i];
+        const qty = Array.isArray(meal.qty) ? meal.qty[i] : meal.qty;
+        const food = state.foods.find(f => f.id === foodId);
+        
+        if (food) {
+            const entry = {
+                foodId: food.id,
+                quantity: qty,
+                addedAt: Date.now(),
+                mealType: mealType
+            };
+            
+            // Sync Supabase si connecté
+            if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+                const supabaseId = await addJournalEntryToSupabase(date, food.id, qty);
+                if (supabaseId) entry.supabaseId = supabaseId;
+            }
+            
+            state.foodJournal[date].push(entry);
+        }
+    }
+    
+    saveState();
+    renderMealsByType();
+    updateJournalSummary();
+    updateMacroRings();
+    showToast('Repas ajouté !', 'success');
+}
+
+// Mettre à jour la suggestion de nutrition (utilise le module intelligent)
+function updateNutritionSuggestion() {
+    const container = document.getElementById('nutrition-suggestion');
+    const textEl = document.getElementById('suggestion-text');
+    const iconEl = document.getElementById('suggestion-icon');
+    
+    if (!container || !textEl) return;
+    
+    // Utiliser le nouveau module si disponible
+    let message = null;
+    
+    if (window.NutritionSuggestions) {
+        message = NutritionSuggestions.getDailyMessage();
+    }
+    
+    if (!message) {
+        // Fallback simple
+        const consumed = typeof calculateConsumedMacros === 'function' 
+            ? calculateConsumedMacros() 
+            : { calories: 0, protein: 0 };
+        const targets = {
+            calories: state.profile?.targetCalories || 2000,
+            protein: state.profile?.macros?.protein || 150
+        };
+        
+        const remaining = Math.max(0, targets.calories - consumed.calories);
+        if (remaining > 0) {
+            message = {
+                text: `Il te reste ~${remaining} kcal pour aujourd'hui`,
+                type: 'info',
+                icon: '📊'
+            };
+        }
+    }
+    
+    if (message) {
+        textEl.textContent = message.text;
+        if (iconEl) iconEl.textContent = message.icon || '💡';
+        
+        // Style selon le type
+        container.className = 'nutrition-suggestion';
+        if (message.type) container.classList.add(`suggestion-${message.type}`);
+        
+        container.style.display = 'flex';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+// ==================== GESTION DU CARDIO ====================
+
+// État du cardio sheet
+let cardioState = {
+    type: 'running',
+    duration: 30,
+    intensity: 'moderate'
+};
+
+// Ouvrir le bottom sheet cardio
+function openCardioSheet() {
+    const sheet = document.getElementById('cardio-add-sheet');
+    if (!sheet) return;
+    
+    // Reset état
+    cardioState = { type: 'running', duration: 30, intensity: 'moderate' };
+    
+    // Mettre à jour l'UI
+    updateCardioSheetUI();
+    updateCardioEstimate();
+    
+    // Afficher le poids de l'utilisateur
+    const weightEl = document.getElementById('cardio-user-weight');
+    if (weightEl) {
+        weightEl.textContent = state.profile?.weight || 70;
+    }
+    
+    sheet.style.display = 'flex';
+    setTimeout(() => sheet.classList.add('active'), 10);
+}
+
+// Fermer le bottom sheet cardio
+function closeCardioSheet() {
+    const sheet = document.getElementById('cardio-add-sheet');
+    if (!sheet) return;
+    
+    sheet.classList.remove('active');
+    setTimeout(() => sheet.style.display = 'none', 300);
+}
+
+// Sélectionner le type de cardio
+function selectCardioType(type) {
+    cardioState.type = type;
+    updateCardioSheetUI();
+    updateCardioEstimate();
+}
+
+// Sélectionner la durée
+function selectCardioDuration(duration) {
+    cardioState.duration = duration;
+    document.getElementById('cardio-duration-input').value = duration;
+    updateCardioSheetUI();
+    updateCardioEstimate();
+}
+
+// Sélectionner l'intensité
+function selectCardioIntensity(intensity) {
+    cardioState.intensity = intensity;
+    updateCardioSheetUI();
+    updateCardioEstimate();
+}
+
+// Mettre à jour l'UI du sheet cardio
+function updateCardioSheetUI() {
+    // Type
+    document.querySelectorAll('.cardio-type-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.type === cardioState.type);
+    });
+    
+    // Durée
+    document.querySelectorAll('.cardio-duration-btn').forEach(btn => {
+        const dur = parseInt(btn.textContent);
+        btn.classList.toggle('selected', dur === cardioState.duration);
+    });
+    
+    // Intensité
+    document.querySelectorAll('.cardio-intensity-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.intensity === cardioState.intensity);
+    });
+}
+
+// Mettre à jour l'estimation de calories
+function updateCardioEstimate() {
+    const estimateEl = document.getElementById('cardio-estimate-calories');
+    if (!estimateEl) return;
+    
+    // Lire la durée depuis l'input si modifiée
+    const durationInput = document.getElementById('cardio-duration-input');
+    if (durationInput) {
+        cardioState.duration = parseInt(durationInput.value) || 30;
+    }
+    
+    const weight = state.profile?.weight || 70;
+    const calories = calculateCardioCalories(cardioState.type, cardioState.duration, cardioState.intensity, weight);
+    
+    estimateEl.textContent = `~${calories} kcal`;
+}
+
+// Ajouter une session cardio
+async function addCardioSession() {
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    
+    // Lire la durée finale depuis l'input
+    const durationInput = document.getElementById('cardio-duration-input');
+    const duration = parseInt(durationInput?.value) || cardioState.duration;
+    
+    const weight = state.profile?.weight || 70;
+    const calories = calculateCardioCalories(cardioState.type, duration, cardioState.intensity, weight);
+    
+    const session = {
+        type: cardioState.type,
+        duration: duration,
+        intensity: cardioState.intensity,
+        calories: calories,
+        addedAt: Date.now()
+    };
+    
+    // Sauvegarder
+    if (!state.cardioLog) state.cardioLog = {};
+    if (!state.cardioLog[date]) state.cardioLog[date] = [];
+    
+    state.cardioLog[date].push(session);
+    
+    // Sync Supabase si disponible
+    if (typeof saveCardioSessionToSupabase === 'function' && typeof isLoggedIn === 'function' && isLoggedIn()) {
+        const supabaseId = await saveCardioSessionToSupabase(date, session);
+        if (supabaseId) session.supabaseId = supabaseId;
+    }
+    
+    saveState();
+    closeCardioSheet();
+    renderCardioItems();
+    updateCardioTotal();
+    
+    showToast(`${CARDIO_TYPES[cardioState.type]?.label || 'Activité'} ajouté !`, 'success');
+}
+
+// Rendre les items cardio
+function renderCardioItems() {
+    const container = document.getElementById('cardio-items');
+    if (!container) return;
+    
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    const sessions = state.cardioLog?.[date] || [];
+    
+    if (sessions.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = sessions.map((session, idx) => {
+        const typeInfo = CARDIO_TYPES[session.type] || CARDIO_TYPES.other;
+        const intensityLabel = CARDIO_INTENSITIES[session.intensity]?.label || 'Modérée';
+        
+        return `
+            <div class="cardio-item">
+                <div class="cardio-item-info">
+                    <span class="cardio-item-icon">${typeInfo.icon}</span>
+                    <div class="cardio-item-details">
+                        <span class="cardio-item-type">${typeInfo.label} ${session.duration}min</span>
+                        <span class="cardio-item-meta">${intensityLabel}</span>
+                    </div>
+                </div>
+                <span class="cardio-item-calories">-${session.calories} kcal</span>
+                <button class="cardio-item-delete" onclick="removeCardioSession(${idx})">🗑️</button>
+            </div>
+        `;
+    }).join('');
+}
+
+// Mettre à jour le total cardio
+function updateCardioTotal() {
+    const totalEl = document.getElementById('cardio-total-calories');
+    if (!totalEl) return;
+    
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    const sessions = state.cardioLog?.[date] || [];
+    
+    const total = sessions.reduce((sum, s) => sum + (s.calories || 0), 0);
+    
+    totalEl.textContent = total > 0 ? `-${total} kcal` : '0 kcal';
+    totalEl.classList.toggle('has-sessions', total > 0);
+}
+
+// Supprimer une session cardio
+function removeCardioSession(idx) {
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    
+    if (!state.cardioLog?.[date]) return;
+    
+    const session = state.cardioLog[date][idx];
+    
+    // Sync Supabase si disponible
+    if (session?.supabaseId && typeof deleteCardioSessionFromSupabase === 'function') {
+        deleteCardioSessionFromSupabase(session.supabaseId);
+    }
+    
+    state.cardioLog[date].splice(idx, 1);
+    
+    saveState();
+    renderCardioItems();
+    updateCardioTotal();
+    showToast('Activité supprimée', 'success');
+}
+
+// Obtenir les calories cardio du jour
+function getTodayCardioCalories() {
+    const date = new Date().toISOString().split('T')[0];
+    const sessions = state.cardioLog?.[date] || [];
+    return sessions.reduce((sum, s) => sum + (s.calories || 0), 0);
+}
+
+// ==================== INIT & LOAD ====================
+
+// Modifier loadJournalDay pour utiliser la nouvelle UI
+const originalLoadJournalDay = typeof loadJournalDay === 'function' ? loadJournalDay : null;
+
+function loadJournalDay() {
+    // Appeler l'original si disponible pour la compatibilité
+    if (originalLoadJournalDay) {
+        // Pas d'appel car on remplace la logique
+    }
+    
+    // Rendre par repas
+    renderMealsByType();
+    
+    // Rendre le cardio
+    renderCardioItems();
+    updateCardioTotal();
+    
+    // Mettre à jour les macros
+    updateJournalSummary();
+    updateMacroRings();
+}
+
+// Override confirmAddFood pour supporter le mealType
+const originalConfirmAddFood = typeof confirmAddFood === 'function' ? confirmAddFood : null;
+
+function confirmAddFood() {
+    const sheet = document.getElementById('food-quantity-sheet');
+    const foodId = sheet?.dataset.foodId || window.currentFoodToAdd?.id;
+    const mealType = sheet?.dataset.mealType || inferMealType(Date.now());
+    
+    if (!foodId) {
+        console.error('confirmAddFood: pas de foodId');
+        return;
+    }
+    
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) {
+        showToast('Aliment introuvable', 'error');
+        return;
+    }
+    
+    const quantityInput = document.getElementById('custom-quantity-input');
+    const quantity = Math.max(MIN_QUANTITY, parseInt(quantityInput?.value) || 100);
+    
+    if (quantity > MAX_QUANTITY) {
+        showToast(`Quantité trop élevée (max ${MAX_QUANTITY/1000}kg)`, 'error');
+        return;
+    }
+    
+    // Fermer le sheet
+    closeFoodQuantitySheet();
+    
+    // Ajouter avec le mealType
+    addToJournalWithMealType(foodId, quantity, mealType);
+}
+
+// Ajouter au journal avec mealType (supporte les unités naturelles)
+async function addToJournalWithMealType(foodId, quantity, mealType) {
+    const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    const food = state.foods.find(f => f.id === foodId);
+    
+    if (!food) return;
+    
+    if (!state.foodJournal) state.foodJournal = {};
+    if (!state.foodJournal[date]) state.foodJournal[date] = [];
+    
+    // Calculer les informations d'unités
+    const unitType = food.unit || 'g';
+    const unitCount = hasNaturalUnit(food) ? gramsToUnits(food, quantity) : null;
+    
+    const entry = {
+        foodId: food.id,
+        quantity: quantity, // Toujours en grammes
+        addedAt: Date.now(),
+        mealType: mealType,
+        // Nouvelles infos d'unités
+        unitType: unitType,
+        unitCount: unitCount
+    };
+    
+    // Sync Supabase si connecté (avec infos d'unités)
+    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+        const supabaseId = await addJournalEntryToSupabase(date, food.id, quantity, unitType, unitCount);
+        if (supabaseId) entry.supabaseId = supabaseId;
+    }
+    
+    state.foodJournal[date].push(entry);
+    saveState();
+    
+    // Refresh UI
+    renderMealsByType();
+    updateJournalSummary();
+    updateMacroRings();
+    
+    // Animation sur le dernier item ajouté
+    setTimeout(() => {
+        const items = document.querySelectorAll(`#meal-items-${mealType} .meal-item`);
+        const lastItem = items[items.length - 1];
+        if (lastItem) {
+            lastItem.classList.add('just-added');
+            setTimeout(() => lastItem.classList.remove('just-added'), 600);
+        }
+    }, 50);
+    
+    // Vérifier si objectif atteint
+    checkGoalReached();
+    
+    showToast(`${food.name} ajouté !`, 'success');
+}
+
+// ==================== FEEDBACK VISUEL & CÉLÉBRATION ====================
+
+// Vérifier si les objectifs sont atteints et célébrer
+function checkGoalReached() {
+    if (!state.profile) return;
+    
+    const consumed = calculateConsumedMacros();
+    const targets = {
+        calories: state.profile.targetCalories || 2000,
+        protein: state.profile.macros?.protein || 150
+    };
+    
+    // Calculer les pourcentages
+    const caloriePercent = (consumed.calories / targets.calories) * 100;
+    const proteinPercent = (consumed.protein / targets.protein) * 100;
+    
+    // Célébrer si protéines atteintes (90-110%)
+    if (proteinPercent >= 90 && proteinPercent <= 110) {
+        const key = `protein_goal_${new Date().toISOString().split('T')[0]}`;
+        if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, 'true');
+            showGoalCelebration('🎯 Objectif protéines atteint !');
+        }
+    }
+    
+    // Célébrer si calories atteintes (90-110%)
+    if (caloriePercent >= 90 && caloriePercent <= 110) {
+        const key = `calories_goal_${new Date().toISOString().split('T')[0]}`;
+        if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, 'true');
+            showGoalCelebration('🎉 Objectif calories atteint !');
+        }
+    }
+}
+
+// Afficher une célébration
+function showGoalCelebration(message) {
+    // Ne pas montrer si on a déjà célébré récemment
+    if (document.querySelector('.goal-celebration')) return;
+    
+    const celebration = document.createElement('div');
+    celebration.className = 'goal-celebration';
+    celebration.textContent = message;
+    document.body.appendChild(celebration);
+    
+    // Vibration si supportée
+    if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+    }
+    
+    // Retirer après 3 secondes
+    setTimeout(() => {
+        celebration.style.opacity = '0';
+        celebration.style.transform = 'translateX(-50%) translateY(20px)';
+        setTimeout(() => celebration.remove(), 300);
+    }, 3000);
+}
+
+// Initialiser le swipe-to-delete sur les items de repas
+function initMealSwipeToDelete() {
+    const mealItems = document.querySelectorAll('.meal-item');
+    
+    mealItems.forEach(item => {
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+        
+        item.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            isDragging = true;
+            item.classList.remove('swiped');
+        }, { passive: true });
+        
+        item.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            currentX = e.touches[0].clientX;
+            const diff = startX - currentX;
+            
+            if (diff > 20) {
+                item.classList.add('swiping');
+                item.style.transform = `translateX(-${Math.min(diff, 80)}px)`;
+            }
+        }, { passive: true });
+        
+        item.addEventListener('touchend', () => {
+            isDragging = false;
+            item.classList.remove('swiping');
+            
+            const diff = startX - currentX;
+            
+            if (diff > 60) {
+                // Swipe suffisant - demander confirmation
+                item.classList.add('swiped');
+                
+                // Auto-reset après 3 secondes si pas de confirmation
+                setTimeout(() => {
+                    if (item.classList.contains('swiped')) {
+                        item.classList.remove('swiped');
+                        item.style.transform = '';
+                    }
+                }, 3000);
+            } else {
+                item.style.transform = '';
+            }
+        });
+    });
+}
+
+// Appliquer une suggestion rapide
+function applySuggestion() {
+    // Ouvrir le sheet du repas actuel selon l'heure
+    const hour = new Date().getHours();
+    let mealType = 'lunch';
+    
+    if (hour >= 5 && hour < 10) mealType = 'breakfast';
+    else if (hour >= 11 && hour < 14) mealType = 'lunch';
+    else if (hour >= 15 && hour < 17) mealType = 'snack';
+    else if (hour >= 18) mealType = 'dinner';
+    
+    openMealSheet(mealType);
 }

@@ -1,6 +1,78 @@
 // ==================== STATE MANAGEMENT ====================
 // Version MVP - dailyMenu supprimé, foodJournal est la source unique
 // Version 2 - Ajout validation de schéma
+// Version 3 - Ajout repas (mealType) et cardio
+
+// ==================== CONSTANTES REPAS & CARDIO ====================
+
+const MEAL_TYPES = {
+    breakfast: { id: 'breakfast', label: 'Petit-déjeuner', icon: '🌅', hours: [5, 10] },
+    lunch: { id: 'lunch', label: 'Déjeuner', icon: '☀️', hours: [11, 14] },
+    snack: { id: 'snack', label: 'Collation', icon: '🍎', hours: [15, 17] },
+    dinner: { id: 'dinner', label: 'Dîner', icon: '🌙', hours: [18, 22] }
+};
+
+const CARDIO_TYPES = {
+    running: { id: 'running', label: 'Course', icon: '🏃', met: { light: 6, moderate: 9.8, intense: 12.8 } },
+    cycling: { id: 'cycling', label: 'Vélo', icon: '🚴', met: { light: 4, moderate: 6.8, intense: 10 } },
+    walking: { id: 'walking', label: 'Marche', icon: '🚶', met: { light: 2.5, moderate: 3.5, intense: 5 } },
+    swimming: { id: 'swimming', label: 'Natation', icon: '🏊', met: { light: 5, moderate: 7, intense: 10 } },
+    other: { id: 'other', label: 'Autre', icon: '💪', met: { light: 4, moderate: 6, intense: 8 } }
+};
+
+const CARDIO_INTENSITIES = {
+    light: { id: 'light', label: 'Légère', description: 'Conversation facile' },
+    moderate: { id: 'moderate', label: 'Modérée', description: 'Respiration accélérée' },
+    intense: { id: 'intense', label: 'Intense', description: 'Essoufflement' }
+};
+
+// Inférer le type de repas basé sur l'heure
+function inferMealType(timestamp) {
+    const date = new Date(timestamp);
+    const hour = date.getHours();
+    
+    if (hour >= 5 && hour < 10) return 'breakfast';
+    if (hour >= 11 && hour < 14) return 'lunch';
+    if (hour >= 15 && hour < 17) return 'snack';
+    if (hour >= 18 && hour < 23) return 'dinner';
+    
+    // Par défaut selon l'heure la plus proche
+    if (hour < 5) return 'dinner'; // Nuit -> probablement dîner tardif
+    return 'snack'; // Entre 10-11 ou 14-15 ou 17-18 -> collation
+}
+
+// Calculer les calories brûlées par le cardio
+function calculateCardioCalories(type, duration, intensity, weightKg = 70) {
+    const cardioType = CARDIO_TYPES[type] || CARDIO_TYPES.other;
+    const met = cardioType.met[intensity] || cardioType.met.moderate;
+    // Formule: calories = MET × poids (kg) × durée (heures)
+    return Math.round(met * weightKg * (duration / 60));
+}
+
+// Migration: ajouter mealType aux entrées foodJournal existantes
+function migrateFoodJournalToMeals() {
+    if (!state.foodJournal) return;
+    
+    let migrated = false;
+    for (const [date, entries] of Object.entries(state.foodJournal)) {
+        if (!Array.isArray(entries)) continue;
+        
+        for (const entry of entries) {
+            if (!entry.mealType && entry.addedAt) {
+                entry.mealType = inferMealType(entry.addedAt);
+                migrated = true;
+            } else if (!entry.mealType) {
+                // Si pas d'addedAt, on met lunch par défaut
+                entry.mealType = 'lunch';
+                migrated = true;
+            }
+        }
+    }
+    
+    if (migrated) {
+        console.log('📦 Migration: mealType ajouté aux entrées du journal');
+    }
+}
 
 // ==================== SCHEMA DE VALIDATION ====================
 
@@ -157,7 +229,14 @@ let state = {
     foods: [...defaultFoods],
     exercises: [...defaultExercises],
     exerciseSwaps: {}, // Exercices remplacés par l'utilisateur { "Développé Couché": "chest-press-machine" }
-    foodJournal: {}, // Journal alimentaire par date { "2025-01-21": [{ foodId, quantity }] }
+    foodJournal: {}, // Journal alimentaire par date { "2025-01-21": [{ foodId, quantity, mealType }] }
+    
+    // Cardio tracking
+    cardioLog: {}, // { "2025-01-25": [{ type, duration, intensity, calories, addedAt }] }
+    
+    // Habitudes alimentaires (pour suggestions intelligentes)
+    mealHistory: {}, // { mealSignature: { count, lastUsed, avgRating } } - pour suggestions
+    
     selectedProgram: null,
     trainingDays: 4,
     progressLog: {},
@@ -222,6 +301,11 @@ function loadState() {
             if (!state.sessionHistory) state.sessionHistory = [];
             if (!state.activeSession) state.activeSession = null;
             if (!state.foodJournal) state.foodJournal = {};
+            if (!state.cardioLog) state.cardioLog = {};
+            if (!state.mealHistory) state.mealHistory = {};
+            
+            // Migration: ajouter mealType aux entrées existantes
+            migrateFoodJournalToMeals();
             
             // Nouveaux champs pour la refonte Training
             if (!state.wizardResults) state.wizardResults = null;

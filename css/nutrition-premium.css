@@ -1,0 +1,1006 @@
+/* ==================== NUTRITION PREMIUM UI ==================== */
+/* Refonte autour des repas - UX guidée, calme, premium */
+
+/* ==================== MEALS CONTAINER ==================== */
+
+.meals-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* ==================== MEAL SECTION ==================== */
+
+.meal-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.meal-section.expanded {
+    border-color: var(--text-muted);
+}
+
+.meal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+}
+
+.meal-header:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.meal-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.meal-icon {
+    font-size: 1.3rem;
+}
+
+.meal-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.meal-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.meal-calories {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.meal-calories.has-items {
+    color: var(--text-primary);
+}
+
+.meal-add-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(249, 115, 22, 0.1);
+    color: #f97316;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.meal-add-btn:hover {
+    background: rgba(249, 115, 22, 0.2);
+    transform: scale(1.05);
+}
+
+.meal-add-btn:active {
+    transform: scale(0.95);
+}
+
+/* ==================== MEAL CONTENT ==================== */
+
+.meal-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.meal-section.expanded .meal-content {
+    max-height: 500px;
+}
+
+.meal-items {
+    padding: 0 16px 14px;
+}
+
+.meal-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+.meal-item:last-child {
+    margin-bottom: 0;
+}
+
+.meal-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.meal-item-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.meal-item-details {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.meal-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.meal-item-qty {
+    width: 50px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    text-align: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+}
+
+.meal-item-delete {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.meal-item-delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* Empty meal state */
+.meal-empty {
+    padding: 20px 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* ==================== CARDIO SECTION ==================== */
+
+.cardio-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+.cardio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cardio-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cardio-icon {
+    font-size: 1.3rem;
+}
+
+.cardio-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cardio-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cardio-calories {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #22c55e;
+}
+
+.cardio-calories.has-sessions {
+    color: #22c55e;
+}
+
+.cardio-items {
+    margin-top: 12px;
+}
+
+.cardio-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+.cardio-item:last-child {
+    margin-bottom: 0;
+}
+
+.cardio-item-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cardio-item-icon {
+    font-size: 1.2rem;
+}
+
+.cardio-item-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.cardio-item-type {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.cardio-item-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.cardio-item-calories {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #22c55e;
+}
+
+.cardio-item-delete {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    transition: all 0.15s ease;
+}
+
+.cardio-item-delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* ==================== NUTRITION SUGGESTION ==================== */
+
+.nutrition-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: rgba(249, 115, 22, 0.08);
+    border: 1px solid rgba(249, 115, 22, 0.2);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.suggestion-icon {
+    font-size: 1.5rem;
+}
+
+.suggestion-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.suggestion-text {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.suggestion-action {
+    align-self: flex-start;
+    padding: 6px 12px;
+    background: #f97316;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.suggestion-action:hover {
+    background: #ea580c;
+}
+
+/* ==================== MEAL ADD SHEET ==================== */
+
+.meal-sheet {
+    max-height: 85vh;
+}
+
+.meal-search-section {
+    margin-bottom: 16px;
+}
+
+.meal-search-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+}
+
+.meal-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.meal-suggestions-section,
+.meal-habits-section,
+.meal-quick-section,
+.meal-results-section {
+    margin-bottom: 20px;
+}
+
+/* Suggestion items */
+.meal-suggestion-item,
+.meal-habit-item,
+.meal-quick-item,
+.meal-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.meal-suggestion-item:hover,
+.meal-habit-item:hover,
+.meal-quick-item:hover,
+.meal-result-item:hover {
+    background: var(--bg-card);
+    transform: translateX(4px);
+}
+
+/* Premium Suggestion Style */
+.meal-suggestion-item.premium {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(249, 115, 22, 0.03) 100%);
+    border: 1px solid rgba(249, 115, 22, 0.15);
+    padding: 14px 16px;
+}
+
+.meal-suggestion-item.premium:hover {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(249, 115, 22, 0.05) 100%);
+    border-color: rgba(249, 115, 22, 0.25);
+}
+
+.meal-suggestion-item.premium:active {
+    transform: scale(0.98);
+}
+
+.suggestion-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(249, 115, 22, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.suggestion-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.suggestion-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.suggestion-reason {
+    font-size: 0.85rem;
+    color: #f97316;
+    margin-bottom: 4px;
+}
+
+.suggestion-macros {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.suggestion-add-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #f97316;
+    background: transparent;
+    color: #f97316;
+    font-size: 1.3rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.suggestion-add-btn:hover {
+    background: #f97316;
+    color: white;
+}
+
+/* Nutrition Suggestion Message (daily) */
+.nutrition-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.nutrition-suggestion.suggestion-success {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+    border-color: rgba(34, 197, 94, 0.2);
+}
+
+.nutrition-suggestion.suggestion-tip {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(249, 115, 22, 0.05) 100%);
+    border-color: rgba(249, 115, 22, 0.2);
+}
+
+.nutrition-suggestion.suggestion-warning {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%);
+    border-color: rgba(234, 179, 8, 0.2);
+}
+
+#suggestion-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+#suggestion-text {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.meal-item-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(249, 115, 22, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.meal-item-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.meal-item-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.meal-item-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.meal-item-cals {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* ==================== CARDIO SHEET ==================== */
+
+.cardio-sheet {
+    max-height: 90vh;
+}
+
+.cardio-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cardio-type-section,
+.cardio-duration-section,
+.cardio-intensity-section {
+    margin-bottom: 20px;
+}
+
+/* Type grid */
+.cardio-type-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.cardio-type-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 8px;
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.cardio-type-btn:hover {
+    background: var(--bg-card);
+}
+
+.cardio-type-btn.selected {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.1);
+}
+
+.cardio-type-icon {
+    font-size: 1.5rem;
+}
+
+.cardio-type-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Duration */
+.cardio-duration-presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.cardio-duration-btn {
+    flex: 1;
+    padding: 10px;
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.cardio-duration-btn:hover {
+    background: var(--bg-card);
+}
+
+.cardio-duration-btn.selected {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.1);
+    color: #f97316;
+}
+
+.cardio-duration-custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.cardio-duration-custom input {
+    width: 80px;
+    padding: 10px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+}
+
+.cardio-duration-custom span {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* Intensity */
+.cardio-intensity-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cardio-intensity-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.cardio-intensity-btn:hover {
+    background: var(--bg-card);
+}
+
+.cardio-intensity-btn.selected {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.1);
+}
+
+.intensity-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.intensity-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Estimate */
+.cardio-estimate {
+    text-align: center;
+    padding: 16px;
+    background: rgba(34, 197, 94, 0.08);
+    border-radius: 12px;
+    margin-top: 8px;
+}
+
+.cardio-estimate-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.cardio-estimate-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #22c55e;
+}
+
+.cardio-estimate-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* ==================== QUANTITY SHEET ADAPTATIF ==================== */
+
+.quantity-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+}
+
+.quantity-input-wrapper input {
+    width: 80px;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 600;
+    padding: 10px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+}
+
+.quantity-input-wrapper span {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    min-width: 60px;
+}
+
+.quantity-preset.selected {
+    background: rgba(249, 115, 22, 0.15);
+    border-color: #f97316;
+    color: #f97316;
+}
+
+.quantity-custom {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+}
+
+.quantity-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quantity-btn:hover {
+    background: var(--bg-card);
+    border-color: var(--text-muted);
+}
+
+.quantity-btn:active {
+    transform: scale(0.95);
+}
+
+/* Meal item actions améliorées */
+.meal-item-edit {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.meal-item-edit:hover {
+    background: rgba(249, 115, 22, 0.1);
+    color: #f97316;
+}
+
+/* ==================== ANIMATIONS & FEEDBACK ==================== */
+
+/* Animation d'ajout */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulseSuccess {
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+@keyframes shakeError {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.meal-item.just-added {
+    animation: slideInRight 0.3s ease-out, pulseSuccess 0.6s ease-out;
+}
+
+.meal-item.deleting {
+    animation: slideInRight 0.2s ease-out reverse;
+    opacity: 0;
+}
+
+.meal-section.goal-reached {
+    animation: pulseSuccess 0.8s ease-out;
+    border-color: #22c55e !important;
+}
+
+/* Swipe to delete hint */
+.meal-item {
+    position: relative;
+    touch-action: pan-y;
+    transition: transform 0.2s ease;
+}
+
+.meal-item::before {
+    content: '🗑️';
+    position: absolute;
+    right: -40px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.meal-item.swiping::before {
+    opacity: 1;
+}
+
+.meal-item.swiped {
+    transform: translateX(-60px);
+}
+
+/* Feedback visuel sur les barres de macro */
+.journal-macro-bar-fill {
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.journal-macro-bar-fill.complete {
+    box-shadow: 0 0 10px currentColor;
+}
+
+/* Message de succès goal atteint */
+.goal-celebration {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+    z-index: 1000;
+    animation: slideInRight 0.3s ease-out, pulseSuccess 1s ease-out 0.3s;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 480px) {
+    .cardio-type-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .cardio-type-grid .cardio-type-btn:nth-child(4),
+    .cardio-type-grid .cardio-type-btn:nth-child(5) {
+        grid-column: span 1;
+    }
+    
+    .meal-header {
+        padding: 12px 14px;
+    }
+    
+    .meal-name {
+        font-size: 0.95rem;
+    }
+    
+    .meal-add-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
+    }
+    
+    /* Augmenter zone de touch pour les boutons */
+    .meal-item-delete,
+    .cardio-item-delete {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+    
+    /* Plus d'espace pour les inputs sur mobile */
+    .meal-item-qty {
+        width: 60px;
+        padding: 8px;
+        font-size: 1rem;
+    }
+    
+    /* Bottom sheets full height */
+    .meal-sheet,
+    .cardio-sheet {
+        max-height: 95vh;
+    }
+    
+    /* Padding pour le clavier virtuel */
+    .bottom-sheet-content {
+        padding-bottom: 80px;
+    }
+}
+
+/* Messages positifs et guidance */
+.nutrition-positive-message {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nutrition-positive-message .message-icon {
+    font-size: 1.3rem;
+}
+
+.nutrition-positive-message .message-text {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+/* Désactiver les animations si l'utilisateur préfère */
+@media (prefers-reduced-motion: reduce) {
+    .meal-item.just-added,
+    .meal-section.goal-reached,
+    .goal-celebration,
+    .journal-macro-bar-fill {
+        animation: none;
+        transition: none;
+    }
+}

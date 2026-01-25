@@ -330,10 +330,13 @@ function updateQuickSummary() {
     const pseudo = state.profile?.pseudo;
     greetingEl.textContent = pseudo ? `${greeting}, ${pseudo} 👋` : `${greeting} 👋`;
     
-    // Calories remaining
+    // Calories remaining (avec bonus cardio)
     if (state.profile && state.profile.targetCalories) {
         const consumed = calculateConsumedMacros();
-        const remaining = Math.max(0, state.profile.targetCalories - (consumed?.calories || 0));
+        // Ajouter les calories brûlées par le cardio au budget
+        const cardioCalories = typeof Cardio !== 'undefined' ? Cardio.getCaloriesForDate() : 0;
+        const adjustedTarget = state.profile.targetCalories + cardioCalories;
+        const remaining = Math.max(0, adjustedTarget - (consumed?.calories || 0));
         if (calsRemainingEl) calsRemainingEl.textContent = remaining.toLocaleString();
     } else {
         if (calsRemainingEl) calsRemainingEl.textContent = '--';
@@ -393,7 +396,7 @@ function calculateReadinessScore() {
         details.nutrition = 50;
     }
     
-    // Recovery (40%) - récupération musculaire moyenne
+    // Recovery (40%) - récupération musculaire moyenne + impact cardio
     if (typeof SmartTraining !== 'undefined') {
         const recovery = SmartTraining.calculateMuscleRecovery();
         const recoveryValues = Object.values(recovery)
@@ -404,6 +407,12 @@ function calculateReadinessScore() {
             details.recovery = Math.round(recoveryValues.reduce((a, b) => a + b, 0) / recoveryValues.length);
         } else {
             details.recovery = 100; // Pas d'entraînement récent = bien récupéré
+        }
+        
+        // Impact du cardio sur la récupération
+        if (typeof Cardio !== 'undefined') {
+            const cardioImpact = Cardio.getRecoveryImpact();
+            details.recovery = Math.max(0, details.recovery - cardioImpact);
         }
     }
     
