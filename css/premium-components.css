@@ -2431,3 +2431,196 @@
         font-size: 0.7rem;
     }
 }
+
+/* ==================== SMART INSIGHTS CARD ==================== */
+
+.smart-insights-card {
+    /* Herite deja de .readiness-card */
+}
+
+.smart-insights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.insight-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(2px);
+}
+
+.insight-item.warning {
+    border-left-color: #ff9f40;
+}
+
+.insight-item.info {
+    border-left-color: #00aaff;
+}
+
+.insight-item.success {
+    border-left-color: #00ff88;
+}
+
+.insight-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.insight-text {
+    flex: 1;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .smart-insights-list {
+        gap: 10px;
+    }
+    
+    .insight-item {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    
+    .insight-icon {
+        font-size: 1.1rem;
+    }
+    
+    .insight-text {
+        font-size: 0.85rem;
+    }
+}
+
+/* ==================== INSIGHT EXPLANATIONS ==================== */
+
+.insight-item.has-explanation {
+    cursor: default;
+}
+
+.insight-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.insight-explanation {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.explanation-icon {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.explanation-text {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+/* ==================== NET DEFICIT STYLES ==================== */
+
+.net-deficit-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 159, 64, 0.1));
+    border-radius: 10px;
+    border: 1px solid rgba(255, 159, 64, 0.2);
+    margin-top: 12px;
+}
+
+.deficit-icon {
+    font-size: 1.5rem;
+}
+
+.deficit-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.deficit-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #ff9f40;
+}
+
+.deficit-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.deficit-value strong {
+    color: var(--accent-primary);
+}
+
+/* Inline net deficit badge dans les calories */
+.net-deficit-inline {
+    font-size: 0.75rem;
+    color: #ff9f40;
+    font-weight: 500;
+}
+
+/* Badge cardio burned dans le sticky header */
+.cardio-burned-badge {
+    font-size: 0.7rem;
+    color: #ff9f40;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .insight-explanation {
+        padding: 8px 10px;
+    }
+    
+    .explanation-text {
+        font-size: 0.75rem;
+    }
+    
+    .net-deficit-card {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    
+    .deficit-icon {
+        font-size: 1.2rem;
+    }
+    
+    .deficit-value {
+        font-size: 0.8rem;
+    }
+}

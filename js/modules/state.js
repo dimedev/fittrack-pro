@@ -244,9 +244,18 @@ let state = {
     progressLog: {},
     sessionHistory: [],
     
+    // Photos de progression
+    progressPhotos: [], // [{ id, photo_url, taken_at, weight, body_fat, pose, notes }]
+    
     // Sync metadata
     _lastSyncAt: null, // Timestamp de la dernière sync Supabase
     _localModifiedAt: null, // Timestamp de la dernière modification locale
+    
+    // Préférences utilisateur
+    preferences: {
+        conflictResolution: 'server' // 'server', 'local', 'ask'
+    },
+    
     activeSession: null,
     foodAccordionState: {}, // État des accordéons dans la base d'aliments
     
@@ -306,12 +315,30 @@ function loadState() {
             if (!state.cardioLog) state.cardioLog = {};
             if (!state.mealHistory) state.mealHistory = {};
             if (!state.mealCombos) state.mealCombos = [];
+            if (!state.progressPhotos) state.progressPhotos = [];
+            
+            // Initialiser les préférences utilisateur
+            if (!state.preferences) {
+                state.preferences = {
+                    conflictResolution: 'server' // 'server', 'local', 'ask'
+                };
+            }
+            if (!state.preferences.conflictResolution) {
+                state.preferences.conflictResolution = 'server';
+            }
             
             // Migration: ajouter mealType aux entrées existantes
             migrateFoodJournalToMeals();
             
             // Nouveaux champs pour la refonte Training
             if (!state.wizardResults) state.wizardResults = null;
+            
+            // VALIDATION: vérifier que l'équipement est défini dans wizardResults
+            if (state.wizardResults && !state.wizardResults.equipment) {
+                console.warn('⚠️ Equipment manquant dans wizardResults, réinitialisation du wizard');
+                state.wizardResults = null; // Forcer la reconfiguration
+            }
+            
             if (!state.trainingProgress) {
                 state.trainingProgress = {
                     currentSplitIndex: 0,
@@ -355,18 +382,142 @@ function saveState() {
         
         // Nettoyer les valeurs corrompues avant sauvegarde
         const cleanState = sanitizeCorruptedValues(state, 'state');
+        const dataString = JSON.stringify(cleanState);
         
-        localStorage.setItem('fittrack-state', JSON.stringify(cleanState));
+        // Vérifier la taille des données (limite localStorage ~5MB)
+        const dataSize = new Blob([dataString]).size;
+        const maxSize = 4.5 * 1024 * 1024; // 4.5MB pour marge de sécurité
+        const warningSize = 3.5 * 1024 * 1024; // 3.5MB pour avertissement
+        
+        if (dataSize > warningSize && dataSize <= maxSize) {
+            console.warn(`⚠️ localStorage utilisé à ${((dataSize / maxSize) * 100).toFixed(1)}%`);
+            // Avertissement une seule fois par session
+            if (!window._storageWarningShown) {
+                window._storageWarningShown = true;
+                showToast('Espace de stockage local presque plein. Connectez-vous pour sauvegarder sur le cloud.', 'warning');
+            }
+        }
+        
+        localStorage.setItem('fittrack-state', dataString);
     } catch (e) {
-        console.error('Erreur lors de la sauvegarde:', e);
-        showToast('Erreur de sauvegarde', 'error');
+        // Gérer spécifiquement l'erreur de quota dépassé
+        if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
+            console.error('❌ Quota localStorage dépassé!', e);
+            showToast('Stockage local plein! Tentative de nettoyage...', 'warning');
+            
+            // Tenter de nettoyer et réessayer
+            if (cleanupOldLocalData()) {
+                try {
+                    const cleanState = sanitizeCorruptedValues(state, 'state');
+                    localStorage.setItem('fittrack-state', JSON.stringify(cleanState));
+                    showToast('Nettoyage réussi, données sauvegardées', 'success');
+                    return;
+                } catch (retryError) {
+                    console.error('Échec après nettoyage:', retryError);
+                }
+            }
+            
+            showToast('Impossible de sauvegarder. Connectez-vous à Supabase pour ne pas perdre vos données!', 'error');
+        } else {
+            console.error('Erreur lors de la sauvegarde:', e);
+            showToast('Erreur de sauvegarde locale', 'error');
+        }
+    }
+}
+
+// Nettoyer les anciennes données pour libérer de l'espace
+function cleanupOldLocalData() {
+    try {
+        let cleaned = false;
+        
+        // 1. Supprimer les backups de conflits anciens (garder seulement 3)
+        const backups = JSON.parse(localStorage.getItem('conflict-backups') || '[]');
+        if (backups.length > 3) {
+            localStorage.setItem('conflict-backups', JSON.stringify(backups.slice(-3)));
+            cleaned = true;
+            console.log('🧹 Backups de conflits nettoyés');
+        }
+        
+        // 2. Nettoyer les données obsolètes du state
+        if (state.foodJournal) {
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0];
+            
+            let oldEntriesCount = 0;
+            Object.keys(state.foodJournal).forEach(date => {
+                if (date < sixMonthsAgoStr) {
+                    delete state.foodJournal[date];
+                    oldEntriesCount++;
+                }
+            });
+            
+            if (oldEntriesCount > 0) {
+                cleaned = true;
+                console.log(`🧹 ${oldEntriesCount} jours de journal supprimés (>6 mois)`);
+            }
+        }
+        
+        // 3. Nettoyer les anciennes sessions cardio (garder 6 mois)
+        if (state.cardioLog) {
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0];
+            
+            let oldCardioCount = 0;
+            Object.keys(state.cardioLog).forEach(date => {
+                if (date < sixMonthsAgoStr) {
+                    delete state.cardioLog[date];
+                    oldCardioCount++;
+                }
+            });
+            
+            if (oldCardioCount > 0) {
+                cleaned = true;
+                console.log(`🧹 ${oldCardioCount} jours de cardio supprimés (>6 mois)`);
+            }
+        }
+        
+        if (cleaned) {
+            showToast('Anciennes données nettoyées pour libérer de l\'espace', 'info');
+        }
+        
+        return cleaned;
+    } catch (e) {
+        console.error('Erreur nettoyage localStorage:', e);
+        return false;
+    }
+}
+
+// Vérifier l'utilisation du quota localStorage
+function checkStorageQuota() {
+    try {
+        const stateData = localStorage.getItem('fittrack-state') || '';
+        const used = new Blob([stateData]).size;
+        const maxSize = 5 * 1024 * 1024; // ~5MB
+        const percentage = (used / maxSize) * 100;
+        
+        return {
+            used: used,
+            max: maxSize,
+            percentage: percentage.toFixed(1),
+            warning: percentage > 70,
+            critical: percentage > 90,
+            usedMB: (used / (1024 * 1024)).toFixed(2)
+        };
+    } catch (e) {
+        return { used: 0, max: 0, percentage: 0, warning: false, critical: false, usedMB: '0' };
     }
 }
 
 // Marquer la sync comme effectuée
 function markSyncComplete() {
-    state._lastSyncAt = new Date().toISOString();
-    localStorage.setItem('fittrack-state', JSON.stringify(state));
+    try {
+        state._lastSyncAt = new Date().toISOString();
+        localStorage.setItem('fittrack-state', JSON.stringify(state));
+    } catch (e) {
+        console.error('Erreur markSyncComplete:', e);
+    }
 }
 
 // Vérifier si des modifications locales non synchronisées existent

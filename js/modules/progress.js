@@ -2,6 +2,11 @@
 
 let progressChart = null;
 
+// Variables pour les graphiques stats avancés
+let muscleVolumeChart = null;
+let frequencyChart = null;
+let monthlyComparisonChart = null;
+
 // ==================== TAB SWITCHING ====================
 
 function switchProgressTab(tabName) {
@@ -31,6 +36,10 @@ function switchProgressTab(tabName) {
         populateProgressExerciseSelect();
     } else if (tabName === 'badges') {
         renderAchievements();
+    } else if (tabName === 'stats') {
+        renderMuscleVolumeChart();
+        renderFrequencyChart();
+        renderMonthlyComparisonChart();
     }
 }
 
@@ -1116,6 +1125,488 @@ function showProgressToast(icon, message, duration = 3000) {
     }, duration);
 }
 
+// ==================== GRAPHIQUE VOLUME HEBDOMADAIRE ====================
+
+let volumeChart = null;
+
+function renderWeeklyVolumeChart() {
+    const ctx = document.getElementById('volume-chart');
+    if (!ctx) return;
+    
+    // Détruire le graphique existant
+    if (volumeChart) {
+        volumeChart.destroy();
+        volumeChart = null;
+    }
+    
+    // Calculer le volume par semaine (8 dernières semaines)
+    const weeks = [];
+    const volumes = [];
+    
+    for (let w = 7; w >= 0; w--) {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - (w * 7) - weekStart.getDay() + 1);
+        weekStart.setHours(0, 0, 0, 0);
+        
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+        
+        // Calculer volume de la semaine
+        let weekVolume = 0;
+        (state.sessionHistory || []).forEach(session => {
+            const sessionDate = new Date(session.date);
+            if (sessionDate >= weekStart && sessionDate <= weekEnd) {
+                session.exercises?.forEach(ex => {
+                    if (ex.setsDetail) {
+                        ex.setsDetail.forEach(set => {
+                            if (set.completed) {
+                                weekVolume += (set.weight || 0) * (set.reps || 0);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+        
+        weeks.push(`S${8 - w}`);
+        volumes.push(Math.round(weekVolume / 1000)); // En tonnes
+    }
+    
+    // Vérifier s'il y a des données
+    const hasData = volumes.some(v => v > 0);
+    if (!hasData) {
+        const canvas = ctx;
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#606070';
+        context.font = '14px Outfit';
+        context.textAlign = 'center';
+        context.fillText('Aucune donnée d\'entraînement', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    volumeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: weeks,
+            datasets: [{
+                label: 'Volume (tonnes)',
+                data: volumes,
+                backgroundColor: 'rgba(0, 170, 255, 0.7)',
+                borderRadius: 8,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#16161f',
+                    titleColor: '#ffffff',
+                    bodyColor: '#a0a0b0',
+                    borderColor: '#2a2a3a',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y.toFixed(1) + ' tonnes';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#606070',
+                        font: { family: 'Outfit' }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    ticks: {
+                        color: '#00aaff',
+                        font: { family: 'Space Mono' },
+                        callback: function(value) {
+                            return value + 't';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ==================== STATS AVANCÉES ====================
+
+/**
+ * Graphique volume par groupe musculaire (doughnut)
+ */
+function renderMuscleVolumeChart() {
+    const ctx = document.getElementById('muscle-volume-chart');
+    if (!ctx) return;
+    
+    // Détruire le graphique existant
+    if (muscleVolumeChart) {
+        muscleVolumeChart.destroy();
+        muscleVolumeChart = null;
+    }
+    
+    // Calculer le volume par muscle depuis sessionHistory
+    const volumeByMuscle = {};
+    (state.sessionHistory || []).forEach(session => {
+        session.exercises?.forEach(ex => {
+            // Trouver le muscle de l'exercice
+            const exercise = defaultExercises.find(e => e.name === ex.exercise);
+            const muscle = exercise?.muscle || 'other';
+            
+            // Calculer le volume (poids × reps)
+            const volume = ex.setsDetail?.reduce((sum, set) => {
+                return sum + (set.completed ? (set.weight || 0) * (set.reps || 0) : 0);
+            }, 0) || 0;
+            
+            volumeByMuscle[muscle] = (volumeByMuscle[muscle] || 0) + volume;
+        });
+    });
+    
+    // Vérifier s'il y a des données
+    if (Object.keys(volumeByMuscle).length === 0) {
+        const canvas = ctx;
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#606070';
+        context.font = '14px Outfit';
+        context.textAlign = 'center';
+        context.fillText('Aucune donnée d\'entraînement', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    // Couleurs pour les groupes musculaires
+    const muscleColors = {
+        'chest': '#ff6384',
+        'back': '#36a2eb',
+        'shoulders': '#ffce56',
+        'biceps': '#4bc0c0',
+        'triceps': '#9966ff',
+        'quads': '#ff9f40',
+        'hamstrings': '#c9cbcf',
+        'glutes': '#ff6b9d',
+        'abs': '#45b7d1',
+        'calves': '#b8e994',
+        'traps': '#feca57',
+        'rear-delts': '#ffb8b8',
+        'forearms': '#a29bfe'
+    };
+    
+    const labels = Object.keys(volumeByMuscle).map(m => muscleGroups[m]?.name || m);
+    const data = Object.values(volumeByMuscle).map(v => Math.round(v / 1000)); // En tonnes
+    const colors = Object.keys(volumeByMuscle).map(m => muscleColors[m] || '#95a5a6');
+    
+    muscleVolumeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: colors,
+                borderWidth: 2,
+                borderColor: '#16161f'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#a0a0b0',
+                        font: { family: 'Outfit', size: 11 },
+                        padding: 10
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#16161f',
+                    titleColor: '#ffffff',
+                    bodyColor: '#a0a0b0',
+                    borderColor: '#2a2a3a',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percent = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value}t (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Graphique fréquence d'entraînement par jour (bar)
+ */
+function renderFrequencyChart() {
+    const ctx = document.getElementById('frequency-chart');
+    if (!ctx) return;
+    
+    // Détruire le graphique existant
+    if (frequencyChart) {
+        frequencyChart.destroy();
+        frequencyChart = null;
+    }
+    
+    // Compter les séances par jour de la semaine
+    const dayCount = [0, 0, 0, 0, 0, 0, 0]; // Lun-Dim
+    (state.sessionHistory || []).forEach(session => {
+        const day = new Date(session.date).getDay();
+        const adjustedDay = day === 0 ? 6 : day - 1; // Lun=0, Dim=6
+        dayCount[adjustedDay]++;
+    });
+    
+    // Vérifier s'il y a des données
+    const hasData = dayCount.some(count => count > 0);
+    if (!hasData) {
+        const canvas = ctx;
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#606070';
+        context.font = '14px Outfit';
+        context.textAlign = 'center';
+        context.fillText('Aucune séance enregistrée', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    frequencyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+            datasets: [{
+                label: 'Nombre de séances',
+                data: dayCount,
+                backgroundColor: 'rgba(0, 170, 255, 0.7)',
+                borderRadius: 8,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#16161f',
+                    titleColor: '#ffffff',
+                    bodyColor: '#a0a0b0',
+                    borderColor: '#2a2a3a',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#606070',
+                        font: { family: 'Outfit' }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    ticks: {
+                        color: '#a0a0b0',
+                        font: { family: 'Space Mono' },
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Graphique comparaison mois/mois (line)
+ */
+function renderMonthlyComparisonChart() {
+    const ctx = document.getElementById('monthly-comparison-chart');
+    if (!ctx) return;
+    
+    // Détruire le graphique existant
+    if (monthlyComparisonChart) {
+        monthlyComparisonChart.destroy();
+        monthlyComparisonChart = null;
+    }
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    // Calculer le volume par semaine pour les 2 derniers mois
+    const currentMonthData = [];
+    const previousMonthData = [];
+    
+    // 4 semaines par mois
+    for (let week = 0; week < 4; week++) {
+        currentMonthData.push(0);
+        previousMonthData.push(0);
+    }
+    
+    (state.sessionHistory || []).forEach(session => {
+        const sessionDate = new Date(session.date);
+        const sessionMonth = sessionDate.getMonth();
+        const sessionYear = sessionDate.getFullYear();
+        
+        // Calculer le volume de la séance
+        let sessionVolume = 0;
+        session.exercises?.forEach(ex => {
+            const volume = ex.setsDetail?.reduce((sum, set) => {
+                return sum + (set.completed ? (set.weight || 0) * (set.reps || 0) : 0);
+            }, 0) || 0;
+            sessionVolume += volume;
+        });
+        
+        // Déterminer la semaine du mois (0-3)
+        const weekOfMonth = Math.floor((sessionDate.getDate() - 1) / 7);
+        
+        // Mois actuel
+        if (sessionYear === currentYear && sessionMonth === currentMonth && weekOfMonth < 4) {
+            currentMonthData[weekOfMonth] += sessionVolume;
+        }
+        // Mois précédent
+        else {
+            const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+            if (sessionYear === prevYear && sessionMonth === prevMonth && weekOfMonth < 4) {
+                previousMonthData[weekOfMonth] += sessionVolume;
+            }
+        }
+    });
+    
+    // Convertir en tonnes
+    const currentMonthTonnes = currentMonthData.map(v => Math.round(v / 1000));
+    const previousMonthTonnes = previousMonthData.map(v => Math.round(v / 1000));
+    
+    // Vérifier s'il y a des données
+    const hasData = currentMonthTonnes.some(v => v > 0) || previousMonthTonnes.some(v => v > 0);
+    if (!hasData) {
+        const canvas = ctx;
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#606070';
+        context.font = '14px Outfit';
+        context.textAlign = 'center';
+        context.fillText('Aucune donnée pour comparer', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+    const currentMonthName = monthNames[currentMonth];
+    const previousMonthName = monthNames[currentMonth === 0 ? 11 : currentMonth - 1];
+    
+    monthlyComparisonChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['S1', 'S2', 'S3', 'S4'],
+            datasets: [
+                {
+                    label: previousMonthName,
+                    data: previousMonthTonnes,
+                    borderColor: '#606070',
+                    backgroundColor: 'rgba(96, 96, 112, 0.1)',
+                    tension: 0.3,
+                    fill: false,
+                    borderDash: [5, 5]
+                },
+                {
+                    label: currentMonthName,
+                    data: currentMonthTonnes,
+                    borderColor: '#00ff88',
+                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#a0a0b0',
+                        font: { family: 'Outfit' },
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#16161f',
+                    titleColor: '#ffffff',
+                    bodyColor: '#a0a0b0',
+                    borderColor: '#2a2a3a',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y}t`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    ticks: {
+                        color: '#606070',
+                        font: { family: 'Outfit' }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    ticks: {
+                        color: '#a0a0b0',
+                        font: { family: 'Space Mono' },
+                        callback: function(value) {
+                            return value + 't';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 // ==================== INIT PROGRESSION SECTION ====================
 
 function initProgressSection() {
@@ -1123,4 +1614,5 @@ function initProgressSection() {
     renderProgressFeed();
     renderPRsSection();
     populateProgressExerciseSelect();
+    renderWeeklyVolumeChart();
 }

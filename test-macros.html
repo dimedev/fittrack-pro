@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Cohérence Macros</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #0a0a0a;
+            color: #e0e0e0;
+        }
+        .test-card {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+        }
+        .test-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #00ff88;
+        }
+        .test-result {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .result-box {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .result-box h4 {
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+            color: #888;
+        }
+        .result-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .pass {
+            color: #00ff88;
+        }
+        .fail {
+            color: #ff4444;
+        }
+        button {
+            background: #00ff88;
+            color: #0a0a0a;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        .info {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Cohérence Macros</h1>
+    
+    <div class="info">
+        ℹ️ Ouvre la console (F12) pour voir les logs détaillés.
+        Ce test vérifie que les calculs de macros sont corrects après ajout d'aliments.
+    </div>
+
+    <div class="test-card">
+        <div class="test-title">Scénario A : Aliment en grammes (150g Poulet)</div>
+        <button onclick="testScenarioA()">Tester</button>
+        <div id="result-a"></div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-title">Scénario B : Unité naturelle (2 œufs)</div>
+        <button onclick="testScenarioB()">Tester</button>
+        <div id="result-b"></div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-title">Scénario C : Mix (100g Riz + 100g Poulet)</div>
+        <button onclick="testScenarioC()">Tester</button>
+        <div id="result-c"></div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-title">Test Complet</div>
+        <button onclick="runAllTests()">Lancer tous les tests</button>
+    </div>
+
+    <script>
+        // Données de test
+        const poulet = {
+            id: 'chicken-breast',
+            name: 'Blanc de Poulet',
+            calories: 165,
+            protein: 31,
+            carbs: 0,
+            fat: 3.6
+        };
+
+        const oeuf = {
+            id: 'eggs',
+            name: 'Œufs entiers',
+            calories: 155,
+            protein: 13,
+            carbs: 1.1,
+            fat: 11,
+            unit: 'piece',
+            unitWeight: 50
+        };
+
+        const riz = {
+            id: 'rice-white',
+            name: 'Riz Blanc (cuit)',
+            calories: 130,
+            protein: 2.7,
+            carbs: 28,
+            fat: 0.3
+        };
+
+        function calculateMacros(food, quantityGrams) {
+            const multiplier = quantityGrams / 100;
+            return {
+                calories: Math.round(food.calories * multiplier),
+                protein: Math.round(food.protein * multiplier * 10) / 10,
+                carbs: Math.round(food.carbs * multiplier * 10) / 10,
+                fat: Math.round(food.fat * multiplier * 10) / 10
+            };
+        }
+
+        function displayResult(containerId, expected, calculated, quantityText) {
+            const container = document.getElementById(containerId);
+            
+            const calMatch = expected.calories === calculated.calories;
+            const protMatch = expected.protein === calculated.protein;
+            const carbsMatch = expected.carbs === calculated.carbs;
+            const fatMatch = expected.fat === calculated.fat;
+            
+            const allMatch = calMatch && protMatch && carbsMatch && fatMatch;
+            
+            container.innerHTML = `
+                <div class="result-box">
+                    <h4>Quantité: ${quantityText}</h4>
+                </div>
+                <div class="test-result">
+                    <div class="result-box">
+                        <h4>Attendu</h4>
+                        <div class="result-value">
+                            ${expected.calories} kcal<br>
+                            P: ${expected.protein}g<br>
+                            G: ${expected.carbs}g<br>
+                            L: ${expected.fat}g
+                        </div>
+                    </div>
+                    <div class="result-box">
+                        <h4>Calculé</h4>
+                        <div class="result-value ${allMatch ? 'pass' : 'fail'}">
+                            ${calculated.calories} kcal ${calMatch ? '✓' : '✗'}<br>
+                            P: ${calculated.protein}g ${protMatch ? '✓' : '✗'}<br>
+                            G: ${calculated.carbs}g ${carbsMatch ? '✓' : '✗'}<br>
+                            L: ${calculated.fat}g ${fatMatch ? '✓' : '✗'}
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; font-weight: 700; font-size: 1.1rem;" class="${allMatch ? 'pass' : 'fail'}">
+                    ${allMatch ? '✅ Test RÉUSSI' : '❌ Test ÉCHOUÉ'}
+                </div>
+            `;
+        }
+
+        function testScenarioA() {
+            console.log('\n========== SCÉNARIO A : 150g Poulet ==========');
+            const quantity = 150;
+            const expected = {
+                calories: 248,  // 165 * 1.5 = 247.5 arrondi à 248
+                protein: 46.5,  // 31 * 1.5 = 46.5
+                carbs: 0,
+                fat: 5.4        // 3.6 * 1.5 = 5.4
+            };
+            
+            const calculated = calculateMacros(poulet, quantity);
+            
+            console.log('Attendu:', expected);
+            console.log('Calculé:', calculated);
+            
+            displayResult('result-a', expected, calculated, '150g');
+        }
+
+        function testScenarioB() {
+            console.log('\n========== SCÉNARIO B : 2 œufs ==========');
+            const unitCount = 2;
+            const quantityGrams = unitCount * oeuf.unitWeight; // 2 * 50 = 100g
+            
+            const expected = {
+                calories: 155,  // 155 * 1 = 155
+                protein: 13,    // 13 * 1 = 13
+                carbs: 1.1,     // 1.1 * 1 = 1.1
+                fat: 11         // 11 * 1 = 11
+            };
+            
+            const calculated = calculateMacros(oeuf, quantityGrams);
+            
+            console.log('Quantité:', unitCount, 'œufs =', quantityGrams, 'g');
+            console.log('Attendu:', expected);
+            console.log('Calculé:', calculated);
+            
+            displayResult('result-b', expected, calculated, `${unitCount} œufs (${quantityGrams}g)`);
+        }
+
+        function testScenarioC() {
+            console.log('\n========== SCÉNARIO C : 100g Riz + 100g Poulet ==========');
+            const quantityRiz = 100;
+            const quantityPoulet = 100;
+            
+            const macrosRiz = calculateMacros(riz, quantityRiz);
+            const macrosPoulet = calculateMacros(poulet, quantityPoulet);
+            
+            const expected = {
+                calories: 295,  // 130 + 165
+                protein: 33.7,  // 2.7 + 31
+                carbs: 28,      // 28 + 0
+                fat: 3.9        // 0.3 + 3.6
+            };
+            
+            const calculated = {
+                calories: macrosRiz.calories + macrosPoulet.calories,
+                protein: Math.round((macrosRiz.protein + macrosPoulet.protein) * 10) / 10,
+                carbs: Math.round((macrosRiz.carbs + macrosPoulet.carbs) * 10) / 10,
+                fat: Math.round((macrosRiz.fat + macrosPoulet.fat) * 10) / 10
+            };
+            
+            console.log('Riz:', macrosRiz);
+            console.log('Poulet:', macrosPoulet);
+            console.log('Attendu (total):', expected);
+            console.log('Calculé (total):', calculated);
+            
+            displayResult('result-c', expected, calculated, '100g Riz + 100g Poulet');
+        }
+
+        function runAllTests() {
+            testScenarioA();
+            setTimeout(() => testScenarioB(), 500);
+            setTimeout(() => testScenarioC(), 1000);
+        }
+
+        // Instructions
+        console.log('🧪 Test de cohérence des macros');
+        console.log('📝 Scénarios disponibles:');
+        console.log('  A: 150g de poulet → 248 kcal, 46.5g prot, 0g carbs, 5.4g fat');
+        console.log('  B: 2 œufs (100g) → 155 kcal, 13g prot, 1.1g carbs, 11g fat');
+        console.log('  C: 100g riz + 100g poulet → 295 kcal, 33.7g prot, 28g carbs, 3.9g fat');
+        console.log('\nClique sur les boutons pour tester chaque scénario.');
+    </script>
+</body>
+</html>

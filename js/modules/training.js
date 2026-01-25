@@ -328,6 +328,12 @@ function selectWizardOption(field, value) {
 }
 
 function wizardNext() {
+    // Validation avant de passer au step suivant
+    if (wizardState.currentStep === 5 && !wizardState.equipment) {
+        showToast('Veuillez sélectionner votre équipement', 'error');
+        return;
+    }
+    
     if (wizardState.currentStep < 6) {
         wizardState.currentStep++;
         updateWizardUI();
@@ -390,13 +396,21 @@ function renderProgramRecommendations() {
 }
 
 function selectProgram(programId) {
+    // VALIDATION stricte: vérifier que l'équipement est défini
+    if (!wizardState.equipment) {
+        showToast('Veuillez sélectionner votre équipement', 'error');
+        wizardState.currentStep = 5; // Retourner au step 5
+        updateWizardUI();
+        return;
+    }
+    
     // Save wizard results (including new coach fields)
     state.wizardResults = {
         frequency: wizardState.frequency,
         goal: wizardState.goal,
         experience: wizardState.experience,
         sensitivities: wizardState.sensitivities || [],
-        equipment: wizardState.equipment || 'full-gym',
+        equipment: wizardState.equipment, // Ne plus utiliser fallback ici
         favoriteExercises: state.wizardResults?.favoriteExercises || [],
         selectedProgram: programId,
         completedAt: new Date().toISOString()
@@ -1623,6 +1637,9 @@ function finishSession() {
     
     // Update PRs section
     if (typeof renderPRsSection === 'function') renderPRsSection();
+    
+    // Update weekly volume chart
+    if (typeof renderWeeklyVolumeChart === 'function') renderWeeklyVolumeChart();
     
     // Update session history
     if (typeof updateSessionHistory === 'function') updateSessionHistory();

@@ -242,6 +242,24 @@
                     </div>
                 </div>
 
+                <!-- Bodyweight Chart -->
+                <div class="card" style="margin-top: 16px;" id="bodyweight-chart-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📈</span>
+                            Evolution du Poids
+                        </div>
+                        <div class="chart-filters">
+                            <button class="filter-btn active" data-period="30" onclick="filterWeightChart(30)">30J</button>
+                            <button class="filter-btn" data-period="90" onclick="filterWeightChart(90)">3M</button>
+                            <button class="filter-btn" data-period="180" onclick="filterWeightChart(180)">6M</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="bodyweight-chart"></canvas>
+                    </div>
+                </div>
+
                 <!-- Hidden stat values for JS compatibility -->
                 <div style="display: none;">
                     <span id="stat-calories">--</span>
@@ -251,6 +269,8 @@
                 </div>
 
                 <div id="recommendations-card-container" style="margin-top: 16px;"></div>
+                
+                <div id="smart-insights-card-container" style="margin-top: 16px;"></div>
 
             </section>
 
@@ -329,6 +349,9 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Déficit net (calories - cardio) -->
+                        <div id="net-deficit-summary" style="display: none;"></div>
                     </div>
 
                     <!-- Repas du jour - 4 sections -->
@@ -422,6 +445,24 @@
                         <span id="suggestion-icon">💡</span>
                         <span id="suggestion-text"></span>
                     </div>
+
+                    <!-- Calories Chart -->
+                    <div class="card" style="margin-top: 16px;" id="calories-chart-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📊</span>
+                                Calories sur 7 jours
+                            </div>
+                            <div class="chart-filters">
+                                <button class="filter-btn active" data-days="7" onclick="renderCaloriesChart(7)">7J</button>
+                                <button class="filter-btn" data-days="14" onclick="renderCaloriesChart(14)">14J</button>
+                                <button class="filter-btn" data-days="30" onclick="renderCaloriesChart(30)">30J</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="calories-chart"></canvas>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Badge flottant compteur -->
@@ -479,6 +520,7 @@
                     <button class="tab active" data-tab="prs" onclick="switchProgressTab('prs')">Records</button>
                     <button class="tab" data-tab="badges" onclick="switchProgressTab('badges')">Badges</button>
                     <button class="tab" data-tab="history" onclick="switchProgressTab('history')">Séances</button>
+                    <button class="tab" data-tab="stats" onclick="switchProgressTab('stats')">Stats</button>
                     <button class="tab" data-tab="photos" onclick="switchProgressTab('photos')">Photos</button>
                 </div>
 
@@ -520,6 +562,19 @@
                         </div>
                         <div class="chart-container">
                             <canvas id="progress-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Volume Chart -->
+                    <div class="card" style="margin-top: 16px;" id="volume-chart-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">💪</span>
+                                Volume d'Entraînement Hebdomadaire
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="volume-chart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -566,6 +621,48 @@
                                 <div class="empty-state-title">Aucune photo</div>
                                 <p>Prenez votre première photo de progression !</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Stats -->
+                <div id="tab-stats" class="tab-content" style="display: none;">
+                    <!-- Volume par groupe musculaire -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">🎯</span>
+                                Volume par Groupe Musculaire
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="muscle-volume-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Fréquence d'entraînement -->
+                    <div class="card" style="margin-top: 16px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📅</span>
+                                Fréquence d'Entraînement
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="frequency-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Comparaison mois/mois -->
+                    <div class="card" style="margin-top: 16px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📊</span>
+                                Progression Mensuelle
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="monthly-comparison-chart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -1700,6 +1797,26 @@
                     <input type="text" class="form-input meal-search-input" id="meal-food-search" placeholder="Rechercher un aliment..." oninput="searchFoodsForMeal()">
                 </div>
                 
+                <!-- Filtres avancés -->
+                <div class="meal-filters-section" id="meal-filters-section">
+                    <div class="filters-row">
+                        <button class="filter-chip active" data-filter="all" onclick="setNutritionFilter('all')">Tous</button>
+                        <button class="filter-chip" data-filter="protein" onclick="setNutritionFilter('protein')">Protéines</button>
+                        <button class="filter-chip" data-filter="carbs" onclick="setNutritionFilter('carbs')">Glucides</button>
+                        <button class="filter-chip" data-filter="fats" onclick="setNutritionFilter('fats')">Lipides</button>
+                        <button class="filter-chip" data-filter="veggies" onclick="setNutritionFilter('veggies')">Légumes</button>
+                    </div>
+                    <div class="sort-row">
+                        <select class="form-select sort-select" id="nutrition-sort" onchange="setNutritionSort(this.value)">
+                            <option value="relevance">Pertinence</option>
+                            <option value="alpha">A-Z</option>
+                            <option value="calories-asc">Calories ↑</option>
+                            <option value="calories-desc">Calories ↓</option>
+                            <option value="protein-desc">Protéines ↓</option>
+                        </select>
+                    </div>
+                </div>
+                
                 <!-- Suggestions intelligentes -->
                 <div class="meal-suggestions-section" id="meal-suggestions-section">
                     <h4 class="meal-section-title">💡 Suggestions pour toi</h4>
@@ -1778,10 +1895,6 @@
                         <button class="cardio-duration-btn" onclick="selectCardioDuration(45)">45 min</button>
                         <button class="cardio-duration-btn" onclick="selectCardioDuration(60)">60 min</button>
                     </div>
-                    <div class="cardio-duration-custom">
-                        <input type="number" id="cardio-duration-input" value="30" min="5" max="300" step="5">
-                        <span>min</span>
-                    </div>
                 </div>
                 
                 <!-- Intensité -->
@@ -1813,6 +1926,29 @@
                 <!-- CTA -->
                 <button class="btn btn-primary btn-block" onclick="addCardioSession()" style="margin-top: 16px;">
                     Ajouter l'activité
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Edit Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="template-edit-sheet" style="display: none;" onclick="closeTemplateEditSheet()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title" id="template-edit-title">Éditer le template</h3>
+            </div>
+            <div class="bottom-sheet-content">
+                <div id="template-edit-foods" class="template-edit-foods">
+                    <!-- Liste des aliments avec inputs quantite -->
+                </div>
+            </div>
+            <div class="bottom-sheet-actions" style="padding: 16px; display: flex; gap: 8px; flex-direction: column;">
+                <button class="btn btn-primary btn-block" onclick="applyEditedTemplate()">
+                    Ajouter au repas
+                </button>
+                <button class="btn btn-secondary btn-block" onclick="saveEditedAsNewCombo()">
+                    Sauvegarder comme combo
                 </button>
             </div>
         </div>
@@ -2029,6 +2165,28 @@
                 <button class="btn btn-primary btn-lg" onclick="finishSession()">
                     Sauvegarder la séance
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Resolution Conflits -->
+    <div class="modal-overlay" id="conflict-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Données en conflit</h2>
+            </div>
+            <div class="modal-body" id="conflict-details">
+                <!-- Détails du conflit -->
+            </div>
+            <div style="padding: 0 24px 16px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="conflict-remember-choice" style="cursor: pointer;">
+                <label for="conflict-remember-choice" style="cursor: pointer; font-size: 0.9rem; color: var(--text-secondary);">
+                    Toujours utiliser cette option
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="resolveConflict('local')">Garder mes données</button>
+                <button class="btn btn-primary" onclick="resolveConflict('server')">Utiliser le serveur</button>
             </div>
         </div>
     </div>

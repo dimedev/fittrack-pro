@@ -196,6 +196,9 @@ async function applyTemplate(templateId, mealType) {
         template.usageCount++;
         template.lastUsed = Date.now();
         saveState();
+        
+        // Sync Supabase
+        updateMealComboUsageInSupabase(template.id, template.usageCount, template.lastUsed);
     }
     
     showToast(`"${template.name}" ajouté !`, 'success');
@@ -210,11 +213,17 @@ async function applyTemplate(templateId, mealType) {
     if (typeof checkGoalReached === 'function') checkGoalReached();
 }
 
+// Variables globales pour l'édition
+let editingTemplate = null;
+let editedQuantities = {};
+let editingMealType = null;
+
 /**
  * Modifier un template (quantités)
  * @param {string} templateId - ID du template
+ * @param {string} mealType - Type de repas
  */
-function editTemplate(templateId) {
+function editTemplate(templateId, mealType) {
     // Chercher le template
     let template = MEAL_TEMPLATES.find(t => t.id === templateId);
     let isUserCombo = false;
@@ -224,14 +233,183 @@ function editTemplate(templateId) {
         isUserCombo = true;
     }
     
-    if (!template || !template.editable) {
-        showToast('Ce template n\'est pas éditable', 'info');
+    if (!template) {
+        showToast('Template introuvable', 'error');
         return;
     }
     
-    // Ouvrir une modal d'édition (à implémenter dans l'UI si nécessaire)
-    // Pour l'instant, toast simple
-    showToast('Édition de templates à venir', 'info');
+    // Sauvegarder pour l'édition
+    editingTemplate = { ...template };
+    editingMealType = mealType;
+    editedQuantities = {};
+    
+    // Initialiser les quantités
+    template.foods.forEach(item => {
+        editedQuantities[item.foodId] = item.quantity;
+    });
+    
+    // Afficher la modal
+    openTemplateEditSheet(template);
+}
+
+/**
+ * Ouvrir la modal d'édition
+ */
+function openTemplateEditSheet(template) {
+    const sheet = document.getElementById('template-edit-sheet');
+    const title = document.getElementById('template-edit-title');
+    if (!sheet || !title) return;
+    
+    title.textContent = `Éditer: ${template.name}`;
+    
+    // Rendre les aliments éditables
+    renderTemplateEditFoods(template);
+    
+    sheet.style.display = 'flex';
+    setTimeout(() => sheet.classList.add('active'), 10);
+}
+
+/**
+ * Rendre la liste des aliments avec inputs
+ */
+function renderTemplateEditFoods(template) {
+    const container = document.getElementById('template-edit-foods');
+    if (!container) return;
+    
+    container.innerHTML = template.foods.map(item => {
+        const food = state.foods.find(f => f.id === item.foodId);
+        if (!food) return '';
+        
+        const quantity = editedQuantities[item.foodId] || item.quantity;
+        const calories = Math.round((food.calories * quantity) / 100);
+        
+        return `
+            <div class="template-food-item" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-md); margin-bottom: 8px;">
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; margin-bottom: 4px;">${food.name}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${calories} kcal</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-icon" onclick="adjustTemplateQuantity('${item.foodId}', -10)" style="width: 32px; height: 32px;">-</button>
+                    <input 
+                        type="number" 
+                        value="${quantity}" 
+                        onchange="updateTemplateQuantity('${item.foodId}', this.value)"
+                        style="width: 60px; text-align: center; padding: 4px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-primary); color: var(--text-primary); font-size: 0.95rem; font-weight: 600;"
+                    >
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">g</span>
+                    <button class="btn-icon" onclick="adjustTemplateQuantity('${item.foodId}', 10)" style="width: 32px; height: 32px;">+</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Ajuster la quantité d'un aliment
+ */
+function adjustTemplateQuantity(foodId, delta) {
+    const current = editedQuantities[foodId] || 0;
+    const newValue = Math.max(0, current + delta);
+    editedQuantities[foodId] = newValue;
+    
+    // Re-rendre
+    renderTemplateEditFoods(editingTemplate);
+}
+
+/**
+ * Mettre à jour la quantité d'un aliment
+ */
+function updateTemplateQuantity(foodId, value) {
+    const newValue = Math.max(0, parseFloat(value) || 0);
+    editedQuantities[foodId] = newValue;
+    
+    // Re-rendre
+    renderTemplateEditFoods(editingTemplate);
+}
+
+/**
+ * Fermer la modal d'édition
+ */
+function closeTemplateEditSheet() {
+    const sheet = document.getElementById('template-edit-sheet');
+    if (!sheet) return;
+    
+    sheet.classList.remove('active');
+    setTimeout(() => {
+        sheet.style.display = 'none';
+        editingTemplate = null;
+        editedQuantities = {};
+        editingMealType = null;
+    }, 300);
+}
+
+/**
+ * Appliquer le template avec les quantités modifiées
+ */
+async function applyEditedTemplate() {
+    if (!editingTemplate || !editingMealType) return;
+    
+    // Ajouter chaque aliment avec les nouvelles quantités
+    for (const item of editingTemplate.foods) {
+        const quantity = editedQuantities[item.foodId] || item.quantity;
+        if (quantity > 0) {
+            await addToJournalWithMealType(item.foodId, quantity, editingMealType);
+        }
+    }
+    
+    showToast(`"${editingTemplate.name}" ajouté avec succès`, 'success');
+    closeTemplateEditSheet();
+    closeMealSheet();
+}
+
+/**
+ * Sauvegarder comme nouveau combo avec les quantités modifiées
+ */
+async function saveEditedAsNewCombo() {
+    if (!editingTemplate) return;
+    
+    // Créer un nouveau nom
+    const baseName = editingTemplate.name;
+    const newName = prompt(`Nom du nouveau combo:`, `${baseName} (modifié)`);
+    
+    if (!newName || newName.trim() === '') {
+        return;
+    }
+    
+    // Créer le nouveau combo
+    const newCombo = {
+        id: `user-combo-${Date.now()}`,
+        name: newName.trim(),
+        icon: editingTemplate.icon || '⭐',
+        foods: editingTemplate.foods.map(item => ({
+            foodId: item.foodId,
+            quantity: editedQuantities[item.foodId] || item.quantity
+        })),
+        mealTypes: editingTemplate.mealTypes || ['breakfast', 'lunch', 'dinner', 'snack'],
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        lastUsed: null,
+        editable: true
+    };
+    
+    // Ajouter au state
+    if (!state.mealCombos) state.mealCombos = [];
+    state.mealCombos.push(newCombo);
+    saveState();
+    
+    // Sync avec Supabase
+    if (typeof saveMealComboToSupabase === 'function') {
+        await saveMealComboToSupabase(newCombo);
+    }
+    
+    showToast(`Combo "${newName}" créé !`, 'success');
+    closeTemplateEditSheet();
+    
+    // Rafraîchir l'affichage
+    if (currentMealType) {
+        renderMealTemplates(currentMealType);
+    }
 }
 
 /**
@@ -295,8 +473,12 @@ function renderMealTemplates(mealType) {
             return sum + Math.round((food.calories * item.quantity) / 100);
         }, 0);
         
+        const editBtn = template.editable 
+            ? `<button class="template-edit-btn" onclick="event.stopPropagation(); editTemplate('${template.id}', '${mealType}')" style="background: var(--bg-tertiary); border: none; padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 1.1rem; margin-right: 4px;">✏️</button>`
+            : '';
+        
         const deleteBtn = isUserCombo 
-            ? `<button class="template-delete-btn" onclick="event.stopPropagation(); deleteCombo('${template.id}')">🗑️</button>`
+            ? `<button class="template-delete-btn" onclick="event.stopPropagation(); deleteCombo('${template.id}')" style="background: var(--bg-tertiary); border: none; padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 1.1rem;">🗑️</button>`
             : '';
         
         return `
@@ -307,7 +489,10 @@ function renderMealTemplates(mealType) {
                     <div class="template-details">${totalCals} kcal · ${template.foods.length} aliments</div>
                     ${isUserCombo ? `<div class="template-usage">Utilisé ${template.usageCount} fois</div>` : ''}
                 </div>
-                ${deleteBtn}
+                <div style="display: flex; gap: 4px;">
+                    ${editBtn}
+                    ${deleteBtn}
+                </div>
             </div>
         `;
     }).join('');
@@ -356,6 +541,23 @@ async function deleteMealComboFromSupabase(comboId) {
         if (error) throw error;
     } catch (error) {
         console.error('Erreur suppression combo:', error);
+    }
+}
+
+async function updateMealComboUsageInSupabase(comboId, usageCount, lastUsed) {
+    if (!currentUser || !isOnline) return;
+    
+    try {
+        await supabaseClient
+            .from('meal_combos')
+            .update({
+                usage_count: usageCount,
+                last_used: new Date(lastUsed).toISOString()
+            })
+            .eq('user_id', currentUser.id)
+            .eq('combo_id', comboId);
+    } catch (error) {
+        console.warn('Erreur mise à jour usage combo:', error);
     }
 }
 

@@ -176,6 +176,7 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     justify-content: center;
     padding: 0 4px;
+    animation: syncPulse 2s ease-in-out infinite;
 }
 
 @keyframes syncSpin {
@@ -183,9 +184,33 @@ h1, h2, h3, h4, h5, h6 {
     to { transform: rotate(360deg); }
 }
 
-/* Masquer sur mobile (espace limité) */
+@keyframes syncPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+/* Afficher sur mobile en version compacte (floating button) */
 @media (max-width: 768px) {
     .sync-indicator {
+        position: fixed;
+        bottom: 80px; /* Au-dessus de la bottom nav */
+        right: 16px;
+        width: 32px;
+        height: 32px;
+        background: var(--bg-secondary);
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        z-index: 100;
+        display: flex; /* Visible ! */
+    }
+    
+    .sync-indicator svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    /* Masquer en mode IDLE (pas de sync en cours) */
+    .sync-indicator:not(.syncing):not(.error):not(.offline) {
         display: none;
     }
 }

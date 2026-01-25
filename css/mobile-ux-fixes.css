@@ -89,6 +89,7 @@
 #nutrition .nutrition-macros-summary,
 #nutrition .journal-macro-bars {
     overflow-x: hidden !important;
+    overflow-y: visible !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
 }
@@ -105,15 +106,16 @@
 
 /* ==================== MOBILE NUTRITION OPTIMIZATIONS ==================== */
 
+/* Réduire l'espace en haut de la section nutrition (desktop + mobile) */
+#nutrition {
+    padding-top: 0 !important;
+}
+
+#nutrition > .card:first-child {
+    margin-top: 0 !important;
+}
+
 @media (max-width: 768px) {
-    /* Réduire l'espace en haut de la section nutrition */
-    #nutrition {
-        padding-top: 0 !important;
-    }
-    
-    #nutrition > .card:first-child {
-        margin-top: 0 !important;
-    }
     
     /* Fix overflow des noms d'exercices dans les records */
     .pr-exercise-name,
@@ -1541,4 +1543,64 @@ html, body, main {
         min-height: 44px;
         min-width: 44px;
     }
+}
+
+/* ==================== FILTRES RECHERCHE NUTRITION ==================== */
+
+.meal-filters-section {
+    padding: 8px 0 12px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 12px;
+}
+
+.filters-row {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+}
+
+.filters-row::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+}
+
+.filter-chip {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.filter-chip:active {
+    transform: scale(0.95);
+}
+
+.filter-chip.active {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border-color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.sort-row {
+    margin-top: 8px;
+}
+
+.sort-select {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
 }

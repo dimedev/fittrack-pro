@@ -747,11 +747,135 @@ function renderRecommendationsCard() {
 
 // Graphique du poids corporel
 let bodyWeightChart = null;
+let currentWeightChartPeriod = 30; // jours par défaut
 
-// Widget "Évolution du Poids" supprimé - utiliser renderBodyWeightCard() à la place
 function updateBodyWeightChart() {
-    // Fonction obsolète - widget supprimé du dashboard
-    return;
+    const ctx = document.getElementById('bodyweight-chart');
+    if (!ctx) return;
+    
+    const logs = state.bodyWeightLog || [];
+    
+    // Détruire le graphique existant
+    if (bodyWeightChart) {
+        bodyWeightChart.destroy();
+        bodyWeightChart = null;
+    }
+    
+    if (logs.length < 2) {
+        // Afficher message si pas assez de données
+        const canvas = ctx;
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#606070';
+        context.font = '14px Outfit';
+        context.textAlign = 'center';
+        context.fillText('Enregistrez plusieurs poids pour voir l\'évolution', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    // Trier par date et filtrer selon la période
+    const sortedLogs = [...logs].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const now = new Date();
+    const filterDate = new Date(now.getTime() - currentWeightChartPeriod * 24 * 60 * 60 * 1000);
+    const filteredLogs = sortedLogs.filter(log => new Date(log.date) >= filterDate);
+    
+    if (filteredLogs.length === 0) {
+        const canvas = ctx;
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#606070';
+        context.font = '14px Outfit';
+        context.textAlign = 'center';
+        context.fillText('Aucune donnée pour cette période', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    const labels = filteredLogs.map(l => {
+        const date = new Date(l.date);
+        return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    });
+    const weights = filteredLogs.map(l => l.weight);
+    
+    bodyWeightChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Poids (kg)',
+                data: weights,
+                borderColor: '#00ff88',
+                backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 4,
+                pointBackgroundColor: '#00ff88',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#16161f',
+                    titleColor: '#ffffff',
+                    bodyColor: '#a0a0b0',
+                    borderColor: '#2a2a3a',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y.toFixed(1) + ' kg';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    ticks: {
+                        color: '#606070',
+                        font: { family: 'Outfit' }
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    ticks: {
+                        color: '#00ff88',
+                        font: { family: 'Space Mono' },
+                        callback: function(value) {
+                            return value.toFixed(1) + ' kg';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function filterWeightChart(days) {
+    currentWeightChartPeriod = days;
+    
+    // Mettre à jour les boutons actifs
+    document.querySelectorAll('#bodyweight-chart-card .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.period) === days) {
+            btn.classList.add('active');
+        }
+    });
+    
+    updateBodyWeightChart();
 }
 
 // ==================== MODALS ====================
@@ -1269,6 +1393,348 @@ function renderInsightsWidget() {
     `).join('');
 }
 
+// ==================== SMART INSIGHTS ====================
+
+/**
+ * Detecte les muscles sous-travailles (non travailles depuis >5 jours)
+ */
+function getNeglectedMuscles() {
+    const now = Date.now();
+    const fourteenDaysAgo = now - (14 * 24 * 60 * 60 * 1000);
+    
+    // Compter les jours depuis la derniere seance par muscle
+    const lastWorkoutByMuscle = {};
+    
+    // Parcourir l'historique des 14 derniers jours
+    (state.sessionHistory || []).forEach(session => {
+        const sessionDate = new Date(session.date).getTime();
+        if (sessionDate < fourteenDaysAgo) return;
+        
+        session.exercises?.forEach(exData => {
+            // Trouver le muscle de l'exercice
+            const exercise = defaultExercises.find(e => e.name === exData.exercise);
+            if (!exercise) return;
+            
+            const muscle = exercise.muscle;
+            if (!muscle) return;
+            
+            // Garder seulement la seance la plus recente pour ce muscle
+            if (!lastWorkoutByMuscle[muscle] || sessionDate > lastWorkoutByMuscle[muscle]) {
+                lastWorkoutByMuscle[muscle] = sessionDate;
+            }
+        });
+    });
+    
+    // Identifier les muscles negliges (>5 jours)
+    const neglected = [];
+    const fiveDaysAgo = now - (5 * 24 * 60 * 60 * 1000);
+    
+    Object.keys(muscleGroups).forEach(muscleKey => {
+        const lastWorkout = lastWorkoutByMuscle[muscleKey];
+        
+        if (!lastWorkout || lastWorkout < fiveDaysAgo) {
+            const daysSince = lastWorkout 
+                ? Math.floor((now - lastWorkout) / (24 * 60 * 60 * 1000))
+                : 14; // Si jamais travaille, on met 14 jours
+            
+            neglected.push({
+                muscle: muscleKey,
+                muscleName: muscleGroups[muscleKey].name,
+                daysSince
+            });
+        }
+    });
+    
+    // Trier par nombre de jours (plus negliges en premier)
+    return neglected.sort((a, b) => b.daysSince - a.daysSince);
+}
+
+/**
+ * Compare le volume total cette semaine vs semaine precedente
+ */
+function getWeeklyVolumeComparison() {
+    const now = new Date();
+    const currentWeekStart = new Date(now);
+    currentWeekStart.setDate(now.getDate() - now.getDay() + 1); // Lundi
+    currentWeekStart.setHours(0, 0, 0, 0);
+    
+    const lastWeekStart = new Date(currentWeekStart);
+    lastWeekStart.setDate(currentWeekStart.getDate() - 7);
+    
+    const lastWeekEnd = new Date(currentWeekStart);
+    lastWeekEnd.setTime(lastWeekEnd.getTime() - 1);
+    
+    let currentWeekVolume = 0;
+    let lastWeekVolume = 0;
+    
+    (state.sessionHistory || []).forEach(session => {
+        const sessionDate = new Date(session.date);
+        
+        // Calculer le volume de la seance
+        let sessionVolume = 0;
+        session.exercises?.forEach(ex => {
+            ex.sets?.forEach(set => {
+                if (set.completed) {
+                    sessionVolume += (set.weight || 0) * (set.reps || 0);
+                }
+            });
+        });
+        
+        // Ajouter au bon compteur
+        if (sessionDate >= currentWeekStart) {
+            currentWeekVolume += sessionVolume;
+        } else if (sessionDate >= lastWeekStart && sessionDate <= lastWeekEnd) {
+            lastWeekVolume += sessionVolume;
+        }
+    });
+    
+    // Calculer le pourcentage de variation
+    if (lastWeekVolume === 0 && currentWeekVolume === 0) {
+        return { change: 0, currentVolume: 0, lastVolume: 0 };
+    }
+    
+    if (lastWeekVolume === 0) {
+        return { change: 100, currentVolume: currentWeekVolume, lastVolume: 0 };
+    }
+    
+    const changePercent = Math.round(((currentWeekVolume - lastWeekVolume) / lastWeekVolume) * 100);
+    
+    return {
+        change: changePercent,
+        currentVolume: Math.round(currentWeekVolume / 1000), // En tonnes
+        lastVolume: Math.round(lastWeekVolume / 1000)
+    };
+}
+
+/**
+ * Detecte les desequilibres musculaires
+ */
+function getMuscleBalance() {
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    
+    // Calculer le volume par muscle sur 30 jours
+    const volumeByMuscle = {};
+    
+    (state.sessionHistory || []).forEach(session => {
+        const sessionDate = new Date(session.date).getTime();
+        if (sessionDate < thirtyDaysAgo) return;
+        
+        session.exercises?.forEach(exData => {
+            const exercise = defaultExercises.find(e => e.name === exData.exercise);
+            if (!exercise) return;
+            
+            const muscle = exercise.muscle;
+            if (!muscle) return;
+            
+            exData.sets?.forEach(set => {
+                if (set.completed) {
+                    const volume = (set.weight || 0) * (set.reps || 0);
+                    volumeByMuscle[muscle] = (volumeByMuscle[muscle] || 0) + volume;
+                }
+            });
+        });
+    });
+    
+    // Comparer les ratios entre groupes antagonistes
+    const imbalances = [];
+    
+    // Pectoraux vs Dos (ideal ~1:1)
+    const chestVolume = volumeByMuscle['chest'] || 0;
+    const backVolume = volumeByMuscle['back'] || 0;
+    if (chestVolume > 0 && backVolume > 0) {
+        const ratio = chestVolume / backVolume;
+        if (ratio > 1.5) {
+            imbalances.push({
+                group1: 'Pectoraux',
+                group2: 'Dos',
+                ratio: ratio.toFixed(1),
+                suggestion: 'Ajouter du volume dos'
+            });
+        } else if (ratio < 0.67) {
+            imbalances.push({
+                group1: 'Dos',
+                group2: 'Pectoraux',
+                ratio: (1 / ratio).toFixed(1),
+                suggestion: 'Ajouter du volume pectoraux'
+            });
+        }
+    }
+    
+    // Quadriceps vs Ischio-jambiers (ideal ~1:1)
+    const quadsVolume = volumeByMuscle['quads'] || 0;
+    const hamsVolume = volumeByMuscle['hamstrings'] || 0;
+    if (quadsVolume > 0 && hamsVolume > 0) {
+        const ratio = quadsVolume / hamsVolume;
+        if (ratio > 1.5) {
+            imbalances.push({
+                group1: 'Quadriceps',
+                group2: 'Ischio-jambiers',
+                ratio: ratio.toFixed(1),
+                suggestion: 'Ajouter du volume ischio-jambiers'
+            });
+        } else if (ratio < 0.67) {
+            imbalances.push({
+                group1: 'Ischio-jambiers',
+                group2: 'Quadriceps',
+                ratio: (1 / ratio).toFixed(1),
+                suggestion: 'Ajouter du volume quadriceps'
+            });
+        }
+    }
+    
+    // Biceps vs Triceps (ideal ~0.7:1, triceps plus fort)
+    const bicepsVolume = volumeByMuscle['biceps'] || 0;
+    const tricepsVolume = volumeByMuscle['triceps'] || 0;
+    if (bicepsVolume > 0 && tricepsVolume > 0) {
+        const ratio = bicepsVolume / tricepsVolume;
+        if (ratio > 1.2) {
+            imbalances.push({
+                group1: 'Biceps',
+                group2: 'Triceps',
+                ratio: ratio.toFixed(1),
+                suggestion: 'Ajouter du volume triceps'
+            });
+        } else if (ratio < 0.5) {
+            imbalances.push({
+                group1: 'Triceps',
+                group2: 'Biceps',
+                ratio: (1 / ratio).toFixed(1),
+                suggestion: 'Ajouter du volume biceps'
+            });
+        }
+    }
+    
+    return imbalances;
+}
+
+/**
+ * Genere tous les insights intelligents
+ */
+function generateSmartInsights() {
+    const insights = [];
+    
+    // 1. Volume hebdomadaire
+    const volumeComparison = getWeeklyVolumeComparison();
+    if (volumeComparison.currentVolume > 0 || volumeComparison.lastVolume > 0) {
+        if (volumeComparison.change > 15) {
+            insights.push({
+                type: 'success',
+                icon: '📈',
+                message: `+${volumeComparison.change}% de volume cette semaine - Excellente progression !`,
+                explanation: `Tu as soulevé ${volumeComparison.currentVolume}t cette semaine contre ${volumeComparison.lastVolume}t la semaine dernière. Cette surcharge progressive est idéale pour stimuler l'hypertrophie.`,
+                priority: 2
+            });
+        } else if (volumeComparison.change < -20) {
+            insights.push({
+                type: 'info',
+                icon: '📉',
+                message: `Volume en baisse de ${Math.abs(volumeComparison.change)}% - Semaine de récupération ?`,
+                explanation: `Une baisse de volume peut être bénéfique pour la récupération (deload). Si ce n'était pas prévu, essaie d'augmenter progressivement la semaine prochaine.`,
+                priority: 2
+            });
+        } else if (Math.abs(volumeComparison.change) <= 10 && volumeComparison.currentVolume > 0) {
+            insights.push({
+                type: 'info',
+                icon: '✅',
+                message: `Volume stable cette semaine (${volumeComparison.currentVolume}t)`,
+                explanation: `Maintenir un volume constant est bien pour consolider tes acquis. Pour progresser, essaie d'ajouter 5-10% de volume la semaine prochaine.`,
+                priority: 3
+            });
+        }
+    }
+    
+    // 2. Muscles negliges
+    const neglectedMuscles = getNeglectedMuscles();
+    if (neglectedMuscles.length > 0) {
+        // Prendre seulement les 2 plus negliges
+        neglectedMuscles.slice(0, 2).forEach(muscle => {
+            if (muscle.daysSince >= 7) {
+                insights.push({
+                    type: 'warning',
+                    icon: '⚠️',
+                    message: `${muscle.muscleName} non travaillé${muscle.muscleName.endsWith('s') ? 's' : ''} depuis ${muscle.daysSince} jours`,
+                    explanation: `Pour une croissance musculaire optimale, chaque groupe devrait être travaillé au moins 2x par semaine. Planifie une séance ${muscle.muscleName.toLowerCase()} bientôt.`,
+                    priority: 1
+                });
+            }
+        });
+    } else if ((state.sessionHistory || []).length > 0) {
+        insights.push({
+            type: 'success',
+            icon: '✅',
+            message: 'Tous les groupes musculaires travaillés cette semaine',
+            explanation: `Excellent équilibre ! Tu as bien réparti ton entraînement sur tous les groupes musculaires. Continue comme ça pour un développement harmonieux.`,
+            priority: 3
+        });
+    }
+    
+    // 3. Desequilibres musculaires
+    const imbalances = getMuscleBalance();
+    if (imbalances.length > 0) {
+        // Prendre seulement le premier desequilibre
+        const imbalance = imbalances[0];
+        insights.push({
+            type: 'warning',
+            icon: '⚖️',
+            message: `Déséquilibre ${imbalance.group1}/${imbalance.group2} (ratio ${imbalance.ratio}) - ${imbalance.suggestion}`,
+            explanation: `Un ratio idéal est proche de 1:1 pour ces groupes antagonistes. Un déséquilibre peut mener à des problèmes posturaux ou des blessures. Ajoute 2-3 séries supplémentaires pour ${imbalance.group2.toLowerCase()} par séance.`,
+            priority: 1
+        });
+    }
+    
+    // Trier par priorite (1 = plus important)
+    insights.sort((a, b) => a.priority - b.priority);
+    
+    // Limiter a 4 insights max
+    return insights.slice(0, 4);
+}
+
+/**
+ * Rend un item d'insight avec explication
+ */
+function renderInsightItem(insight) {
+    const hasExplanation = insight.explanation && insight.explanation.length > 0;
+    
+    return `
+        <div class="insight-item ${insight.type}${hasExplanation ? ' has-explanation' : ''}">
+            <span class="insight-icon">${insight.icon}</span>
+            <div class="insight-content">
+                <div class="insight-text">${insight.message}</div>
+                ${hasExplanation ? `
+                    <div class="insight-explanation">
+                        <span class="explanation-icon">💡</span>
+                        <span class="explanation-text">${insight.explanation}</span>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Rend la card des smart insights
+ */
+function renderSmartInsightsCard() {
+    const insights = generateSmartInsights();
+    
+    if (insights.length === 0) {
+        return '';
+    }
+    
+    return `
+        <div class="readiness-card smart-insights-card">
+            <div class="insights-title">
+                <span class="icon">🧠</span>
+                ANALYSE INTELLIGENTE
+            </div>
+            <div class="smart-insights-list">
+                ${insights.map(i => renderInsightItem(i)).join('')}
+            </div>
+        </div>
+    `;
+}
+
 // Export pour utilisation globale
 window.generateWeeklyInsights = generateWeeklyInsights;
 window.renderInsightsWidget = renderInsightsWidget;
+window.renderSmartInsightsCard = renderSmartInsightsCard;

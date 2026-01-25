@@ -21,6 +21,200 @@ let currentSyncStatus = SyncStatus.IDLE;
 let pendingSyncCount = 0;
 let lastSyncError = null;
 let isOnline = navigator.onLine;
+let pendingConflict = null;
+
+// Fonction de backup automatique des données en conflit
+function saveConflictBackup(entity, localData) {
+    try {
+        const backup = {
+            timestamp: new Date().toISOString(),
+            entity,
+            data: localData
+        };
+        
+        // Récupérer les backups existants
+        const backups = JSON.parse(localStorage.getItem('conflict-backups') || '[]');
+        
+        // Ajouter le nouveau backup
+        backups.push(backup);
+        
+        // Garder seulement les 10 derniers
+        const recentBackups = backups.slice(-10);
+        
+        localStorage.setItem('conflict-backups', JSON.stringify(recentBackups));
+        console.log('💾 Backup sauvegardé:', entity);
+    } catch (err) {
+        console.warn('Erreur sauvegarde backup:', err);
+    }
+}
+
+// Résolution automatique selon préférence
+async function resolveConflictAutomatically(conflictData, strategy) {
+    // Sauvegarder un backup des données locales avant écrasement
+    saveConflictBackup(conflictData.entity, state);
+    
+    if (strategy === 'local') {
+        // Forcer l'envoi des données locales vers le serveur
+        console.log('📤 Résolution auto (local): envoi vers serveur');
+        await saveTrainingSettingsToSupabase();
+        showToast('Vos données locales ont été sauvegardées (backup créé)', 'success');
+    } else {
+        // 'server' : Les données serveur sont déjà chargées
+        console.log('📥 Résolution auto (server): données serveur chargées');
+        showToast('Données synchronisées (backup local sauvegardé)', 'info');
+    }
+    
+    // Marquer la sync comme complète
+    if (typeof markSyncComplete === 'function') {
+        markSyncComplete();
+    }
+}
+
+// Fonctions de résolution de conflits
+function showConflictModal(conflictData) {
+    pendingConflict = conflictData;
+    
+    const formatDate = (timestamp) => {
+        if (!timestamp) return 'Inconnue';
+        return new Date(timestamp).toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+    
+    // Afficher les différences
+    document.getElementById('conflict-details').innerHTML = `
+        <p>Des modifications ont été faites sur un autre appareil.</p>
+        <div style="margin: 16px 0; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+            <p><strong>Dernière sync locale:</strong> ${formatDate(conflictData.localTime)}</p>
+            <p style="margin-top: 8px;"><strong>Modification serveur:</strong> ${formatDate(conflictData.serverTime)}</p>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">
+            Choisissez quelle version conserver. Vos données locales seront écrasées si vous utilisez le serveur.
+        </p>
+    `;
+    openModal('conflict-modal');
+}
+
+async function resolveConflict(choice) {
+    if (!pendingConflict) {
+        closeModal('conflict-modal');
+        return;
+    }
+    
+    // Vérifier si l'utilisateur veut sauvegarder sa préférence
+    const rememberChoice = document.getElementById('conflict-remember-choice')?.checked;
+    if (rememberChoice) {
+        state.preferences.conflictResolution = choice;
+        saveState();
+        console.log(`💾 Préférence sauvegardée: ${choice}`);
+    }
+    
+    // Sauvegarder un backup avant résolution
+    saveConflictBackup(pendingConflict.entity, state);
+    
+    if (choice === 'local') {
+        // Forcer l'envoi des données locales vers le serveur
+        console.log('📤 Résolution conflit: utilisation des données locales');
+        await saveTrainingSettingsToSupabase();
+        const message = rememberChoice 
+            ? 'Vos données locales ont été sauvegardées (préférence enregistrée)'
+            : 'Vos données locales ont été sauvegardées';
+        showToast(message, 'success');
+    } else {
+        // Les données serveur sont déjà chargées, on ne fait rien
+        console.log('📥 Résolution conflit: utilisation des données serveur');
+        const message = rememberChoice
+            ? 'Données serveur chargées (préférence enregistrée)'
+            : 'Données serveur chargées';
+        showToast(message, 'info');
+    }
+    
+    closeModal('conflict-modal');
+    pendingConflict = null;
+    
+    // Marquer la sync comme complète pour éviter de détecter à nouveau le conflit
+    if (typeof markSyncComplete === 'function') {
+        markSyncComplete();
+    }
+}
+
+// Mettre à jour le badge avec le nombre d'éléments en attente
+function updatePendingSyncBadge() {
+    const badge = document.querySelector('.sync-badge');
+    if (!badge) return;
+    
+    let pendingCount = 0;
+    
+    // Compter les entrées journal sans supabaseId
+    Object.values(state.foodJournal || {}).forEach(entries => {
+        pendingCount += entries.filter(e => !e.supabaseId).length;
+    });
+    
+    // Compter les sessions cardio sans supabaseId
+    Object.values(state.cardioLog || {}).forEach(sessions => {
+        pendingCount += sessions.filter(s => !s.supabaseId).length;
+    });
+    
+    if (pendingCount > 0) {
+        badge.textContent = pendingCount > 9 ? '9+' : pendingCount;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Exposer globalement pour l'utiliser depuis d'autres modules
+window.updatePendingSyncBadge = updatePendingSyncBadge;
+
+// Afficher le détail des items en attente de sync
+function showPendingSyncDetails() {
+    let details = {
+        journal: 0,
+        cardio: 0,
+        sessions: 0,
+        progressLog: 0
+    };
+    
+    // Compter les entrées journal sans supabaseId
+    Object.values(state.foodJournal || {}).forEach(entries => {
+        details.journal += entries.filter(e => !e.supabaseId).length;
+    });
+    
+    // Compter les sessions cardio sans supabaseId
+    Object.values(state.cardioLog || {}).forEach(sessions => {
+        details.cardio += sessions.filter(s => !s.supabaseId).length;
+    });
+    
+    // Compter les sessions non syncées
+    details.sessions = (state.sessionHistory || []).filter(s => !s.synced).length;
+    
+    // Compter les logs de progression non syncés
+    Object.values(state.progressLog || {}).forEach(logs => {
+        details.progressLog += logs.filter(l => !l.synced).length;
+    });
+    
+    const total = details.journal + details.cardio + details.sessions + details.progressLog;
+    
+    if (total === 0) {
+        showToast('✅ Toutes les données sont synchronisées', 'success');
+        return;
+    }
+    
+    let message = `En attente de sync:\n`;
+    if (details.journal > 0) message += `\n🍽️ ${details.journal} aliment${details.journal > 1 ? 's' : ''}`;
+    if (details.cardio > 0) message += `\n🏃 ${details.cardio} cardio`;
+    if (details.sessions > 0) message += `\n💪 ${details.sessions} séance${details.sessions > 1 ? 's' : ''}`;
+    if (details.progressLog > 0) message += `\n📊 ${details.progressLog} log${details.progressLog > 1 ? 's' : ''}`;
+    
+    showToast(message, 'info', 4000);
+}
+
+// Exposer globalement
+window.showPendingSyncDetails = showPendingSyncDetails;
 
 // Mettre à jour l'indicateur de sync dans l'UI
 function updateSyncIndicator(status, message = null) {
@@ -58,6 +252,9 @@ function updateSyncIndicator(status, message = null) {
         default:
             indicator.title = 'Synchronisé';
     }
+    
+    // Mettre à jour le badge
+    updatePendingSyncBadge();
     
     // Afficher le compteur si des syncs sont en attente
     const badge = indicator.querySelector('.sync-badge');
@@ -117,10 +314,22 @@ async function withRetry(fn, options = {}) {
 
 // Détection online/offline
 function initNetworkDetection() {
+    // Click handler pour afficher les détails de sync
+    const syncIndicator = document.getElementById('sync-indicator');
+    if (syncIndicator) {
+        syncIndicator.style.cursor = 'pointer';
+        syncIndicator.addEventListener('click', () => {
+            showPendingSyncDetails();
+        });
+    }
+    
     window.addEventListener('online', () => {
         isOnline = true;
         console.log('🌐 Retour en ligne');
         updateSyncIndicator(SyncStatus.IDLE);
+        
+        // Toast de retour en ligne
+        showToast('Connexion rétablie - synchronisation...', 'success', 3000);
         
         // Tenter de synchroniser les données en attente
         if (currentUser) {
@@ -132,6 +341,9 @@ function initNetworkDetection() {
         isOnline = false;
         console.log('📴 Mode hors-ligne');
         updateSyncIndicator(SyncStatus.OFFLINE);
+        
+        // Toast hors-ligne
+        showToast('Mode hors-ligne - vos données seront synchronisées', 'warning', 4000);
     });
     
     // Vérifier l'état initial
@@ -146,17 +358,20 @@ async function checkExistingEntry(date, foodId, quantity) {
     if (!currentUser || !isOnline) return null;
     
     try {
-        const { data, error } = await supabaseClient
-            .from('food_journal')
-            .select('id')
-            .eq('user_id', currentUser.id)
-            .eq('date', date)
-            .eq('food_id', foodId)
-            .eq('quantity', quantity)
-            .maybeSingle();
-        
-        if (error) throw error;
-        return data;
+        // Utiliser withRetry pour plus de robustesse
+        return await withRetry(async () => {
+            const { data, error } = await supabaseClient
+                .from('food_journal')
+                .select('id')
+                .eq('user_id', currentUser.id)
+                .eq('date', date)
+                .eq('food_id', foodId)
+                .eq('quantity', quantity)
+                .maybeSingle();
+            
+            if (error) throw error;
+            return data;
+        }, { maxRetries: 2, baseDelay: 500 });
     } catch (error) {
         console.warn('Erreur vérification entrée existante:', error);
         return null;
@@ -570,11 +785,30 @@ async function loadAllDataFromSupabase() {
                 const conflict = detectConflict(trainingSettings.updated_at);
                 if (conflict.hasConflict) {
                     console.warn('⚠️ Conflit détecté entre données locales et serveur');
-                    if (conflict.serverIsNewer) {
-                        showToast('Données synchronisées depuis un autre appareil', 'info');
+                    
+                    const conflictData = {
+                        entity: 'training_settings',
+                        localTime: conflict.localTime,
+                        serverTime: conflict.serverTime,
+                        serverIsNewer: conflict.serverIsNewer
+                    };
+                    
+                    // Récupérer la préférence utilisateur
+                    const strategy = state.preferences?.conflictResolution || 'server';
+                    
+                    if (strategy === 'ask') {
+                        // Afficher la modal pour demander à l'utilisateur
+                        showConflictModal(conflictData);
+                        // Stopper le chargement pour attendre la résolution
+                        return;
                     } else {
-                        showToast('Modifications locales en cours de sync...', 'info');
-                        // Les données locales seront écrasées mais la sync les renverra
+                        // Résolution automatique selon la préférence
+                        await resolveConflictAutomatically(conflictData, strategy);
+                        // Si strategy === 'local', on arrête ici car on va forcer l'envoi
+                        if (strategy === 'local') {
+                            return;
+                        }
+                        // Si strategy === 'server', continuer le chargement normal
                     }
                 }
             }
@@ -606,15 +840,12 @@ async function loadAllDataFromSupabase() {
             }
         }
         
-        // Charger le journal alimentaire (30 derniers jours pour historique complet)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
+        // Charger TOUT le journal alimentaire (pas de limite pour un suivi sur plusieurs années)
         const { data: journal } = await supabaseClient
             .from('food_journal')
             .select('*')
             .eq('user_id', currentUser.id)
-            .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+            .order('date', { ascending: false });
         
         if (journal) {
             state.foodJournal = {};
@@ -632,9 +863,9 @@ async function loadAllDataFromSupabase() {
             });
         }
         
-        // Charger les sessions cardio (si la table existe)
+        // Charger TOUTES les sessions cardio (pas de limite)
         try {
-            const cardioSessions = await loadCardioSessionsFromSupabase(30);
+            const cardioSessions = await loadCardioSessionsFromSupabase();
             if (cardioSessions && cardioSessions.length > 0) {
                 state.cardioLog = {};
                 cardioSessions.forEach(session => {
@@ -653,6 +884,32 @@ async function loadAllDataFromSupabase() {
             }
         } catch (e) {
             console.log('Table cardio_sessions non disponible:', e.message);
+        }
+        
+        // Charger les combos de repas favoris
+        try {
+            if (window.MealTemplates && typeof window.MealTemplates.loadFromSupabase === 'function') {
+                const combos = await window.MealTemplates.loadFromSupabase();
+                if (combos && combos.length > 0) {
+                    state.mealCombos = combos;
+                    console.log(`📦 ${combos.length} combo(s) chargé(s)`);
+                }
+            }
+        } catch (e) {
+            console.log('Table meal_combos non disponible:', e.message);
+        }
+        
+        // Charger les photos de progression
+        try {
+            if (typeof fetchUserPhotos === 'function') {
+                const photos = await fetchUserPhotos();
+                if (photos && photos.length > 0) {
+                    state.progressPhotos = photos;
+                    console.log(`📸 ${photos.length} photo(s) chargée(s)`);
+                }
+            }
+        } catch (e) {
+            console.log('Table progress_photos non disponible:', e.message);
         }
         
         // Charger l'historique de progression avec MERGE intelligent
@@ -723,12 +980,12 @@ async function loadAllDataFromSupabase() {
         }
         
         // Charger l'historique des séances avec MERGE intelligent
+        // Charger TOUTES les sessions (pas de limite pour un suivi sur plusieurs années)
         const { data: sessions } = await supabaseClient
             .from('workout_sessions')
             .select('*')
             .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false })
-            .limit(100);
+            .order('created_at', { ascending: false });
         
         if (sessions) {
             // Garder les sessions locales
@@ -1238,32 +1495,32 @@ async function deleteCardioSessionFromSupabase(sessionId) {
     }
 }
 
-// Charger les sessions cardio depuis Supabase
-async function loadCardioSessionsFromSupabase(days = 30) {
+// Charger les sessions cardio depuis Supabase (avec retry)
+async function loadCardioSessionsFromSupabase() {
     if (!currentUser) return [];
     if (!isOnline) return [];
     
     try {
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
-        
-        const { data, error } = await supabaseClient
-            .from('cardio_sessions')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .gte('date', startDate.toISOString().split('T')[0])
-            .order('date', { ascending: false });
-        
-        if (error) {
-            // Table n'existe peut-être pas encore
-            if (error.code === '42P01') {
-                console.log('Table cardio_sessions non créée');
-                return [];
+        // Utiliser withRetry pour plus de robustesse
+        return await withRetry(async () => {
+            // Charger TOUTES les sessions cardio (pas de limite pour un suivi sur plusieurs années)
+            const { data, error } = await supabaseClient
+                .from('cardio_sessions')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('date', { ascending: false });
+            
+            if (error) {
+                // Table n'existe peut-être pas encore - ne pas retry pour cette erreur
+                if (error.code === '42P01') {
+                    console.log('Table cardio_sessions non créée');
+                    return [];
+                }
+                throw error;
             }
-            throw error;
-        }
-        
-        return data || [];
+            
+            return data || [];
+        }, { maxRetries: 2, baseDelay: 500 });
     } catch (error) {
         console.error('Erreur chargement cardio:', error);
         return [];

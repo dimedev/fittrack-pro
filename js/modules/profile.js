@@ -284,6 +284,12 @@ function updateDashboard() {
             recommendationsCard.innerHTML = renderRecommendationsCard();
         }
         
+        // Smart Insights
+        const smartInsightsContainer = document.getElementById('smart-insights-card-container');
+        if (smartInsightsContainer && typeof renderSmartInsightsCard === 'function') {
+            smartInsightsContainer.innerHTML = renderSmartInsightsCard();
+        }
+        
         // Graphique du poids corporel
         if (typeof updateBodyWeightChart === 'function') {
             updateBodyWeightChart();

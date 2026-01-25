@@ -18,6 +18,10 @@ let suggestionRefreshCount = 0;
 const MAX_SUGGESTION_REFRESHES = 2;
 let shownSuggestionIds = [];
 
+// Variables pour filtrage et tri avancés
+let currentNutritionFilter = 'all';
+let currentNutritionSort = 'relevance';
+
 // Catégories d'aliments
 const foodCategories = {
     'protein': { name: 'Protéines', icon: '🥩' },
@@ -1204,9 +1208,9 @@ function calculateJournalMacros(date) {
     
     return {
         calories: Math.round(calories),
-        protein: Math.round(protein),
-        carbs: Math.round(carbs),
-        fat: Math.round(fat)
+        protein: Math.round(protein * 10) / 10,
+        carbs: Math.round(carbs * 10) / 10,
+        fat: Math.round(fat * 10) / 10
     };
 }
 
@@ -1225,6 +1229,10 @@ function updateJournalSummary() {
         fat: state.profile?.macros?.fat || 70
     };
     
+    // Calculer le déficit net (calories - cardio)
+    const cardioCalories = typeof getTodayCardioCalories === 'function' ? getTodayCardioCalories() : 0;
+    const netCalories = macros.calories - cardioCalories;
+    
     // Mettre à jour le sticky header
     updateNutritionStickyHeader(macros, targets);
 
@@ -1241,7 +1249,12 @@ function updateJournalSummary() {
         const fillEl = document.getElementById(`journal-${bar.id}-bar`);
         
         if (valuesEl) {
-            valuesEl.textContent = `${bar.current} / ${bar.target}${bar.unit}`;
+            // Pour les calories, afficher aussi le déficit net si cardio > 0
+            if (bar.id === 'cals' && cardioCalories > 0) {
+                valuesEl.innerHTML = `${bar.current} / ${bar.target}${bar.unit} <span class="net-deficit-inline">(net: ${netCalories})</span>`;
+            } else {
+                valuesEl.textContent = `${bar.current} / ${bar.target}${bar.unit}`;
+            }
         }
         
         if (fillEl) {
@@ -1258,6 +1271,31 @@ function updateJournalSummary() {
             }
         }
     });
+    
+    // Afficher le résumé du déficit net si du cardio a été fait
+    const netDeficitEl = document.getElementById('net-deficit-summary');
+    if (netDeficitEl) {
+        if (cardioCalories > 0) {
+            const remaining = targets.calories - netCalories;
+            netDeficitEl.innerHTML = `
+                <div class="net-deficit-card">
+                    <span class="deficit-icon">🔥</span>
+                    <div class="deficit-details">
+                        <span class="deficit-label">Déficit net</span>
+                        <span class="deficit-value">${netCalories} kcal consommées - ${cardioCalories} kcal brûlées = <strong>${remaining} kcal restantes</strong></span>
+                    </div>
+                </div>
+            `;
+            netDeficitEl.style.display = 'block';
+        } else {
+            netDeficitEl.style.display = 'none';
+        }
+    }
+    
+    // Mettre à jour le graphique des calories
+    if (typeof renderCaloriesChart === 'function') {
+        renderCaloriesChart(currentCaloriesPeriod);
+    }
 }
 
 // Fonction de compatibilité pour l'ancien système (utilisée par updateMacroBars dans profile.js)
@@ -1269,11 +1307,22 @@ function calculateConsumedMacros() {
 
 // Mettre à jour le sticky header avec calories restantes
 function updateNutritionStickyHeader(macros, targets) {
-    const caloriesRemaining = targets.calories - macros.calories;
+    // Calculer les calories brûlées par le cardio
+    const cardioCalories = typeof getTodayCardioCalories === 'function' ? getTodayCardioCalories() : 0;
+    
+    // Déficit net = calories consommées - calories brûlées (cardio)
+    const netCalories = macros.calories - cardioCalories;
+    const caloriesRemaining = targets.calories - netCalories;
+    
     const caloriesRemainingEl = document.getElementById('sticky-cals-remaining');
     
     if (caloriesRemainingEl) {
-        caloriesRemainingEl.textContent = `${caloriesRemaining} kcal`;
+        // Afficher avec indication du cardio si applicable
+        if (cardioCalories > 0) {
+            caloriesRemainingEl.innerHTML = `${caloriesRemaining} kcal <span class="cardio-burned-badge">(-${cardioCalories})</span>`;
+        } else {
+            caloriesRemainingEl.textContent = `${caloriesRemaining} kcal`;
+        }
         
         // Couleur selon le status
         if (caloriesRemaining < 0) {
@@ -1456,6 +1505,15 @@ function openMealSheet(mealType) {
     if (suggestionsSection) suggestionsSection.style.display = 'block';
     if (quickSection) quickSection.style.display = 'block';
     
+    // Reset des filtres et tri
+    currentNutritionFilter = 'all';
+    currentNutritionSort = 'relevance';
+    document.querySelectorAll('.filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === 'all');
+    });
+    const sortSelect = document.getElementById('nutrition-sort');
+    if (sortSelect) sortSelect.value = 'relevance';
+    
     // Réinitialiser le compteur de refresh des suggestions
     resetSuggestionRefresh();
     
@@ -1485,6 +1543,49 @@ function closeMealSheet() {
     }, 300);
 }
 
+// ==================== FILTRES RECHERCHE AVANCÉS ====================
+
+/**
+ * Appliquer un filtre de catégorie
+ */
+function setNutritionFilter(filter) {
+    currentNutritionFilter = filter;
+    
+    // Mettre à jour les classes actives
+    document.querySelectorAll('.filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    
+    // Relancer la recherche
+    searchFoodsForMeal();
+}
+
+/**
+ * Appliquer un tri
+ */
+function setNutritionSort(sort) {
+    currentNutritionSort = sort;
+    searchFoodsForMeal();
+}
+
+/**
+ * Trier les résultats de recherche
+ */
+function sortFoodResults(foods, sortType) {
+    switch (sortType) {
+        case 'alpha':
+            return foods.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+        case 'calories-asc':
+            return foods.sort((a, b) => a.calories - b.calories);
+        case 'calories-desc':
+            return foods.sort((a, b) => b.calories - a.calories);
+        case 'protein-desc':
+            return foods.sort((a, b) => b.protein - a.protein);
+        default: // relevance
+            return foods.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    }
+}
+
 // Recherche d'aliments pour un repas
 function searchFoodsForMeal() {
     const searchInput = document.getElementById('meal-food-search');
@@ -1510,10 +1611,23 @@ function searchFoodsForMeal() {
     
     // Recherche avec normalisation
     const normalizedQuery = normalizeForSearch(query);
-    const results = state.foods.filter(f => {
+    let results = state.foods.filter(f => {
         const normalizedName = normalizeForSearch(f.name);
-        return normalizedName.includes(normalizedQuery);
-    }).slice(0, 12);
+        const matchesName = normalizedName.includes(normalizedQuery);
+        
+        // Filtre par catégorie
+        const matchesFilter = currentNutritionFilter === 'all' || 
+            f.category === currentNutritionFilter ||
+            (currentNutritionFilter === 'veggies' && (f.category === 'veggies' || f.category === 'fruits'));
+        
+        return matchesName && matchesFilter;
+    });
+    
+    // Appliquer le tri
+    results = sortFoodResults(results, currentNutritionSort);
+    
+    // Limiter à 15 résultats
+    results = results.slice(0, 15);
     
     if (results.length === 0) {
         resultsList.innerHTML = '<div class="meal-empty">Aucun résultat</div>';
@@ -2112,7 +2226,6 @@ function selectCardioType(type) {
 // Sélectionner la durée
 function selectCardioDuration(duration) {
     cardioState.duration = duration;
-    document.getElementById('cardio-duration-input').value = duration;
     updateCardioSheetUI();
     updateCardioEstimate();
 }
@@ -2148,12 +2261,6 @@ function updateCardioEstimate() {
     const estimateEl = document.getElementById('cardio-estimate-calories');
     if (!estimateEl) return;
     
-    // Lire la durée depuis l'input si modifiée
-    const durationInput = document.getElementById('cardio-duration-input');
-    if (durationInput) {
-        cardioState.duration = parseInt(durationInput.value) || 30;
-    }
-    
     const weight = state.profile?.weight || 70;
     const calories = calculateCardioCalories(cardioState.type, cardioState.duration, cardioState.intensity, weight);
     
@@ -2164,10 +2271,7 @@ function updateCardioEstimate() {
 async function addCardioSession() {
     const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
     
-    // Lire la durée finale depuis l'input
-    const durationInput = document.getElementById('cardio-duration-input');
-    const duration = parseInt(durationInput?.value) || cardioState.duration;
-    
+    const duration = cardioState.duration;
     const weight = state.profile?.weight || 70;
     const calories = calculateCardioCalories(cardioState.type, duration, cardioState.intensity, weight);
     
@@ -2335,6 +2439,11 @@ async function addToJournalWithMealType(foodId, quantity, mealType) {
     
     state.foodJournal[date].push(entry);
     saveState();
+    
+    // Mettre à jour le badge de sync
+    if (typeof window.updatePendingSyncBadge === 'function') {
+        window.updatePendingSyncBadge();
+    }
     
     // Refresh UI
     renderMealsByType();
@@ -2545,6 +2654,187 @@ function initNutritionSwipeToClose() {
             
             isDragging = false;
         });
+    });
+}
+
+// ==================== GRAPHIQUE CALORIES ====================
+
+let caloriesChart = null;
+let currentCaloriesPeriod = 7; // jours par défaut
+
+function renderCaloriesChart(days = 7) {
+    currentCaloriesPeriod = days;
+    
+    const ctx = document.getElementById('calories-chart');
+    if (!ctx) return;
+    
+    // Détruire le graphique existant
+    if (caloriesChart) {
+        caloriesChart.destroy();
+        caloriesChart = null;
+    }
+    
+    // Mettre à jour les boutons actifs
+    document.querySelectorAll('#calories-chart-card .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.days) === days) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Calculer les calories par jour
+    const dailyCalories = [];
+    const labels = [];
+    const target = state.profile?.targetCalories || 2000;
+    
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const entries = state.foodJournal?.[dateStr] || [];
+        let totalCals = 0;
+        
+        entries.forEach(entry => {
+            const food = state.foods?.find(f => f.id === entry.foodId);
+            if (food) {
+                // Calculer les calories selon l'unité
+                if (entry.unit && entry.unit !== 'g') {
+                    const unitData = food.units?.find(u => u.unit === entry.unit);
+                    if (unitData) {
+                        totalCals += (food.calories * unitData.grams / 100) * entry.quantity;
+                    } else {
+                        totalCals += (food.calories * entry.quantity / 100);
+                    }
+                } else {
+                    totalCals += (food.calories * entry.quantity / 100);
+                }
+            }
+        });
+        
+        // Ajouter les calories du cardio (en négatif)
+        const cardioEntries = state.cardioLog?.[dateStr] || [];
+        const cardioCals = cardioEntries.reduce((sum, c) => sum + (c.calories || 0), 0);
+        totalCals -= cardioCals;
+        
+        dailyCalories.push(Math.round(totalCals));
+        
+        // Format de la date
+        if (days <= 7) {
+            labels.push(date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }));
+        } else {
+            labels.push(date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+        }
+    }
+    
+    // Vérifier s'il y a des données
+    const hasData = dailyCalories.some(c => c > 0);
+    if (!hasData) {
+        const canvas = ctx;
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#606070';
+        context.font = '14px Outfit';
+        context.textAlign = 'center';
+        context.fillText('Aucune donnée pour cette période', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    caloriesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Calories',
+                data: dailyCalories,
+                backgroundColor: dailyCalories.map(c => {
+                    if (c > target * 1.1) return 'rgba(255, 100, 100, 0.7)';
+                    if (c < target * 0.9) return 'rgba(100, 170, 255, 0.7)';
+                    return 'rgba(0, 255, 136, 0.7)';
+                }),
+                borderRadius: 8,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#16161f',
+                    titleColor: '#ffffff',
+                    bodyColor: '#a0a0b0',
+                    borderColor: '#2a2a3a',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y;
+                            const diff = value - target;
+                            const sign = diff > 0 ? '+' : '';
+                            return [
+                                `${value} kcal`,
+                                `Objectif: ${target} kcal`,
+                                `${sign}${diff} kcal`
+                            ];
+                        }
+                    }
+                },
+                annotation: {
+                    annotations: {
+                        targetLine: {
+                            type: 'line',
+                            yMin: target,
+                            yMax: target,
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            label: {
+                                display: true,
+                                content: 'Objectif',
+                                position: 'end',
+                                backgroundColor: 'rgba(22, 22, 31, 0.8)',
+                                color: '#ffffff',
+                                font: {
+                                    family: 'Outfit',
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#606070',
+                        font: { family: 'Outfit' }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    ticks: {
+                        color: '#a0a0b0',
+                        font: { family: 'Space Mono' },
+                        callback: function(value) {
+                            return value + ' kcal';
+                        }
+                    }
+                }
+            }
+        }
     });
 }
 
