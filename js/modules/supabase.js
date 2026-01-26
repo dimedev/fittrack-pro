@@ -476,6 +476,10 @@ async function syncPendingData() {
 // Initialiser Supabase
 function initSupabase() {
     try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.js:477',message:'initSupabase called',data:{url:SUPABASE_URL,hasKey:!!SUPABASE_ANON_KEY,origin:window.location.origin,href:window.location.href},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
+        
         // Le SDK v2 expose supabase.createClient directement
         if (window.supabase && window.supabase.createClient) {
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -664,13 +668,16 @@ function onUserLoggedOut() {
 function updateAuthUI() {
     const authBtn = document.getElementById('auth-btn');
     const userEmail = document.getElementById('user-email');
+    const mobileUserEmail = document.getElementById('mobile-user-email');
     
     if (currentUser) {
         if (authBtn) authBtn.textContent = 'Déconnexion';
         if (userEmail) userEmail.textContent = currentUser.email;
+        if (mobileUserEmail) mobileUserEmail.textContent = currentUser.email;
     } else {
         if (authBtn) authBtn.textContent = 'Connexion';
         if (userEmail) userEmail.textContent = '';
+        if (mobileUserEmail) mobileUserEmail.textContent = '--';
     }
 }
 

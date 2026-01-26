@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=18">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=19">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/session-manager.css?v=20">
     <link rel="stylesheet" href="css/premium-components.css?v=23">
@@ -103,6 +103,20 @@
                             <span class="quick-stat-label">jours de série</span>
                         </div>
                     </div>
+                </div>
+
+                <!-- Account Card - MOBILE ONLY -->
+                <div class="account-card-mobile" style="margin-top: 16px;">
+                    <div class="account-info">
+                        <div class="account-icon">👤</div>
+                        <div class="account-details">
+                            <div class="account-label">Compte</div>
+                            <div class="account-email" id="mobile-user-email">--</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" id="mobile-logout-btn" onclick="signOut()">
+                        Déconnexion
+                    </button>
                 </div>
 
                 <!-- Readiness Score & Recovery - NEW PREMIUM FEATURES -->
@@ -2247,7 +2261,7 @@
     <script src="js/data/programs.js?v=5"></script>
     <script src="js/modules/state.js?v=6"></script>
     <script src="js/modules/icons.js?v=1"></script>
-    <script src="js/modules/supabase.js?v=10"></script>
+    <script src="js/modules/supabase.js?v=11"></script>
     <script src="js/modules/profile.js?v=22"></script>
     <script src="js/modules/nutrition.js?v=20"></script>
     <script src="js/modules/nutrition-suggestions.js?v=1"></script>

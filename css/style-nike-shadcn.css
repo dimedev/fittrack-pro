@@ -5450,6 +5450,72 @@ h1, h2, h3, h4, h5, h6 {
         align-items: stretch;
     }
 }
-align-items: stretch;
+
+/* ==================== ACCOUNT CARD MOBILE ==================== */
+.account-card-mobile {
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.account-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.account-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+}
+
+.account-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.account-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.account-email {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#mobile-logout-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+    .account-card-mobile {
+        display: flex;
     }
 }
