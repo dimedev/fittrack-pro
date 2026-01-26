@@ -69,22 +69,6 @@
 
 /* ==================== NUTRITION CSS CLEANUP ==================== */
 
-/* Fix scroll horizontal sur la section Nutrition */
-/* Fix overflow pour scroll fluide sur nutrition */
-#nutrition {
-    overflow-x: clip;
-    overflow-y: auto;
-    overscroll-behavior: none;
-    max-width: 100vw;
-    width: 100%;
-    -webkit-overflow-scrolling: touch;
-}
-
-#nutrition .card {
-    overflow: visible;
-    max-width: 100%;
-}
-
 /* Cacher le titre dans la section nutrition (desktop et mobile) */
 #nutrition .card-title {
     display: none !important;

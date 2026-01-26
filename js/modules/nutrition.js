@@ -2188,6 +2188,7 @@ let cardioState = {
 // Ouvrir le bottom sheet cardio
 // Flag pour éviter les ouvertures/fermetures en double
 let cardioSheetClosing = false;
+let lastCardioSheetCloseTime = 0; // Timestamp de la dernière fermeture
 
 function openCardioSheet() {
     const sheet = document.getElementById('cardio-add-sheet');
@@ -2198,6 +2199,12 @@ function openCardioSheet() {
     
     // Ne pas ouvrir si déjà ouvert
     if (sheet.style.display === 'flex') return;
+    
+    // DEBOUNCE : Ne pas ouvrir si on vient de fermer (< 500ms)
+    const timeSinceLastClose = Date.now() - lastCardioSheetCloseTime;
+    if (timeSinceLastClose < 500) {
+        return;
+    }
     
     // Reset état
     cardioState = { type: 'running', duration: 30, intensity: 'moderate' };
@@ -2226,6 +2233,9 @@ function closeCardioSheet() {
     
     cardioSheetClosing = true;
     sheet.classList.remove('active');
+    
+    // Enregistrer le timestamp de fermeture pour le debounce
+    lastCardioSheetCloseTime = Date.now();
     
     setTimeout(() => {
         sheet.style.display = 'none';
@@ -2664,7 +2674,7 @@ function initNutritionSwipeToClose() {
             }
         }, { passive: true });
         
-        sheet.addEventListener('touchend', () => {
+        sheet.addEventListener('touchend', (e) => {
             // Ne rien faire si c'était juste un tap (pas de mouvement)
             if (!hasMoved) {
                 return;
@@ -2675,6 +2685,10 @@ function initNutritionSwipeToClose() {
             sheet.style.transition = 'transform 0.3s ease';
             
             if (diff > 100) {
+                // IMPORTANT : Empêcher le touchend de devenir un click
+                // (sinon il peut rouvrir la modal immédiatement)
+                e.preventDefault();
+                
                 // Fermer le sheet
                 sheet.style.transform = 'translateY(100%)';
                 setTimeout(() => {
