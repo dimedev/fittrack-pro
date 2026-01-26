@@ -758,29 +758,27 @@ function renderTodaySession() {
     // Afficher la card
     card.style.display = 'block';
 
-    // Fonction pour obtenir l'icône selon le muscle
-    const getMuscleIcon = (muscle) => {
+    // Fonction pour obtenir l'icône SVG selon le muscle
+    const getMuscleIconSvg = (muscle) => {
+        if (window.MuscleIcons) {
+            const svgPath = window.MuscleIcons.getMuscleIcon(muscle);
+            if (svgPath) {
+                return `<img src="${svgPath}" alt="${muscle}" class="today-exercise-svg-icon">`;
+            }
+        }
+        // Fallback emojis
         const icons = {
-            'chest': '💪',
-            'back': '🦾',
-            'shoulders': '🏋️',
-            'arms': '💪',
-            'biceps': '💪',
-            'triceps': '💪',
-            'legs': '🦵',
-            'quads': '🦵',
-            'hamstrings': '🦵',
-            'glutes': '🍑',
-            'calves': '🦵',
-            'abs': '🔥',
-            'core': '🔥'
+            'chest': '💪', 'back': '🦾', 'shoulders': '🏋️',
+            'arms': '💪', 'biceps': '💪', 'triceps': '💪',
+            'legs': '🦵', 'quads': '🦵', 'hamstrings': '🦵',
+            'glutes': '🍑', 'calves': '🦵', 'abs': '🔥', 'core': '🔥'
         };
         return icons[muscle] || '💪';
     };
 
-    // Rendre le contenu avec cards premium
+    // Rendre le contenu avec cards premium et icônes SVG
     const exercisesList = exercises.slice(0, 4).map(ex => {
-        const icon = getMuscleIcon(ex.muscle);
+        const icon = getMuscleIconSvg(ex.muscle);
         const type = ex.type || 'compound';
         const typeBadge = type === 'compound' ? 'Polyarticulaire' : 'Isolation';
         const badgeClass = type === 'compound' ? 'compound' : 'isolation';

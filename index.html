@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/nutrition-premium.css?v=1">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=25">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
+    <link rel="stylesheet" href="css/icons.css?v=1">
 
 
 
@@ -1792,56 +1793,62 @@
                 <h3 class="bottom-sheet-title" id="meal-sheet-title">Ajouter au repas</h3>
             </div>
             <div class="bottom-sheet-content">
-                <!-- Recherche -->
-                <div class="meal-search-section">
-                    <input type="text" class="form-input meal-search-input" id="meal-food-search" placeholder="Rechercher un aliment..." oninput="searchFoodsForMeal()">
-                </div>
-                
-                <!-- Filtres avancés -->
-                <div class="meal-filters-section" id="meal-filters-section">
-                    <div class="filters-row">
-                        <button class="filter-chip active" data-filter="all" onclick="setNutritionFilter('all')">Tous</button>
-                        <button class="filter-chip" data-filter="protein" onclick="setNutritionFilter('protein')">Protéines</button>
-                        <button class="filter-chip" data-filter="carbs" onclick="setNutritionFilter('carbs')">Glucides</button>
-                        <button class="filter-chip" data-filter="fats" onclick="setNutritionFilter('fats')">Lipides</button>
-                        <button class="filter-chip" data-filter="veggies" onclick="setNutritionFilter('veggies')">Légumes</button>
+                <!-- Header sticky avec recherche et filtres -->
+                <div class="meal-sticky-header">
+                    <!-- Recherche -->
+                    <div class="meal-search-section">
+                        <input type="text" class="form-input meal-search-input" id="meal-food-search" placeholder="Rechercher un aliment..." oninput="searchFoodsForMeal()">
                     </div>
-                    <div class="sort-row">
-                        <select class="form-select sort-select" id="nutrition-sort" onchange="setNutritionSort(this.value)">
-                            <option value="relevance">Pertinence</option>
-                            <option value="alpha">A-Z</option>
-                            <option value="calories-asc">Calories ↑</option>
-                            <option value="calories-desc">Calories ↓</option>
-                            <option value="protein-desc">Protéines ↓</option>
-                        </select>
+                    
+                    <!-- Filtres avancés -->
+                    <div class="meal-filters-section" id="meal-filters-section">
+                        <div class="filters-row">
+                            <button class="filter-chip active" data-filter="all" onclick="setNutritionFilter('all')">Tous</button>
+                            <button class="filter-chip" data-filter="protein" onclick="setNutritionFilter('protein')">Protéines</button>
+                            <button class="filter-chip" data-filter="carbs" onclick="setNutritionFilter('carbs')">Glucides</button>
+                            <button class="filter-chip" data-filter="fats" onclick="setNutritionFilter('fats')">Lipides</button>
+                            <button class="filter-chip" data-filter="veggies" onclick="setNutritionFilter('veggies')">Légumes</button>
+                        </div>
+                        <div class="sort-row">
+                            <select class="form-select sort-select" id="nutrition-sort" onchange="setNutritionSort(this.value)">
+                                <option value="relevance">Pertinence</option>
+                                <option value="alpha">A-Z</option>
+                                <option value="calories-asc">Calories ↑</option>
+                                <option value="calories-desc">Calories ↓</option>
+                                <option value="protein-desc">Protéines ↓</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Suggestions intelligentes -->
-                <div class="meal-suggestions-section" id="meal-suggestions-section">
-                    <h4 class="meal-section-title">💡 Suggestions pour toi</h4>
-                    <div class="meal-suggestions-list" id="meal-suggestions-list"></div>
-                    <button class="suggestions-refresh-btn" id="suggestions-refresh-btn" onclick="refreshSuggestions(currentMealType)">
-                        Autres suggestions
-                    </button>
-                </div>
-                
-                <!-- Habitudes -->
-                <div class="meal-habits-section" id="meal-habits-section" style="display: none;">
-                    <h4 class="meal-section-title">🔄 Tes habitudes</h4>
-                    <div class="meal-habits-list" id="meal-habits-list"></div>
-                </div>
-                
-                <!-- Résultats de recherche -->
-                <div class="meal-results-section" id="meal-results-section" style="display: none;">
-                    <h4 class="meal-section-title">Résultats</h4>
-                    <div class="meal-results-list" id="meal-results-list"></div>
-                </div>
-                
-                <!-- Repas rapides -->
-                <div class="meal-quick-section" id="meal-quick-section">
-                    <h4 class="meal-section-title">⚡ Repas rapides</h4>
-                    <div class="meal-quick-list" id="meal-quick-list"></div>
+                <!-- Contenu scrollable -->
+                <div class="meal-scrollable-content">
+                    <!-- Suggestions intelligentes -->
+                    <div class="meal-suggestions-section" id="meal-suggestions-section">
+                        <h4 class="meal-section-title">💡 Suggestions pour toi</h4>
+                        <div class="meal-suggestions-list" id="meal-suggestions-list"></div>
+                        <button class="suggestions-refresh-btn" id="suggestions-refresh-btn" onclick="refreshSuggestions(currentMealType)">
+                            Autres suggestions
+                        </button>
+                    </div>
+                    
+                    <!-- Habitudes -->
+                    <div class="meal-habits-section" id="meal-habits-section" style="display: none;">
+                        <h4 class="meal-section-title">🔄 Tes habitudes</h4>
+                        <div class="meal-habits-list" id="meal-habits-list"></div>
+                    </div>
+                    
+                    <!-- Résultats de recherche -->
+                    <div class="meal-results-section" id="meal-results-section" style="display: none;">
+                        <h4 class="meal-section-title">Résultats</h4>
+                        <div class="meal-results-list" id="meal-results-list"></div>
+                    </div>
+                    
+                    <!-- Repas rapides -->
+                    <div class="meal-quick-section" id="meal-quick-section">
+                        <h4 class="meal-section-title">⚡ Repas rapides</h4>
+                        <div class="meal-quick-list" id="meal-quick-list"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2196,6 +2203,7 @@
     <script src="js/data/exercises.js?v=10"></script>
     <script src="js/data/programs.js?v=5"></script>
     <script src="js/modules/state.js?v=6"></script>
+    <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=8"></script>
     <script src="js/modules/profile.js?v=22"></script>
     <script src="js/modules/nutrition.js?v=11"></script>

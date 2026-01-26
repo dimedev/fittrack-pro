@@ -2484,13 +2484,19 @@
 .today-exercise-icon {
     font-size: 1.5rem;
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-card);
-    border-radius: var(--radius-sm, 8px);
+    background: rgba(255, 59, 48, 0.1);
+    border-radius: 10px;
+}
+
+.today-exercise-svg-icon {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg) brightness(100%) contrast(100%);
 }
 
 .today-exercise-info {

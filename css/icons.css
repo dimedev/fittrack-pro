@@ -1,0 +1,129 @@
+/* ==================== ICÔNES SVG STYLES ==================== */
+
+/* Icônes muscles génériques */
+.muscle-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    color: currentColor;
+}
+
+
+/* Icônes catégories aliments génériques */
+.food-category-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    color: currentColor;
+}
+
+/* Tags muscles avec icônes */
+.muscle-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.muscle-tag:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.muscle-tag-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--accent-primary);
+}
+
+/* Tags muscles dans la modal d'exercice */
+.info-muscle-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(255, 59, 48, 0.1);
+    border: 1px solid rgba(255, 59, 48, 0.2);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--accent-primary);
+    transition: all 0.2s ease;
+}
+
+.info-muscle-tag img {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg) brightness(100%) contrast(100%);
+}
+
+/* Icônes dans suggestions nutrition */
+.suggestion-icon img {
+    width: 28px;
+    height: 28px;
+    color: var(--accent-primary);
+    filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg) brightness(100%) contrast(100%);
+}
+
+/* Smart Insights avec icônes muscles */
+.insight-muscle-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    color: var(--accent-primary);
+    vertical-align: middle;
+}
+
+/* Liste d'exercices avec icônes */
+.exercise-muscle-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    opacity: 0.7;
+    vertical-align: middle;
+}
+
+/* Adaptation dark mode */
+@media (prefers-color-scheme: dark) {
+    .muscle-tag {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    .muscle-tag:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.25);
+    }
+}
+
+/* Responsive mobile */
+@media (max-width: 768px) {
+    .muscle-tag {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+        gap: 4px;
+    }
+    
+    .muscle-tag-icon {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .info-muscle-tag {
+        font-size: 0.85rem;
+        padding: 6px 12px;
+    }
+    
+    .info-muscle-tag img {
+        width: 16px;
+        height: 16px;
+    }
+}

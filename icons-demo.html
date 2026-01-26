@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icônes SVG - Repzy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #ffffff;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ff3b30 0%, #ff6b6b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 40px;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #ff3b30;
+        }
+        
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+        }
+        
+        .icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .icon-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #ff3b30;
+            transform: translateY(-5px);
+        }
+        
+        .icon-item img {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            color: #ff3b30;
+            filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg) brightness(100%) contrast(100%);
+        }
+        
+        .icon-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            flex: 1;
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid rgba(255, 59, 48, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #ff3b30;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .icon-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 15px;
+            }
+            
+            .stats {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Icônes SVG Repzy</h1>
+        <p class="subtitle">Style Phosphor - Premium & Cohérent</p>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">13</div>
+                <div class="stat-label">Groupes Musculaires</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">6</div>
+                <div class="stat-label">Catégories Aliments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">19</div>
+                <div class="stat-label">Total Icônes</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">💪 Groupes Musculaires</div>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <img src="img/icons/muscles/chest.svg" alt="Pectoraux">
+                    <div class="icon-name">Pectoraux</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/back.svg" alt="Dos">
+                    <div class="icon-name">Dos</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/shoulders.svg" alt="Épaules">
+                    <div class="icon-name">Épaules</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/rear-delts.svg" alt="Épaules arrière">
+                    <div class="icon-name">Épaules arrière</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/biceps.svg" alt="Biceps">
+                    <div class="icon-name">Biceps</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/triceps.svg" alt="Triceps">
+                    <div class="icon-name">Triceps</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/quads.svg" alt="Quadriceps">
+                    <div class="icon-name">Quadriceps</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/hamstrings.svg" alt="Ischio-jambiers">
+                    <div class="icon-name">Ischio-jambiers</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/glutes.svg" alt="Fessiers">
+                    <div class="icon-name">Fessiers</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/calves.svg" alt="Mollets">
+                    <div class="icon-name">Mollets</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/traps.svg" alt="Trapèzes">
+                    <div class="icon-name">Trapèzes</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/abs.svg" alt="Abdominaux">
+                    <div class="icon-name">Abdominaux</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/muscles/forearms.svg" alt="Avant-bras">
+                    <div class="icon-name">Avant-bras</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">🍽️ Catégories Aliments</div>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <img src="img/icons/food/protein.svg" alt="Protéines">
+                    <div class="icon-name">Protéines</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/food/carbs.svg" alt="Glucides">
+                    <div class="icon-name">Glucides</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/food/fats.svg" alt="Lipides">
+                    <div class="icon-name">Lipides</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/food/veggies.svg" alt="Légumes">
+                    <div class="icon-name">Légumes</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/food/fruits.svg" alt="Fruits">
+                    <div class="icon-name">Fruits</div>
+                </div>
+                <div class="icon-item">
+                    <img src="img/icons/food/dairy.svg" alt="Produits laitiers">
+                    <div class="icon-name">Produits laitiers</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📐 Caractéristiques</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="color: #ff3b30; font-weight: 700; font-size: 1.2rem; margin-bottom: 8px;">32×32px</div>
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">ViewBox optimisé</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="color: #ff3b30; font-weight: 700; font-size: 1.2rem; margin-bottom: 8px;">2px stroke</div>
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">Consistant</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="color: #ff3b30; font-weight: 700; font-size: 1.2rem; margin-bottom: 8px;">Round caps</div>
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">Style Phosphor</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="color: #ff3b30; font-weight: 700; font-size: 1.2rem; margin-bottom: 8px;">Léger</div>
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">~400 octets</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📏 Tailles</div>
+            <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap; justify-content: center;">
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/chest.svg" style="width: 20px; height: 20px; filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg);">
+                    <div class="icon-name" style="margin-top: 8px;">20px</div>
+                </div>
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/chest.svg" style="width: 24px; height: 24px; filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg);">
+                    <div class="icon-name" style="margin-top: 8px;">24px</div>
+                </div>
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/chest.svg" style="width: 32px; height: 32px; filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg);">
+                    <div class="icon-name" style="margin-top: 8px;">32px</div>
+                </div>
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/chest.svg" style="width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg);">
+                    <div class="icon-name" style="margin-top: 8px;">48px</div>
+                </div>
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/chest.svg" style="width: 64px; height: 64px; filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg);">
+                    <div class="icon-name" style="margin-top: 8px;">64px</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">🎨 Variations de couleurs</div>
+            <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/biceps.svg" style="width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(47%) sepia(79%) saturate(2000%) hue-rotate(346deg);">
+                    <div class="icon-name" style="margin-top: 8px; color: #ff3b30;">Rouge</div>
+                </div>
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/biceps.svg" style="width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(100%);">
+                    <div class="icon-name" style="margin-top: 8px;">Blanc</div>
+                </div>
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/biceps.svg" style="width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(50%);">
+                    <div class="icon-name" style="margin-top: 8px; color: #888;">Gris</div>
+                </div>
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/biceps.svg" style="width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(70%) sepia(50%) saturate(500%) hue-rotate(80deg);">
+                    <div class="icon-name" style="margin-top: 8px; color: #4cd964;">Vert</div>
+                </div>
+                <div style="text-align: center;">
+                    <img src="img/icons/muscles/biceps.svg" style="width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(50%) sepia(90%) saturate(1000%) hue-rotate(180deg);">
+                    <div class="icon-name" style="margin-top: 8px; color: #007aff;">Bleu</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

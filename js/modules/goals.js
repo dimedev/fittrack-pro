@@ -1643,15 +1643,24 @@ function generateSmartInsights() {
         }
     }
     
-    // 2. Muscles negliges
+    // 2. Muscles negliges (avec icônes SVG)
     const neglectedMuscles = getNeglectedMuscles();
     if (neglectedMuscles.length > 0) {
         // Prendre seulement les 2 plus negliges
         neglectedMuscles.slice(0, 2).forEach(muscle => {
             if (muscle.daysSince >= 7) {
+                // Utiliser l'icône SVG du muscle si disponible
+                let muscleIcon = '⚠️';
+                if (window.MuscleIcons && muscle.muscle) {
+                    const svgIcon = window.MuscleIcons.getMuscleIcon(muscle.muscle);
+                    if (svgIcon) {
+                        muscleIcon = `<img src="${svgIcon}" class="insight-muscle-icon" alt="${muscle.muscleName}">`;
+                    }
+                }
+                
                 insights.push({
                     type: 'warning',
-                    icon: '⚠️',
+                    icon: muscleIcon,
                     message: `${muscle.muscleName} non travaillé${muscle.muscleName.endsWith('s') ? 's' : ''} depuis ${muscle.daysSince} jours`,
                     explanation: `Pour une croissance musculaire optimale, chaque groupe devrait être travaillé au moins 2x par semaine. Planifie une séance ${muscle.muscleName.toLowerCase()} bientôt.`,
                     priority: 1

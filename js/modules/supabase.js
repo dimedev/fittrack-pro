@@ -723,7 +723,14 @@ async function loadAllDataFromSupabase() {
                 fat: parseFloat(f.fat),
                 category: f.category
             }));
-            state.foods = [...defaultFoods, ...customFoodsList];
+            
+            // CRITIQUE : Merge intelligent pour ne pas perdre les aliments locaux non synchronisés
+            // Garder les aliments avec ID temporaire (timestamp) = créés localement mais pas encore syncés
+            const localPendingFoods = state.foods.filter(f => 
+                f.id.startsWith('custom-') && f.id.match(/^custom-\d{13}$/) // ID timestamp = non synce
+            );
+            
+            state.foods = [...defaultFoods, ...customFoodsList, ...localPendingFoods];
         }
         
         // Charger les exercices personnalisés

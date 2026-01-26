@@ -1839,14 +1839,22 @@ function openExerciseTips(exerciseName) {
     // Remplir le nom
     document.getElementById('info-exercise-name').textContent = exercise.name;
     
-    // Remplir les muscles ciblés
+    // Remplir les muscles ciblés avec icônes SVG
     const muscleTagsContainer = document.getElementById('info-muscle-tags');
     if (exercise.muscleTargets && exercise.muscleTargets.length > 0) {
-        muscleTagsContainer.innerHTML = exercise.muscleTargets.map(muscle =>
-            `<span class="info-muscle-tag">${muscle}</span>`
-        ).join('');
+        muscleTagsContainer.innerHTML = exercise.muscleTargets.map(muscle => {
+            if (window.MuscleIcons) {
+                return window.MuscleIcons.renderMuscleTag(muscle);
+            }
+            return `<span class="info-muscle-tag">${muscle}</span>`;
+        }).join('');
     } else {
-        muscleTagsContainer.innerHTML = `<span class="info-muscle-tag">${muscleGroups[exercise.muscle]?.name || exercise.muscle}</span>`;
+        const muscleName = muscleGroups[exercise.muscle]?.name || exercise.muscle;
+        if (window.MuscleIcons) {
+            muscleTagsContainer.innerHTML = window.MuscleIcons.renderMuscleTag(exercise.muscle);
+        } else {
+            muscleTagsContainer.innerHTML = `<span class="info-muscle-tag">${muscleName}</span>`;
+        }
     }
     
     // === NOUVELLES SECTIONS COACH ===

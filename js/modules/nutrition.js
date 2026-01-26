@@ -804,7 +804,16 @@ async function saveCustomFood() {
         
         // Sync avec Supabase si connecté
         if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-            await saveCustomFoodToSupabase(food);
+            const supabaseId = await saveCustomFoodToSupabase(food);
+            if (supabaseId) {
+                // CRITIQUE : Mettre à jour l'ID dans le state avec l'ID Supabase
+                const foodIndex = state.foods.findIndex(f => f.id === food.id);
+                if (foodIndex !== -1) {
+                    state.foods[foodIndex].id = supabaseId;
+                    food.id = supabaseId; // Aussi mettre à jour la référence locale
+                }
+                saveState(); // Re-sauvegarder avec le bon ID
+            }
         }
         
         closeModal('custom-food-modal');
@@ -1521,6 +1530,13 @@ function openMealSheet(mealType) {
     renderMealSuggestions(mealType);
     renderQuickMeals(mealType);
     
+    // Reset des styles transform/transition pour éviter les bugs de réouverture
+    const innerSheet = sheet.querySelector('.bottom-sheet');
+    if (innerSheet) {
+        innerSheet.style.transform = '';
+        innerSheet.style.transition = '';
+    }
+    
     // CRITIQUE : Bloquer le scroll de la page derrière la modal
     document.body.style.overflow = 'hidden';
     
@@ -1537,6 +1553,13 @@ function closeMealSheet() {
     
     // CRITIQUE : Réactiver le scroll de la page
     document.body.style.overflow = '';
+    
+    // Reset propre des styles transform/transition
+    const innerSheet = sheet.querySelector('.bottom-sheet');
+    if (innerSheet) {
+        innerSheet.style.transform = '';
+        innerSheet.style.transition = '';
+    }
     
     setTimeout(() => {
         sheet.style.display = 'none';
@@ -1980,7 +2003,15 @@ function renderMealSuggestions(mealType, excludeIds = []) {
     };
     
     container.innerHTML = suggestions.map(s => {
-        const icon = typeIcons[s.type] || foodCategories[s.food.category]?.icon || '📦';
+        // Utiliser l'icône SVG si disponible, sinon emoji
+        let iconHtml = typeIcons[s.type] || foodCategories[s.food.category]?.icon || '📦';
+        if (window.MuscleIcons && s.food.category) {
+            const svgIcon = window.MuscleIcons.getFoodCategoryIcon(s.food.category);
+            if (svgIcon) {
+                iconHtml = `<img src="${svgIcon}" alt="${s.food.category}" style="width: 32px; height: 32px;">`;
+            }
+        }
+        
         const qtyDisplay = hasNaturalUnit(s.food) 
             ? formatQuantityDisplay(s.food, s.quantity)
             : `${s.quantity}g`;
@@ -1989,7 +2020,7 @@ function renderMealSuggestions(mealType, excludeIds = []) {
         
         return `
             <div class="meal-suggestion-item premium" onclick="addSuggestionDirect('${s.food.id}', ${s.quantity}, '${mealType}')">
-                <div class="suggestion-icon">${icon}</div>
+                <div class="suggestion-icon">${iconHtml}</div>
                 <div class="suggestion-content">
                     <div class="suggestion-title">${s.food.name}</div>
                     <div class="suggestion-reason">${s.reason}</div>
@@ -2229,6 +2260,13 @@ function openCardioSheet() {
         weightEl.textContent = state.profile?.weight || 70;
     }
     
+    // Reset des styles transform/transition pour éviter les bugs de réouverture
+    const innerSheet = sheet.querySelector('.bottom-sheet');
+    if (innerSheet) {
+        innerSheet.style.transform = '';
+        innerSheet.style.transition = '';
+    }
+    
     sheet.style.display = 'flex';
     setTimeout(() => sheet.classList.add('active'), 10);
 }
@@ -2246,6 +2284,13 @@ function closeCardioSheet() {
     
     // CRITIQUE : Réactiver le scroll de la page
     document.body.style.overflow = '';
+    
+    // Reset propre des styles transform/transition
+    const innerSheet = sheet.querySelector('.bottom-sheet');
+    if (innerSheet) {
+        innerSheet.style.transform = '';
+        innerSheet.style.transition = '';
+    }
     
     // Enregistrer le timestamp de fermeture pour le debounce
     lastCardioSheetCloseTime = Date.now();
@@ -2684,10 +2729,12 @@ function initNutritionSwipeToClose() {
                 hasMoved = true;
                 sheet.style.transform = `translateY(${diff}px)`;
                 sheet.style.transition = 'none';
+                // CRITIQUE : Empêcher le scroll de la page pendant le drag
+                e.preventDefault();
             }
-        }, { passive: true });
+        }, { passive: false }); // IMPORTANT : passive:false pour permettre preventDefault
         
-        sheet.addEventListener('touchend', (e) => {
+        sheet.addEventListener('touchend', () => {
             // Ne rien faire si c'était juste un tap (pas de mouvement)
             if (!hasMoved) {
                 return;
@@ -2698,15 +2745,10 @@ function initNutritionSwipeToClose() {
             sheet.style.transition = 'transform 0.3s ease';
             
             if (diff > 100) {
-                // IMPORTANT : Empêcher le touchend de devenir un click
-                // (sinon il peut rouvrir la modal immédiatement)
-                e.preventDefault();
-                
-                // Fermer le sheet
+                // Fermer le sheet avec animation
                 sheet.style.transform = 'translateY(100%)';
                 setTimeout(() => {
                     if (closeFunc) closeFunc();
-                    sheet.style.transform = '';
                 }, 300);
             } else {
                 // Retour à la position initiale
