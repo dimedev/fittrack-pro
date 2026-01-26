@@ -6,12 +6,12 @@
 
     // ==================== HAPTIC FEEDBACK ====================
     const Haptics = {
-        light: () => navigator.vibrate?.(10),
-        medium: () => navigator.vibrate?.(20),
-        heavy: () => navigator.vibrate?.(30),
-        success: () => navigator.vibrate?.([10, 50, 20]),
-        warning: () => navigator.vibrate?.([30, 50, 30]),
-        error: () => navigator.vibrate?.([50, 100, 50])
+        light: () => { try { navigator.vibrate?.(10); } catch(e) {} },
+        medium: () => { try { navigator.vibrate?.(20); } catch(e) {} },
+        heavy: () => { try { navigator.vibrate?.(30); } catch(e) {} },
+        success: () => { try { navigator.vibrate?.([10, 50, 20]); } catch(e) {} },
+        warning: () => { try { navigator.vibrate?.([30, 50, 30]); } catch(e) {} },
+        error: () => { try { navigator.vibrate?.([50, 100, 50]); } catch(e) {} }
     };
 
     // ==================== SWIPE TO DELETE ====================
