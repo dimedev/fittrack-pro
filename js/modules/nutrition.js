@@ -1521,6 +1521,9 @@ function openMealSheet(mealType) {
     renderMealSuggestions(mealType);
     renderQuickMeals(mealType);
     
+    // CRITIQUE : Bloquer le scroll de la page derrière la modal
+    document.body.style.overflow = 'hidden';
+    
     sheet.style.display = 'flex';
     setTimeout(() => sheet.classList.add('active'), 10);
 }
@@ -1531,6 +1534,10 @@ function closeMealSheet() {
     if (!sheet) return;
     
     sheet.classList.remove('active');
+    
+    // CRITIQUE : Réactiver le scroll de la page
+    document.body.style.overflow = '';
+    
     setTimeout(() => {
         sheet.style.display = 'none';
         currentMealType = null;
@@ -2206,6 +2213,9 @@ function openCardioSheet() {
         return;
     }
     
+    // CRITIQUE : Bloquer le scroll de la page derrière la modal
+    document.body.style.overflow = 'hidden';
+    
     // Reset état
     cardioState = { type: 'running', duration: 30, intensity: 'moderate' };
     
@@ -2233,6 +2243,9 @@ function closeCardioSheet() {
     
     cardioSheetClosing = true;
     sheet.classList.remove('active');
+    
+    // CRITIQUE : Réactiver le scroll de la page
+    document.body.style.overflow = '';
     
     // Enregistrer le timestamp de fermeture pour le debounce
     lastCardioSheetCloseTime = Date.now();
