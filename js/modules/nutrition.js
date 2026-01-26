@@ -1275,7 +1275,10 @@ function updateJournalQuantity(index, quantity) {
         // Sync avec Supabase si connecté
         if (typeof isLoggedIn === 'function' && isLoggedIn() && entry.supabaseId) {
             updateJournalEntryInSupabase(entry.supabaseId, quantity)
-                .catch(err => console.error('Erreur sync quantité:', err));
+                .catch(err => {
+                    console.error('Erreur sync quantité:', err);
+                    showToast('Erreur synchronisation quantité - modification sauvegardée localement', 'warning');
+                });
         }
         
         renderJournalEntries();

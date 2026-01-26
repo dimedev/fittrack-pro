@@ -23,6 +23,123 @@ let fsSession = {
     startTime: null
 };
 
+// ==================== SESSION PERSISTENCE ====================
+let fsSessionSaveInterval = null;
+
+/**
+ * Sauvegarde fsSession dans localStorage
+ */
+function saveFsSessionToStorage() {
+    if (!fsSession.active) return;
+    
+    try {
+        const sessionData = {
+            ...fsSession,
+            savedAt: Date.now()
+        };
+        localStorage.setItem('pendingFsSession', JSON.stringify(sessionData));
+        console.log('💾 Séance sauvegardée automatiquement');
+    } catch (err) {
+        console.error('Erreur sauvegarde session:', err);
+    }
+}
+
+/**
+ * Charge fsSession depuis localStorage
+ */
+function loadFsSessionFromStorage() {
+    try {
+        const saved = localStorage.getItem('pendingFsSession');
+        if (!saved) return null;
+        
+        const sessionData = JSON.parse(saved);
+        // Vérifier que la session n'est pas trop ancienne (max 24h)
+        if (Date.now() - sessionData.savedAt > 24 * 60 * 60 * 1000) {
+            localStorage.removeItem('pendingFsSession');
+            return null;
+        }
+        
+        return sessionData;
+    } catch (err) {
+        console.error('Erreur chargement session:', err);
+        return null;
+    }
+}
+
+/**
+ * Supprime la session sauvegardée
+ */
+function clearFsSessionFromStorage() {
+    localStorage.removeItem('pendingFsSession');
+    console.log('🗑️  Session sauvegardée supprimée');
+}
+
+/**
+ * Démarre la sauvegarde automatique
+ */
+function startAutoSaveFsSession() {
+    if (fsSessionSaveInterval) return;
+    
+    // Sauvegarder immédiatement
+    saveFsSessionToStorage();
+    
+    // Puis toutes les 20 secondes
+    fsSessionSaveInterval = setInterval(() => {
+        saveFsSessionToStorage();
+    }, 20000);
+}
+
+/**
+ * Arrête la sauvegarde automatique
+ */
+function stopAutoSaveFsSession() {
+    if (fsSessionSaveInterval) {
+        clearInterval(fsSessionSaveInterval);
+        fsSessionSaveInterval = null;
+    }
+}
+
+/**
+ * Restaure une session en cours après crash/refresh
+ */
+function tryRestorePendingSession() {
+    const savedSession = loadFsSessionFromStorage();
+    if (!savedSession) return;
+    
+    // Proposer à l'utilisateur de restaurer
+    const elapsedMinutes = Math.floor((Date.now() - savedSession.startTime) / 60000);
+    const message = `Tu as une séance "${savedSession.splitName}" en cours (${elapsedMinutes} min). Reprendre ?`;
+    
+    if (confirm(message)) {
+        // Restaurer la session
+        fsSession = savedSession;
+        
+        // Afficher l'UI
+        const fsElement = document.getElementById('fullscreen-session');
+        if (fsElement) {
+            fsElement.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Masquer la nav
+            const nav = document.querySelector('.nav');
+            const mobileNav = document.querySelector('.mobile-nav');
+            if (nav) nav.style.display = 'none';
+            if (mobileNav) mobileNav.style.display = 'none';
+            
+            // Rendre l'exercice courant
+            renderCurrentExercise();
+            
+            // Reprendre la sauvegarde auto
+            startAutoSaveFsSession();
+            
+            console.log('✅ Séance restaurée');
+        }
+    } else {
+        // Utilisateur refuse, supprimer la sauvegarde
+        clearFsSessionFromStorage();
+    }
+}
+
 // ==================== SESSION PREVIEW STATE ====================
 let previewSession = {
     splitIndex: null,
@@ -1128,6 +1245,9 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
         startTime: Date.now()
     };
 
+    // Démarrer la sauvegarde automatique
+    startAutoSaveFsSession();
+
     // Show full-screen UI with iOS-like animation
     const fsElement = document.getElementById('fullscreen-session');
     fsElement.style.display = 'flex';
@@ -1163,6 +1283,12 @@ function closeFullScreenSession() {
             return;
         }
     }
+
+    // Arrêter la sauvegarde automatique
+    stopAutoSaveFsSession();
+    
+    // Supprimer la session sauvegardée
+    clearFsSessionFromStorage();
 
     document.getElementById('fullscreen-session').style.display = 'none';
     document.body.style.overflow = '';
@@ -1318,6 +1444,9 @@ function validateCurrentSet() {
         weight: weight,
         reps: reps
     });
+
+    // Sauvegarder immédiatement après chaque série
+    saveFsSessionToStorage();
 
     // Move to next set or exercise
     const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
@@ -1613,7 +1742,10 @@ function finishSession() {
             exercises: sessionData
         };
         if (typeof saveWorkoutSessionToSupabase === 'function') {
-            saveWorkoutSessionToSupabase(sessionToSave).catch(console.error);
+            saveWorkoutSessionToSupabase(sessionToSave).catch(err => {
+                console.error('Erreur sync séance:', err);
+                showToast('Erreur synchronisation séance - sauvegardée localement', 'warning');
+            });
         }
 
         sessionData.forEach(exData => {
@@ -1621,14 +1753,20 @@ function finishSession() {
             if (logs && logs.length > 0) {
                 const lastLog = logs[logs.length - 1];
                 if (typeof saveProgressLogToSupabase === 'function') {
-                    saveProgressLogToSupabase(exData.exercise, lastLog).catch(console.error);
+                    saveProgressLogToSupabase(exData.exercise, lastLog).catch(err => {
+                        console.error('Erreur sync progression:', err);
+                        showToast('Erreur synchronisation progression - sauvegardée localement', 'warning');
+                    });
                 }
             }
         });
         
         // Sync training progress
         if (typeof saveTrainingSettingsToSupabase === 'function') {
-            saveTrainingSettingsToSupabase().catch(console.error);
+            saveTrainingSettingsToSupabase().catch(err => {
+                console.error('Erreur sync paramètres:', err);
+                showToast('Erreur synchronisation paramètres - sauvegardés localement', 'warning');
+            });
         }
     }
 

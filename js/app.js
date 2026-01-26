@@ -172,6 +172,13 @@ function init() {
         initSupabase();
     }
     
+    // Vérifier s'il y a une séance en attente de restauration
+    setTimeout(() => {
+        if (typeof tryRestorePendingSession === 'function') {
+            tryRestorePendingSession();
+        }
+    }, 500);
+    
     // Petit délai pour que les skeletons soient visibles
     setTimeout(() => {
         // Retirer les skeletons et restaurer la structure

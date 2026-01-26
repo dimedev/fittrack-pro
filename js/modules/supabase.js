@@ -465,11 +465,69 @@ async function syncPendingData() {
             saveState();
         }
         
+        // 6. Synchroniser les sessions cardio non synchronisées
+        if (state.cardioLog) {
+            for (const [date, sessions] of Object.entries(state.cardioLog)) {
+                for (const session of sessions) {
+                    if (!session.supabaseId && session.type && session.duration) {
+                        try {
+                            const id = await saveCardioSessionToSupabase({
+                                date: date,
+                                type: session.type,
+                                duration: session.duration,
+                                intensity: session.intensity,
+                                calories: session.calories
+                            });
+                            if (id) {
+                                session.supabaseId = id;
+                                session.synced = true;
+                            }
+                        } catch (err) {
+                            console.warn('Erreur sync cardio session:', err);
+                        }
+                    }
+                }
+            }
+            saveState();
+        }
+        
+        // 7. Synchroniser les exercices personnalisés non synchronisés
+        if (state.exercises) {
+            const customExercises = state.exercises.filter(ex => 
+                ex.id.startsWith('custom-') && !ex.synced
+            );
+            
+            for (const exercise of customExercises) {
+                try {
+                    await saveCustomExerciseToSupabase(exercise);
+                    exercise.synced = true;
+                } catch (err) {
+                    console.warn('Erreur sync custom exercise:', err);
+                }
+            }
+            if (customExercises.length > 0) {
+                saveState();
+            }
+        }
+        
+        // 8. Synchroniser les swaps d'exercices non synchronisés
+        if (state.exerciseSwaps) {
+            for (const [originalExercise, replacementId] of Object.entries(state.exerciseSwaps)) {
+                // Vérifier si ce swap est déjà synchronisé
+                try {
+                    await saveExerciseSwapToSupabase(originalExercise, replacementId);
+                } catch (err) {
+                    console.warn('Erreur sync exercise swap:', err);
+                }
+            }
+        }
+        
         updateSyncIndicator(SyncStatus.SUCCESS);
         console.log('✅ Toutes les données synchronisées');
     } catch (error) {
         console.error('Erreur sync pending:', error);
         updateSyncIndicator(SyncStatus.ERROR);
+        showToast('Erreur lors de la synchronisation - certaines données restent locales', 'error');
     }
 }
 
@@ -874,7 +932,7 @@ async function loadAllDataFromSupabase(silent = false) {
             }
         }
         
-        // Charger TOUT le journal alimentaire (pas de limite pour un suivi sur plusieurs années)
+        // Charger TOUT le journal alimentaire avec MERGE intelligent
         const { data: journal } = await supabaseClient
             .from('food_journal')
             .select('*')
@@ -882,37 +940,156 @@ async function loadAllDataFromSupabase(silent = false) {
             .order('date', { ascending: false });
         
         if (journal) {
-            state.foodJournal = {};
+            // Garder les entrées locales par date
+            const localJournal = { ...(state.foodJournal || {}) };
+            
+            // Reconstruire depuis Supabase
+            const supabaseJournal = {};
             journal.forEach(entry => {
-                if (!state.foodJournal[entry.date]) {
-                    state.foodJournal[entry.date] = [];
+                if (!supabaseJournal[entry.date]) {
+                    supabaseJournal[entry.date] = [];
                 }
-                state.foodJournal[entry.date].push({
+                supabaseJournal[entry.date].push({
                     foodId: entry.food_id,
                     quantity: entry.quantity,
                     addedAt: new Date(entry.added_at).getTime(),
                     supabaseId: entry.id,
-                    mealType: entry.meal_type || inferMealType(new Date(entry.added_at).getTime())
+                    mealType: entry.meal_type || 'snack',
+                    unitType: entry.unit_type,
+                    unitCount: entry.unit_count,
+                    synced: true // Marquer comme synchronisé
+                });
+            });
+            
+            // Merger : Supabase + entrées locales non sync
+            state.foodJournal = { ...supabaseJournal };
+            
+            // Identifier et ajouter les entrées locales non présentes dans Supabase
+            Object.entries(localJournal).forEach(([date, localEntries]) => {
+                if (!localEntries) return;
+                
+                localEntries.forEach(localEntry => {
+                    // Vérifier si l'entrée est déjà dans Supabase
+                    const existsInSupabase = supabaseJournal[date]?.some(sEntry =>
+                        sEntry.foodId === localEntry.foodId &&
+                        sEntry.quantity === localEntry.quantity &&
+                        Math.abs(sEntry.addedAt - localEntry.addedAt) < 5000 // 5 secondes de tolérance
+                    );
+                    
+                    if (!existsInSupabase && !localEntry.supabaseId) {
+                        // Entrée locale non synchronisée
+                        if (!state.foodJournal[date]) {
+                            state.foodJournal[date] = [];
+                        }
+                        
+                        state.foodJournal[date].push({
+                            ...localEntry,
+                            synced: false
+                        });
+                        
+                        // Tenter de sync cette entrée manquante
+                        addJournalEntryToSupabase(
+                            date,
+                            localEntry.foodId,
+                            localEntry.quantity,
+                            localEntry.mealType || 'snack',
+                            localEntry.unitType,
+                            localEntry.unitCount
+                        ).then(id => {
+                            if (id) {
+                                // Mettre à jour l'ID et marquer comme syncé
+                                const entry = state.foodJournal[date]?.find(e =>
+                                    e.foodId === localEntry.foodId &&
+                                    e.addedAt === localEntry.addedAt
+                                );
+                                if (entry) {
+                                    entry.supabaseId = id;
+                                    entry.synced = true;
+                                    saveState();
+                                }
+                            }
+                        }).catch(err => {
+                            console.warn('Sync rattrapage journal:', err);
+                        });
+                    }
                 });
             });
         }
         
-        // Charger TOUTES les sessions cardio (pas de limite)
+        // Charger TOUTES les sessions cardio avec MERGE intelligent
         try {
             const cardioSessions = await loadCardioSessionsFromSupabase();
             if (cardioSessions && cardioSessions.length > 0) {
-                state.cardioLog = {};
+                // Garder les sessions locales par date
+                const localCardio = { ...(state.cardioLog || {}) };
+                
+                // Reconstruire depuis Supabase
+                const supabaseCardio = {};
                 cardioSessions.forEach(session => {
-                    if (!state.cardioLog[session.date]) {
-                        state.cardioLog[session.date] = [];
+                    if (!supabaseCardio[session.date]) {
+                        supabaseCardio[session.date] = [];
                     }
-                    state.cardioLog[session.date].push({
+                    supabaseCardio[session.date].push({
                         type: session.type,
                         duration: session.duration_minutes,
                         intensity: session.intensity,
                         calories: session.calories_burned,
                         addedAt: new Date(session.created_at).getTime(),
-                        supabaseId: session.id
+                        supabaseId: session.id,
+                        synced: true // Marquer comme synchronisé
+                    });
+                });
+                
+                // Merger : Supabase + sessions locales non sync
+                state.cardioLog = { ...supabaseCardio };
+                
+                // Identifier et ajouter les sessions locales non présentes dans Supabase
+                Object.entries(localCardio).forEach(([date, localSessions]) => {
+                    if (!localSessions) return;
+                    
+                    localSessions.forEach(localSession => {
+                        // Vérifier si la session est déjà dans Supabase
+                        const existsInSupabase = supabaseCardio[date]?.some(sSession =>
+                            sSession.type === localSession.type &&
+                            sSession.duration === localSession.duration &&
+                            Math.abs(sSession.addedAt - localSession.addedAt) < 10000 // 10 secondes de tolérance
+                        );
+                        
+                        if (!existsInSupabase && !localSession.supabaseId) {
+                            // Session locale non synchronisée
+                            if (!state.cardioLog[date]) {
+                                state.cardioLog[date] = [];
+                            }
+                            
+                            state.cardioLog[date].push({
+                                ...localSession,
+                                synced: false
+                            });
+                            
+                            // Tenter de sync cette session manquante
+                            saveCardioSessionToSupabase({
+                                date: date,
+                                type: localSession.type,
+                                duration: localSession.duration,
+                                intensity: localSession.intensity,
+                                calories: localSession.calories
+                            }).then(id => {
+                                if (id) {
+                                    // Mettre à jour l'ID et marquer comme syncé
+                                    const session = state.cardioLog[date]?.find(s =>
+                                        s.type === localSession.type &&
+                                        s.addedAt === localSession.addedAt
+                                    );
+                                    if (session) {
+                                        session.supabaseId = id;
+                                        session.synced = true;
+                                        saveState();
+                                    }
+                                }
+                            }).catch(err => {
+                                console.warn('Sync rattrapage cardio:', err);
+                            });
+                        }
                     });
                 });
             }
@@ -1453,7 +1630,8 @@ async function deleteJournalEntryFromSupabase(entryId) {
             const { error } = await supabaseClient
                 .from('food_journal')
                 .delete()
-                .eq('id', entryId);
+                .eq('id', entryId)
+                .eq('user_id', currentUser.id); // Double verrou sécurité
             
             if (error) throw error;
         }, { maxRetries: 2, critical: false });
