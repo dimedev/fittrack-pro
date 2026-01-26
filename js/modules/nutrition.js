@@ -3005,7 +3005,7 @@ function initKeyboardPaddingFix() {
             if (keyboardHeight > 150) {
                 scrollableContent.style.paddingBottom = `${keyboardHeight + 120}px`;
             } else {
-                scrollableContent.style.paddingBottom = '200px';
+                scrollableContent.style.paddingBottom = '80px';
             }
         });
     }
@@ -3028,7 +3028,7 @@ function initKeyboardPaddingFix() {
             // Remettre le padding normal après fermeture du clavier
             setTimeout(() => {
                 if (!document.querySelector('#meal-add-sheet input:focus, #meal-add-sheet select:focus')) {
-                    scrollableContent.style.paddingBottom = '200px';
+                    scrollableContent.style.paddingBottom = '80px';
                 }
             }, 300);
         });
@@ -3040,7 +3040,7 @@ function resetKeyboardPaddingFix() {
     keyboardPaddingInitialized = false;
     const scrollableContent = document.querySelector('.meal-scrollable-content');
     if (scrollableContent) {
-        scrollableContent.style.paddingBottom = '200px';
+        scrollableContent.style.paddingBottom = '80px';
     }
 }
 

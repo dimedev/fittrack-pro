@@ -1084,7 +1084,7 @@ body.modal-open {
     overflow-x: hidden; /* Bloque le scroll horizontal */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain; /* Empêche le scroll de "déborder" */
-    padding-bottom: 200px; /* Padding par défaut */
+    padding-bottom: 80px; /* Padding minimal par défaut */
     transition: padding-bottom 0.3s ease; /* Animation douce */
 }
 
@@ -1119,9 +1119,9 @@ body.modal-open {
         font-size: 16px !important; /* Évite le zoom iOS */
     }
     
-    /* Plus de padding pour les petits écrans */
+    /* Padding minimal sur mobile aussi */
     .meal-scrollable-content {
-        padding-bottom: 250px;
+        padding-bottom: 100px;
     }
     
     .meal-sheet:has(input:focus) .meal-scrollable-content,
