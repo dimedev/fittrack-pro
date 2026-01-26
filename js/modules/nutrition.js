@@ -426,6 +426,12 @@ function openQuantitySheet(food, initialGrams) {
     selectedFoodForQuantity = food;
     currentQuantity = initialGrams;
     
+    // Preserve the meal type from meal-add-sheet if active
+    const sheet = document.getElementById('food-quantity-sheet');
+    if (sheet && currentMealType) {
+        sheet.dataset.mealType = currentMealType;
+    }
+    
     const isUnitFood = hasNaturalUnit(food);
     currentUnitCount = isUnitFood ? gramsToUnits(food, initialGrams) : initialGrams;
     
@@ -884,8 +890,9 @@ async function saveCustomFood() {
         saveState();
         
         // Sync avec Supabase si connecté
+        let supabaseId = null;
         if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-            const supabaseId = await saveCustomFoodToSupabase(food);
+            supabaseId = await saveCustomFoodToSupabase(food);
             if (supabaseId) {
                 // CRITIQUE : Mettre à jour l'ID dans le state avec l'ID Supabase
                 const foodIndex = state.foods.findIndex(f => f.id === food.id);
@@ -899,7 +906,15 @@ async function saveCustomFood() {
         
         closeModal('custom-food-modal');
         renderFoodsList();
-        showToast('Aliment ajouté !', 'success');
+        
+        // Feedback utilisateur consolidé
+        if (supabaseId) {
+            showToast('Aliment ajouté !', 'success');
+        } else if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+            showToast('Aliment ajouté (sync en attente)', 'warning');
+        } else {
+            showToast('Aliment ajouté !', 'success');
+        }
         
     } finally {
         if (btn) {

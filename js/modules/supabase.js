@@ -1173,7 +1173,7 @@ async function saveCustomFoodToSupabase(food) {
         return result ? 'custom-' + result.id : null;
     } catch (error) {
         console.error('Erreur sauvegarde aliment:', error);
-        showToast('Erreur sync aliment - sauvegardé localement', 'warning');
+        // Toast handled by caller (saveCustomFood)
         return null;
     }
 }

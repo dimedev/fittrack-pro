@@ -275,16 +275,12 @@
 /* Quand une modal est active, bloquer le scroll du body */
 body:has(.bottom-sheet-overlay.active) {
     overflow: hidden !important;
-    position: fixed;
-    width: 100%;
     touch-action: none;
 }
 
 /* Alternative pour navigateurs sans :has() */
 body.modal-open {
     overflow: hidden !important;
-    position: fixed;
-    width: 100%;
     touch-action: none;
 }
 
