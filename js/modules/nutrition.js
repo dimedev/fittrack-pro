@@ -497,8 +497,7 @@ function openQuantitySheet(food, initialGrams) {
     const confirmBtn = document.getElementById('quantity-confirm-btn');
     if (confirmBtn && !isEditMode) confirmBtn.textContent = 'Ajouter au repas';
     
-    // Afficher le bottom sheet
-    const sheet = document.getElementById('food-quantity-sheet');
+    // Afficher le bottom sheet (réutiliser la variable sheet déclarée plus haut)
     if (sheet) {
         sheet.style.display = 'flex';
         sheet.offsetHeight;
