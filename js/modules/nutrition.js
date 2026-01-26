@@ -664,6 +664,7 @@ function closeFoodQuantitySheet() {
     if (sheet) {
         sheet.style.display = 'none';
         document.body.style.overflow = '';
+        document.body.classList.remove('modal-open');
     }
     selectedFoodForQuantity = null;
 }
@@ -1539,6 +1540,7 @@ function openMealSheet(mealType) {
     
     // CRITIQUE : Bloquer le scroll de la page derrière la modal
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
     
     sheet.style.display = 'flex';
     setTimeout(() => sheet.classList.add('active'), 10);
@@ -1553,6 +1555,7 @@ function closeMealSheet() {
     
     // CRITIQUE : Réactiver le scroll de la page
     document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
     
     // Reset du padding clavier
     resetKeyboardPaddingFix();
@@ -1785,6 +1788,10 @@ function openFoodQuantitySheetForMeal(food, mealType) {
     // Reset le texte du bouton
     const confirmBtn = document.getElementById('quantity-confirm-btn');
     if (confirmBtn) confirmBtn.textContent = 'Ajouter au repas';
+    
+    // Bloquer le scroll de la page
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
     
     sheet.style.display = 'flex';
     setTimeout(() => sheet.classList.add('active'), 10);
@@ -2249,6 +2256,7 @@ function openCardioSheet() {
     
     // CRITIQUE : Bloquer le scroll de la page derrière la modal
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
     
     // Reset état
     cardioState = { type: 'running', duration: 30, intensity: 'moderate' };
@@ -2287,6 +2295,7 @@ function closeCardioSheet() {
     
     // CRITIQUE : Réactiver le scroll de la page
     document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
     
     // Reset propre des styles transform/transition
     const innerSheet = sheet.querySelector('.bottom-sheet');
@@ -2700,6 +2709,12 @@ function initNutritionSwipeToClose() {
         const sheet = overlay.querySelector('.bottom-sheet');
         if (!sheet) return;
         
+        // Détecter l'élément scrollable (différent selon la modal)
+        const scrollableContent = sheet.querySelector('.meal-scrollable-content') || 
+                                  sheet.querySelector('.bottom-sheet-content');
+        const header = sheet.querySelector('.bottom-sheet-header');
+        const stickyHeader = sheet.querySelector('.meal-sticky-header');
+        
         // Fermer si on clique sur l'overlay (pas sur le sheet)
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay && closeFunc) {
@@ -2715,54 +2730,77 @@ function initNutritionSwipeToClose() {
         // Swipe-to-close - variables locales pour chaque sheet
         let startY = 0;
         let currentY = 0;
-        let hasMoved = false;
+        let canDrag = false;
         
-        sheet.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY;
-            currentY = startY; // Initialiser currentY à startY
-            hasMoved = false;
-        }, { passive: true });
+        // Header principal : toujours autoriser le swipe-to-close
+        if (header) {
+            header.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+                currentY = startY;
+                canDrag = true;
+            }, { passive: true });
+        }
+        
+        // Header sticky : toujours autoriser le swipe-to-close
+        if (stickyHeader) {
+            stickyHeader.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+                currentY = startY;
+                canDrag = true;
+            }, { passive: true });
+        }
+        
+        // Contenu scrollable : autoriser UNIQUEMENT si on est en haut (scrollTop <= 5px)
+        if (scrollableContent) {
+            scrollableContent.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+                currentY = startY;
+                // CRITIQUE : Ne permettre le drag que si on est en haut du scroll
+                canDrag = scrollableContent.scrollTop <= 5;
+            }, { passive: true });
+        }
         
         sheet.addEventListener('touchmove', (e) => {
+            // CRITIQUE : Ne pas interférer avec le scroll si canDrag est false
+            if (!canDrag) return;
+            
             currentY = e.touches[0].clientY;
             const diff = currentY - startY;
             
             // Ne déplacer que si on swipe vers le bas
             if (diff > 10) {
-                hasMoved = true;
                 sheet.style.transform = `translateY(${diff}px)`;
                 sheet.style.transition = 'none';
+                sheet.classList.add('dragging');
                 // CRITIQUE : Empêcher le scroll de la page pendant le drag
                 e.preventDefault();
             }
         }, { passive: false }); // IMPORTANT : passive:false pour permettre preventDefault
         
         sheet.addEventListener('touchend', () => {
-            // Ne rien faire si c'était juste un tap (pas de mouvement)
-            if (!hasMoved) {
-                return;
-            }
-            
             const diff = currentY - startY;
             
             sheet.style.transition = 'transform 0.3s ease';
+            sheet.classList.remove('dragging');
             
-            if (diff > 100) {
-                // Fermer le sheet avec animation
+            // Si on a swipé plus de 100px vers le bas, on ferme
+            if (canDrag && diff > 100) {
                 sheet.style.transform = 'translateY(100%)';
                 setTimeout(() => {
                     if (closeFunc) closeFunc();
+                    sheet.style.transform = '';
+                    sheet.style.transition = '';
                 }, 300);
             } else {
-                // Retour à la position initiale
+                // Sinon on revient en position
                 sheet.style.transform = '';
             }
             
             // Reset des variables
             startY = 0;
             currentY = 0;
-            hasMoved = false;
-        });
+            canDrag = false;
+        }, { passive: true });
     });
 }
 

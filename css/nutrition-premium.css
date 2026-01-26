@@ -1,6 +1,24 @@
 /* ==================== NUTRITION PREMIUM UI ==================== */
 /* Refonte autour des repas - UX guidée, calme, premium */
 
+/* ==================== BODY SCROLL LOCK (MODALS) ==================== */
+
+/* Quand une modal est active, bloquer le scroll du body */
+body:has(.bottom-sheet-overlay.active) {
+    overflow: hidden !important;
+    position: fixed;
+    width: 100%;
+    touch-action: none;
+}
+
+/* Alternative pour navigateurs sans :has() */
+body.modal-open {
+    overflow: hidden !important;
+    position: fixed;
+    width: 100%;
+    touch-action: none;
+}
+
 /* ==================== MEALS CONTAINER ==================== */
 
 .meals-container {
@@ -591,6 +609,11 @@
 .cardio-sheet {
     max-height: 90vh;
     overflow-x: hidden !important; /* Bloque le scroll horizontal */
+}
+
+.cardio-sheet .bottom-sheet-content {
+    overscroll-behavior: contain; /* Empêche le scroll de déborder vers le body */
+    -webkit-overflow-scrolling: touch; /* Scroll natif iOS */
 }
 
 .cardio-section-title {

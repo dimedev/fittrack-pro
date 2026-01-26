@@ -2042,6 +2042,8 @@
 
 #food-quantity-sheet .bottom-sheet-content {
     overflow-x: hidden;
+    overscroll-behavior: contain; /* Empêche le scroll de déborder vers le body */
+    -webkit-overflow-scrolling: touch; /* Scroll natif iOS */
 }
 
 /* Style premium iOS/Nike pour le CTA du bottom sheet */
