@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/session-manager.css?v=20">
     <link rel="stylesheet" href="css/premium-components.css?v=23">
-    <link rel="stylesheet" href="css/nutrition-premium.css?v=3">
+    <link rel="stylesheet" href="css/nutrition-premium.css?v=5">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=25">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
     <link rel="stylesheet" href="css/icons.css?v=1">
@@ -441,6 +441,21 @@
                         <div class="cardio-items" id="cardio-items"></div>
                     </div>
                     
+                    <!-- Section Mes Aliments Personnalisés -->
+                    <div class="custom-foods-section" id="custom-foods-section" style="display: none;">
+                        <div class="custom-foods-header" onclick="toggleCustomFoods()">
+                            <div class="custom-foods-info">
+                                <span class="custom-foods-icon">⭐</span>
+                                <span class="custom-foods-title">Mes Aliments</span>
+                                <span class="custom-foods-count" id="custom-foods-count">0</span>
+                            </div>
+                            <button class="custom-foods-toggle" id="custom-foods-toggle">▼</button>
+                        </div>
+                        <div class="custom-foods-content" id="custom-foods-content">
+                            <div id="foods-list"></div>
+                        </div>
+                    </div>
+                    
                     <!-- Suggestion intelligente quotidienne -->
                     <div class="nutrition-suggestion" id="nutrition-suggestion" style="display: none;">
                         <span id="suggestion-icon">💡</span>
@@ -795,7 +810,35 @@
                     <label class="form-label">Nom de l'aliment</label>
                     <input type="text" class="form-input" id="custom-food-name" placeholder="Ex: Poulet grillé maison">
                 </div>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">Valeurs pour 100g :</p>
+                
+                <!-- Section Unités Naturelles -->
+                <div class="unit-toggle-section">
+                    <label class="unit-toggle-label">
+                        <input type="checkbox" id="custom-food-has-unit" class="unit-checkbox">
+                        <span class="unit-toggle-text">
+                            <span class="unit-toggle-icon">📊</span>
+                            Cet aliment se compte en unités
+                        </span>
+                    </label>
+                    <p class="unit-toggle-hint">Ex: biscuit, tranche, cuillère, œuf...</p>
+                </div>
+                
+                <!-- Champs Unités (cachés par défaut) -->
+                <div class="unit-fields-container" id="unit-fields-container" style="display: none;">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Nom de l'unité</label>
+                            <input type="text" class="form-input" id="custom-food-unit-label" placeholder="Ex: biscuit, tranche">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Poids d'une unité (g)</label>
+                            <input type="number" class="form-input" id="custom-food-unit-weight" placeholder="Ex: 10">
+                        </div>
+                    </div>
+                    <p class="unit-helper-text">💡 Les valeurs ci-dessous seront pour <strong>1 <span id="unit-label-preview">unité</span></strong></p>
+                </div>
+                
+                <p class="nutrition-values-label" id="nutrition-values-label">Valeurs pour 100g :</p>
                 <div class="grid grid-2">
                     <div class="form-group">
                         <label class="form-label">Calories (kcal)</label>
@@ -2206,7 +2249,7 @@
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=8"></script>
     <script src="js/modules/profile.js?v=22"></script>
-    <script src="js/modules/nutrition.js?v=14"></script>
+    <script src="js/modules/nutrition.js?v=17"></script>
     <script src="js/modules/nutrition-suggestions.js?v=1"></script>
     <script src="js/modules/meal-templates.js?v=1"></script>
     <script src="js/modules/cardio.js?v=1"></script>

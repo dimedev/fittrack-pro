@@ -1,6 +1,275 @@
 /* ==================== NUTRITION PREMIUM UI ==================== */
 /* Refonte autour des repas - UX guidée, calme, premium */
 
+/* ==================== CUSTOM FOOD MODAL - UNIT TOGGLE ==================== */
+
+.unit-toggle-section {
+    background: linear-gradient(135deg, rgba(255, 59, 48, 0.05) 0%, rgba(255, 59, 48, 0.02) 100%);
+    border: 1px solid rgba(255, 59, 48, 0.15);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.unit-toggle-section:has(input:checked) {
+    background: linear-gradient(135deg, rgba(255, 59, 48, 0.1) 0%, rgba(255, 59, 48, 0.05) 100%);
+    border-color: rgba(255, 59, 48, 0.3);
+    box-shadow: 0 2px 8px rgba(255, 59, 48, 0.15);
+}
+
+.unit-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.unit-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+}
+
+.unit-toggle-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.unit-toggle-icon {
+    font-size: 1.2rem;
+}
+
+.unit-toggle-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 8px 0 0 32px;
+    font-style: italic;
+}
+
+.unit-fields-container {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.unit-helper-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(255, 59, 48, 0.05);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: 6px;
+}
+
+.unit-helper-text strong {
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.nutrition-values-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+/* ==================== MES ALIMENTS PERSONNALISÉS ==================== */
+
+.custom-foods-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 16px;
+    animation: slideIn 0.3s ease;
+}
+
+.custom-foods-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    user-select: none;
+}
+
+.custom-foods-header:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.custom-foods-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.custom-foods-icon {
+    font-size: 1.2rem;
+}
+
+.custom-foods-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.custom-foods-count {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: rgba(255, 59, 48, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.custom-foods-toggle {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: transform 0.3s ease;
+}
+
+.custom-foods-toggle.open {
+    transform: rotate(180deg);
+}
+
+.custom-foods-content {
+    padding: 0 16px 16px 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#foods-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.food-category-accordion {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.food-category-header {
+    padding: 12px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.02);
+    transition: background 0.2s ease;
+}
+
+.food-category-header:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.food-category-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.food-category-toggle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    width: 16px;
+}
+
+.food-category-icon {
+    font-size: 1.1rem;
+}
+
+.food-category-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.food-category-count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-left: 6px;
+}
+
+.food-category-content {
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-color);
+}
+
+.food-select-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.food-select-item:last-child {
+    border-bottom: none;
+}
+
+.food-select-item:hover {
+    background: rgba(255, 59, 48, 0.05);
+}
+
+.food-select-info {
+    flex: 1;
+}
+
+.food-search-macros {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.food-btn {
+    background: rgba(255, 59, 48, 0.1);
+    border: 1px solid rgba(255, 59, 48, 0.3);
+    color: var(--accent-primary);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.food-btn:hover {
+    background: rgba(255, 59, 48, 0.2);
+    transform: scale(1.05);
+}
+
+.food-btn:active {
+    transform: scale(0.95);
+}
+
 /* ==================== BODY SCROLL LOCK (MODALS) ==================== */
 
 /* Quand une modal est active, bloquer le scroll du body */

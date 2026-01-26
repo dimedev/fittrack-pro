@@ -714,15 +714,24 @@ async function loadAllDataFromSupabase() {
             .eq('user_id', currentUser.id);
         
         if (customFoods && customFoods.length > 0) {
-            const customFoodsList = customFoods.map(f => ({
-                id: 'custom-' + f.id,
-                name: f.name,
-                calories: parseFloat(f.calories),
-                protein: parseFloat(f.protein),
-                carbs: parseFloat(f.carbs),
-                fat: parseFloat(f.fat),
-                category: f.category
-            }));
+            const customFoodsList = customFoods.map(f => {
+                const food = {
+                    id: 'custom-' + f.id,
+                    name: f.name,
+                    calories: parseFloat(f.calories),
+                    protein: parseFloat(f.protein),
+                    carbs: parseFloat(f.carbs),
+                    fat: parseFloat(f.fat),
+                    category: f.category
+                };
+                
+                // Ajouter les propriétés d'unité si présentes
+                if (f.unit) food.unit = f.unit;
+                if (f.unit_label) food.unitLabel = f.unit_label;
+                if (f.unit_weight) food.unitWeight = parseFloat(f.unit_weight);
+                
+                return food;
+            });
             
             // CRITIQUE : Merge intelligent pour ne pas perdre les aliments locaux non synchronisés
             // Garder les aliments avec ID temporaire (timestamp) = créés localement mais pas encore syncés
@@ -1136,17 +1145,24 @@ async function saveCustomFoodToSupabase(food) {
     
     try {
         const result = await withRetry(async () => {
+            const foodData = {
+                user_id: currentUser.id,
+                name: food.name,
+                calories: food.calories,
+                protein: food.protein,
+                carbs: food.carbs,
+                fat: food.fat,
+                category: food.category
+            };
+            
+            // Ajouter les propriétés d'unité si présentes
+            if (food.unit) foodData.unit = food.unit;
+            if (food.unitLabel) foodData.unit_label = food.unitLabel;
+            if (food.unitWeight) foodData.unit_weight = food.unitWeight;
+            
             const { data, error } = await supabaseClient
                 .from('custom_foods')
-                .insert({
-                    user_id: currentUser.id,
-                    name: food.name,
-                    calories: food.calories,
-                    protein: food.protein,
-                    carbs: food.carbs,
-                    fat: food.fat,
-                    category: food.category
-                })
+                .insert(foodData)
                 .select()
                 .single();
             

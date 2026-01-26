@@ -140,24 +140,37 @@ function renderFoodsList() {
     const container = document.getElementById('foods-list');
     if (!container) return;
     
-    const searchTerm = '';
+    // Filtrer les aliments personnalisés uniquement
+    const customFoods = state.foods.filter(f => !defaultFoods.find(df => df.id === f.id));
+    
+    // Afficher/cacher la section selon s'il y a des aliments personnalisés
+    const customFoodsSection = document.getElementById('custom-foods-section');
+    const customFoodsCount = document.getElementById('custom-foods-count');
+    
+    if (customFoods.length === 0) {
+        if (customFoodsSection) customFoodsSection.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+    
+    if (customFoodsSection) customFoodsSection.style.display = 'block';
+    if (customFoodsCount) customFoodsCount.textContent = customFoods.length;
     
     // Initialiser l'état des accordéons si nécessaire
     if (!state.foodAccordionState) {
         state.foodAccordionState = {};
     }
     
-    const filteredFoods = state.foods.filter(food => 
-        food.name.toLowerCase().includes(searchTerm)
-    );
+    // Utiliser seulement les aliments personnalisés
+    const filteredFoods = customFoods;
 
     let html = '';
     Object.entries(foodCategories).forEach(([catId, cat]) => {
         const catFoods = filteredFoods.filter(f => f.category === catId);
         if (catFoods.length === 0) return;
         
-        // État de l'accordéon (ouvert si recherche active)
-        const isOpen = searchTerm.length > 0 || state.foodAccordionState[catId] === true;
+        // État de l'accordéon (toujours fermé par défaut, sauf si explicitement ouvert)
+        const isOpen = state.foodAccordionState[catId] === true;
 
         html += `
             <div class="food-category-accordion" data-category="${catId}">
@@ -171,11 +184,15 @@ function renderFoodsList() {
                 </div>
                 <div class="food-category-content" style="display: ${isOpen ? 'block' : 'none'};">
                     ${catFoods.map(food => {
+                        const hasUnit = food.unit && food.unitLabel && food.unitWeight;
+                        const unitInfo = hasUnit ? ` • 1 ${food.unitLabel} = ${food.unitWeight}g` : '';
+                        
                         return `
-                            <div class="food-select-item" onclick="quickAddFromSearch('${food.id}')">
-                                <div class="food-select-info">
+                            <div class="food-select-item">
+                                <div class="food-select-info" onclick="quickAddFromSearch('${food.id}')" style="flex: 1; cursor: pointer;">
                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                         <strong>${food.name}</strong>
+                                        ${hasUnit ? '<span style="font-size: 0.8rem; color: var(--text-secondary);">📊</span>' : ''}
                                     </div>
                                     <div class="food-search-macros">
                                         <span>🔥 ${food.calories} kcal</span>
@@ -183,10 +200,9 @@ function renderFoodsList() {
                                         <span>G: ${food.carbs}g</span>
                                         <span>L: ${food.fat}g</span>
                                     </div>
+                                    ${hasUnit ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">${unitInfo}</div>` : ''}
                                 </div>
-                                ${!defaultFoods.find(df => df.id === food.id) ? `
-                                    <button class="food-btn" onclick="event.stopPropagation(); deleteCustomFood('${food.id}')" title="Supprimer">🗑️</button>
-                                ` : ''}
+                                <button class="food-btn" onclick="event.stopPropagation(); deleteCustomFood('${food.id}')" title="Supprimer">🗑️</button>
                             </div>
                         `;
                     }).join('')}
@@ -196,6 +212,25 @@ function renderFoodsList() {
     });
 
     container.innerHTML = html || '<p style="color: var(--text-secondary);">Aucun aliment trouvé</p>';
+}
+
+// Toggle section mes aliments
+function toggleCustomFoods() {
+    const content = document.getElementById('custom-foods-content');
+    const toggle = document.getElementById('custom-foods-toggle');
+    const header = document.querySelector('.custom-foods-header');
+    
+    if (!content || !toggle) return;
+    
+    if (content.style.display === 'none' || !content.style.display) {
+        content.style.display = 'block';
+        toggle.textContent = '▼';
+        toggle.classList.add('open');
+    } else {
+        content.style.display = 'none';
+        toggle.textContent = '▶';
+        toggle.classList.remove('open');
+    }
 }
 
 // Toggle accordéon de catégorie d'aliments
@@ -693,6 +728,9 @@ if (typeof document !== 'undefined') {
         if (quantityInput) {
             quantityInput.addEventListener('input', updateQuantityTotal);
         }
+        
+        // Event listeners pour le toggle unités
+        initCustomFoodUnitToggle();
     });
 }
 
@@ -733,6 +771,19 @@ function openCustomFoodModal() {
     document.getElementById('custom-food-carbs').value = '';
     document.getElementById('custom-food-fat').value = '';
     document.getElementById('custom-food-category').value = 'protein';
+    
+    // Reset des champs unités
+    const hasUnitCheckbox = document.getElementById('custom-food-has-unit');
+    const unitContainer = document.getElementById('unit-fields-container');
+    if (hasUnitCheckbox) hasUnitCheckbox.checked = false;
+    if (unitContainer) unitContainer.style.display = 'none';
+    document.getElementById('custom-food-unit-label').value = '';
+    document.getElementById('custom-food-unit-weight').value = '';
+    
+    // Reset du label
+    const nutritionLabel = document.getElementById('nutrition-values-label');
+    if (nutritionLabel) nutritionLabel.textContent = 'Valeurs pour 100g :';
+    
     openModal('custom-food-modal');
 }
 
@@ -751,6 +802,11 @@ async function saveCustomFood() {
         const carbs = parseFloat(document.getElementById('custom-food-carbs').value) || 0;
         const fat = parseFloat(document.getElementById('custom-food-fat').value) || 0;
         const category = document.getElementById('custom-food-category').value;
+        
+        // Récupérer les infos d'unité
+        const hasUnit = document.getElementById('custom-food-has-unit').checked;
+        const unitLabel = document.getElementById('custom-food-unit-label').value.trim();
+        const unitWeight = parseFloat(document.getElementById('custom-food-unit-weight').value);
 
         // Validation du nom
         if (!name) {
@@ -789,7 +845,24 @@ async function saveCustomFood() {
             showToast(`Lipides : 0-${MAX_MACRO}g`, 'error');
             return;
         }
+        
+        // Validation des unités si activé
+        if (hasUnit) {
+            if (!unitLabel) {
+                showToast('Nom de l\'unité requis', 'error');
+                return;
+            }
+            if (isNaN(unitWeight) || unitWeight <= 0) {
+                showToast('Poids de l\'unité invalide', 'error');
+                return;
+            }
+            if (unitWeight > 10000) {
+                showToast('Poids maximum 10000g', 'error');
+                return;
+            }
+        }
 
+        // Construire l'objet food
         const food = {
             id: 'custom-' + Date.now(),
             name,
@@ -799,6 +872,13 @@ async function saveCustomFood() {
             fat: fat || 0,
             category
         };
+        
+        // Ajouter les propriétés d'unité si activé
+        if (hasUnit && unitLabel && unitWeight > 0) {
+            food.unit = 'piece'; // Type générique
+            food.unitLabel = unitLabel;
+            food.unitWeight = unitWeight;
+        }
 
         state.foods.push(food);
         saveState();
@@ -825,6 +905,44 @@ async function saveCustomFood() {
         if (btn) {
             btn.classList.remove('loading');
             btn.disabled = false;
+        }
+    }
+}
+
+// ==================== GESTION DU TOGGLE UNITÉS CUSTOM FOOD ====================
+
+function initCustomFoodUnitToggle() {
+    const hasUnitCheckbox = document.getElementById('custom-food-has-unit');
+    const unitContainer = document.getElementById('unit-fields-container');
+    const unitLabelInput = document.getElementById('custom-food-unit-label');
+    const unitWeightInput = document.getElementById('custom-food-unit-weight');
+    const nutritionLabel = document.getElementById('nutrition-values-label');
+    const unitLabelPreview = document.getElementById('unit-label-preview');
+    
+    if (!hasUnitCheckbox) return;
+    
+    // Toggle affichage des champs unités
+    hasUnitCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            unitContainer.style.display = 'block';
+            updateNutritionLabel();
+        } else {
+            unitContainer.style.display = 'none';
+            nutritionLabel.textContent = 'Valeurs pour 100g :';
+        }
+    });
+    
+    // Mise à jour du label quand on change le nom de l'unité
+    unitLabelInput?.addEventListener('input', updateNutritionLabel);
+    unitWeightInput?.addEventListener('input', updateNutritionLabel);
+    
+    function updateNutritionLabel() {
+        const unitLabel = unitLabelInput.value.trim() || 'unité';
+        const unitWeight = unitWeightInput.value || '?';
+        
+        if (hasUnitCheckbox.checked) {
+            nutritionLabel.textContent = `Valeurs pour 1 ${unitLabel} (~${unitWeight}g) :`;
+            unitLabelPreview.textContent = unitLabel;
         }
     }
 }
@@ -2496,6 +2614,9 @@ function loadJournalDay() {
     // Mettre à jour les macros
     updateJournalSummary();
     updateMacroRings();
+    
+    // Afficher la section "Mes Aliments"
+    renderFoodsList();
 }
 
 // Override confirmAddFood pour supporter le mealType
