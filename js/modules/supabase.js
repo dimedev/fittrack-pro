@@ -23,6 +23,11 @@ let lastSyncError = null;
 let isOnline = navigator.onLine;
 let pendingConflict = null;
 
+// ==================== AUTO-SYNC POLLING ====================
+let autoSyncInterval = null;
+const AUTO_SYNC_INTERVAL_MS = 30000; // 30 secondes
+let lastSyncTimestamp = 0;
+
 // Fonction de backup automatique des données en conflit
 function saveConflictBackup(entity, localData) {
     try {
@@ -408,11 +413,12 @@ async function syncPendingData() {
                                 entry.supabaseId = existing.id;
                                 console.log('✓ Entrée existante trouvée, doublon évité');
                             } else {
-                                // Créer une nouvelle entrée
+                                // Créer une nouvelle entrée (avec mealType)
                                 const id = await addJournalEntryToSupabase(
                                     date,
                                     entry.foodId,
                                     entry.quantity,
+                                    entry.mealType || inferMealType(entry.addedAt || Date.now()),
                                     entry.unitType,
                                     entry.unitCount
                                 );
@@ -638,11 +644,18 @@ async function onUserLoggedIn() {
     
     // Charger les données depuis Supabase
     await loadAllDataFromSupabase();
+    
+    // Démarrer le polling automatique
+    startAutoSync();
 }
 
 // Callback quand l'utilisateur se déconnecte
 function onUserLoggedOut() {
     console.log('👤 Utilisateur déconnecté');
+    
+    // Arrêter le polling automatique
+    stopAutoSync();
+    
     updateAuthUI();
     showAuthModal();
 }
@@ -669,15 +682,17 @@ function showAuthModal() {
 // ==================== SYNC DONNÉES ====================
 
 // Charger toutes les données depuis Supabase
-async function loadAllDataFromSupabase() {
+async function loadAllDataFromSupabase(silent = false) {
     if (!currentUser) return;
     
     try {
-        console.log('📥 Chargement des données...');
-        
-        // Afficher les skeletons pendant le chargement
-        if (window.PremiumUI && typeof showInitialSkeletons === 'function') {
-            showInitialSkeletons();
+        if (!silent) {
+            console.log('📥 Chargement des données...');
+            
+            // Afficher les skeletons pendant le chargement
+            if (window.PremiumUI && typeof showInitialSkeletons === 'function') {
+                showInitialSkeletons();
+            }
         }
         
         // Charger le profil (maybeSingle pour éviter erreur si pas de données)
@@ -1051,10 +1066,12 @@ async function loadAllDataFromSupabase() {
             state.sessionHistory = state.sessionHistory.slice(0, 100);
         }
         
-        console.log('✅ Données chargées depuis Supabase');
+        if (!silent) {
+            console.log('✅ Données chargées depuis Supabase');
+        }
         
         // Retirer les skeletons
-        if (typeof removeSkeletons === 'function') {
+        if (!silent && typeof removeSkeletons === 'function') {
             removeSkeletons();
         }
         
@@ -1066,14 +1083,18 @@ async function loadAllDataFromSupabase() {
             markSyncComplete();
         }
         
-        console.log('✅ Données synchronisées');
+        if (!silent) {
+            console.log('✅ Données synchronisées');
+        }
         
         // Rafraîchir l'UI
         refreshAllUI();
         
     } catch (error) {
         console.error('Erreur chargement données:', error);
-        showToast('Erreur lors du chargement des données', 'error');
+        if (!silent) {
+            showToast('Erreur lors du chargement des données', 'error');
+        }
     }
 }
 
@@ -1340,7 +1361,7 @@ async function saveTrainingSettingsToSupabase() {
 
 // Ajouter une entrée au journal (avec retry et feedback)
 // Supporte les unités naturelles avec unit_type et unit_count optionnels
-async function addJournalEntryToSupabase(date, foodId, quantity, unitType = null, unitCount = null) {
+async function addJournalEntryToSupabase(date, foodId, quantity, mealType = null, unitType = null, unitCount = null) {
     if (!currentUser) return null;
     if (!isOnline) {
         console.log('📴 Hors-ligne: entrée journal sauvegardée localement');
@@ -1357,8 +1378,14 @@ async function addJournalEntryToSupabase(date, foodId, quantity, unitType = null
                 quantity: quantity // Toujours en grammes pour les calculs
             };
             
+            // CRITIQUE : Ajouter le meal_type pour conserver le repas sélectionné
+            if (mealType) {
+                insertData.meal_type = mealType;
+            }
+            
             // Ajouter les colonnes d'unités si elles sont fournies
             // Note: ces colonnes doivent exister dans la table Supabase
+            // SQL: ALTER TABLE food_journal ADD COLUMN meal_type text;
             // SQL: ALTER TABLE food_journal ADD COLUMN unit_type text DEFAULT 'g';
             // SQL: ALTER TABLE food_journal ADD COLUMN unit_count numeric;
             if (unitType && unitType !== 'g') {
@@ -1614,6 +1641,81 @@ async function saveWorkoutSessionToSupabase(sessionData) {
         return false;
     }
 }
+
+// ==================== AUTO-SYNC POLLING ====================
+
+/**
+ * Démarre le polling automatique pour synchroniser les données
+ */
+function startAutoSync() {
+    // Arrêter tout polling existant
+    stopAutoSync();
+    
+    console.log('🔄 Auto-sync démarré (polling toutes les 30s)');
+    
+    // Lancer le polling
+    autoSyncInterval = setInterval(async () => {
+        // Ne pas synchroniser si pas connecté
+        if (!isLoggedIn()) {
+            return;
+        }
+        
+        // Ne pas synchroniser si l'onglet n'est pas visible (économie de ressources)
+        if (document.hidden) {
+            return;
+        }
+        
+        // Ne pas synchroniser si déjà en cours
+        if (currentSyncStatus === SyncStatus.SYNCING) {
+            return;
+        }
+        
+        // Synchronisation silencieuse
+        try {
+            const now = Date.now();
+            // Éviter les syncs trop rapprochées (au moins 25s entre chaque)
+            if (now - lastSyncTimestamp < 25000) {
+                return;
+            }
+            
+            lastSyncTimestamp = now;
+            
+            // Charger les données depuis Supabase (silencieux)
+            await loadAllDataFromSupabase(true); // true = mode silencieux
+            
+        } catch (error) {
+            console.warn('Erreur auto-sync:', error);
+            // Ne pas afficher de toast, continuer silencieusement
+        }
+    }, AUTO_SYNC_INTERVAL_MS);
+}
+
+/**
+ * Arrête le polling automatique
+ */
+function stopAutoSync() {
+    if (autoSyncInterval) {
+        clearInterval(autoSyncInterval);
+        autoSyncInterval = null;
+        console.log('⏸️  Auto-sync arrêté');
+    }
+}
+
+/**
+ * Reprend le sync quand la page redevient visible
+ */
+function handleVisibilityChange() {
+    if (!document.hidden && isLoggedIn()) {
+        // Page visible, sync immédiat puis reprise du polling
+        console.log('👀 Page visible, sync immédiat...');
+        loadAllDataFromSupabase(true).catch(err => {
+            console.warn('Erreur sync visibilité:', err);
+        });
+    }
+}
+
+// Écouter les changements de visibilité
+document.addEventListener('visibilitychange', handleVisibilityChange);
 
 // ==================== UTILS ====================
 

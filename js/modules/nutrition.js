@@ -1158,16 +1158,20 @@ async function addToJournalDirect(foodId, quantity) {
     if (!state.foodJournal) state.foodJournal = {};
     if (!state.foodJournal[date]) state.foodJournal[date] = [];
 
+    // Inférer le mealType pour le quick add (basé sur l'heure)
+    const mealType = inferMealType(Date.now());
+    
     const entry = {
         foodId: food.id,
         quantity: quantity,
         addedAt: Date.now(),
+        mealType: mealType,
         isNew: true // Marquer comme nouvelle pour l'animation
     };
     
     // Sync avec Supabase si connecté
     if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-        const supabaseId = await addJournalEntryToSupabase(date, food.id, quantity);
+        const supabaseId = await addJournalEntryToSupabase(date, food.id, quantity, mealType);
         if (supabaseId) entry.supabaseId = supabaseId;
     }
     
@@ -2290,9 +2294,9 @@ async function addQuickMeal(mealType, mealIdx) {
                 mealType: mealType
             };
             
-            // Sync Supabase si connecté
+            // Sync Supabase si connecté (avec mealType)
             if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-                const supabaseId = await addJournalEntryToSupabase(date, food.id, qty);
+                const supabaseId = await addJournalEntryToSupabase(date, food.id, qty, mealType);
                 if (supabaseId) entry.supabaseId = supabaseId;
             }
             
@@ -2663,9 +2667,9 @@ async function addToJournalWithMealType(foodId, quantity, mealType) {
         unitCount: unitCount
     };
     
-    // Sync Supabase si connecté (avec infos d'unités)
+    // Sync Supabase si connecté (avec infos d'unités et mealType)
     if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-        const supabaseId = await addJournalEntryToSupabase(date, food.id, quantity, unitType, unitCount);
+        const supabaseId = await addJournalEntryToSupabase(date, food.id, quantity, mealType, unitType, unitCount);
         if (supabaseId) entry.supabaseId = supabaseId;
     }
     
