@@ -311,12 +311,13 @@ function generateSmartSuggestions(mealType, excludeIds = []) {
             .filter(e => e.foodId === food.id).length;
         if (todayCount >= 2) return false;
         
-        // Privilégier aliments adaptés au repas
-        if (food.mealTags && !food.mealTags.includes(mealType)) {
-            // Quand même garder si très populaire
-            if (food.priority < 8) return false;
+        // Filtrage strict par type de repas
+        if (food.mealTags && food.mealTags.length > 0) {
+            // Si l'aliment a des tags de repas, il DOIT correspondre au type actuel
+            return food.mealTags.includes(mealType);
         }
         
+        // Si pas de mealTags, l'aliment est polyvalent (accepté pour tous les repas)
         return true;
     });
     
