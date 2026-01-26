@@ -382,7 +382,8 @@
 /* ==================== MEAL ADD SHEET ==================== */
 
 .meal-sheet {
-    max-height: 85vh;
+    max-height: 90vh;
+    overflow-x: hidden !important; /* Bloque le scroll horizontal */
 }
 
 .meal-search-section {
@@ -589,6 +590,7 @@
 
 .cardio-sheet {
     max-height: 90vh;
+    overflow-x: hidden !important; /* Bloque le scroll horizontal */
 }
 
 .cardio-section-title {
@@ -1032,6 +1034,16 @@
 
 /* ==================== RECHERCHE NUTRITION - STICKY HEADER ==================== */
 
+/* Structure principale de la modal */
+.meal-sheet {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* CRITIQUE : empêche le débordement */
+    overflow-x: hidden !important; /* Bloque le scroll horizontal */
+}
+
+/* Header sticky */
 .meal-sticky-header {
     position: sticky;
     top: 0;
@@ -1041,23 +1053,41 @@
     flex-shrink: 0;
 }
 
+/* Contenu scrollable */
 .meal-scrollable-content {
     flex: 1;
+    min-height: 0; /* CRITIQUE pour flex */
     overflow-y: auto;
+    overflow-x: hidden; /* Bloque le scroll horizontal */
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 50vh; /* CRITIQUE : Espace pour le clavier iOS */
+    overscroll-behavior: contain; /* Empêche le scroll de "déborder" */
+    padding-bottom: 200px; /* Padding par défaut */
+    transition: padding-bottom 0.3s ease; /* Animation douce */
 }
 
-/* Ajuster le bottom-sheet-content pour utiliser flex */
+/* Padding augmenté quand input focus (clavier ouvert) */
+.meal-sheet:has(input:focus) .meal-scrollable-content,
+.meal-sheet:has(select:focus) .meal-scrollable-content {
+    padding-bottom: 380px; /* Espace pour le clavier mobile */
+}
+
+/* Container principal */
 .meal-sheet .bottom-sheet-content {
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-height: 0; /* CRITIQUE pour flex */
     overflow: hidden;
+    overflow-x: hidden !important;
     padding-top: 0;
 }
 
+/* Responsive */
 @media (max-width: 768px) {
+    .meal-sheet {
+        max-height: 92vh;
+    }
+    
     .meal-sticky-header {
         padding-top: 16px;
     }
@@ -1065,4 +1095,19 @@
     .meal-search-input {
         font-size: 16px !important; /* Évite le zoom iOS */
     }
+    
+    /* Plus de padding pour les petits écrans */
+    .meal-scrollable-content {
+        padding-bottom: 250px;
+    }
+    
+    .meal-sheet:has(input:focus) .meal-scrollable-content,
+    .meal-sheet:has(select:focus) .meal-scrollable-content {
+        padding-bottom: 420px; /* Clavier prend plus de place sur mobile */
+    }
+}
+
+/* Limite de hauteur maximale pour éviter le scroll infini */
+.meal-scrollable-content {
+    max-height: calc(90vh - 180px); /* Hauteur viewport - header - controls */
 }

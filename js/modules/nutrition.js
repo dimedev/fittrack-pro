@@ -1554,6 +1554,9 @@ function closeMealSheet() {
     // CRITIQUE : Réactiver le scroll de la page
     document.body.style.overflow = '';
     
+    // Reset du padding clavier
+    resetKeyboardPaddingFix();
+    
     // Reset propre des styles transform/transition
     const innerSheet = sheet.querySelector('.bottom-sheet');
     if (innerSheet) {
@@ -2942,6 +2945,65 @@ function renderCaloriesChart(days = 7) {
             }
         }
     });
+}
+
+// ==================== GESTION DYNAMIQUE DU PADDING CLAVIER ====================
+
+let keyboardPaddingInitialized = false;
+
+function initKeyboardPaddingFix() {
+    if (keyboardPaddingInitialized) return;
+    keyboardPaddingInitialized = true;
+    
+    const scrollableContent = document.querySelector('.meal-scrollable-content');
+    if (!scrollableContent) return;
+    
+    // Détection du clavier via visualViewport (API moderne)
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            const keyboardHeight = window.innerHeight - window.visualViewport.height;
+            
+            // Si le clavier est ouvert (hauteur > 150px typiquement)
+            if (keyboardHeight > 150) {
+                scrollableContent.style.paddingBottom = `${keyboardHeight + 120}px`;
+            } else {
+                scrollableContent.style.paddingBottom = '200px';
+            }
+        });
+    }
+    
+    // Fallback : détecter focus sur les inputs
+    const inputs = document.querySelectorAll('#meal-add-sheet input, #meal-add-sheet select');
+    inputs.forEach(input => {
+        input.addEventListener('focus', () => {
+            // Sur mobile, le clavier prend ~300-350px
+            if (window.innerWidth <= 768) {
+                scrollableContent.style.paddingBottom = '400px';
+                // Scroll vers l'input après un court délai
+                setTimeout(() => {
+                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        });
+        
+        input.addEventListener('blur', () => {
+            // Remettre le padding normal après fermeture du clavier
+            setTimeout(() => {
+                if (!document.querySelector('#meal-add-sheet input:focus, #meal-add-sheet select:focus')) {
+                    scrollableContent.style.paddingBottom = '200px';
+                }
+            }, 300);
+        });
+    });
+}
+
+// Réinitialiser le flag quand la modal se ferme
+function resetKeyboardPaddingFix() {
+    keyboardPaddingInitialized = false;
+    const scrollableContent = document.querySelector('.meal-scrollable-content');
+    if (scrollableContent) {
+        scrollableContent.style.paddingBottom = '200px';
+    }
 }
 
 // Initialiser au chargement du DOM
