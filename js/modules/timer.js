@@ -4,6 +4,7 @@ let timerInterval = null;
 let timerSeconds = 0;
 let timerRunning = false;
 let autoTimerEnabled = true; // Timer auto activé par défaut
+let timerEndTime = 0; // Timestamp de fin pour calcul précis
 
 // Configuration des temps de repos recommandés (en secondes)
 // Ces valeurs sont maintenant définies dans exercises.js (REST_TIMES)
@@ -102,8 +103,10 @@ function setTimer(seconds) {
 function toggleTimer() {
     const toggleBtn = document.getElementById('timer-toggle');
     if (timerRunning) {
-        // Pause
+        // Pause - recalculer timerSeconds depuis le temps restant réel
         clearInterval(timerInterval);
+        const remaining = timerEndTime - Date.now();
+        timerSeconds = Math.max(0, Math.ceil(remaining / 1000));
         timerRunning = false;
         if (toggleBtn) toggleBtn.textContent = 'Reprendre';
         updateMiniTimerState();
@@ -120,20 +123,29 @@ function startTimerCountdown() {
     if (toggleBtn) toggleBtn.textContent = 'Pause';
     updateMiniTimerState();
 
+    // Calculer l'heure de fin basée sur Date.now() pour précision
+    timerEndTime = Date.now() + (timerSeconds * 1000);
+
     timerInterval = setInterval(() => {
-        timerSeconds--;
+        // Calculer le temps restant réel basé sur Date.now()
+        const remaining = timerEndTime - Date.now();
+        timerSeconds = Math.max(0, Math.ceil(remaining / 1000));
+        
         updateTimerDisplay();
         updateMiniTimer();
 
-        if (timerSeconds <= 0) {
+        if (remaining <= 0) {
             clearInterval(timerInterval);
             timerRunning = false;
+            timerSeconds = 0;
             if (toggleBtn) toggleBtn.textContent = 'Démarrer';
             playTimerSound();
 
             // Vibration si supportée
             if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200, 100, 200]);
+                try {
+                    navigator.vibrate([200, 100, 200, 100, 200]);
+                } catch(e) {}
             }
 
             // Notification visuelle sur le mini-timer

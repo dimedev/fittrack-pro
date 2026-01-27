@@ -1276,6 +1276,112 @@ function startFullScreenSession(splitIndex) {
     showSessionPreview(splitIndex);
 }
 
+/**
+ * Reporte l'exercice courant à la fin
+ */
+function postponeCurrentExercise() {
+    if (!fsSession.active) return;
+    if (fsSession.exercises.length <= 1) {
+        showToast('Impossible de reporter le dernier exercice', 'warning');
+        return;
+    }
+    
+    const currentExercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    
+    // Confirmation
+    if (!confirm(`Reporter "${currentExercise.effectiveName}" à la fin ?`)) {
+        return;
+    }
+    
+    // Retirer l'exercice de sa position actuelle
+    const [postponedExercise] = fsSession.exercises.splice(fsSession.currentExerciseIndex, 1);
+    
+    // Marquer comme reporté
+    postponedExercise.postponed = true;
+    
+    // Ajouter à la fin
+    fsSession.exercises.push(postponedExercise);
+    
+    // Réinitialiser l'index de série
+    fsSession.currentSetIndex = 0;
+    
+    // Sauvegarder immédiatement
+    saveFsSessionToStorage();
+    
+    // Afficher l'exercice suivant (qui prend la place actuelle)
+    renderCurrentExercise();
+    
+    // Démarrer le timer de repos
+    startRestTimer();
+    
+    showToast(`${currentExercise.effectiveName} reporté`, 'info');
+}
+
+/**
+ * Minimise la séance en cours (garde en arrière-plan)
+ */
+function minimizeSession() {
+    if (!fsSession.active) return;
+    
+    // Masquer l'UI fullscreen
+    document.getElementById('fullscreen-session').style.display = 'none';
+    document.body.style.overflow = '';
+
+    // Afficher la nav
+    const nav = document.querySelector('.nav');
+    const mobileNav = document.querySelector('.mobile-nav');
+    if (nav) nav.style.display = '';
+    if (mobileNav) mobileNav.style.display = '';
+    
+    // Afficher l'indicateur "Séance en cours"
+    updateSessionIndicator();
+    const indicator = document.getElementById('session-indicator');
+    if (indicator) indicator.style.display = 'flex';
+    
+    console.log('📱 Séance minimisée');
+}
+
+/**
+ * Restaure la séance en cours
+ */
+function restoreSession() {
+    if (!fsSession.active) return;
+    
+    // Masquer l'indicateur
+    const indicator = document.getElementById('session-indicator');
+    if (indicator) indicator.style.display = 'none';
+    
+    // Afficher l'UI fullscreen
+    const fsElement = document.getElementById('fullscreen-session');
+    fsElement.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Masquer la nav
+    const nav = document.querySelector('.nav');
+    const mobileNav = document.querySelector('.mobile-nav');
+    if (nav) nav.style.display = 'none';
+    if (mobileNav) mobileNav.style.display = 'none';
+    
+    // Rafraîchir l'affichage
+    renderCurrentExercise();
+    
+    console.log('📱 Séance restaurée');
+}
+
+/**
+ * Met à jour le texte de l'indicateur de séance
+ */
+function updateSessionIndicator() {
+    const subtitle = document.getElementById('session-indicator-subtitle');
+    if (!subtitle || !fsSession.active) return;
+    
+    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    const currentSet = fsSession.currentSetIndex + 1;
+    const totalSets = exercise?.sets || 0;
+    
+    subtitle.textContent = `${fsSession.splitName} - Série ${currentSet}/${totalSets}`;
+}
+
 function closeFullScreenSession() {
     // Confirm if sets were logged
     if (fsSession.completedSets.length > 0) {
@@ -1283,6 +1389,10 @@ function closeFullScreenSession() {
             return;
         }
     }
+
+    // Masquer l'indicateur
+    const indicator = document.getElementById('session-indicator');
+    if (indicator) indicator.style.display = 'none';
 
     // Arrêter la sauvegarde automatique
     stopAutoSaveFsSession();
@@ -1318,9 +1428,12 @@ function renderCurrentExercise() {
     // Update exercise info
     const exerciseNameEl = document.getElementById('fs-exercise-name');
     exerciseNameEl.innerHTML = `
-        ${exercise.effectiveName}
+        ${exercise.effectiveName}${exercise.postponed ? ' <span style="color: var(--warning); font-size: 0.8rem;">⏭️</span>' : ''}
         <button class="exercise-info-btn" onclick="openExerciseTips('${exercise.effectiveName.replace(/'/g, "\\'")}')" title="Informations" style="margin-left: 8px;">
             ⓘ
+        </button>
+        <button class="exercise-postpone-btn" onclick="postponeCurrentExercise()" title="Faire plus tard" style="margin-left: 8px;">
+            ⏭️
         </button>
     `;
     document.getElementById('fs-set-indicator').textContent = `Série ${currentSet} / ${totalSets}`;
@@ -1461,8 +1574,13 @@ function validateCurrentSet() {
         fsSession.currentSetIndex++;
         renderCurrentExercise();
         
-        // Start rest timer (après la première série)
-        if (fsSession.currentSetIndex >= 1) {
+        // Start rest timer (après la première série de CET exercice)
+        // On compte combien de séries ont été complétées pour cet exercice
+        const completedSetsForThisExercise = fsSession.completedSets.filter(
+            s => s.exerciseIndex === fsSession.currentExerciseIndex
+        ).length;
+        
+        if (completedSetsForThisExercise >= 1) {
             startRestTimer();
         }
     } else if (isLastSet && !isLastExercise) {
@@ -1555,6 +1673,18 @@ function renderSessionCompleteState() {
     const totalSets = fsSession.completedSets.length;
     const totalExercises = new Set(fsSession.completedSets.map(s => s.exerciseIndex)).size;
     
+    // Calculer le volume total (kg soulevés)
+    const totalVolume = fsSession.completedSets.reduce((sum, set) => {
+        return sum + (set.weight * set.reps);
+    }, 0);
+    const volumeTonnes = (totalVolume / 1000).toFixed(1);
+    
+    // Calculer le volume total
+    const totalVolume = fsSession.completedSets.reduce((sum, set) => {
+        return sum + (set.weight * set.reps);
+    }, 0);
+    const volumeTonnes = (totalVolume / 1000).toFixed(1);
+    
     const statsEl = document.getElementById('fs-complete-stats');
     if (statsEl) {
         statsEl.innerHTML = `
@@ -1565,6 +1695,10 @@ function renderSessionCompleteState() {
             <div class="fs-complete-stat">
                 <span class="fs-complete-stat-value">${totalSets}</span>
                 <span class="fs-complete-stat-label">séries</span>
+            </div>
+            <div class="fs-complete-stat" title="Volume total = poids × répétitions">
+                <span class="fs-complete-stat-value">${volumeTonnes}</span>
+                <span class="fs-complete-stat-label">tonnes</span>
             </div>
             <div class="fs-complete-stat">
                 <span class="fs-complete-stat-value">${duration}</span>
@@ -1579,11 +1713,56 @@ function renderSessionCompleteState() {
 let fsTimerInterval = null;
 let fsTimerSeconds = 0;
 let fsTimerTarget = 90;
+let fsTimerEndTime = 0; // Timestamp de fin pour calcul précis
+
+/**
+ * Détermine le temps de repos intelligent selon l'exercice et l'objectif
+ * Logique de coach pro : gros muscles + compound = repos long, isolation = repos court
+ */
+function getSmartRestTime(exerciseName, goal) {
+    const name = exerciseName.toLowerCase();
+    
+    // Exercices composés gros muscles (3-5 min pour force, 2-3 min pour hypertrophie)
+    const heavyCompounds = ['squat', 'deadlift', 'soulevé de terre', 'hip thrust', 'presse', 'leg press'];
+    if (heavyCompounds.some(ex => name.includes(ex))) {
+        return goal === 'strength' ? 240 : goal === 'hypertrophy' ? 150 : 90;
+    }
+    
+    // Composés haut du corps (2-4 min pour force, 90-120s pour hypertrophie)
+    const upperCompounds = ['bench', 'développé', 'overhead press', 'military press', 'rowing', 'barbell row', 'pull-up', 'chin-up', 'traction'];
+    if (upperCompounds.some(ex => name.includes(ex))) {
+        return goal === 'strength' ? 180 : goal === 'hypertrophy' ? 120 : 75;
+    }
+    
+    // Isolation jambes (90-120s)
+    const legIsolation = ['leg curl', 'leg extension', 'curl', 'extension', 'abduction', 'adduction'];
+    if (legIsolation.some(ex => name.includes(ex))) {
+        return goal === 'strength' ? 120 : goal === 'hypertrophy' ? 90 : 60;
+    }
+    
+    // Isolation bras (60-90s)
+    const armIsolation = ['biceps', 'triceps', 'curl', 'extension', 'pushdown'];
+    if (armIsolation.some(ex => name.includes(ex))) {
+        return goal === 'strength' ? 90 : goal === 'hypertrophy' ? 75 : 45;
+    }
+    
+    // Petits muscles (45-60s)
+    const smallMuscles = ['lateral', 'élévation', 'raises', 'calf', 'mollet', 'shrug', 'face pull'];
+    if (smallMuscles.some(ex => name.includes(ex))) {
+        return goal === 'strength' ? 75 : goal === 'hypertrophy' ? 60 : 45;
+    }
+    
+    // Fallback : temps par défaut selon objectif
+    return REST_TIMES[goal]?.default || 90;
+}
 
 function startRestTimer() {
-    // Get target time based on goal
+    // Get exercise name and goal
+    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
     const goal = state.wizardResults?.goal || 'hypertrophy';
-    fsTimerTarget = REST_TIMES[goal]?.default || 90;
+    
+    // Temps de repos intelligent selon exercice + objectif
+    fsTimerTarget = getSmartRestTime(exercise.effectiveName, goal);
     fsTimerSeconds = fsTimerTarget;
 
     updateFsTimerDisplay();
@@ -1593,18 +1772,27 @@ function startRestTimer() {
         clearInterval(fsTimerInterval);
     }
 
-    // Start countdown
+    // Calculer l'heure de fin basée sur Date.now() pour précision
+    fsTimerEndTime = Date.now() + (fsTimerSeconds * 1000);
+
+    // Start countdown basé sur Date.now()
     fsTimerInterval = setInterval(() => {
-        fsTimerSeconds--;
+        // Calculer le temps restant réel
+        const remaining = fsTimerEndTime - Date.now();
+        fsTimerSeconds = Math.max(0, Math.ceil(remaining / 1000));
+        
         updateFsTimerDisplay();
 
-        if (fsTimerSeconds <= 0) {
+        if (remaining <= 0) {
             clearInterval(fsTimerInterval);
             fsTimerInterval = null;
+            fsTimerSeconds = 0;
             
             // Vibrate if available
             if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200]);
+                try {
+                    navigator.vibrate([200, 100, 200]);
+                } catch(e) {}
             }
             
             // Play sound or show notification
@@ -1710,6 +1898,24 @@ function finishSession() {
         });
     });
 
+    // Calculer le volume total et les calories brûlées
+    const totalVolume = fsSession.completedSets.reduce((sum, set) => {
+        return sum + (set.weight * set.reps);
+    }, 0);
+    
+    const durationMinutes = Math.round((Date.now() - fsSession.startTime) / 1000 / 60);
+    
+    // Calculer les calories brûlées (MET musculation)
+    // Intensité basée sur le volume/temps
+    const volumePerMinute = totalVolume / durationMinutes;
+    let met = 5; // Modéré par défaut
+    
+    if (volumePerMinute > 150) met = 6; // Intense
+    else if (volumePerMinute < 80) met = 4; // Léger
+    
+    const userWeight = state.profile?.weight || 70;
+    const caloriesBurned = Math.round(met * userWeight * (durationMinutes / 60));
+    
     // Save session history
     state.sessionHistory.unshift({
         date: today,
@@ -1717,7 +1923,9 @@ function finishSession() {
         program: state.wizardResults.selectedProgram,
         day: fsSession.splitName,
         exercises: sessionData,
-        duration: Math.round((Date.now() - fsSession.startTime) / 1000 / 60) // minutes
+        duration: durationMinutes,
+        totalVolume: Math.round(totalVolume),
+        caloriesBurned: caloriesBurned
     });
 
     // Keep only last 100 sessions

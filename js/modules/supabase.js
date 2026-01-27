@@ -522,6 +522,17 @@ async function syncPendingData() {
             }
         }
         
+        // 9. Synchroniser l'hydratation
+        if (state.hydration) {
+            for (const [date, amountMl] of Object.entries(state.hydration)) {
+                try {
+                    await saveHydrationToSupabase(date, amountMl);
+                } catch (err) {
+                    console.warn('Erreur sync hydratation:', err);
+                }
+            }
+        }
+        
         updateSyncIndicator(SyncStatus.SUCCESS);
         console.log('✅ Toutes les données synchronisées');
     } catch (error) {
@@ -1097,6 +1108,25 @@ async function loadAllDataFromSupabase(silent = false) {
             console.log('Table cardio_sessions non disponible:', e.message);
         }
         
+        // Charger l'hydratation
+        try {
+            const { data: hydrationData } = await supabaseClient
+                .from('hydration_log')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('date', { ascending: false })
+                .limit(30); // 30 derniers jours
+            
+            if (hydrationData && hydrationData.length > 0) {
+                state.hydration = {};
+                hydrationData.forEach(entry => {
+                    state.hydration[entry.date] = entry.amount_ml;
+                });
+            }
+        } catch (e) {
+            console.log('Table hydration_log non disponible:', e.message);
+        }
+        
         // Charger les combos de repas favoris
         try {
             if (window.MealTemplates && typeof window.MealTemplates.loadFromSupabase === 'function') {
@@ -1669,6 +1699,41 @@ async function clearJournalDayInSupabase(date) {
     }
 }
 
+// ==================== HYDRATATION ====================
+
+/**
+ * Sauvegarde l'hydratation du jour dans Supabase (upsert)
+ */
+async function saveHydrationToSupabase(date, amountMl) {
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: hydratation sauvegardée localement');
+        return false;
+    }
+    
+    try {
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('hydration_log')
+                .upsert({
+                    user_id: currentUser.id,
+                    date: date,
+                    amount_ml: amountMl,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id,date'
+                });
+            
+            if (error) throw error;
+        }, { maxRetries: 2, critical: false });
+        return true;
+    } catch (error) {
+        console.error('Erreur sync hydratation:', error);
+        showToast('Erreur sync hydratation - sauvegardée localement', 'warning');
+        return false;
+    }
+}
+
 // ==================== CARDIO SESSIONS ====================
 
 // Sauvegarder une session cardio
@@ -1819,6 +1884,41 @@ async function saveWorkoutSessionToSupabase(sessionData) {
     } catch (error) {
         console.error('Erreur sauvegarde séance:', error);
         showToast('Erreur sync séance - sauvegardé localement', 'warning');
+        return false;
+    }
+}
+
+// ==================== HYDRATATION SYNC ====================
+
+/**
+ * Sauvegarde l'hydratation du jour dans Supabase
+ */
+async function saveHydrationToSupabase(date, amountMl) {
+    if (!currentUser) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: hydratation sauvegardée localement');
+        return false;
+    }
+    
+    try {
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('hydration_log')
+                .upsert({
+                    user_id: currentUser.id,
+                    date: date,
+                    amount_ml: amountMl,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id,date'
+                });
+            
+            if (error) throw error;
+        }, { maxRetries: 2, critical: false });
+        return true;
+    } catch (error) {
+        console.error('Erreur sync hydratation:', error);
+        showToast('Erreur sync hydratation - sauvegardée localement', 'warning');
         return false;
     }
 }

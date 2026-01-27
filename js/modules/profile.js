@@ -375,6 +375,7 @@ function calculateReadinessScore() {
     let details = {
         nutrition: 0,
         recovery: 100,
+        hydration: 0,
         streak: 0
     };
     
@@ -422,6 +423,22 @@ function calculateReadinessScore() {
         }
     }
     
+    // Hydratation (10%) - bonus si objectif atteint
+    const today = new Date().toISOString().split('T')[0];
+    const waterConsumed = state.hydration?.[today] || 0;
+    const waterGoal = state.profile?.waterGoal || 2500;
+    const waterPercent = Math.min(100, (waterConsumed / waterGoal) * 100);
+    
+    if (waterPercent >= 80) {
+        details.hydration = 100; // Bonus si >= 80%
+    } else if (waterPercent >= 50) {
+        details.hydration = 70; // Acceptable
+    } else if (waterPercent > 0) {
+        details.hydration = 40; // Insuffisant
+    } else {
+        details.hydration = isNewUser ? 50 : 0; // Neutre pour nouveaux users
+    }
+    
     // Streak (20%) - bonus pour la constance
     const currentStreak = state.goals?.currentStreak || 0;
     if (currentStreak > 0) {
@@ -432,9 +449,10 @@ function calculateReadinessScore() {
     
     // Calcul du score final pondéré
     let score = Math.round(
-        (details.nutrition * 0.4) +
-        (details.recovery * 0.4) +
-        (details.streak * 0.2)
+        (details.nutrition * 0.35) +
+        (details.recovery * 0.35) +
+        (details.hydration * 0.10) +
+        (details.streak * 0.20)
     );
     
     // Boost pour nouveaux utilisateurs prêts à commencer

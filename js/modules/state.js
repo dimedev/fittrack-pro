@@ -87,7 +87,8 @@ const StateSchema = {
             height: { type: 'number', min: 50, max: 300 },
             targetCalories: { type: 'number', min: 500, max: 10000 },
             bmr: { type: 'number', min: 500, max: 5000 },
-            tdee: { type: 'number', min: 500, max: 10000 }
+            tdee: { type: 'number', min: 500, max: 10000 },
+            waterGoal: { type: 'number', min: 1000, max: 5000 } // ml par jour
         }
     },
     trainingDays: { type: 'number', min: 1, max: 7 },
@@ -234,6 +235,9 @@ let state = {
     
     // Cardio tracking
     cardioLog: {}, // { "2025-01-25": [{ type, duration, intensity, calories, addedAt }] }
+    
+    // Hydratation tracking
+    hydration: {}, // { "2025-01-25": 2500 } - ml par jour
     
     // Habitudes alimentaires (pour suggestions intelligentes)
     mealHistory: {}, // { mealSignature: { count, lastUsed, avgRating } } - pour suggestions
