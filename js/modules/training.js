@@ -1679,12 +1679,6 @@ function renderSessionCompleteState() {
     }, 0);
     const volumeTonnes = (totalVolume / 1000).toFixed(1);
     
-    // Calculer le volume total
-    const totalVolume = fsSession.completedSets.reduce((sum, set) => {
-        return sum + (set.weight * set.reps);
-    }, 0);
-    const volumeTonnes = (totalVolume / 1000).toFixed(1);
-    
     const statsEl = document.getElementById('fs-complete-stats');
     if (statsEl) {
         statsEl.innerHTML = `
