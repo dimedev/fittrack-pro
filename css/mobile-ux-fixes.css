@@ -1621,3 +1621,303 @@ html, body, main {
         border-radius: 12px;
     }
 }
+
+/* ==================== FIX 16: INPUT DATE MOBILE ==================== */
+
+/* Style de l'input date pour dark mode */
+#nutrition .form-input[type="date"],
+input[type="date"].form-input {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    color-scheme: dark;
+}
+
+/* Cacher l'icône calendar par défaut sur mobile */
+@media (max-width: 768px) {
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1) brightness(0.8);
+        opacity: 0.7;
+        cursor: pointer;
+    }
+    
+    /* Alternative: cacher complètement si ça casse */
+    .nutrition-header-actions input[type="date"]::-webkit-calendar-picker-indicator {
+        display: none;
+    }
+    
+    .nutrition-header-actions input[type="date"] {
+        padding-right: 12px;
+    }
+}
+
+/* ==================== FIX 17: BOUTON QUICK-START MOBILE ==================== */
+
+/* Forcer le style du bouton quick-start */
+.btn-quick-start {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 12px !important;
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+    flex-shrink: 0 !important;
+}
+
+.btn-quick-start svg {
+    width: 20px !important;
+    height: 20px !important;
+    fill: #ffffff !important;
+    stroke: none !important;
+}
+
+.btn-quick-start:active {
+    transform: scale(0.95) !important;
+    box-shadow: 0 1px 4px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Session buttons group - alignement parfait */
+.session-buttons-group {
+    display: flex !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    margin-top: 16px !important;
+}
+
+/* Les deux boutons ont la même hauteur */
+.session-buttons-group > * {
+    height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Bouton principal "Commencer la séance" */
+.btn-start-session {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 14px !important;
+    padding: 16px 24px !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25) !important;
+    margin-top: 0 !important; /* Reset margin pour alignement */
+}
+
+.btn-start-session svg {
+    stroke: #ffffff !important;
+    fill: none !important;
+}
+
+.btn-start-session:active {
+    transform: scale(0.98) !important;
+}
+
+/* Reset margin dans le groupe de boutons session */
+.session-buttons-group .btn-start-session {
+    margin-top: 0 !important;
+}
+
+/* ==================== FIX 18: NOMS D'EXERCICES COMPLETS ==================== */
+
+@media (max-width: 768px) {
+    /* Exercices dans today-session */
+    .today-exercise-card {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 12px !important;
+        background: var(--bg-tertiary) !important;
+        border-radius: 12px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .today-exercise-icon {
+        flex-shrink: 0 !important;
+        width: 44px !important;
+        height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(239, 68, 68, 0.1) !important;
+        border-radius: 10px !important;
+    }
+    
+    .today-exercise-info {
+        flex: 1 !important;
+        min-width: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+    
+    .today-exercise-name {
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        color: var(--text-primary) !important;
+        /* Permettre plusieurs lignes au lieu de tronquer */
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        line-height: 1.3 !important;
+    }
+    
+    .today-exercise-sets {
+        font-size: 0.8rem !important;
+        color: var(--text-muted) !important;
+    }
+    
+    .today-exercise-badge {
+        flex-shrink: 0 !important;
+        padding: 4px 10px !important;
+        border-radius: 20px !important;
+        font-size: 0.65rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        background: var(--bg-secondary) !important;
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border-color) !important;
+        white-space: nowrap !important;
+    }
+    
+    .today-exercise-badge.compound {
+        background: rgba(239, 68, 68, 0.15) !important;
+        color: #ef4444 !important;
+        border-color: rgba(239, 68, 68, 0.3) !important;
+    }
+    
+    .today-exercise-badge.isolation {
+        background: rgba(59, 130, 246, 0.15) !important;
+        color: #3b82f6 !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+    }
+    
+    /* Preview exercises - noms complets */
+    .preview-exercise-name {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        line-height: 1.3 !important;
+        font-size: 0.95rem !important;
+    }
+    
+    .preview-exercise-item {
+        padding: 16px 12px !important;
+    }
+}
+
+/* ==================== FIX 19: SESSION CARD MOBILE ==================== */
+
+@media (max-width: 768px) {
+    .session-card-current {
+        padding: 20px 16px !important;
+        border-radius: 16px !important;
+    }
+    
+    .session-card-badge {
+        font-size: 0.65rem !important;
+        padding: 4px 10px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .session-card-title {
+        font-size: 1.1rem !important;
+    }
+    
+    .session-start-btn {
+        margin-top: 12px !important;
+        padding: 16px !important;
+        font-size: 1rem !important;
+        border-radius: 12px !important;
+    }
+    
+    /* Session upcoming cards */
+    .session-card-upcoming {
+        padding: 14px 16px !important;
+    }
+    
+    .session-card-upcoming .session-card-title {
+        font-size: 0.95rem !important;
+    }
+}
+
+/* ==================== FIX 20: HEADER NUTRITION MOBILE ==================== */
+
+/* Desktop: tout sur une ligne */
+.nutrition-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nutrition-buttons-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Mobile: date en haut, boutons en dessous */
+@media (max-width: 768px) {
+    /* Le header nutrition en colonne */
+    #nutrition .card-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0 !important;
+        padding: 16px !important;
+    }
+    
+    /* IMPORTANT: Actions en COLONNE : date puis boutons */
+    #nutrition .card-header .nutrition-header-actions {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+    
+    /* Date sur toute la largeur */
+    .nutrition-header-actions .form-input[type="date"] {
+        width: 100% !important;
+        max-width: none !important;
+        padding: 14px 16px !important;
+        font-size: 1rem !important;
+        border-radius: 12px !important;
+        background: var(--bg-tertiary) !important;
+        border: 1px solid var(--border-color) !important;
+        text-align: center !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Ligne de boutons */
+    .nutrition-buttons-row {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 8px !important;
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        width: 100% !important;
+    }
+    
+    /* Boutons un peu plus petits pour tenir sur une ligne */
+    .nutrition-buttons-row .btn-icon {
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        flex-shrink: 0 !important;
+        border-radius: 12px !important;
+    }
+}

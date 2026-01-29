@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="css/session-manager.css?v=33">
     <link rel="stylesheet" href="css/premium-components.css?v=23">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=5">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=25">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=38">
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
     <link rel="stylesheet" href="css/icons.css?v=1">
 
@@ -345,31 +345,33 @@
                         </div>
                         <div class="nutrition-header-actions">
                             <input type="date" class="form-input" id="journal-date" onchange="loadJournalDay()">
-                            <button class="btn-icon btn-accent-icon" onclick="openMealHistoryModal()" title="Historique repas">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                            </button>
-                            <button class="btn-icon btn-primary-icon" onclick="openBarcodeScanner()" title="Scanner code-barres">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="2" y="6" width="2" height="12"></rect>
-                                    <rect x="6" y="6" width="2" height="12"></rect>
-                                    <rect x="10" y="6" width="1" height="12"></rect>
-                                    <rect x="13" y="6" width="2" height="12"></rect>
-                                    <rect x="17" y="6" width="1" height="12"></rect>
-                                    <rect x="20" y="6" width="2" height="12"></rect>
-                                </svg>
-                            </button>
-                            <button class="btn-icon btn-danger-icon" onclick="clearJournalDay()" title="Vider le journal">🗑️</button>
-                            <button class="btn-icon btn-success-icon" onclick="openRecipeModal()" title="Créer une recette">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-                                    <path d="M7 2v20"></path>
-                                    <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
-                                </svg>
-                            </button>
-                            <button class="btn-icon btn-primary-icon" onclick="openCustomFoodModal()" title="Ajouter aliment">+</button>
+                            <div class="nutrition-buttons-row">
+                                <button class="btn-icon btn-accent-icon" onclick="openMealHistoryModal()" title="Historique repas">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                </button>
+                                <button class="btn-icon btn-primary-icon" onclick="openBarcodeScanner()" title="Scanner code-barres">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="6" width="2" height="12"></rect>
+                                        <rect x="6" y="6" width="2" height="12"></rect>
+                                        <rect x="10" y="6" width="1" height="12"></rect>
+                                        <rect x="13" y="6" width="2" height="12"></rect>
+                                        <rect x="17" y="6" width="1" height="12"></rect>
+                                        <rect x="20" y="6" width="2" height="12"></rect>
+                                    </svg>
+                                </button>
+                                <button class="btn-icon btn-danger-icon" onclick="clearJournalDay()" title="Vider le journal">🗑️</button>
+                                <button class="btn-icon btn-success-icon" onclick="openRecipeModal()" title="Créer une recette">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                                        <path d="M7 2v20"></path>
+                                        <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
+                                    </svg>
+                                </button>
+                                <button class="btn-icon btn-primary-icon" onclick="openCustomFoodModal()" title="Ajouter aliment">+</button>
+                            </div>
                         </div>
                     </div>
 

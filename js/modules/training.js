@@ -619,8 +619,17 @@ function quickStartSession(splitIndex) {
         try { navigator.vibrate([30, 10, 30]); } catch(e) {}
     }
     
-    // Démarrer immédiatement avec durée par défaut (60 min)
-    startFullScreenSessionWithCustomExercises(splitIndex, splitName, exercises, 60);
+    // Convertir au format attendu par startFullScreenSessionWithCustomExercises
+    const formattedExercises = exercises.map(ex => ({
+        originalName: ex.originalName || ex.name,
+        swappedName: ex.effectiveName !== ex.name ? ex.effectiveName : null,
+        muscle: ex.muscle,
+        sets: ex.sets,
+        reps: ex.reps
+    }));
+    
+    // Démarrer immédiatement
+    startFullScreenSessionWithCustomExercises(splitIndex, formattedExercises);
     
     showToast('⚡ Séance démarrée !', 'success', 2000);
 }
