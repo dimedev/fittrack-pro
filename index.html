@@ -7,9 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=21">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=24">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/session-manager.css?v=20">
+    <link rel="stylesheet" href="css/session-manager.css?v=33">
     <link rel="stylesheet" href="css/premium-components.css?v=23">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=5">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=25">
@@ -64,6 +64,15 @@
             </div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <!-- Sync Indicator -->
+    <div id="sync-indicator" class="sync-indicator" style="display: none;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span id="sync-status-text">Sync...</span>
     </div>
 
     <!-- Mobile Navigation -->
@@ -336,7 +345,30 @@
                         </div>
                         <div class="nutrition-header-actions">
                             <input type="date" class="form-input" id="journal-date" onchange="loadJournalDay()">
+                            <button class="btn-icon btn-accent-icon" onclick="openMealHistoryModal()" title="Historique repas">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </button>
+                            <button class="btn-icon btn-primary-icon" onclick="openBarcodeScanner()" title="Scanner code-barres">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="6" width="2" height="12"></rect>
+                                    <rect x="6" y="6" width="2" height="12"></rect>
+                                    <rect x="10" y="6" width="1" height="12"></rect>
+                                    <rect x="13" y="6" width="2" height="12"></rect>
+                                    <rect x="17" y="6" width="1" height="12"></rect>
+                                    <rect x="20" y="6" width="2" height="12"></rect>
+                                </svg>
+                            </button>
                             <button class="btn-icon btn-danger-icon" onclick="clearJournalDay()" title="Vider le journal">🗑️</button>
+                            <button class="btn-icon btn-success-icon" onclick="openRecipeModal()" title="Créer une recette">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                                    <path d="M7 2v20"></path>
+                                    <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
+                                </svg>
+                            </button>
                             <button class="btn-icon btn-primary-icon" onclick="openCustomFoodModal()" title="Ajouter aliment">+</button>
                         </div>
                     </div>
@@ -2154,6 +2186,20 @@
             </button>
         </div>
 
+        <!-- Timer Repos Prominent (en haut) -->
+        <div class="fs-rest-timer-prominent" id="fs-rest-timer-prominent" style="display: none;">
+            <div class="rest-timer-circle-container" id="rest-timer-circle-container">
+                <svg class="rest-timer-circle" viewBox="0 0 120 120">
+                    <circle class="rest-timer-track" cx="60" cy="60" r="54" />
+                    <circle class="rest-timer-progress" id="rest-timer-progress" cx="60" cy="60" r="54" />
+                </svg>
+                <div class="rest-timer-content">
+                    <div class="rest-timer-label">Repos</div>
+                    <div class="rest-timer-time" id="rest-timer-time">00:00</div>
+                </div>
+            </div>
+        </div>
+
         <div class="fs-content">
             <!-- Exercise Header -->
             <div class="fs-exercise-header">
@@ -2195,10 +2241,60 @@
                 </div>
             </div>
 
+            <!-- RPE / RIR (Optionnel - Autoregulation) -->
+            <div class="fs-autoregulation-section" id="fs-autoregulation-section">
+                <div class="fs-autoregulation-toggle" onclick="toggleAutoregulation()">
+                    <span>⚡ Autoregulation (optionnel)</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toggle-icon">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+                <div class="fs-autoregulation-inputs" id="fs-autoregulation-inputs" style="display: none;">
+                    <div class="fs-auto-input-group">
+                        <label class="fs-input-label" title="Rate of Perceived Exertion">RPE</label>
+                        <select id="fs-rpe-input" class="fs-select-input">
+                            <option value="">-</option>
+                            <option value="6">6 - Très facile</option>
+                            <option value="7">7 - Facile</option>
+                            <option value="8">8 - Modéré</option>
+                            <option value="9">9 - Difficile</option>
+                            <option value="10">10 - Maximum</option>
+                        </select>
+                    </div>
+                    <div class="fs-auto-input-group">
+                        <label class="fs-input-label" title="Reps In Reserve">RIR</label>
+                        <select id="fs-rir-input" class="fs-select-input">
+                            <option value="">-</option>
+                            <option value="0">0 - Échec</option>
+                            <option value="1">1 - 1 rep restante</option>
+                            <option value="2">2 - 2 reps restantes</option>
+                            <option value="3">3 - 3 reps restantes</option>
+                            <option value="4">4+ - Facile</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <!-- Validate Button -->
             <button class="fs-validate-btn" id="fs-validate-btn" onclick="validateCurrentSet()">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 <span>Valider la série</span>
+            </button>
+            
+            <!-- Drop Set Button (affiché après validation) -->
+            <button class="fs-drop-btn" id="fs-drop-btn" onclick="startDropSet()" style="display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <span>Drop Set (-20%)</span>
+            </button>
+            
+            <!-- Machine Occupée Button -->
+            <button class="fs-machine-occupied-btn" onclick="machineOccupied()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>Machine occupée</span>
             </button>
 
             <!-- Completed Sets -->
@@ -2272,19 +2368,143 @@
         </div>
     </div>
 
+    <!-- Recipe Builder Modal -->
+    <div id="recipe-modal" class="recipe-modal" style="display: none;">
+        <div class="modal-overlay" onclick="closeRecipeModal()"></div>
+        <div class="recipe-container">
+            <div class="recipe-header">
+                <h3>👨‍🍳 Créer une recette</h3>
+                <button class="btn-close" onclick="closeRecipeModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="recipe-content">
+                <div class="recipe-form-group">
+                    <label class="recipe-label">Nom de la recette</label>
+                    <input 
+                        type="text" 
+                        id="recipe-name-input" 
+                        class="form-input" 
+                        placeholder="Ex: Mon poulet curry"
+                        maxlength="50"
+                    >
+                </div>
+                
+                <div class="recipe-form-group">
+                    <div class="recipe-ingredients-header">
+                        <label class="recipe-label">Ingrédients</label>
+                        <button class="btn btn-sm btn-primary" onclick="openRecipeIngredientSelector()">
+                            + Ajouter
+                        </button>
+                    </div>
+                    <div id="recipe-ingredients-list" class="recipe-ingredients-list">
+                        <!-- Rempli dynamiquement -->
+                    </div>
+                </div>
+                
+                <div class="recipe-form-group">
+                    <label class="recipe-label">Valeurs nutritionnelles totales</label>
+                    <div id="recipe-preview-macros" class="recipe-preview-macros">
+                        <p style="color: var(--text-muted);">Ajoutez des ingrédients pour voir les macros</p>
+                    </div>
+                </div>
+                
+                <div class="recipe-actions">
+                    <button class="btn btn-secondary" onclick="closeRecipeModal()" style="flex: 1;">Annuler</button>
+                    <button class="btn btn-primary" onclick="saveRecipe()" style="flex: 1;">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipe Ingredient Selector Sheet -->
+    <div id="recipe-ingredient-sheet" class="bottom-sheet-overlay" style="display: none;">
+        <div class="bottom-sheet recipe-ingredient-sheet">
+            <div class="bottom-sheet-header">
+                <h3>Sélectionner un ingrédient</h3>
+                <button class="btn-close" onclick="closeRecipeIngredientSelector()">×</button>
+            </div>
+            <div class="bottom-sheet-content">
+                <div id="recipe-foods-list" class="recipe-foods-list">
+                    <!-- Rempli dynamiquement -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meal History Modal -->
+    <div id="meal-history-modal" class="meal-history-modal" style="display: none;">
+        <div class="modal-overlay" onclick="closeMealHistoryModal()"></div>
+        <div class="meal-history-container">
+            <div class="meal-history-header">
+                <h3>📅 Historique des repas</h3>
+                <button class="btn-close" onclick="closeMealHistoryModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="meal-history-content">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div id="barcode-scanner-modal" class="barcode-scanner-modal" style="display: none;">
+        <div class="scanner-overlay" onclick="closeBarcodeScanner()"></div>
+        <div class="scanner-content">
+            <div class="scanner-header">
+                <h3>Scanner un code-barres</h3>
+                <button class="btn-close" onclick="closeBarcodeScanner()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="barcode-video-container">
+                <video id="barcode-video" autoplay playsinline></video>
+                <div class="barcode-scan-line"></div>
+                <div class="barcode-instructions">
+                    Placez le code-barres dans le cadre
+                </div>
+            </div>
+            
+            <div id="barcode-loading" class="barcode-loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Recherche en cours...</p>
+            </div>
+            
+            <div id="barcode-results" class="barcode-results" style="display: none;">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/data/foods.js?v=5"></script>
     <script src="js/data/exercises.js?v=10"></script>
     <script src="js/data/programs.js?v=5"></script>
-    <script src="js/modules/state.js?v=7"></script>
+    <script src="js/modules/state.js?v=30"></script>
+    <script src="js/modules/haptic.js?v=1"></script>
+    <script src="js/modules/barcode-scanner.js?v=1"></script>
+    <script src="js/modules/meal-history.js?v=1"></script>
+    <script src="js/modules/recipes.js?v=1"></script>
     <script src="js/modules/icons.js?v=1"></script>
-    <script src="js/modules/supabase.js?v=17-fix"></script>
-    <script src="js/modules/profile.js?v=23"></script>
-    <script src="js/modules/nutrition.js?v=22"></script>
+    <script src="js/modules/supabase.js?v=31"></script>
+    <script src="js/modules/profile.js?v=24"></script>
+    <script src="js/modules/nutrition.js?v=24"></script>
     <script src="js/modules/nutrition-suggestions.js?v=2"></script>
     <script src="js/modules/meal-templates.js?v=1"></script>
     <script src="js/modules/cardio.js?v=1"></script>
-    <script src="js/modules/training.js?v=20-fix"></script>
+    <script src="js/modules/training.js?v=32"></script>
     <script src="js/modules/session-manager.js?v=5"></script>
     <script src="js/modules/session-ui.js?v=6"></script>
     <script src="js/modules/progress.js?v=20"></script>
@@ -2297,6 +2517,6 @@
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=6"></script>
     <script src="js/modules/mobile-gestures.js?v=12"></script>
-    <script src="js/app.js?v=24"></script>
+    <script src="js/app.js?v=32"></script>
 </body>
 </html>

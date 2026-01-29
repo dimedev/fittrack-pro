@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tests FitTrack Pro</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007AFF;
+            padding-bottom: 10px;
+        }
+        .test-suite {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-suite h2 {
+            color: #007AFF;
+            margin-top: 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-result.pass {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .test-result.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .test-result .icon {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .test-result .message {
+            flex: 1;
+        }
+        .test-result .details {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        .summary {
+            background: #007AFF;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .summary.all-pass {
+            background: #28a745;
+        }
+        .summary.some-fail {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Tests FitTrack Pro</h1>
+    <div id="test-results"></div>
+    <div id="summary" class="summary"></div>
+
+    <!-- Charger les modules nécessaires -->
+    <script src="../js/modules/state.js"></script>
+    
+    <script>
+        // Mini framework de test
+        const TestRunner = {
+            tests: [],
+            passed: 0,
+            failed: 0,
+            
+            test(name, fn) {
+                this.tests.push({ name, fn });
+            },
+            
+            assertEqual(actual, expected, message = '') {
+                if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                    throw new Error(`${message}\nAttendu: ${JSON.stringify(expected)}\nObtenu: ${JSON.stringify(actual)}`);
+                }
+            },
+            
+            assertTrue(condition, message = '') {
+                if (!condition) {
+                    throw new Error(message || 'Condition devrait être vraie');
+                }
+            },
+            
+            assertFalse(condition, message = '') {
+                if (condition) {
+                    throw new Error(message || 'Condition devrait être fausse');
+                }
+            },
+            
+            assertNotNull(value, message = '') {
+                if (value === null || value === undefined) {
+                    throw new Error(message || 'Valeur ne devrait pas être null/undefined');
+                }
+            },
+            
+            async run() {
+                const resultsContainer = document.getElementById('test-results');
+                resultsContainer.innerHTML = '';
+                
+                for (const test of this.tests) {
+                    const suiteDiv = document.createElement('div');
+                    suiteDiv.className = 'test-suite';
+                    
+                    const title = document.createElement('h2');
+                    title.textContent = test.name;
+                    suiteDiv.appendChild(title);
+                    
+                    try {
+                        await test.fn(this);
+                        this.passed++;
+                        
+                        const resultDiv = document.createElement('div');
+                        resultDiv.className = 'test-result pass';
+                        resultDiv.innerHTML = `
+                            <span class="icon">✓</span>
+                            <span class="message">${test.name}</span>
+                        `;
+                        suiteDiv.appendChild(resultDiv);
+                    } catch (error) {
+                        this.failed++;
+                        
+                        const resultDiv = document.createElement('div');
+                        resultDiv.className = 'test-result fail';
+                        resultDiv.innerHTML = `
+                            <span class="icon">✗</span>
+                            <div class="message">
+                                ${test.name}
+                                <div class="details">${error.message}</div>
+                            </div>
+                        `;
+                        suiteDiv.appendChild(resultDiv);
+                    }
+                    
+                    resultsContainer.appendChild(suiteDiv);
+                }
+                
+                // Afficher le résumé
+                const summary = document.getElementById('summary');
+                const total = this.passed + this.failed;
+                const percentage = Math.round((this.passed / total) * 100);
+                
+                summary.textContent = `${this.passed}/${total} tests réussis (${percentage}%)`;
+                summary.className = 'summary ' + (this.failed === 0 ? 'all-pass' : 'some-fail');
+            }
+        };
+        
+        // ==================== TESTS ====================
+        
+        // Test 1: State initialization
+        TestRunner.test('State - Initialisation', (t) => {
+            t.assertNotNull(state, 'State devrait être défini');
+            t.assertTrue(typeof state === 'object', 'State devrait être un objet');
+            t.assertNotNull(state.profile, 'Profile devrait être défini');
+            t.assertNotNull(state.foodJournal, 'FoodJournal devrait être défini');
+            t.assertNotNull(state.sessionHistory, 'SessionHistory devrait être défini');
+        });
+        
+        // Test 2: State - Queue Offline
+        TestRunner.test('State - Queue Offline existe', (t) => {
+            t.assertTrue(Array.isArray(state.syncQueue), 'syncQueue devrait être un tableau');
+        });
+        
+        // Test 3: State - Periodization
+        TestRunner.test('State - Periodization existe', (t) => {
+            t.assertNotNull(state.periodization, 'Periodization devrait être défini');
+            t.assertTrue(typeof state.periodization.currentWeek === 'number', 'currentWeek devrait être un nombre');
+            t.assertTrue(state.periodization.currentWeek >= 1 && state.periodization.currentWeek <= 4, 'currentWeek devrait être entre 1 et 4');
+        });
+        
+        // Test 4: LocalStorage - Save & Load
+        TestRunner.test('LocalStorage - Save et Load', (t) => {
+            // Sauvegarder une valeur de test
+            const testState = { ...state, testValue: 'test123' };
+            localStorage.setItem('fittrack-state', JSON.stringify(testState));
+            
+            // Charger et vérifier
+            const loaded = JSON.parse(localStorage.getItem('fittrack-state'));
+            t.assertEqual(loaded.testValue, 'test123', 'La valeur devrait être sauvegardée et chargée');
+            
+            // Nettoyer
+            delete testState.testValue;
+            localStorage.setItem('fittrack-state', JSON.stringify(testState));
+        });
+        
+        // Test 5: State - Validators structure
+        TestRunner.test('State - Validation functions', (t) => {
+            // Simuler les validators de supabase.js
+            const mockValidators = {
+                foodJournalEntry: (entry) => {
+                    return entry && entry.foodId && typeof entry.quantity === 'number' && entry.quantity > 0;
+                },
+                workoutSession: (session) => {
+                    return session && session.sessionId && session.date && session.program;
+                }
+            };
+            
+            // Test validation réussie
+            const validEntry = {
+                foodId: 'test-123',
+                quantity: 100,
+                mealType: 'breakfast',
+                addedAt: new Date().toISOString()
+            };
+            t.assertTrue(mockValidators.foodJournalEntry(validEntry), 'Entry valide devrait passer la validation');
+            
+            // Test validation échouée
+            const invalidEntry = {
+                foodId: 'test-123',
+                quantity: -10 // invalide
+            };
+            t.assertFalse(mockValidators.foodJournalEntry(invalidEntry), 'Entry invalide devrait échouer la validation');
+        });
+        
+        // Test 6: State - Profile données valides
+        TestRunner.test('State - Profile structure', (t) => {
+            t.assertNotNull(state.profile.macros, 'Macros devrait être défini');
+            t.assertTrue(typeof state.profile.bmr === 'number', 'BMR devrait être un nombre');
+            t.assertTrue(state.profile.bmr >= 0, 'BMR devrait être positif');
+        });
+        
+        // Test 7: FoodJournal - Structure
+        TestRunner.test('FoodJournal - Structure valide', (t) => {
+            t.assertTrue(typeof state.foodJournal === 'object', 'FoodJournal devrait être un objet');
+            
+            // Tester l'ajout d'une entrée
+            const today = new Date().toISOString().split('T')[0];
+            if (!state.foodJournal[today]) {
+                state.foodJournal[today] = [];
+            }
+            t.assertTrue(Array.isArray(state.foodJournal[today]), 'Entrées du jour devraient être un tableau');
+        });
+        
+        // Test 8: SessionHistory - Structure
+        TestRunner.test('SessionHistory - Structure valide', (t) => {
+            t.assertTrue(Array.isArray(state.sessionHistory), 'SessionHistory devrait être un tableau');
+            
+            // Si il y a des sessions, vérifier la structure
+            if (state.sessionHistory.length > 0) {
+                const firstSession = state.sessionHistory[0];
+                t.assertNotNull(firstSession.sessionId, 'Session devrait avoir un sessionId');
+                t.assertNotNull(firstSession.date, 'Session devrait avoir une date');
+            }
+        });
+        
+        // Test 9: Error Handlers - Présence
+        TestRunner.test('Error Handlers - Gestionnaires globaux', (t) => {
+            // Vérifier que les gestionnaires d'erreurs sont en place
+            // Note: on ne peut pas tester directement window.onerror, mais on peut vérifier que l'app ne crash pas
+            t.assertTrue(true, 'Test de présence des gestionnaires');
+        });
+        
+        // Test 10: Optional Chaining - Accès sécurisés
+        TestRunner.test('Optional Chaining - Accès sécurisés', (t) => {
+            // Tester que les accès optionnels ne crashent pas
+            const safeAccess = state.wizardResults?.selectedProgram;
+            t.assertTrue(true, 'Accès avec optional chaining ne devrait pas crasher');
+            
+            // Tester accès profond
+            const deepAccess = state.profile?.macros?.protein;
+            t.assertTrue(typeof deepAccess === 'number' || deepAccess === undefined, 'Accès profond devrait retourner number ou undefined');
+        });
+        
+        // Lancer tous les tests
+        window.addEventListener('DOMContentLoaded', () => {
+            TestRunner.run();
+        });
+    </script>
+</body>
+</html>

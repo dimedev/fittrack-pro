@@ -1180,6 +1180,145 @@
     color: var(--text-primary);
 }
 
+/* ==================== TIMER REPOS PROMINENT (EN HAUT) ==================== */
+
+.fs-rest-timer-prominent {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card);
+    border-bottom: 2px solid var(--border-color);
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: timerSlideDown 0.4s ease-out;
+}
+
+@keyframes timerSlideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.rest-timer-circle-container {
+    position: relative;
+    width: 140px;
+    height: 140px;
+}
+
+.rest-timer-circle {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.rest-timer-track {
+    fill: none;
+    stroke: var(--bg-tertiary);
+    stroke-width: 8;
+}
+
+.rest-timer-progress {
+    fill: none;
+    stroke: var(--success);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 339.292; /* 2 * PI * 54 */
+    stroke-dashoffset: 0;
+    transition: stroke 0.3s ease, stroke-dashoffset 0.5s linear;
+}
+
+/* États du timer (couleurs) */
+.rest-timer-circle-container.timer-green .rest-timer-progress {
+    stroke: var(--success);
+}
+
+.rest-timer-circle-container.timer-yellow .rest-timer-progress {
+    stroke: #ffa500;
+}
+
+.rest-timer-circle-container.timer-red .rest-timer-progress {
+    stroke: var(--danger);
+}
+
+.rest-timer-circle-container.timer-overtime .rest-timer-progress {
+    stroke: var(--danger);
+    animation: timerPulse 1s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.rest-timer-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.rest-timer-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+}
+
+.rest-timer-time {
+    font-family: 'Space Mono', monospace;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+/* Machine Occupée Button */
+.fs-machine-occupied-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, rgba(255, 159, 10, 0.15), rgba(255, 69, 0, 0.15));
+    border: 1.5px solid rgba(255, 159, 10, 0.5);
+    border-radius: var(--radius-md);
+    color: #ff9f0a;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.fs-machine-occupied-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 159, 10, 0.25), rgba(255, 69, 0, 0.25));
+    border-color: #ff9f0a;
+    transform: scale(1.02);
+}
+
+.fs-machine-occupied-btn:active {
+    transform: scale(0.98);
+}
+
+.fs-machine-occupied-btn svg {
+    flex-shrink: 0;
+}
+
 /* Full-Screen Footer */
 .fs-footer {
     display: flex;

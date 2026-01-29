@@ -1,6 +1,37 @@
 // ==================== MAIN APP ====================
 // Version MVP - Simplifié
 
+// ==================== GESTION D'ERREURS GLOBALE ====================
+
+// Gestionnaire d'erreurs JavaScript globales
+window.addEventListener('error', (e) => {
+    console.error('❌ Erreur globale:', {
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        error: e.error
+    });
+    
+    // Afficher un toast pour informer l'utilisateur des erreurs critiques
+    if (typeof showToast === 'function') {
+        showToast('Une erreur est survenue', 'error');
+    }
+});
+
+// Gestionnaire des promesses rejetées non capturées
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('❌ Promise rejetée:', {
+        reason: e.reason,
+        promise: e.promise
+    });
+    
+    // Afficher un toast pour les erreurs de synchronisation
+    if (typeof showToast === 'function' && e.reason?.message?.includes('sync')) {
+        showToast('Erreur de synchronisation', 'warning');
+    }
+});
+
 // Mode hors-ligne (sans compte)
 let offlineMode = false;
 
@@ -179,10 +210,10 @@ function init() {
         }
     }, 500);
     
-    // Lancer la déduplication automatique (une seule fois)
+    // Lancer la déduplication automatique (périodique)
     setTimeout(() => {
-        if (typeof autoDeduplicateOnce === 'function') {
-            autoDeduplicateOnce();
+        if (typeof autoDeduplicatePeriodic === 'function') {
+            autoDeduplicatePeriodic();
         }
     }, 3000);
     

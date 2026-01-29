@@ -127,6 +127,11 @@ h1, h2, h3, h4, h5, h6 {
     margin-left: 12px;
     color: var(--text-muted);
     transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.sync-indicator:hover {
+    transform: scale(1.1);
 }
 
 .sync-indicator svg {
@@ -185,8 +190,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes syncPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.15); }
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(255, 0, 0, 0.4);
+    }
+    50% { 
+        transform: scale(1.2);
+        box-shadow: 0 0 12px rgba(255, 0, 0, 0.8);
+    }
 }
 
 /* Afficher sur mobile en version compacte (floating button) */
@@ -3406,7 +3417,105 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-muted);
 }
 
-/* Notification nouveau PR */
+/* ==================== PR CELEBRATION SPECTACULAIRE ==================== */
+
+/* Overlay plein écran avec pulse gold */
+.pr-celebration-overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255,215,0,0.4) 0%, rgba(255,185,0,0.2) 40%, transparent 70%);
+    animation: prPulse 1.2s ease-out;
+    pointer-events: none;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes prPulse {
+    0% { 
+        opacity: 0; 
+        transform: scale(0.3);
+    }
+    40% { 
+        opacity: 1; 
+        transform: scale(1.1);
+    }
+    100% { 
+        opacity: 0; 
+        transform: scale(1.8);
+    }
+}
+
+/* Card PR centrale */
+.pr-celebration-card {
+    background: linear-gradient(135deg, #ffd700, #ffb800);
+    color: #000;
+    padding: 32px 48px;
+    border-radius: var(--radius-xl);
+    box-shadow: 0 20px 60px rgba(255, 215, 0, 0.6);
+    text-align: center;
+    animation: prCardBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: center;
+}
+
+@keyframes prCardBounce {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(-100px);
+    }
+    60% {
+        opacity: 1;
+        transform: scale(1.1) translateY(0);
+    }
+    80% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pr-celebration-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    animation: prIconSpin 0.8s ease-out;
+    display: block;
+}
+
+@keyframes prIconSpin {
+    0% {
+        transform: rotate(-180deg) scale(0);
+    }
+    70% {
+        transform: rotate(10deg) scale(1.2);
+    }
+    100% {
+        transform: rotate(0) scale(1);
+    }
+}
+
+.pr-celebration-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.pr-celebration-message {
+    font-size: 1.2rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.pr-celebration-count {
+    font-size: 0.9rem;
+    margin-top: 8px;
+    opacity: 0.8;
+}
+
+/* Notification nouveau PR (ancienne, gardée pour compatibilité) */
 .pr-notification {
     position: fixed;
     top: 80px;
@@ -3432,6 +3541,26 @@ h1, h2, h3, h4, h5, h6 {
 .pr-notification .pr-icon {
     font-size: 1.5rem;
     margin-right: 10px;
+}
+
+/* Responsive PR Celebration */
+@media (max-width: 768px) {
+    .pr-celebration-card {
+        padding: 24px 32px;
+        margin: 0 20px;
+    }
+    
+    .pr-celebration-icon {
+        font-size: 3rem;
+    }
+    
+    .pr-celebration-title {
+        font-size: 1.4rem;
+    }
+    
+    .pr-celebration-message {
+        font-size: 1rem;
+    }
 }
 
 /* Desktop: max 2 colonnes */
@@ -5585,6 +5714,665 @@ h1, h2, h3, h4, h5, h6 {
 .session-indicator svg {
     flex-shrink: 0;
     stroke: white;
+}
+
+/* ==================== SYNC INDICATOR ==================== */
+.sync-indicator {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    z-index: 150;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.sync-indicator.syncing svg {
+    animation: sync-rotate 1s linear infinite;
+    stroke: var(--accent-primary);
+}
+
+.sync-indicator.synced {
+    color: var(--success);
+}
+
+.sync-indicator.synced svg {
+    stroke: var(--success);
+}
+
+.sync-indicator.error {
+    color: var(--error);
+}
+
+.sync-indicator.error svg {
+    stroke: var(--error);
+}
+
+@keyframes sync-rotate {
+    to { transform: rotate(360deg); }
+}
+
+/* ==================== SESSION BUTTONS GROUP ==================== */
+.session-buttons-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn-quick-start {
+    flex-shrink: 0;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(var(--accent-primary-rgb, 255, 107, 53), 0.3);
+}
+
+.btn-quick-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--accent-primary-rgb, 255, 107, 53), 0.4);
+}
+
+.btn-quick-start:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(var(--accent-primary-rgb, 255, 107, 53), 0.3);
+}
+
+.btn-quick-start svg {
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+.btn-start-session {
+    flex: 1;
+}
+
+/* ==================== SUPERSETS ==================== */
+.superset-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(0.98); }
+}
+
+.superset-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+/* ==================== RECIPE BUILDER ==================== */
+.recipe-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9997;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.recipe-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.recipe-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.recipe-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.recipe-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.recipe-form-group {
+    margin-bottom: 20px;
+}
+
+.recipe-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.recipe-ingredients-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.recipe-ingredients-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 60px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+.recipe-ingredient-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.recipe-ingredient-item:hover {
+    transform: translateX(4px);
+}
+
+.recipe-ingredient-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.recipe-ingredient-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.recipe-ingredient-qty {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.recipe-preview-macros {
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+.recipe-macros-display {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.recipe-macro-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.recipe-macro-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.recipe-macro-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.recipe-actions {
+    display: flex;
+    gap: 12px;
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.recipe-ingredient-sheet {
+    max-height: 70vh;
+}
+
+.recipe-foods-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.recipe-food-category-header {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.recipe-food-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.recipe-food-item:hover {
+    background: var(--bg-tertiary);
+    transform: translateX(4px);
+}
+
+.recipe-food-cals {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.btn-icon.btn-success-icon {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+}
+
+.btn-icon.btn-success-icon:hover {
+    background: linear-gradient(135deg, #0d8074 0%, #2dd968 100%);
+}
+
+/* ==================== AUTOREGULATION (RPE/RIR) ==================== */
+.fs-autoregulation-section {
+    margin: 20px 0;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.fs-autoregulation-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+}
+
+.fs-autoregulation-toggle:hover {
+    background: var(--bg-tertiary);
+}
+
+.fs-autoregulation-toggle span {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.fs-autoregulation-toggle .toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.fs-autoregulation-inputs {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    border-top: 1px solid var(--border-color);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fs-auto-input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fs-select-input {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.fs-select-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background: var(--bg-card);
+}
+
+.fs-select-input option {
+    padding: 8px;
+}
+
+/* ==================== MEAL HISTORY MODAL ==================== */
+.meal-history-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.meal-history-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    max-height: 80vh;
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.meal-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.meal-history-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.meal-history-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.meal-history-day {
+    margin-bottom: 24px;
+}
+
+.meal-history-day:last-child {
+    margin-bottom: 0;
+}
+
+.meal-history-day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.meal-history-day-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    text-transform: capitalize;
+    color: var(--text-primary);
+}
+
+.meal-history-day-date {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.meal-history-meal-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.meal-history-meal-card:hover {
+    background: var(--bg-tertiary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.meal-history-meal-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.meal-history-meal-icon {
+    font-size: 1.2rem;
+}
+
+.meal-history-meal-name {
+    font-weight: 600;
+    flex: 1;
+}
+
+.meal-history-meal-count {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.meal-history-meal-foods {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.meal-history-meal-macros {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.btn-quick-add-meal {
+    width: 100%;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-quick-add-meal:hover {
+    background: var(--accent-primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-quick-add-meal:active {
+    transform: translateY(0);
+}
+
+.btn-icon.btn-accent-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-icon.btn-accent-icon:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #63408a 100%);
+}
+
+/* ==================== BARCODE SCANNER ==================== */
+.barcode-scanner-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.scanner-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.scanner-content {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.scanner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.scanner-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.barcode-video-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+#barcode-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.barcode-scan-line {
+    position: absolute;
+    top: 50%;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+    animation: scan-line 2s ease-in-out infinite;
+}
+
+@keyframes scan-line {
+    0%, 100% { transform: translateY(-50px); opacity: 0; }
+    50% { transform: translateY(0); opacity: 1; }
+}
+
+.barcode-instructions {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: white;
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 8px;
+    backdrop-filter: blur(4px);
+}
+
+.barcode-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 40px 20px;
+}
+
+.barcode-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.barcode-results {
+    padding: 20px;
+}
+
+.scanned-product-card {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ==================== BUTTON LOADING STATE ==================== */

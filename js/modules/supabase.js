@@ -261,12 +261,32 @@ function updateSyncIndicator(status, message = null) {
     // Mettre à jour le badge
     updatePendingSyncBadge();
     
-    // Afficher le compteur si des syncs sont en attente
+    // Compter réellement les items en attente
+    let queueCount = 0;
+    if (state.foodJournal) {
+        Object.values(state.foodJournal).forEach(dayEntries => {
+            queueCount += dayEntries.filter(e => !e.supabaseId).length;
+        });
+    }
+    if (state.sessionHistory) {
+        queueCount += state.sessionHistory.filter(s => !s.supabaseId).length;
+    }
+    if (state.cardioLog) {
+        queueCount += state.cardioLog.filter(c => !c.supabaseId).length;
+    }
+    pendingSyncCount = queueCount;
+    
+    // Afficher le compteur si des items sont en attente
     const badge = indicator.querySelector('.sync-badge');
     if (badge) {
         if (pendingSyncCount > 0) {
-            badge.textContent = pendingSyncCount;
+            badge.textContent = pendingSyncCount > 99 ? '99+' : pendingSyncCount;
             badge.style.display = 'flex';
+            
+            // Mettre à jour le titre avec le nombre d'items
+            if (status === SyncStatus.IDLE) {
+                indicator.title = `${pendingSyncCount} élément(s) en attente - Cliquer pour sync`;
+            }
         } else {
             badge.style.display = 'none';
         }
@@ -311,7 +331,8 @@ async function withRetry(fn, options = {}) {
     
     // Notification pour les erreurs critiques uniquement
     if (critical) {
-        showToast('Erreur de synchronisation. Vos données sont sauvegardées localement.', 'error');
+        showToast('✋ Impossible de synchroniser. Vos données sont en sécurité sur cet appareil.', 'error');
+        updateSyncIndicator('error', 'Sync échoué');
     }
     
     throw lastError;
@@ -338,7 +359,10 @@ function initNetworkDetection() {
         
         // Tenter de synchroniser les données en attente
         if (currentUser) {
-            syncPendingData();
+            setTimeout(async () => {
+                await replaySyncQueue();
+                await syncPendingData();
+            }, 1000);
         }
     });
     
@@ -354,6 +378,162 @@ function initNetworkDetection() {
     // Vérifier l'état initial
     if (!navigator.onLine) {
         updateSyncIndicator(SyncStatus.OFFLINE);
+    }
+}
+
+// ==================== LOGS STRUCTURES DEBUG ====================
+
+const syncLog = {
+    history: [],
+    add(event) {
+        this.history.push({ ...event, timestamp: Date.now() });
+        if (this.history.length > 100) this.history.shift();
+        try {
+            localStorage.setItem('fittrack-sync-log', JSON.stringify(this.history));
+        } catch(e) {
+            console.warn('Impossible de sauvegarder sync-log:', e);
+        }
+    },
+    load() {
+        try {
+            const stored = localStorage.getItem('fittrack-sync-log');
+            if (stored) {
+                this.history = JSON.parse(stored);
+            }
+        } catch(e) {
+            console.warn('Impossible de charger sync-log:', e);
+        }
+    },
+    clear() {
+        this.history = [];
+        localStorage.removeItem('fittrack-sync-log');
+    }
+};
+
+// Charger les logs au démarrage
+syncLog.load();
+
+// Exposer globalement pour debug
+window.getSyncLog = () => {
+    console.table(syncLog.history);
+    return syncLog.history;
+};
+
+// ==================== VALIDATION SCHEMA ====================
+
+const validators = {
+    foodJournalEntry: (entry) => {
+        return entry && 
+               entry.foodId && 
+               typeof entry.quantity === 'number' && entry.quantity > 0 && 
+               entry.mealType && 
+               entry.addedAt;
+    },
+    workoutSession: (session) => {
+        return session &&
+               session.sessionId &&
+               session.date &&
+               session.program &&
+               session.day;
+    },
+    cardioSession: (cardio) => {
+        return cardio &&
+               cardio.type &&
+               typeof cardio.duration === 'number' && cardio.duration > 0 &&
+               cardio.intensity;
+    }
+};
+
+function validateBeforeSave(type, data) {
+    const validator = validators[type];
+    if (!validator) {
+        console.warn(`⚠️ Pas de validator pour: ${type}`);
+        return true; // Par défaut accepter
+    }
+    
+    const isValid = validator(data);
+    if (!isValid) {
+        console.error(`❌ Validation échouée pour ${type}:`, data);
+        syncLog.add({ event: 'validation_failed', type, data });
+    }
+    return isValid;
+}
+
+// ==================== QUEUE OFFLINE PERSISTANTE ====================
+
+function generateQueueId() {
+    return `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function addToSyncQueue(type, action, data) {
+    if (!state.syncQueue) state.syncQueue = [];
+    
+    const queueItem = {
+        id: generateQueueId(),
+        type,        // 'food_journal', 'workout_session', 'cardio', etc.
+        action,      // 'insert', 'upsert', 'delete', 'update'
+        data,
+        timestamp: Date.now(),
+        retries: 0
+    };
+    
+    state.syncQueue.push(queueItem);
+    saveState();
+    updateSyncIndicator(SyncStatus.IDLE); // Mettre à jour le badge
+    
+    console.log(`📥 Ajouté à la queue: ${type} (${action})`);
+}
+
+async function replaySyncQueue() {
+    if (!state.syncQueue || state.syncQueue.length === 0) {
+        console.log('📭 Queue vide, rien à synchroniser');
+        return;
+    }
+    
+    console.log(`🔄 Replay queue: ${state.syncQueue.length} items`);
+    updateSyncIndicator(SyncStatus.SYNCING, `Sync ${state.syncQueue.length} items...`);
+    
+    const itemsToRemove = [];
+    
+    for (const item of state.syncQueue) {
+        try {
+            console.log(`🔄 Replay: ${item.type} ${item.action}`);
+            
+            // Rejouer l'opération selon le type
+            if (item.type === 'food_journal' && item.action === 'insert') {
+                await addJournalEntryToSupabase(item.data.foodId, item.data.quantity, item.data.mealType, item.data.addedAt);
+            } else if (item.type === 'workout_session' && item.action === 'upsert') {
+                await saveWorkoutSessionToSupabase(item.data);
+            } else if (item.type === 'cardio' && item.action === 'insert') {
+                await saveCardioSessionToSupabase(item.data);
+            } else if (item.type === 'hydration' && item.action === 'upsert') {
+                await saveHydrationToSupabase(item.data.date, item.data.amount);
+            }
+            // Ajouter d'autres types si nécessaire
+            
+            itemsToRemove.push(item.id);
+        } catch (error) {
+            console.error(`❌ Échec replay ${item.type}:`, error);
+            item.retries = (item.retries || 0) + 1;
+            
+            // Abandonner après 5 tentatives
+            if (item.retries >= 5) {
+                console.warn(`⚠️ Item abandonné après 5 tentatives: ${item.id}`);
+                itemsToRemove.push(item.id);
+            }
+        }
+    }
+    
+    // Retirer les items synchronisés
+    state.syncQueue = state.syncQueue.filter(item => !itemsToRemove.includes(item.id));
+    saveState();
+    
+    if (state.syncQueue.length === 0) {
+        updateSyncIndicator(SyncStatus.SUCCESS, 'Queue synchronisée !');
+        console.log('✅ Queue complètement synchronisée');
+    } else {
+        updateSyncIndicator(SyncStatus.ERROR, `${state.syncQueue.length} items restants`);
+        console.warn(`⚠️ ${state.syncQueue.length} items n'ont pas pu être synchronisés`);
     }
 }
 
@@ -537,8 +717,8 @@ async function syncPendingData() {
         console.log('✅ Toutes les données synchronisées');
     } catch (error) {
         console.error('Erreur sync pending:', error);
-        updateSyncIndicator(SyncStatus.ERROR);
-        showToast('Erreur lors de la synchronisation - certaines données restent locales', 'error');
+        updateSyncIndicator('error', 'Sync échoué');
+        showToast('⚠️ Synchronisation incomplète. Vos données sont sauvegardées sur cet appareil.', 'warning');
     }
 }
 
@@ -756,6 +936,11 @@ function showAuthModal() {
 // Charger toutes les données depuis Supabase
 async function loadAllDataFromSupabase(silent = false) {
     if (!currentUser) return;
+    
+    // Afficher indicateur de sync en cours
+    if (!silent) {
+        updateSyncIndicator('syncing', 'Chargement...');
+    }
     
     try {
         if (!silent) {
@@ -984,7 +1169,7 @@ async function loadAllDataFromSupabase(silent = false) {
                     const existsInSupabase = supabaseJournal[date]?.some(sEntry =>
                         sEntry.foodId === localEntry.foodId &&
                         sEntry.quantity === localEntry.quantity &&
-                        Math.abs(sEntry.addedAt - localEntry.addedAt) < 5000 // 5 secondes de tolérance
+                        Math.abs(sEntry.addedAt - localEntry.addedAt) < 2000 // 2 secondes de tolérance
                     );
                     
                     if (!existsInSupabase && !localEntry.supabaseId) {
@@ -1063,7 +1248,7 @@ async function loadAllDataFromSupabase(silent = false) {
                         const existsInSupabase = supabaseCardio[date]?.some(sSession =>
                             sSession.type === localSession.type &&
                             sSession.duration === localSession.duration &&
-                            Math.abs(sSession.addedAt - localSession.addedAt) < 10000 // 10 secondes de tolérance
+                            Math.abs(sSession.addedAt - localSession.addedAt) < 2000 // 2 secondes de tolérance
                         );
                         
                         if (!existsInSupabase && !localSession.supabaseId) {
@@ -1248,10 +1433,10 @@ async function loadAllDataFromSupabase(silent = false) {
             
             // Identifier les sessions locales non présentes dans Supabase
             const localOnlySessions = localSessions.filter(localSession => {
-                // Une session est considérée identique si même date + même timestamp (à 1 minute près)
+                // Une session est considérée identique si même date + même timestamp (à 5 secondes près)
                 return !supabaseSessions.some(sSession => 
                     sSession.date === localSession.date &&
-                    Math.abs(sSession.timestamp - localSession.timestamp) < 60000
+                    Math.abs(sSession.timestamp - localSession.timestamp) < 5000
                 );
             });
             
@@ -1305,13 +1490,17 @@ async function loadAllDataFromSupabase(silent = false) {
             console.log('✅ Données synchronisées');
         }
         
+        // Mettre à jour l'indicateur de sync
+        updateSyncIndicator('synced');
+        
         // Rafraîchir l'UI
         refreshAllUI();
         
     } catch (error) {
         console.error('Erreur chargement données:', error);
+        updateSyncIndicator('error', 'Chargement échoué');
         if (!silent) {
-            showToast('Erreur lors du chargement des données', 'error');
+            showToast('⚠️ Impossible de charger vos données cloud. Mode hors-ligne activé.', 'warning');
         }
     }
 }
@@ -1337,7 +1526,8 @@ function refreshAllUI() {
 async function saveProfileToSupabase(profileData) {
     if (!currentUser) return false;
     if (!isOnline) {
-        console.log('📴 Hors-ligne: profil sauvegardé localement');
+        console.log('📴 Hors-ligne: profil ajouté à la queue de sync');
+        addToSyncQueue('profile', 'upsert', profileData);
         return false;
     }
     
@@ -1378,7 +1568,8 @@ async function saveProfileToSupabase(profileData) {
 async function saveCustomFoodToSupabase(food) {
     if (!currentUser) return null;
     if (!isOnline) {
-        console.log('📴 Hors-ligne: aliment sauvegardé localement');
+        console.log('📴 Hors-ligne: aliment ajouté à la queue de sync');
+        addToSyncQueue('custom_food', 'insert', food);
         return null;
     }
     
@@ -1450,7 +1641,8 @@ async function deleteCustomFoodFromSupabase(foodId) {
 async function saveCustomExerciseToSupabase(exercise) {
     if (!currentUser) return null;
     if (!isOnline) {
-        console.log('📴 Hors-ligne: exercice sauvegardé localement');
+        console.log('📴 Hors-ligne: exercice ajouté à la queue de sync');
+        addToSyncQueue('custom_exercise', 'insert', exercise);
         return null;
     }
     
@@ -1483,7 +1675,8 @@ async function saveCustomExerciseToSupabase(exercise) {
 async function saveExerciseSwapToSupabase(originalExercise, replacementId) {
     if (!currentUser) return false;
     if (!isOnline) {
-        console.log('📴 Hors-ligne: swap sauvegardé localement');
+        console.log('📴 Hors-ligne: swap ajouté à la queue de sync');
+        addToSyncQueue('exercise_swap', 'upsert', { originalExercise, replacementId });
         return false;
     }
     
@@ -1545,7 +1738,17 @@ async function deleteExerciseSwapFromSupabase(originalExercise) {
 async function saveTrainingSettingsToSupabase() {
     if (!currentUser) return false;
     if (!isOnline) {
-        console.log('📴 Hors-ligne: sauvegarde locale uniquement');
+        console.log('📴 Hors-ligne: paramètres ajoutés à la queue de sync');
+        addToSyncQueue('training_settings', 'upsert', {
+            selected_program: state.selectedProgram,
+            training_days: state.trainingDays,
+            wizard_results: state.wizardResults,
+            training_progress: state.trainingProgress,
+            session_templates: state.sessionTemplates,
+            goals: state.goals,
+            body_weight_log: state.bodyWeightLog,
+            unlocked_achievements: state.unlockedAchievements
+        });
         return false;
     }
     
@@ -1581,8 +1784,18 @@ async function saveTrainingSettingsToSupabase() {
 // Supporte les unités naturelles avec unit_type et unit_count optionnels
 async function addJournalEntryToSupabase(date, foodId, quantity, mealType = null, unitType = null, unitCount = null) {
     if (!currentUser) return null;
+    
+    // Validation des données
+    const entryData = { date, foodId, quantity, mealType, addedAt: new Date().toISOString() };
+    if (!validateBeforeSave('foodJournalEntry', entryData)) {
+        console.error('❌ Validation échouée pour journal entry');
+        showToast('Données invalides', 'error');
+        return null;
+    }
+    
     if (!isOnline) {
-        console.log('📴 Hors-ligne: entrée journal sauvegardée localement');
+        console.log('📴 Hors-ligne: entrée ajoutée à la queue de sync');
+        addToSyncQueue('food_journal', 'insert', { date, foodId, quantity, mealType, unitType, unitCount });
         return null;
     }
     
@@ -1708,47 +1921,22 @@ async function clearJournalDayInSupabase(date) {
 }
 
 // ==================== HYDRATATION ====================
-
-/**
- * Sauvegarde l'hydratation du jour dans Supabase (upsert)
- */
-async function saveHydrationToSupabase(date, amountMl) {
-    if (!currentUser) return false;
-    if (!isOnline) {
-        console.log('📴 Hors-ligne: hydratation sauvegardée localement');
-        return false;
-    }
-    
-    try {
-        await withRetry(async () => {
-            const { error } = await supabaseClient
-                .from('hydration_log')
-                .upsert({
-                    user_id: currentUser.id,
-                    date: date,
-                    amount_ml: amountMl,
-                    updated_at: new Date().toISOString()
-                }, {
-                    onConflict: 'user_id,date'
-                });
-            
-            if (error) throw error;
-        }, { maxRetries: 2, critical: false });
-        return true;
-    } catch (error) {
-        console.error('Erreur sync hydratation:', error);
-        showToast('Erreur sync hydratation - sauvegardée localement', 'warning');
-        return false;
-    }
-}
-
 // ==================== CARDIO SESSIONS ====================
 
 // Sauvegarder une session cardio
 async function saveCardioSessionToSupabase(date, session) {
     if (!currentUser) return null;
+    
+    // Validation des données
+    if (!validateBeforeSave('cardioSession', session)) {
+        console.error('❌ Validation échouée pour cardio session');
+        showToast('Données de cardio invalides', 'error');
+        return null;
+    }
+    
     if (!isOnline) {
-        console.log('📴 Hors-ligne: session cardio sauvegardée localement');
+        console.log('📴 Hors-ligne: session cardio ajoutée à la queue de sync');
+        addToSyncQueue('cardio_session', 'insert', { date, ...session });
         return null;
     }
     
@@ -1835,7 +2023,8 @@ async function loadCardioSessionsFromSupabase() {
 async function saveProgressLogToSupabase(exerciseName, logData) {
     if (!currentUser) return false;
     if (!isOnline) {
-        console.log('📴 Hors-ligne: progression sauvegardée localement');
+        console.log('📴 Hors-ligne: progression ajoutée à la queue de sync');
+        addToSyncQueue('progress_log', 'insert', { exerciseName, ...logData });
         return false;
     }
     
@@ -1868,8 +2057,17 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
 // Sauvegarder une séance (avec retry et feedback - CRITIQUE)
 async function saveWorkoutSessionToSupabase(sessionData) {
     if (!currentUser) return false;
+    
+    // Validation des données
+    if (!validateBeforeSave('workoutSession', sessionData)) {
+        console.error('❌ Validation échouée pour workout session');
+        showToast('Données de séance invalides', 'error');
+        return false;
+    }
+    
     if (!isOnline) {
-        console.log('📴 Hors-ligne: séance sauvegardée localement');
+        console.log('📴 Hors-ligne: séance ajoutée à la queue de sync');
+        addToSyncQueue('workout_session', 'upsert', sessionData);
         return false;
     }
     
@@ -1910,6 +2108,51 @@ async function saveWorkoutSessionToSupabase(sessionData) {
     }
 }
 
+// ==================== SYNC INDICATOR ====================
+
+let syncIndicatorTimeout = null;
+
+/**
+ * Met à jour l'indicateur de sync visible
+ */
+function updateSyncIndicator(status, message = '') {
+    const indicator = document.getElementById('sync-indicator');
+    const statusText = document.getElementById('sync-status-text');
+    
+    if (!indicator || !statusText) return;
+    
+    // Annuler le timeout précédent
+    if (syncIndicatorTimeout) {
+        clearTimeout(syncIndicatorTimeout);
+    }
+    
+    // Afficher l'indicateur
+    indicator.style.display = 'flex';
+    indicator.className = 'sync-indicator';
+    
+    if (status === 'syncing') {
+        indicator.classList.add('syncing');
+        statusText.textContent = message || 'Sync...';
+    } else if (status === 'synced') {
+        indicator.classList.add('synced');
+        statusText.textContent = message || 'Sync OK';
+        // Masquer après 3 secondes
+        syncIndicatorTimeout = setTimeout(() => {
+            indicator.style.display = 'none';
+        }, 3000);
+    } else if (status === 'error') {
+        indicator.classList.add('error');
+        statusText.textContent = message || 'Sync échoué';
+        // Rester visible plus longtemps
+        syncIndicatorTimeout = setTimeout(() => {
+            indicator.style.display = 'none';
+        }, 8000);
+    } else if (status === 'offline') {
+        indicator.classList.add('error');
+        statusText.textContent = 'Hors-ligne';
+    }
+}
+
 // ==================== HYDRATATION SYNC ====================
 
 /**
@@ -1918,7 +2161,8 @@ async function saveWorkoutSessionToSupabase(sessionData) {
 async function saveHydrationToSupabase(date, amountMl) {
     if (!currentUser) return false;
     if (!isOnline) {
-        console.log('📴 Hors-ligne: hydratation sauvegardée localement');
+        console.log('📴 Hors-ligne: hydratation ajoutée à la queue de sync');
+        addToSyncQueue('hydration', 'upsert', { date, amount: amountMl });
         return false;
     }
     

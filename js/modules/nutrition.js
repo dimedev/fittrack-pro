@@ -366,16 +366,21 @@ function searchUnifiedFoods() {
 
     container.innerHTML = results.map(food => {
         const macroText = `P: ${food.protein}g · G: ${food.carbs}g · L: ${food.fat}g`;
+        const hasUnit = hasNaturalUnit(food);
+        const quickAddLabel = hasUnit ? `1 ${food.unitLabel}` : '100g';
+        
         return `
-            <div class="search-result-item" id="search-item-${food.id}" onclick="quickAddFromSearch('${food.id}')" style="cursor: pointer; padding: 12px; border-bottom: 1px solid var(--border-color); transition: all 0.3s;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
+            <div class="search-result-item" id="search-item-${food.id}" style="padding: 12px; border-bottom: 1px solid var(--border-color); transition: all 0.3s;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <div onclick="quickAddFromSearch('${food.id}')" style="flex: 1; cursor: pointer;">
                         <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${food.name}</div>
                         <div style="font-size: 0.85rem; color: var(--text-secondary);">${macroText}</div>
                     </div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-                        <span style="font-weight: 700; color: var(--accent-primary);">${food.calories} kcal</span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">100g</span>
+                    <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+                        <button class="btn btn-sm btn-primary" onclick="quickAdd100g('${food.id}', event)" style="font-size: 0.75rem; padding: 4px 12px; white-space: nowrap;">
+                            + ${quickAddLabel}
+                        </button>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${food.calories} kcal</span>
                     </div>
                 </div>
             </div>
@@ -404,6 +409,31 @@ function quickAddFromSearch(foodId) {
     isEditMode = false;
     editMealType = null;
     openQuantitySheet(food, hasNaturalUnit(food) ? food.unitWeight : 100);
+}
+
+/**
+ * Quick-add direct 100g sans ouvrir la sheet
+ */
+async function quickAdd100g(foodId, event) {
+    if (event) {
+        event.stopPropagation(); // Empêcher le clic parent
+    }
+    
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) return;
+    
+    const mealType = inferMealType(Date.now());
+    const quantity = hasNaturalUnit(food) ? food.unitWeight : 100;
+    
+    await addToJournalWithMealType(foodId, quantity, mealType);
+    
+    const qtyDisplay = hasNaturalUnit(food) ? `1 ${food.unitLabel}` : '100g';
+    showToast(`✅ ${qtyDisplay} de ${food.name} ajouté`, 'success', 2000);
+    
+    // Haptic feedback
+    if (window.HapticFeedback) {
+        window.HapticFeedback.success();
+    }
 }
 
 /**

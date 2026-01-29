@@ -239,6 +239,18 @@ let state = {
     // Hydratation tracking
     hydration: {}, // { "2025-01-25": 2500 } - ml par jour
     
+    // Sync Queue Offline (Priorité 2 - Stabilité)
+    syncQueue: [], // [{ id, type, action, data, timestamp, retries }]
+    
+    // Périodisation (Priorité 4)
+    periodization: {
+        currentWeek: 1,        // 1-4
+        currentCycle: 1,       // Numéro du mesocycle
+        cycleStartDate: null,
+        weeklyVolume: [],      // Historique du volume par semaine
+        autoDeload: true       // Semaine 4 = deload automatique
+    },
+    
     // Habitudes alimentaires (pour suggestions intelligentes)
     mealHistory: {}, // { mealSignature: { count, lastUsed, avgRating } } - pour suggestions
     mealCombos: [], // Combos favoris utilisateur [{ id, name, icon, foods, mealTypes, usageCount, createdAt, lastUsed }]
@@ -372,7 +384,20 @@ function loadState() {
             
         } catch (e) {
             console.error('Erreur lors du chargement des données:', e);
-            showToast('Erreur de chargement - données réinitialisées', 'error');
+            
+            // Sauvegarder backup avant reset
+            try {
+                const corruptedData = localStorage.getItem('fittrack-state');
+                if (corruptedData) {
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    localStorage.setItem(`fittrack-state-backup-${timestamp}`, corruptedData);
+                    console.log('💾 Backup sauvegardé avant reset');
+                }
+            } catch (backupError) {
+                console.error('Impossible de créer backup:', backupError);
+            }
+            
+            showToast('⚠️ Erreur de lecture. Un backup a été créé. Contactez le support si le problème persiste.', 'error');
             localStorage.removeItem('fittrack-state');
         }
     }
@@ -424,7 +449,7 @@ function saveState() {
             showToast('Impossible de sauvegarder. Connectez-vous à Supabase pour ne pas perdre vos données!', 'error');
         } else {
             console.error('Erreur lors de la sauvegarde:', e);
-            showToast('Erreur de sauvegarde locale', 'error');
+            showToast('⚠️ Impossible de sauvegarder localement. Libérez de l\'espace ou connectez-vous à Supabase.', 'error');
         }
     }
 }

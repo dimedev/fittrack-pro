@@ -22,7 +22,10 @@ let fsSession = {
     currentExerciseIndex: 0,
     currentSetIndex: 0,
     completedSets: [], // { exerciseIndex, setIndex, weight, reps }
-    startTime: null
+    startTime: null,
+    supersets: [], // { exercise1Index, exercise2Index } pour les paires de supersets
+    currentSuperset: null, // Index du superset en cours (null si pas en superset)
+    supersetPhase: null // 'A' ou 'B' (A = premier exercice, B = deuxième)
 };
 
 // ==================== SESSION PERSISTENCE ====================
@@ -115,6 +118,12 @@ function tryRestorePendingSession() {
     if (confirm(message)) {
         // Restaurer la session
         fsSession = savedSession;
+        
+        // Migration : initialiser les champs manquants (sessions pré-v30)
+        if (!fsSession.supersets) fsSession.supersets = [];
+        if (!fsSession.currentSuperset) fsSession.currentSuperset = null;
+        if (!fsSession.supersetPhase) fsSession.supersetPhase = null;
+        if (!fsSession.isDropMode) fsSession.isDropMode = false;
         
         // Afficher l'UI
         const fsElement = document.getElementById('fullscreen-session');
@@ -568,6 +577,53 @@ function selectProgram(programId) {
 }
 
 // ==================== SESSION PREVIEW ====================
+
+/**
+ * Quick Start: démarre immédiatement la séance sans preview ni durée picker
+ * Utilise les paramètres par défaut (60 min, tous les exercices)
+ */
+function quickStartSession(splitIndex) {
+    const program = trainingPrograms[state.wizardResults.selectedProgram];
+    if (!program) return;
+
+    const splits = program.splits[state.wizardResults.frequency];
+    if (!splits || !splits[splitIndex]) return;
+
+    const splitName = splits[splitIndex];
+    let exercises = program.exercises[splitName] || [];
+    
+    // Appliquer le template si existant (avec swaps)
+    const templateKey = `${state.wizardResults.selectedProgram}-${splitIndex}`;
+    const template = state.sessionTemplates[templateKey];
+    
+    if (template && template.exercises) {
+        exercises = exercises.map(ex => {
+            const templateEx = template.exercises.find(te => te.originalName === ex.name);
+            return {
+                ...ex,
+                name: templateEx?.swappedName || ex.name,
+                originalName: ex.name,
+                effectiveName: templateEx?.swappedName || ex.name
+            };
+        });
+    } else {
+        exercises = exercises.map(ex => ({
+            ...ex,
+            originalName: ex.name,
+            effectiveName: ex.name
+        }));
+    }
+    
+    // Haptic feedback
+    if (navigator.vibrate) {
+        try { navigator.vibrate([30, 10, 30]); } catch(e) {}
+    }
+    
+    // Démarrer immédiatement avec durée par défaut (60 min)
+    startFullScreenSessionWithCustomExercises(splitIndex, splitName, exercises, 60);
+    
+    showToast('⚡ Séance démarrée !', 'success', 2000);
+}
 
 /**
  * Affiche l'écran d'aperçu de séance avant de commencer
@@ -1269,6 +1325,11 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
 
     // Show full-screen UI with iOS-like animation
     const fsElement = document.getElementById('fullscreen-session');
+    if (!fsElement) {
+        console.error('❌ Element fullscreen-session introuvable');
+        return;
+    }
+    
     fsElement.style.display = 'flex';
     // Force reflow to trigger animation
     fsElement.offsetHeight;
@@ -1293,6 +1354,27 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
 function startFullScreenSession(splitIndex) {
     // Nouveau flow: passer par l'aperçu
     showSessionPreview(splitIndex);
+}
+
+/**
+ * Machine occupée : reporter l'exercice
+ */
+function machineOccupied() {
+    if (!fsSession.active) return;
+    
+    const currentExercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    if (!currentExercise) return;
+    
+    if (confirm('Machine occupée ? Passer à l\'exercice suivant ?')) {
+        currentExercise.postponeReason = 'Machine occupée';
+        postponeCurrentExercise();
+        
+        if (window.HapticFeedback) {
+            window.HapticFeedback.warning();
+        }
+        
+        showToast('⏳ Machine occupée - Exercice reporté', 'info', 3000);
+    }
 }
 
 /**
@@ -1437,17 +1519,23 @@ function renderCurrentExercise() {
 
     const totalSets = exercise.sets;
     const currentSet = fsSession.currentSetIndex + 1;
+    
+    // Vérifier si on est en superset
+    const superset = getCurrentSuperset();
+    const supersetLabel = superset ? 
+        (superset.phase === 'A' ? ' A' : ' B') + ' (Superset)' : '';
     const totalExercises = fsSession.exercises.length;
-    const splits = trainingPrograms[state.wizardResults.selectedProgram].splits[state.wizardResults.frequency];
+    const splits = trainingPrograms?.[state.wizardResults?.selectedProgram]?.splits?.[state.wizardResults?.frequency];
 
     // Update header
     document.getElementById('fs-session-title').textContent = fsSession.splitName;
-    document.getElementById('fs-session-progress').textContent = `Jour ${fsSession.splitIndex + 1}/${splits.length}`;
+    document.getElementById('fs-session-progress').textContent = splits ? `Jour ${fsSession.splitIndex + 1}/${splits.length}` : 'Jour 1';
 
     // Update exercise info
     const exerciseNameEl = document.getElementById('fs-exercise-name');
     exerciseNameEl.innerHTML = `
         ${exercise.effectiveName}${exercise.postponed ? ' <span style="color: var(--warning); font-size: 0.8rem;">⏭️</span>' : ''}
+        ${supersetLabel ? `<span class="superset-badge">⚡ ${supersetLabel}</span>` : ''}
         <button class="exercise-info-btn" onclick="openExerciseTips('${exercise.effectiveName.replace(/'/g, "\\'")}')" title="Informations" style="margin-left: 8px;">
             ⓘ
         </button>
@@ -1569,16 +1657,33 @@ function validateCurrentSet() {
         return;
     }
 
+    // Demander RPE/RIR optionnel
+    const rpeInput = document.getElementById('fs-rpe-input');
+    const rirInput = document.getElementById('fs-rir-input');
+    const rpe = rpeInput ? parseInt(rpeInput.value) || null : null;
+    const rir = rirInput ? parseInt(rirInput.value) || null : null;
+    
     // Save the set
-    fsSession.completedSets.push({
+    const completedSet = {
         exerciseIndex: fsSession.currentExerciseIndex,
         setIndex: fsSession.currentSetIndex,
         weight: weight,
-        reps: reps
-    });
+        reps: reps,
+        rpe: rpe,  // Rating of Perceived Exertion (1-10)
+        rir: rir,   // Reps In Reserve (0-5)
+        isDrop: false,
+        dropNumber: 0
+    };
+    
+    fsSession.completedSets.push(completedSet);
 
     // Sauvegarder immédiatement après chaque série
     saveFsSessionToStorage();
+    
+    // Haptic feedback sur completion de set
+    if (window.HapticFeedback) {
+        window.HapticFeedback.success();
+    }
 
     // Move to next set or exercise
     const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
@@ -1588,6 +1693,28 @@ function validateCurrentSet() {
     const isLastSet = fsSession.currentSetIndex + 1 >= totalSets;
     const isLastExercise = fsSession.currentExerciseIndex + 1 >= fsSession.exercises.length;
 
+    // Vérifier si on est en superset
+    const inSuperset = handleSupersetProgression();
+    if (inSuperset) {
+        return; // Gestion spéciale superset
+    }
+    
+    // Afficher le bouton Drop Set si c'est la dernière série et < 2 drops déjà faits
+    const dropsForThisExercise = fsSession.completedSets.filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isDrop
+    ).length;
+    
+    if (isLastSet && dropsForThisExercise < 2 && weight > 5) {
+        // Afficher le bouton drop set pendant 5 secondes
+        const dropBtn = document.getElementById('fs-drop-btn');
+        if (dropBtn) {
+            dropBtn.style.display = 'flex';
+            setTimeout(() => {
+                if (dropBtn) dropBtn.style.display = 'none';
+            }, 5000);
+        }
+    }
+    
     if (!isLastSet) {
         // Next set
         fsSession.currentSetIndex++;
@@ -1609,6 +1736,12 @@ function validateCurrentSet() {
     } else {
         // Dernière série du dernier exercice - séance terminée
         showToast('Séance terminée ! 🎉', 'success');
+        
+        // Haptic feedback achievement sur fin de séance
+        if (window.HapticFeedback) {
+            window.HapticFeedback.achievement();
+        }
+        
         renderSessionCompleteState();
     }
 }
@@ -1651,7 +1784,7 @@ function renderExerciseCompleteState() {
     // Nom du prochain exercice
     const nextExercise = fsSession.exercises[fsSession.currentExerciseIndex + 1];
     const nameEl = document.getElementById('fs-next-exercise-name');
-    if (nameEl) nameEl.textContent = nextExercise.effectiveName;
+    if (nameEl && nextExercise) nameEl.textContent = nextExercise.effectiveName;
     
     // Arrêter le timer
     resetFsTimer();
@@ -1785,8 +1918,18 @@ function startRestTimer() {
         clearInterval(fsTimerInterval);
     }
 
+    // Afficher le timer prominent
+    const prominentTimer = document.getElementById('fs-rest-timer-prominent');
+    if (prominentTimer) {
+        prominentTimer.style.display = 'flex';
+    }
+
     // Calculer l'heure de fin basée sur Date.now() pour précision
     fsTimerEndTime = Date.now() + (fsTimerSeconds * 1000);
+    
+    // Variables pour vibrations (éviter doublons)
+    let vibrated10s = false;
+    let vibrated5s = false;
 
     // Start countdown basé sur Date.now()
     fsTimerInterval = setInterval(() => {
@@ -1795,13 +1938,26 @@ function startRestTimer() {
         fsTimerSeconds = Math.max(0, Math.ceil(remaining / 1000));
         
         updateFsTimerDisplay();
+        
+        // Vibrations aux points clés
+        if (fsTimerSeconds === 10 && !vibrated10s) {
+            vibrated10s = true;
+            if (navigator.vibrate) {
+                try { navigator.vibrate(30); } catch(e) {}
+            }
+        } else if (fsTimerSeconds === 5 && !vibrated5s) {
+            vibrated5s = true;
+            if (navigator.vibrate) {
+                try { navigator.vibrate([30, 20, 30]); } catch(e) {}
+            }
+        }
 
         if (remaining <= 0) {
             clearInterval(fsTimerInterval);
             fsTimerInterval = null;
             fsTimerSeconds = 0;
             
-            // Vibrate if available
+            // Vibrate if available (fin)
             if (navigator.vibrate) {
                 try {
                     navigator.vibrate([200, 100, 200]);
@@ -1821,11 +1977,45 @@ function updateFsTimerDisplay() {
     const mins = Math.floor(Math.abs(fsTimerSeconds) / 60);
     const secs = Math.abs(fsTimerSeconds) % 60;
     const prefix = fsTimerSeconds < 0 ? '+' : '';
-    document.getElementById('fs-timer-display').textContent = `${prefix}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const timeString = `${prefix}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    
+    // Mettre à jour timer en bas
+    document.getElementById('fs-timer-display').textContent = timeString;
 
     // Change color when overtime
     const timerEl = document.getElementById('fs-timer');
     timerEl.classList.toggle('overtime', fsTimerSeconds < 0);
+    
+    // Mettre à jour timer prominent
+    const restTimerTime = document.getElementById('rest-timer-time');
+    if (restTimerTime) {
+        restTimerTime.textContent = timeString;
+    }
+    
+    // Mettre à jour cercle de progression
+    const progressCircle = document.getElementById('rest-timer-progress');
+    const circleContainer = document.getElementById('rest-timer-circle-container');
+    
+    if (progressCircle && circleContainer) {
+        const circumference = 2 * Math.PI * 54; // rayon = 54
+        const progress = fsTimerTarget > 0 ? (fsTimerSeconds / fsTimerTarget) : 0;
+        const offset = circumference * (1 - progress);
+        
+        progressCircle.style.strokeDashoffset = offset;
+        
+        // Changer couleur selon temps restant
+        circleContainer.classList.remove('timer-green', 'timer-yellow', 'timer-red', 'timer-overtime');
+        
+        if (fsTimerSeconds < 0) {
+            circleContainer.classList.add('timer-overtime');
+        } else if (fsTimerSeconds <= 5) {
+            circleContainer.classList.add('timer-red');
+        } else if (fsTimerSeconds <= 15) {
+            circleContainer.classList.add('timer-yellow');
+        } else {
+            circleContainer.classList.add('timer-green');
+        }
+    }
 }
 
 function resetFsTimer() {
@@ -1836,11 +2026,351 @@ function resetFsTimer() {
     fsTimerSeconds = 0;
     updateFsTimerDisplay();
     document.getElementById('fs-timer').classList.remove('active', 'overtime');
+    
+    // Masquer le timer prominent
+    const prominentTimer = document.getElementById('fs-rest-timer-prominent');
+    if (prominentTimer) {
+        prominentTimer.style.display = 'none';
+    }
 }
 
 function adjustFsTimer(delta) {
     fsTimerSeconds += delta;
     updateFsTimerDisplay();
+}
+
+// ==================== PERIODISATION ====================
+
+function updatePeriodization() {
+    if (!state.periodization) {
+        state.periodization = {
+            currentWeek: 1,
+            currentCycle: 1,
+            cycleStartDate: new Date().toISOString(),
+            weeklyVolume: [],
+            autoDeload: true
+        };
+    }
+    
+    // Calculer le volume de cette session
+    let sessionVolume = 0;
+    fsSession.completedSets.forEach(set => {
+        sessionVolume += set.weight * set.reps;
+    });
+    
+    // Ajouter au volume de la semaine
+    const weekIndex = state.periodization.currentWeek - 1;
+    if (!state.periodization.weeklyVolume[weekIndex]) {
+        state.periodization.weeklyVolume[weekIndex] = 0;
+    }
+    state.periodization.weeklyVolume[weekIndex] += sessionVolume;
+    
+    // Vérifier si on doit passer à la semaine suivante (basé sur fréquence)
+    const frequency = state.wizardResults?.frequency || 3;
+    const sessionsThisWeek = state.sessionHistory.filter(s => {
+        const daysDiff = Math.floor((Date.now() - new Date(s.date).getTime()) / (1000 * 60 * 60 * 24));
+        return daysDiff < 7;
+    }).length;
+    
+    // Avancer la semaine si on a complété le nombre de sessions prévu
+    if (sessionsThisWeek >= frequency) {
+        state.periodization.currentWeek++;
+        
+        // Reset cycle après semaine 4
+        if (state.periodization.currentWeek > 4) {
+            state.periodization.currentWeek = 1;
+            state.periodization.currentCycle++;
+            state.periodization.weeklyVolume = [];
+            state.periodization.cycleStartDate = new Date().toISOString();
+            
+            showToast(`🎯 Nouveau cycle ${state.periodization.currentCycle} démarré !`, 'success', 3000);
+        } else if (state.periodization.currentWeek === 4 && state.periodization.autoDeload) {
+            showToast('📉 Semaine 4 : Deload automatique (-30% volume)', 'info', 4000);
+        }
+    }
+    
+    saveState();
+}
+
+function shouldApplyDeload() {
+    if (!state.periodization || !state.periodization.autoDeload) return false;
+    return state.periodization.currentWeek === 4;
+}
+
+function getDeloadAdjustedSets(originalSets) {
+    if (!shouldApplyDeload()) return originalSets;
+    return Math.max(1, Math.round(originalSets * 0.7)); // -30% volume
+}
+
+// Détection de plateau automatique
+function detectPlateauForExercise(exerciseName) {
+    if (!state.progressLog || !state.progressLog[exerciseName]) return null;
+    
+    const logs = state.progressLog[exerciseName].slice(-3); // 3 dernières sessions
+    if (logs.length < 3) return null;
+    
+    // Vérifier si le poids max n'a pas augmenté
+    const weights = logs.map(l => Math.max(...l.sets.map(s => s.weight)));
+    const hasProgressed = weights[2] > weights[0];
+    
+    if (!hasProgressed) {
+        return {
+            detected: true,
+            lastWeight: weights[2],
+            suggestions: [
+                { action: 'deload', label: `Deload à ${Math.round(weights[2] * 0.9 * 2) / 2}kg` },
+                { action: 'swap', label: 'Changer d\'exercice' },
+                { action: 'reps', label: 'Augmenter les reps (8-12)' }
+            ]
+        };
+    }
+    
+    return null;
+}
+
+// Double progression
+function getDoubleProgressionRecommendation(exerciseName) {
+    if (!state.progressLog || !state.progressLog[exerciseName]) return null;
+    
+    const lastLog = state.progressLog[exerciseName].slice(-1)[0];
+    if (!lastLog) return null;
+    
+    const avgReps = lastLog.sets.reduce((sum, s) => sum + s.achievedReps, 0) / lastLog.sets.length;
+    const weight = lastLog.sets[0].weight;
+    
+    // Phase 1 : Augmenter reps jusqu'à 12
+    if (avgReps < 12) {
+        return {
+            phase: 'reps',
+            message: `Garder ${weight}kg, viser ${Math.ceil(avgReps) + 1}-${Math.ceil(avgReps) + 2} reps`,
+            targetWeight: weight,
+            targetReps: Math.ceil(avgReps) + 2
+        };
+    }
+    
+    // Phase 2 : Augmenter poids, reset reps
+    const increment = weight >= 40 ? 2.5 : 1.25;
+    return {
+        phase: 'weight',
+        message: `Augmenter à ${weight + increment}kg, viser 8-10 reps`,
+        targetWeight: weight + increment,
+        targetReps: 8
+    };
+}
+
+// ==================== DROP SETS ====================
+
+function startDropSet() {
+    if (!fsSession.active) return;
+    
+    // Masquer le bouton drop
+    const dropBtn = document.getElementById('fs-drop-btn');
+    if (dropBtn) dropBtn.style.display = 'none';
+    
+    // Récupérer le dernier set complété
+    const lastSet = fsSession.completedSets[fsSession.completedSets.length - 1];
+    if (!lastSet) return;
+    
+    // Calculer le poids réduit (-20%)
+    const newWeight = Math.max(2.5, Math.round((lastSet.weight * 0.8) * 2) / 2); // Arrondi à 0.5kg
+    
+    // Pré-remplir les inputs
+    document.getElementById('fs-weight-input').value = newWeight;
+    document.getElementById('fs-reps-input').value = ''; // L'utilisateur entre les reps
+    document.getElementById('fs-reps-input').focus();
+    
+    // Indiquer visuellement qu'on est en drop set
+    const validateBtn = document.getElementById('fs-validate-btn');
+    if (validateBtn) {
+        validateBtn.innerHTML = `
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Valider Drop Set</span>
+        `;
+    }
+    
+    // Marquer qu'on est en mode drop
+    fsSession.isDropMode = true;
+    
+    showToast('💧 Drop Set : -20% poids', 'info', 2000);
+}
+
+// Modifier validateCurrentSet pour gérer les drops
+const originalValidateCurrentSet = validateCurrentSet;
+function validateCurrentSetWithDrop() {
+    const result = originalValidateCurrentSet();
+    
+    // Si on était en drop mode, marquer le set comme drop
+    if (fsSession.isDropMode && fsSession.completedSets.length > 0) {
+        const lastSet = fsSession.completedSets[fsSession.completedSets.length - 1];
+        const dropsForThisExercise = fsSession.completedSets.filter(
+            s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isDrop
+        ).length;
+        
+        lastSet.isDrop = true;
+        lastSet.dropNumber = dropsForThisExercise;
+        
+        fsSession.isDropMode = false;
+        
+        // Restaurer le bouton
+        const validateBtn = document.getElementById('fs-validate-btn');
+        if (validateBtn) {
+            validateBtn.innerHTML = `
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Valider la série</span>
+            `;
+        }
+    }
+    
+    return result;
+}
+
+// ==================== SUPERSETS ====================
+
+/**
+ * Créer un superset entre 2 exercices
+ */
+function createSuperset(exercise1Index, exercise2Index) {
+    if (!fsSession.active) return;
+    
+    // Protection contre supersets undefined
+    if (!fsSession.supersets) fsSession.supersets = [];
+    
+    // Vérifier que les exercices existent
+    if (!fsSession.exercises[exercise1Index] || !fsSession.exercises[exercise2Index]) {
+        showToast('Exercices introuvables', 'error');
+        return;
+    }
+    
+    // Vérifier qu'ils ne sont pas déjà dans un superset
+    const alreadyInSuperset = fsSession.supersets.some(ss => 
+        ss.exercise1Index === exercise1Index || 
+        ss.exercise2Index === exercise1Index ||
+        ss.exercise1Index === exercise2Index || 
+        ss.exercise2Index === exercise2Index
+    );
+    
+    if (alreadyInSuperset) {
+        showToast('Un des exercices est déjà dans un superset', 'warning');
+        return;
+    }
+    
+    // Créer le superset
+    fsSession.supersets.push({
+        exercise1Index,
+        exercise2Index
+    });
+    
+    saveFsSessionToStorage();
+    
+    // Haptic
+    if (window.HapticFeedback) {
+        window.HapticFeedback.success();
+    }
+    
+    showToast('✅ Superset créé !', 'success');
+    renderCurrentExercise();
+}
+
+/**
+ * Retirer un superset
+ */
+function removeSuperset(supersetIndex) {
+    if (!fsSession.active) return;
+    if (!fsSession.supersets) fsSession.supersets = [];
+    
+    fsSession.supersets.splice(supersetIndex, 1);
+    saveFsSessionToStorage();
+    
+    showToast('Superset retiré', 'info');
+    renderCurrentExercise();
+}
+
+/**
+ * Vérifier si l'exercice actuel fait partie d'un superset
+ */
+function getCurrentSuperset() {
+    if (!fsSession.active) return null;
+    
+    // Protection contre supersets undefined (sessions restaurées avant v30)
+    if (!fsSession.supersets || !Array.isArray(fsSession.supersets)) {
+        fsSession.supersets = [];
+        return null;
+    }
+    
+    const currentIdx = fsSession.currentExerciseIndex;
+    
+    for (let i = 0; i < fsSession.supersets.length; i++) {
+        const ss = fsSession.supersets[i];
+        if (ss.exercise1Index === currentIdx) {
+            return { index: i, phase: 'A', partner: ss.exercise2Index };
+        }
+        if (ss.exercise2Index === currentIdx) {
+            return { index: i, phase: 'B', partner: ss.exercise1Index };
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Gérer la progression dans un superset
+ */
+function handleSupersetProgression() {
+    const superset = getCurrentSuperset();
+    if (!superset) return false; // Pas en superset
+    
+    const currentEx = fsSession.exercises[fsSession.currentExerciseIndex];
+    const currentSetCompleted = fsSession.completedSets.filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex
+    ).length;
+    
+    const isLastSet = currentSetCompleted >= currentEx.sets;
+    
+    if (superset.phase === 'A' && !isLastSet) {
+        // Passer à l'exercice B du superset
+        fsSession.currentExerciseIndex = superset.partner;
+        fsSession.currentSetIndex = currentSetCompleted; // Même numéro de série
+        renderCurrentExercise();
+        
+        showToast('⚡ Superset - Exercice 2', 'info', 1500);
+        return true;
+    } else if (superset.phase === 'B' && !isLastSet) {
+        // Retourner à l'exercice A pour la série suivante
+        fsSession.currentExerciseIndex = fsSession.supersets[superset.index].exercise1Index;
+        fsSession.currentSetIndex++;
+        renderCurrentExercise();
+        
+        // Démarrer le timer de repos après la paire
+        startRestTimer();
+        return true;
+    }
+    
+    // Tous les sets du superset sont terminés
+    return false;
+}
+
+// ==================== AUTOREGULATION (RPE/RIR) ====================
+
+/**
+ * Toggle affichage section autoregulation
+ */
+function toggleAutoregulation() {
+    const inputs = document.getElementById('fs-autoregulation-inputs');
+    const toggle = document.querySelector('.fs-autoregulation-toggle .toggle-icon');
+    
+    if (!inputs) return;
+    
+    const isHidden = inputs.style.display === 'none';
+    inputs.style.display = isHidden ? 'flex' : 'none';
+    
+    if (toggle) {
+        toggle.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+    
+    // Haptic
+    if (window.HapticFeedback) {
+        window.HapticFeedback.light();
+    }
 }
 
 // ==================== FINISH SESSION ====================
@@ -1851,6 +2381,9 @@ function finishSession() {
         console.warn('⚠️ Session déjà sauvegardée, ignore finishSession()');
         return;
     }
+    
+    // Progression de la périodisation
+    updatePeriodization();
     
     if (fsSession.completedSets.length === 0) {
         if (confirm('Aucune série enregistrée. Quitter quand même ?')) {
@@ -1902,6 +2435,10 @@ function finishSession() {
                 const prCheck = checkForNewPR(exerciseName, setData.weight, setData.reps);
                 if (prCheck.isNewPR) {
                     newPRs.push({ exercise: exerciseName, ...prCheck });
+                    // Haptic feedback sur PR
+                    if (window.HapticFeedback) {
+                        window.HapticFeedback.achievement();
+                    }
                 }
             }
         });
@@ -1936,10 +2473,6 @@ function finishSession() {
     
     const durationMinutes = Math.round((Date.now() - fsSession.startTime) / 1000 / 60);
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'training.js:1920',message:'Duration calculated',data:{startTime:fsSession.startTime,now:Date.now(),durationMinutes:durationMinutes},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    
     // Calculer les calories brûlées (MET musculation)
     // Intensité basée sur le volume/temps
     const volumePerMinute = totalVolume / durationMinutes;
@@ -1963,10 +2496,6 @@ function finishSession() {
         totalVolume: Math.round(totalVolume),
         caloriesBurned: caloriesBurned
     };
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'training.js:1951',message:'Session to save',data:{sessionId:newSession.sessionId,duration:newSession.duration,exerciseCount:newSession.exercises.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     
     state.sessionHistory.unshift(newSession);
 
@@ -1998,7 +2527,7 @@ function finishSession() {
         if (typeof saveWorkoutSessionToSupabase === 'function') {
             saveWorkoutSessionToSupabase(sessionToSave).catch(err => {
                 console.error('Erreur sync séance:', err);
-                showToast('Erreur synchronisation séance - sauvegardée localement', 'warning');
+                showToast('⚠️ Séance sauvegardée sur cet appareil uniquement. Reconnectez-vous pour synchroniser.', 'warning');
             });
         }
 
@@ -2009,7 +2538,7 @@ function finishSession() {
                 if (typeof saveProgressLogToSupabase === 'function') {
                     saveProgressLogToSupabase(exData.exercise, lastLog).catch(err => {
                         console.error('Erreur sync progression:', err);
-                        showToast('Erreur synchronisation progression - sauvegardée localement', 'warning');
+                        showToast('⚠️ Progression sauvegardée localement. Synchronisation en attente.', 'warning');
                     });
                 }
             }
@@ -2051,8 +2580,16 @@ function finishSession() {
     // Show results
     if (newPRs.length > 0) {
         showPRNotification(newPRs);
+        // Haptic achievement pour PR
+        if (window.HapticFeedback) {
+            window.HapticFeedback.achievement();
+        }
     } else {
         showToast('Séance enregistrée ! 🎉', 'success');
+        // Haptic success pour séance complétée
+        if (window.HapticFeedback) {
+            window.HapticFeedback.success();
+        }
     }
 
     // Refresh training section
@@ -2141,20 +2678,57 @@ function quitSession() {
     closeSettingsSheet();
 }
 
-// ==================== PR NOTIFICATION (from original) ====================
+// ==================== PR NOTIFICATION SPECTACULAIRE ====================
 
 function showPRNotification(prs) {
-    // Remplacer les notifications intrusives par des toasts simples
-    if (prs.length === 1) {
-        showToast(`🏆 ${prs[0].message}`, 'success', 5000);
-    } else {
-        showToast(`🏆 ${prs.length} nouveaux records !`, 'success', 5000);
+    // Haptic achievement
+    if (window.HapticFeedback) {
+        window.HapticFeedback.achievement();
     }
     
-    // Confirmer la sauvegarde après un court délai
+    // Créer overlay celebration spectaculaire
+    const overlay = document.createElement('div');
+    overlay.className = 'pr-celebration-overlay';
+    
+    const card = document.createElement('div');
+    card.className = 'pr-celebration-card';
+    
+    // Contenu de la card
+    if (prs.length === 1) {
+        card.innerHTML = `
+            <span class="pr-celebration-icon">🏆</span>
+            <div class="pr-celebration-title">NOUVEAU RECORD !</div>
+            <div class="pr-celebration-message">${prs[0].message}</div>
+        `;
+    } else {
+        card.innerHTML = `
+            <span class="pr-celebration-icon">🎉</span>
+            <div class="pr-celebration-title">RECORDS EXPLOSÉS !</div>
+            <div class="pr-celebration-message">${prs.length} nouveaux PR</div>
+            <div class="pr-celebration-count">
+                ${prs.map(pr => pr.exercise).join(' • ')}
+            </div>
+        `;
+    }
+    
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    
+    // Retirer après l'animation
+    setTimeout(() => {
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        }, 300);
+    }, 2500);
+    
+    // Toast de confirmation après
     setTimeout(() => {
         showToast('Séance enregistrée ! 💪', 'success');
-    }, 500);
+    }, 2800);
 }
 
 // ==================== LEGACY COMPATIBILITY ====================
@@ -2495,10 +3069,6 @@ async function deduplicateSessions() {
         return { removed: 0, kept: state.sessionHistory.length };
     }
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'training.js:2500',message:'Dedup START',data:{totalSessions:state.sessionHistory.length,sessions:state.sessionHistory.map(s=>({date:s.date,day:s.day,program:s.program,duration:s.duration,exercises:s.exercises?.length}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     console.log('🔍 Démarrage déduplication...', state.sessionHistory.length, 'sessions');
     
     // Grouper par date + program + day
@@ -2562,10 +3132,6 @@ async function deduplicateSessions() {
     const originalLength = state.sessionHistory.length;
     state.sessionHistory = sessionsToKeep.sort((a, b) => b.timestamp - a.timestamp);
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'training.js:2580',message:'Dedup END',data:{originalLength:originalLength,keptLength:sessionsToKeep.length,removedLength:sessionsToRemove.length,keptSessions:sessionsToKeep.map(s=>({date:s.date,day:s.day,duration:s.duration}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     // Sauvegarder
     saveState();
     
@@ -2586,30 +3152,30 @@ async function deduplicateSessions() {
 }
 
 /**
- * Lance la déduplication au chargement de l'app (une seule fois)
+ * Lance la déduplication périodiquement
+ * S'exécute au chargement puis toutes les 5 minutes
  */
-function autoDeduplicateOnce() {
-    // Vérifier si déjà exécuté
-    const dedupFlag = localStorage.getItem('fittrack-dedup-v1-done');
-    if (dedupFlag === 'true') {
-        console.log('✅ Déduplication déjà effectuée');
-        return;
-    }
-    
-    // Exécuter
+function autoDeduplicatePeriodic() {
+    // Première exécution 2 secondes après le chargement
     setTimeout(async () => {
         const result = await deduplicateSessions();
         if (result.removed > 0) {
-            // Marquer comme fait
-            localStorage.setItem('fittrack-dedup-v1-done', 'true');
-            
             // Recalculer les stats
             if (typeof updateStreak === 'function') updateStreak();
             if (typeof updateSessionHistory === 'function') updateSessionHistory();
             if (typeof updateProgressHero === 'function') updateProgressHero();
             if (typeof updateDashboard === 'function') updateDashboard();
             
-            console.log('🎉 Déduplication automatique terminée et marquée');
+            console.log('🎉 Déduplication automatique:', result.removed, 'supprimées');
         }
-    }, 2000); // 2 secondes après le chargement
+        
+        // Ensuite toutes les 5 minutes (en arrière-plan)
+        setInterval(async () => {
+            const periodicResult = await deduplicateSessions();
+            if (periodicResult.removed > 0) {
+                console.log('🔄 Déduplication périodique:', periodicResult.removed, 'supprimées');
+                if (typeof updateSessionHistory === 'function') updateSessionHistory();
+            }
+        }, 5 * 60 * 1000); // 5 minutes
+    }, 2000);
 }

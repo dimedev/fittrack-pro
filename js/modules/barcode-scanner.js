@@ -1,0 +1,334 @@
+// ==================== BARCODE SCANNER MODULE ====================
+// Intégration avec Open Food Facts API pour scan de codes-barres
+
+const OFF_API_URL = 'https://world.openfoodfacts.org/api/v2';
+let barcodeStream = null;
+let barcodeVideo = null;
+let scanningActive = false;
+
+/**
+ * Ouvrir le scanner de codes-barres
+ */
+async function openBarcodeScanner() {
+    const scannerModal = document.getElementById('barcode-scanner-modal');
+    if (!scannerModal) {
+        console.error('Modal barcode scanner introuvable');
+        return;
+    }
+    
+    scannerModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Haptic feedback
+    if (window.HapticFeedback) {
+        window.HapticFeedback.tap();
+    }
+    
+    // Initialiser la caméra
+    await startCamera();
+}
+
+/**
+ * Fermer le scanner
+ */
+function closeBarcodeScanner() {
+    const scannerModal = document.getElementById('barcode-scanner-modal');
+    if (scannerModal) {
+        scannerModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    
+    stopCamera();
+}
+
+/**
+ * Démarrer la caméra
+ */
+async function startCamera() {
+    barcodeVideo = document.getElementById('barcode-video');
+    if (!barcodeVideo) return;
+    
+    try {
+        // Demander l'accès à la caméra arrière
+        barcodeStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: 'environment', // Caméra arrière
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        });
+        
+        barcodeVideo.srcObject = barcodeStream;
+        await barcodeVideo.play();
+        
+        scanningActive = true;
+        startBarcodeDetection();
+        
+        showToast('📷 Scanner activé - Scannez un code-barres', 'info', 3000);
+        
+    } catch (error) {
+        console.error('Erreur accès caméra:', error);
+        showToast('❌ Impossible d\'accéder à la caméra', 'error');
+        
+        if (window.HapticFeedback) {
+            window.HapticFeedback.error();
+        }
+        
+        closeBarcodeScanner();
+    }
+}
+
+/**
+ * Arrêter la caméra
+ */
+function stopCamera() {
+    scanningActive = false;
+    
+    if (barcodeStream) {
+        barcodeStream.getTracks().forEach(track => track.stop());
+        barcodeStream = null;
+    }
+    
+    if (barcodeVideo) {
+        barcodeVideo.srcObject = null;
+    }
+}
+
+/**
+ * Détecter les codes-barres dans le flux vidéo
+ * Utilise l'API BarcodeDetector si disponible, sinon fallback sur saisie manuelle
+ */
+async function startBarcodeDetection() {
+    if (!('BarcodeDetector' in window)) {
+        console.warn('BarcodeDetector non disponible, utiliser saisie manuelle');
+        showManualBarcodeInput();
+        return;
+    }
+    
+    try {
+        const barcodeDetector = new BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
+        });
+        
+        const detectFrame = async () => {
+            if (!scanningActive || !barcodeVideo) return;
+            
+            try {
+                const barcodes = await barcodeDetector.detect(barcodeVideo);
+                
+                if (barcodes.length > 0) {
+                    const barcode = barcodes[0].rawValue;
+                    console.log('📦 Code-barres détecté:', barcode);
+                    
+                    // Haptic feedback
+                    if (window.HapticFeedback) {
+                        window.HapticFeedback.success();
+                    }
+                    
+                    // Rechercher dans Open Food Facts
+                    await fetchProductFromOFF(barcode);
+                    return;
+                }
+                
+                // Continuer la détection
+                requestAnimationFrame(detectFrame);
+            } catch (err) {
+                console.error('Erreur détection:', err);
+                requestAnimationFrame(detectFrame);
+            }
+        };
+        
+        detectFrame();
+        
+    } catch (error) {
+        console.error('Erreur init BarcodeDetector:', error);
+        showManualBarcodeInput();
+    }
+}
+
+/**
+ * Afficher l'input manuel si la détection automatique échoue
+ */
+function showManualBarcodeInput() {
+    const scannerModal = document.getElementById('barcode-scanner-modal');
+    const scannerContent = scannerModal.querySelector('.scanner-content');
+    
+    scannerContent.innerHTML = `
+        <h3 style="margin-bottom: 16px;">Saisie manuelle du code-barres</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.9rem;">
+            Votre navigateur ne supporte pas la détection automatique. Entrez le code-barres manuellement.
+        </p>
+        <input 
+            type="number" 
+            id="manual-barcode-input" 
+            placeholder="Ex: 3017620422003" 
+            class="form-input"
+            style="margin-bottom: 16px; width: 100%;"
+            inputmode="numeric"
+        >
+        <div style="display: flex; gap: 12px;">
+            <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1;">Annuler</button>
+            <button class="btn btn-primary" onclick="searchManualBarcode()" style="flex: 1;">Rechercher</button>
+        </div>
+    `;
+    
+    // Focus sur l'input
+    setTimeout(() => {
+        document.getElementById('manual-barcode-input')?.focus();
+    }, 100);
+}
+
+/**
+ * Rechercher un code-barres saisi manuellement
+ */
+async function searchManualBarcode() {
+    const input = document.getElementById('manual-barcode-input');
+    const barcode = input?.value?.trim();
+    
+    if (!barcode) {
+        showToast('Entrez un code-barres', 'warning');
+        return;
+    }
+    
+    if (window.HapticFeedback) {
+        window.HapticFeedback.tap();
+    }
+    
+    await fetchProductFromOFF(barcode);
+}
+
+/**
+ * Récupérer les informations produit depuis Open Food Facts
+ */
+async function fetchProductFromOFF(barcode) {
+    const loadingDiv = document.getElementById('barcode-loading');
+    if (loadingDiv) {
+        loadingDiv.style.display = 'flex';
+    }
+    
+    try {
+        const response = await fetch(`${OFF_API_URL}/product/${barcode}.json`);
+        const data = await response.json();
+        
+        if (data.status === 1 && data.product) {
+            const product = data.product;
+            
+            // Extraire les macros (pour 100g)
+            const nutrients = product.nutriments || {};
+            const foodData = {
+                name: product.product_name || product.product_name_fr || 'Produit inconnu',
+                brand: product.brands || '',
+                barcode: barcode,
+                calories: Math.round(nutrients['energy-kcal_100g'] || nutrients['energy-kcal'] || 0),
+                protein: Math.round((nutrients['proteins_100g'] || nutrients['proteins'] || 0) * 10) / 10,
+                carbs: Math.round((nutrients['carbohydrates_100g'] || nutrients['carbohydrates'] || 0) * 10) / 10,
+                fat: Math.round((nutrients['fat_100g'] || nutrients['fat'] || 0) * 10) / 10,
+                imageUrl: product.image_url || product.image_front_url || null
+            };
+            
+            // Afficher les résultats
+            displayScannedProduct(foodData);
+            
+            // Haptic feedback
+            if (window.HapticFeedback) {
+                window.HapticFeedback.success();
+            }
+            
+        } else {
+            showToast('❌ Produit non trouvé dans la base Open Food Facts', 'error');
+            
+            if (window.HapticFeedback) {
+                window.HapticFeedback.error();
+            }
+            
+            // Proposer saisie manuelle
+            setTimeout(() => {
+                if (confirm('Produit introuvable. Voulez-vous le créer manuellement ?')) {
+                    closeBarcodeScanner();
+                    if (typeof openCustomFoodModal === 'function') {
+                        openCustomFoodModal();
+                    }
+                }
+            }, 500);
+        }
+        
+    } catch (error) {
+        console.error('Erreur API Open Food Facts:', error);
+        showToast('❌ Erreur lors de la recherche', 'error');
+        
+        if (window.HapticFeedback) {
+            window.HapticFeedback.error();
+        }
+        
+    } finally {
+        if (loadingDiv) {
+            loadingDiv.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Afficher le produit scanné
+ */
+function displayScannedProduct(foodData) {
+    const resultsDiv = document.getElementById('barcode-results');
+    if (!resultsDiv) return;
+    
+    const brandText = foodData.brand ? `<div style="color: var(--text-muted); font-size: 0.85rem;">${foodData.brand}</div>` : '';
+    const imageHtml = foodData.imageUrl 
+        ? `<img src="${foodData.imageUrl}" alt="${foodData.name}" style="width: 100%; height: 120px; object-fit: contain; margin-bottom: 12px; border-radius: 8px; background: #f5f5f5;">` 
+        : '';
+    
+    resultsDiv.innerHTML = `
+        <div class="scanned-product-card">
+            ${imageHtml}
+            <h3 style="margin-bottom: 4px;">${foodData.name}</h3>
+            ${brandText}
+            <div class="food-macros" style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Pour 100g :</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <div><strong>${foodData.calories}</strong> kcal</div>
+                    <div>P: <strong>${foodData.protein}g</strong></div>
+                    <div>G: <strong>${foodData.carbs}g</strong></div>
+                    <div>L: <strong>${foodData.fat}g</strong></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1;">Annuler</button>
+                <button class="btn btn-primary" onclick="addScannedProduct('${foodData.barcode}')" style="flex: 1;">Ajouter</button>
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.style.display = 'block';
+    
+    // Arrêter la caméra
+    stopCamera();
+    
+    // Cacher la vidéo
+    const videoContainer = document.querySelector('.barcode-video-container');
+    if (videoContainer) {
+        videoContainer.style.display = 'none';
+    }
+}
+
+/**
+ * Ajouter le produit scanné au journal
+ */
+async function addScannedProduct(barcode) {
+    // Créer un aliment personnalisé et l'ajouter
+    // TODO: implémenter l'ajout au journal avec quantité
+    
+    closeBarcodeScanner();
+    showToast('✅ Produit ajouté !', 'success');
+    
+    if (window.HapticFeedback) {
+        window.HapticFeedback.success();
+    }
+}
+
+// Exporter les fonctions
+window.BarcodeScanner = {
+    open: openBarcodeScanner,
+    close: closeBarcodeScanner
+};
