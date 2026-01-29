@@ -1865,21 +1865,35 @@ async function saveWorkoutSessionToSupabase(sessionData) {
         return false;
     }
     
+    // Validation sessionId
+    if (!sessionData.sessionId) {
+        console.error('❌ sessionId manquant, impossible de sauvegarder');
+        showToast('Erreur: session sans ID', 'error');
+        return false;
+    }
+    
     try {
         await withRetry(async () => {
             const { error } = await supabaseClient
                 .from('workout_sessions')
-                .insert({
+                .upsert({
                     user_id: currentUser.id,
+                    session_id: sessionData.sessionId,
                     date: sessionData.date,
                     program: sessionData.program,
                     day_name: sessionData.day,
-                    exercises: sessionData.exercises
+                    exercises: sessionData.exercises,
+                    duration: sessionData.duration || 0,
+                    total_volume: sessionData.totalVolume || 0,
+                    calories_burned: sessionData.caloriesBurned || 0
+                }, {
+                    onConflict: 'user_id,session_id',
+                    ignoreDuplicates: false
                 });
             
             if (error) throw error;
-            console.log('✅ Séance sauvegardée');
-        }, { maxRetries: 3, critical: true });
+            console.log('✅ Séance sauvegardée (UPSERT):', sessionData.sessionId);
+        }, { maxRetries: 2, critical: true });
         return true;
     } catch (error) {
         console.error('Erreur sauvegarde séance:', error);

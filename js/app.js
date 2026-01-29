@@ -179,6 +179,13 @@ function init() {
         }
     }, 500);
     
+    // Lancer la déduplication automatique (une seule fois)
+    setTimeout(() => {
+        if (typeof autoDeduplicateOnce === 'function') {
+            autoDeduplicateOnce();
+        }
+    }, 3000);
+    
     // Petit délai pour que les skeletons soient visibles
     setTimeout(() => {
         // Retirer les skeletons et restaurer la structure

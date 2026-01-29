@@ -5587,6 +5587,29 @@ h1, h2, h3, h4, h5, h6 {
     stroke: white;
 }
 
+/* ==================== BUTTON LOADING STATE ==================== */
+.btn-loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: btn-spin 0.6s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ==================== HYDRATION WIDGET ==================== */
 .hydration-card {
     background: var(--bg-card);

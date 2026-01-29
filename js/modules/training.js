@@ -13,6 +13,8 @@ let wizardState = {
 
 // ==================== FULL-SCREEN SESSION STATE ====================
 let fsSession = {
+    sessionId: null, // UUID unique pour idempotence
+    sessionSaved: false, // Protection contre double sauvegarde
     active: false,
     splitIndex: 0,
     splitName: '',
@@ -1233,17 +1235,34 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
         };
     });
 
-    // Initialize session
-    fsSession = {
-        active: true,
-        splitIndex: splitIndex,
-        splitName: splitName,
-        exercises: exercises,
-        currentExerciseIndex: 0,
-        currentSetIndex: 0,
-        completedSets: [],
-        startTime: Date.now()
-    };
+    // Vérifier si une session active existe déjà pour ce split
+    const existingSession = loadFsSessionFromStorage();
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (existingSession && 
+        existingSession.splitName === splitName && 
+        existingSession.sessionId &&
+        new Date(existingSession.startTime).toISOString().split('T')[0] === today) {
+        // Reprendre la session existante (même jour, même split)
+        console.log('📌 Reprise de la session existante:', existingSession.sessionId);
+        fsSession = existingSession;
+        fsSession.active = true;
+    } else {
+        // Initialize session avec UUID unique
+        fsSession = {
+            sessionId: 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+            sessionSaved: false,
+            active: true,
+            splitIndex: splitIndex,
+            splitName: splitName,
+            exercises: exercises,
+            currentExerciseIndex: 0,
+            currentSetIndex: 0,
+            completedSets: [],
+            startTime: Date.now()
+        };
+        console.log('🆕 Nouvelle session créée:', fsSession.sessionId);
+    }
 
     // Démarrer la sauvegarde automatique
     startAutoSaveFsSession();
@@ -1827,11 +1846,29 @@ function adjustFsTimer(delta) {
 // ==================== FINISH SESSION ====================
 
 function finishSession() {
+    // Protection contre double exécution
+    if (fsSession.sessionSaved) {
+        console.warn('⚠️ Session déjà sauvegardée, ignore finishSession()');
+        return;
+    }
+    
     if (fsSession.completedSets.length === 0) {
         if (confirm('Aucune série enregistrée. Quitter quand même ?')) {
             closeFullScreenSession();
         }
         return;
+    }
+    
+    // Marquer immédiatement pour éviter double clic
+    fsSession.sessionSaved = true;
+    
+    // Désactiver le bouton Terminer et afficher loading
+    const finishBtn = document.querySelector('.fs-finish-btn');
+    if (finishBtn) {
+        finishBtn.disabled = true;
+        finishBtn.dataset.originalText = finishBtn.textContent;
+        finishBtn.innerHTML = '<span class="btn-spinner"></span> Sauvegarde...';
+        finishBtn.classList.add('btn-loading');
     }
 
     // Build session data grouped by exercise
@@ -1912,6 +1949,7 @@ function finishSession() {
     
     // Save session history
     state.sessionHistory.unshift({
+        sessionId: fsSession.sessionId, // UUID pour idempotence
         date: today,
         timestamp: Date.now(),
         program: state.wizardResults.selectedProgram,
@@ -1938,10 +1976,14 @@ function finishSession() {
     // Sync with Supabase
     if (typeof isLoggedIn === 'function' && isLoggedIn()) {
         const sessionToSave = {
+            sessionId: fsSession.sessionId,
             date: today,
             program: state.wizardResults.selectedProgram,
             day: fsSession.splitName,
-            exercises: sessionData
+            exercises: sessionData,
+            duration: durationMinutes,
+            totalVolume: Math.round(totalVolume),
+            caloriesBurned: caloriesBurned
         };
         if (typeof saveWorkoutSessionToSupabase === 'function') {
             saveWorkoutSessionToSupabase(sessionToSave).catch(err => {
@@ -1984,6 +2026,14 @@ function finishSession() {
     // Update session history
     if (typeof updateSessionHistory === 'function') updateSessionHistory();
 
+    // Réactiver le bouton (en cas de navigation)
+    const finishBtn = document.querySelector('.fs-finish-btn');
+    if (finishBtn) {
+        finishBtn.disabled = false;
+        finishBtn.innerHTML = finishBtn.dataset.originalText || 'Terminer la séance';
+        finishBtn.classList.remove('btn-loading');
+    }
+    
     // Close full-screen
     fsSession.completedSets = []; // Clear so close doesn't prompt
     closeFullScreenSession();
