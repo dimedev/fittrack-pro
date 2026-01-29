@@ -1936,6 +1936,10 @@ function finishSession() {
     
     const durationMinutes = Math.round((Date.now() - fsSession.startTime) / 1000 / 60);
     
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'training.js:1920',message:'Duration calculated',data:{startTime:fsSession.startTime,now:Date.now(),durationMinutes:durationMinutes},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     // Calculer les calories brûlées (MET musculation)
     // Intensité basée sur le volume/temps
     const volumePerMinute = totalVolume / durationMinutes;
@@ -1948,7 +1952,7 @@ function finishSession() {
     const caloriesBurned = Math.round(met * userWeight * (durationMinutes / 60));
     
     // Save session history
-    state.sessionHistory.unshift({
+    const newSession = {
         sessionId: fsSession.sessionId, // UUID pour idempotence
         date: today,
         timestamp: Date.now(),
@@ -1958,7 +1962,13 @@ function finishSession() {
         duration: durationMinutes,
         totalVolume: Math.round(totalVolume),
         caloriesBurned: caloriesBurned
-    });
+    };
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'training.js:1951',message:'Session to save',data:{sessionId:newSession.sessionId,duration:newSession.duration,exerciseCount:newSession.exercises.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    
+    state.sessionHistory.unshift(newSession);
 
     // Keep only last 100 sessions
     state.sessionHistory = state.sessionHistory.slice(0, 100);
@@ -2027,11 +2037,11 @@ function finishSession() {
     if (typeof updateSessionHistory === 'function') updateSessionHistory();
 
     // Réactiver le bouton (en cas de navigation)
-    const finishBtn = document.querySelector('.fs-finish-btn');
-    if (finishBtn) {
-        finishBtn.disabled = false;
-        finishBtn.innerHTML = finishBtn.dataset.originalText || 'Terminer la séance';
-        finishBtn.classList.remove('btn-loading');
+    const finishBtnRestore = document.querySelector('.fs-finish-btn');
+    if (finishBtnRestore) {
+        finishBtnRestore.disabled = false;
+        finishBtnRestore.innerHTML = finishBtnRestore.dataset.originalText || 'Terminer la séance';
+        finishBtnRestore.classList.remove('btn-loading');
     }
     
     // Close full-screen
@@ -2471,4 +2481,135 @@ function initSwapSheetSwipe() {
     }, { passive: true });
     
     swapSheetSwipeInitialized = true;
+}
+
+// ==================== SESSION DEDUPLICATION ====================
+
+/**
+ * Déduplique les sessions en local
+ * Garde la session avec le plus de séries ou la plus ancienne
+ */
+async function deduplicateSessions() {
+    if (!state.sessionHistory || state.sessionHistory.length === 0) {
+        console.log('Aucune session à dédupliquer');
+        return { removed: 0, kept: state.sessionHistory.length };
+    }
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'training.js:2500',message:'Dedup START',data:{totalSessions:state.sessionHistory.length,sessions:state.sessionHistory.map(s=>({date:s.date,day:s.day,program:s.program,duration:s.duration,exercises:s.exercises?.length}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    console.log('🔍 Démarrage déduplication...', state.sessionHistory.length, 'sessions');
+    
+    // Grouper par date + program + day
+    const groups = {};
+    state.sessionHistory.forEach((session, index) => {
+        const key = `${session.date}|${session.program}|${session.day}`;
+        if (!groups[key]) {
+            groups[key] = [];
+        }
+        groups[key].push({ session, originalIndex: index });
+    });
+    
+    // Identifier les doublons
+    const duplicateGroups = Object.entries(groups).filter(([key, sessions]) => sessions.length > 1);
+    
+    if (duplicateGroups.length === 0) {
+        console.log('✅ Aucun doublon détecté');
+        return { removed: 0, kept: state.sessionHistory.length };
+    }
+    
+    console.log(`⚠️ ${duplicateGroups.length} groupes de doublons détectés`);
+    
+    const sessionsToKeep = [];
+    const sessionsToRemove = [];
+    
+    duplicateGroups.forEach(([key, duplicates]) => {
+        console.log(`  Groupe "${key}": ${duplicates.length} doublons`);
+        
+        // Trier par nombre d'exercices/séries (décroissant) puis par timestamp (croissant)
+        const sorted = duplicates.sort((a, b) => {
+            const aExerciseCount = a.session.exercises?.length || 0;
+            const bExerciseCount = b.session.exercises?.length || 0;
+            
+            if (aExerciseCount !== bExerciseCount) {
+                return bExerciseCount - aExerciseCount; // Plus d'exercices = priorité
+            }
+            
+            return a.session.timestamp - b.session.timestamp; // Plus ancien = priorité
+        });
+        
+        // Garder la première (meilleure)
+        sessionsToKeep.push(sorted[0].session);
+        
+        // Marquer les autres pour suppression
+        sorted.slice(1).forEach(dup => {
+            sessionsToRemove.push(dup.session);
+            console.log(`    ❌ Supprimer: ${dup.session.timestamp}, exercices: ${dup.session.exercises?.length || 0}`);
+        });
+        
+        console.log(`    ✅ Garder: ${sorted[0].session.timestamp}, exercices: ${sorted[0].session.exercises?.length || 0}`);
+    });
+    
+    // Ajouter les sessions uniques (non dupliquées)
+    Object.entries(groups)
+        .filter(([key, sessions]) => sessions.length === 1)
+        .forEach(([key, sessions]) => {
+            sessionsToKeep.push(sessions[0].session);
+        });
+    
+    // Remplacer state.sessionHistory
+    const originalLength = state.sessionHistory.length;
+    state.sessionHistory = sessionsToKeep.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'training.js:2580',message:'Dedup END',data:{originalLength:originalLength,keptLength:sessionsToKeep.length,removedLength:sessionsToRemove.length,keptSessions:sessionsToKeep.map(s=>({date:s.date,day:s.day,duration:s.duration}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    // Sauvegarder
+    saveState();
+    
+    const result = {
+        removed: sessionsToRemove.length,
+        kept: sessionsToKeep.length,
+        total: originalLength
+    };
+    
+    console.log(`✅ Déduplication terminée: ${result.removed} supprimées, ${result.kept} conservées`);
+    
+    // Afficher un toast
+    if (result.removed > 0) {
+        showToast(`${result.removed} séances dupliquées supprimées`, 'success');
+    }
+    
+    return result;
+}
+
+/**
+ * Lance la déduplication au chargement de l'app (une seule fois)
+ */
+function autoDeduplicateOnce() {
+    // Vérifier si déjà exécuté
+    const dedupFlag = localStorage.getItem('fittrack-dedup-v1-done');
+    if (dedupFlag === 'true') {
+        console.log('✅ Déduplication déjà effectuée');
+        return;
+    }
+    
+    // Exécuter
+    setTimeout(async () => {
+        const result = await deduplicateSessions();
+        if (result.removed > 0) {
+            // Marquer comme fait
+            localStorage.setItem('fittrack-dedup-v1-done', 'true');
+            
+            // Recalculer les stats
+            if (typeof updateStreak === 'function') updateStreak();
+            if (typeof updateSessionHistory === 'function') updateSessionHistory();
+            if (typeof updateProgressHero === 'function') updateProgressHero();
+            if (typeof updateDashboard === 'function') updateDashboard();
+            
+            console.log('🎉 Déduplication automatique terminée et marquée');
+        }
+    }, 2000); // 2 secondes après le chargement
 }

@@ -1234,11 +1234,15 @@ async function loadAllDataFromSupabase(silent = false) {
             
             // Reconstruire depuis Supabase
             const supabaseSessions = sessions.map(s => ({
+                sessionId: s.session_id || ('legacy-' + s.id), // UUID ou legacy
                 date: s.date,
                 timestamp: new Date(s.created_at).getTime(),
                 program: s.program,
                 day: s.day_name,
                 exercises: s.exercises || [],
+                duration: s.duration || 0,
+                totalVolume: s.total_volume || 0,
+                caloriesBurned: s.calories_burned || 0,
                 synced: true // Marquer comme synchronisé
             }));
             
@@ -1261,10 +1265,14 @@ async function loadAllDataFromSupabase(silent = false) {
                     
                     // Tenter de sync cette session manquante
                     saveWorkoutSessionToSupabase({
+                        sessionId: localSession.sessionId || ('local-' + Date.now()),
                         date: localSession.date,
                         program: localSession.program,
                         day: localSession.day,
-                        exercises: localSession.exercises
+                        exercises: localSession.exercises,
+                        duration: localSession.duration || 0,
+                        totalVolume: localSession.totalVolume || 0,
+                        caloriesBurned: localSession.caloriesBurned || 0
                     }).catch(err => {
                         console.warn('Sync rattrapage session:', err);
                     });

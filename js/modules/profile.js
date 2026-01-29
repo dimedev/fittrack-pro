@@ -219,6 +219,10 @@ function updateDashboard() {
             const currentStreak = state.goals?.currentStreak || 0;
             const longestStreak = state.goals?.longestStreak || 0;
             
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.js:220',message:'Dashboard sessions count',data:{totalSessions:totalSessions,sessionHistoryLength:state.sessionHistory?.length,sessions:state.sessionHistory?.map(s=>({date:s.date,day:s.day,duration:s.duration}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
+            
             // Profile summary compact
             const profileSummary = document.getElementById('profile-summary');
             if (profileSummary) {
