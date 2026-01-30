@@ -1562,11 +1562,13 @@ async function loadAllDataFromSupabase(silent = false) {
             
             // Reconstruire depuis Supabase
             const supabaseSessions = sessions.map(s => ({
+                id: s.session_id || ('legacy-' + s.id), // Pour compatibilité locale
                 sessionId: s.session_id || ('legacy-' + s.id), // UUID ou legacy
                 date: s.date,
                 timestamp: new Date(s.created_at).getTime(),
                 program: s.program,
                 day: s.day_name,
+                dayIndex: s.day_index, // Index du jour dans le split
                 exercises: s.exercises || [],
                 duration: s.duration || 0,
                 totalVolume: s.total_volume || 0,
@@ -2276,6 +2278,7 @@ async function saveWorkoutSessionToSupabase(sessionData) {
                     date: sessionData.date,
                     program: sessionData.program,
                     day_name: sessionData.day,
+                    day_index: sessionData.dayIndex,
                     exercises: sessionData.exercises,
                     duration: sessionData.duration || 0,
                     total_volume: sessionData.totalVolume || 0,

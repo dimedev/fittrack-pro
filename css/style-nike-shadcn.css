@@ -3612,6 +3612,219 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
+/* ==================== COACH RECOMMENDATIONS ==================== */
+
+.coach-recommendations-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 20px;
+}
+
+@media (min-width: 769px) {
+    .coach-recommendations-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
+
+.coach-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    transition: all var(--transition-fast);
+    animation: slideInUp 0.4s ease-out;
+    animation-fill-mode: both;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.coach-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.coach-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.coach-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.coach-exercise {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.coach-message {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.coach-reason {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+}
+
+/* Couleurs par type de recommandation */
+.coach-success {
+    border-left: 3px solid var(--accent-success);
+}
+
+.coach-info {
+    border-left: 3px solid var(--info);
+}
+
+.coach-warning {
+    border-left: 3px solid var(--warning);
+}
+
+.coach-neutral {
+    border-left: 3px solid var(--text-secondary);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .coach-recommendations-grid {
+        padding: 16px;
+        gap: 10px;
+    }
+    
+    .coach-card {
+        padding: 14px;
+    }
+    
+    .coach-exercise {
+        font-size: 0.9rem;
+    }
+    
+    .coach-message {
+        font-size: 0.95rem;
+    }
+}
+
+/* ==================== COACH RECOMMENDATIONS ==================== */
+
+.coach-recommendations-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+}
+
+.coach-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    transition: all var(--transition-fast);
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+}
+
+.coach-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+}
+
+.coach-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.coach-icon {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.coach-exercise {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.coach-message {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.coach-reason {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Coach card variants */
+.coach-success {
+    border-left: 3px solid var(--success);
+    background: linear-gradient(to right, rgba(34, 197, 94, 0.05), var(--bg-secondary));
+}
+
+.coach-info {
+    border-left: 3px solid var(--info);
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.05), var(--bg-secondary));
+}
+
+.coach-warning {
+    border-left: 3px solid var(--warning);
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.05), var(--bg-secondary));
+}
+
+.coach-neutral {
+    border-left: 3px solid var(--text-secondary);
+}
+
+@media (min-width: 769px) {
+    .coach-recommendations-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .coach-recommendations-grid {
+        padding: 12px;
+    }
+    
+    .coach-card {
+        padding: 14px;
+    }
+    
+    .coach-message {
+        font-size: 1rem;
+    }
+}
+
 /* ==================== OPEN FOOD FACTS ==================== */
 
 .off-intro {

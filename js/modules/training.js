@@ -2568,6 +2568,12 @@ function finishSession() {
     // Update weekly volume chart
     if (typeof renderWeeklyVolumeChart === 'function') renderWeeklyVolumeChart();
     
+    // Update coach recommendations
+    if (typeof renderCoachRecommendations === 'function') renderCoachRecommendations();
+    
+    // Update progress feed
+    if (typeof renderProgressFeed === 'function') renderProgressFeed();
+    
     // Update session history
     if (typeof updateSessionHistory === 'function') updateSessionHistory();
 

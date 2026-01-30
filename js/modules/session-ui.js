@@ -587,6 +587,13 @@ async function saveSessionV2() {
             showToast('Séance enregistrée ! 💪', 'success');
         }
         
+        // Afficher les recommandations du coach après quelques secondes
+        setTimeout(() => {
+            if (typeof showCoachRecommendationsToast === 'function') {
+                showCoachRecommendationsToast();
+            }
+        }, 2000);
+        
         // Réinitialiser la vue
         loadSessionDayV2();
         

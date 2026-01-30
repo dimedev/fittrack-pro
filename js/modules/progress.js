@@ -87,18 +87,30 @@ function generateProgressFeed() {
         Object.keys(state.progressLog).forEach(exercise => {
             const logs = state.progressLog[exercise] || [];
             logs.forEach(log => {
-                if (new Date(log.date) >= weekAgo && log.setsDetail) {
-                    log.setsDetail.forEach(set => {
-                        if (set.completed) {
-                            feed.push({
-                                type: 'pr',
-                                icon: '🏆',
-                                title: 'Nouveau PR!',
-                                text: `${exercise}: ${set.weight}kg × ${set.reps}`,
-                                date: log.date
-                            });
-                        }
-                    });
+                if (new Date(log.date) >= weekAgo) {
+                    // Fallback: essayer setsDetail puis utiliser les données agrégées
+                    if (log.setsDetail) {
+                        log.setsDetail.forEach(set => {
+                            if (set.completed) {
+                                feed.push({
+                                    type: 'pr',
+                                    icon: '🏆',
+                                    title: 'Nouveau PR!',
+                                    text: `${exercise}: ${set.weight}kg × ${set.reps}`,
+                                    date: log.date
+                                });
+                            }
+                        });
+                    } else if (log.weight > 0 && log.achievedReps > 0) {
+                        // Fallback avec données agrégées
+                        feed.push({
+                            type: 'pr',
+                            icon: '🏆',
+                            title: 'Nouveau PR!',
+                            text: `${exercise}: ${log.weight}kg × ${log.achievedReps} reps`,
+                            date: log.date
+                        });
+                    }
                 }
             });
         });
@@ -251,6 +263,15 @@ function getExercisePRs(exerciseName) {
                     max1RMDate = log.date;
                 }
             }
+            
+            // Remplir maxRepsAtWeight même sans setsDetail
+            if (log.weight > 0 && log.achievedReps > 0) {
+                const weightKey = log.weight.toString();
+                const totalReps = log.achievedReps || 0;
+                if (!maxRepsAtWeight[weightKey] || totalReps > maxRepsAtWeight[weightKey].reps) {
+                    maxRepsAtWeight[weightKey] = { reps: totalReps, date: log.date };
+                }
+            }
         }
     });
 
@@ -386,9 +407,9 @@ function renderPRsSection() {
         // Check if this is a recent PR
         const isRecentPR = maxWeightDate && maxWeightDate >= sevenDaysAgo;
 
-        // Trouver le nombre de reps pour le max weight
-        const maxReps = Object.values(prs.maxRepsAtWeight).reduce((max, data) => 
-            Math.max(max, data.reps), 0);
+        // Trouver le nombre de reps pour le max weight spécifique
+        const maxWeightKey = prs.maxWeight.value.toString();
+        const maxReps = prs.maxRepsAtWeight[maxWeightKey]?.reps || 0;
 
         html += `
             <div class="pr-card-premium ${isRecentPR ? 'pr-recent' : ''}" style="animation-delay: ${index * 0.05}s">
@@ -1163,13 +1184,13 @@ function renderWeeklyVolumeChart() {
             const sessionDate = new Date(session.date);
             if (sessionDate >= weekStart && sessionDate <= weekEnd) {
                 session.exercises?.forEach(ex => {
-                    if (ex.setsDetail) {
-                        ex.setsDetail.forEach(set => {
-                            if (set.completed) {
-                                weekVolume += (set.weight || 0) * (set.reps || 0);
-                            }
-                        });
-                    }
+                    // Fallback: essayer setsDetail puis sets
+                    const setsData = ex.setsDetail || ex.sets || [];
+                    setsData.forEach(set => {
+                        if (set.completed) {
+                            weekVolume += (set.weight || 0) * (set.reps || 0);
+                        }
+                    });
                 });
             }
         });
@@ -1274,14 +1295,16 @@ function renderMuscleVolumeChart() {
     const volumeByMuscle = {};
     (state.sessionHistory || []).forEach(session => {
         session.exercises?.forEach(ex => {
-            // Trouver le muscle de l'exercice
-            const exercise = defaultExercises.find(e => e.name === ex.exercise);
+            // Trouver le muscle de l'exercice (fallback pour plusieurs formats)
+            const exerciseName = ex.exercise || ex.name || ex.effectiveName || '';
+            const exercise = defaultExercises.find(e => e.name === exerciseName);
             const muscle = exercise?.muscle || 'other';
             
-            // Calculer le volume (poids × reps)
-            const volume = ex.setsDetail?.reduce((sum, set) => {
+            // Calculer le volume (poids × reps) - fallback setsDetail puis sets
+            const setsData = ex.setsDetail || ex.sets || [];
+            const volume = setsData.reduce((sum, set) => {
                 return sum + (set.completed ? (set.weight || 0) * (set.reps || 0) : 0);
-            }, 0) || 0;
+            }, 0);
             
             volumeByMuscle[muscle] = (volumeByMuscle[muscle] || 0) + volume;
         });
@@ -1486,9 +1509,11 @@ function renderMonthlyComparisonChart() {
         // Calculer le volume de la séance
         let sessionVolume = 0;
         session.exercises?.forEach(ex => {
-            const volume = ex.setsDetail?.reduce((sum, set) => {
+            // Fallback: essayer setsDetail puis sets
+            const setsData = ex.setsDetail || ex.sets || [];
+            const volume = setsData.reduce((sum, set) => {
                 return sum + (set.completed ? (set.weight || 0) * (set.reps || 0) : 0);
-            }, 0) || 0;
+            }, 0);
             sessionVolume += volume;
         });
         
@@ -1612,12 +1637,187 @@ function renderMonthlyComparisonChart() {
     });
 }
 
+// ==================== RECOMMANDATIONS COACH ====================
+
+/**
+ * Génère et affiche les recommandations du coach IA
+ */
+function renderCoachRecommendations() {
+    const containers = [
+        document.getElementById('coach-recommendations'),
+        document.getElementById('coach-recommendations-dashboard')
+    ];
+
+    const recommendations = generateCoachRecommendations();
+    
+    const emptyStateHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">🤖</div>
+            <div class="empty-state-title">Pas encore de recommandations</div>
+            <p>Continue à t'entraîner, le coach analysera tes performances</p>
+        </div>
+    `;
+    
+    if (recommendations.length === 0) {
+        containers.forEach(container => {
+            if (container) container.innerHTML = emptyStateHTML;
+        });
+        return;
+    }
+
+    let html = '<div class="coach-recommendations-grid">';
+    
+    recommendations.forEach((rec, index) => {
+        const iconMap = {
+            'increase_weight': '📈',
+            'increase_reps': '💪',
+            'deload': '⚠️',
+            'maintain': '✅',
+            'plateau': '🔄'
+        };
+        
+        const colorMap = {
+            'increase_weight': 'success',
+            'increase_reps': 'info',
+            'deload': 'warning',
+            'maintain': 'neutral',
+            'plateau': 'warning'
+        };
+        
+        const icon = iconMap[rec.type] || '💡';
+        const color = colorMap[rec.type] || 'neutral';
+        
+        html += `
+            <div class="coach-card coach-${color}" style="animation-delay: ${index * 0.1}s">
+                <div class="coach-card-header">
+                    <span class="coach-icon">${icon}</span>
+                    <span class="coach-exercise">${rec.exercise}</span>
+                </div>
+                <div class="coach-message">${rec.message}</div>
+                ${rec.reason ? `<div class="coach-reason">${rec.reason}</div>` : ''}
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    // Remplir tous les conteneurs
+    containers.forEach(container => {
+        if (container) container.innerHTML = html;
+    });
+}
+
+/**
+ * Affiche un toast avec les recommandations du coach
+ */
+function showCoachRecommendationsToast() {
+    const recommendations = generateCoachRecommendations();
+    
+    if (recommendations.length === 0) return;
+    
+    // Prendre les 3 premières recommandations
+    const topRecs = recommendations.slice(0, 3);
+    
+    let message = '🤖 <strong>Recommandations du Coach :</strong><br>';
+    topRecs.forEach(rec => {
+        const icon = rec.type === 'increase_weight' ? '📈' : 
+                     rec.type === 'increase_reps' ? '💪' : 
+                     rec.type === 'plateau' ? '⚠️' : '✅';
+        message += `<br>${icon} <strong>${rec.exercise}</strong>: ${rec.message}`;
+    });
+    
+    if (recommendations.length > 3) {
+        message += `<br><br>Et ${recommendations.length - 3} autre(s) dans l'onglet Progression`;
+    }
+    
+    // Créer un toast custom avec plus de durée
+    if (typeof showToast === 'function') {
+        showToast(message, 'info', 8000);
+    }
+}
+
+/**
+ * Génère les recommandations basées sur l'historique
+ */
+function generateCoachRecommendations() {
+    const recommendations = [];
+    
+    if (!state.progressLog) return recommendations;
+    
+    // Parcourir tous les exercices
+    Object.keys(state.progressLog).forEach(exerciseName => {
+        const logs = state.progressLog[exerciseName];
+        if (logs.length < 2) return;
+        
+        const lastLog = logs[logs.length - 1];
+        const recent = logs.slice(-3); // 3 dernières séances
+        
+        // Utiliser getDoubleProgressionRecommendation si disponible
+        if (typeof getDoubleProgressionRecommendation === 'function') {
+            const dpRec = getDoubleProgressionRecommendation(exerciseName);
+            if (dpRec) {
+                recommendations.push({
+                    exercise: exerciseName,
+                    type: dpRec.phase === 'weight' ? 'increase_weight' : 'increase_reps',
+                    message: dpRec.message,
+                    reason: dpRec.phase === 'weight' ? 
+                        'Tu as atteint la cible haute de reps' : 
+                        'Continue à augmenter les reps'
+                });
+                return;
+            }
+        }
+        
+        // Fallback: analyse simple
+        const avgReps = lastLog.achievedReps / lastLog.achievedSets;
+        const targetReps = 10; // Valeur par défaut
+        
+        // Détection de plateau (même poids depuis 3 séances)
+        if (recent.length >= 3) {
+            const allSameWeight = recent.every(l => l.weight === lastLog.weight);
+            const noRepsProgress = recent.every(l => (l.achievedReps / l.achievedSets) < targetReps);
+            
+            if (allSameWeight && noRepsProgress) {
+                recommendations.push({
+                    exercise: exerciseName,
+                    type: 'plateau',
+                    message: `Plateau détecté. Essaie un deload à ${Math.round(lastLog.weight * 0.85 * 2) / 2}kg`,
+                    reason: 'Aucune progression depuis 3 séances'
+                });
+                return;
+            }
+        }
+        
+        // Progression normale
+        if (avgReps >= targetReps + 2) {
+            const increment = lastLog.weight >= 40 ? 2.5 : 1.25;
+            recommendations.push({
+                exercise: exerciseName,
+                type: 'increase_weight',
+                message: `Passe à ${lastLog.weight + increment}kg`,
+                reason: 'Tu dépasses régulièrement la cible'
+            });
+        } else if (avgReps < targetReps - 2) {
+            recommendations.push({
+                exercise: exerciseName,
+                type: 'increase_reps',
+                message: `Vise ${Math.ceil(avgReps) + 1} reps par série`,
+                reason: 'Concentre-toi sur les reps avant d\'augmenter'
+            });
+        }
+    });
+    
+    // Limiter à 6 recommandations max
+    return recommendations.slice(0, 6);
+}
+
 // ==================== INIT PROGRESSION SECTION ====================
 
 function initProgressSection() {
     updateProgressHero();
     renderProgressFeed();
     renderPRsSection();
+    renderCoachRecommendations();
     populateProgressExerciseSelect();
     renderWeeklyVolumeChart();
 }
@@ -1631,6 +1831,8 @@ window.openLastSessionDetail = openLastSessionDetail;
 window.updateProgressHero = updateProgressHero;
 window.renderProgressFeed = renderProgressFeed;
 window.renderPRsSection = renderPRsSection;
+window.renderCoachRecommendations = renderCoachRecommendations;
+window.showCoachRecommendationsToast = showCoachRecommendationsToast;
 window.updateSessionHistory = updateSessionHistory;
 window.populateProgressExerciseSelect = populateProgressExerciseSelect;
 window.updateProgressChart = updateProgressChart;

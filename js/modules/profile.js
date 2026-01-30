@@ -345,6 +345,11 @@ function updateDashboard() {
         if (typeof renderInsightsWidget === 'function') {
             renderInsightsWidget();
         }
+        
+        // Recommandations du coach
+        if (typeof renderCoachRecommendations === 'function') {
+            renderCoachRecommendations();
+        }
     } catch (error) {
         console.error('Erreur dans updateDashboard:', error);
     } finally {

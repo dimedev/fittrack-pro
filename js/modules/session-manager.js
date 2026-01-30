@@ -709,6 +709,7 @@ const SessionManager = (function() {
         // Sauvegarder dans l'historique
         const historyEntry = {
             id: session.id,
+            sessionId: session.id, // Pour compatibilité Supabase
             date: today,
             timestamp: Date.now(),
             program: session.program,
@@ -733,6 +734,26 @@ const SessionManager = (function() {
         }
         
         emitSessionUpdate('session-finalized', { session: historyEntry, newPRs });
+        
+        // Rafraîchir les widgets de progression et recommandations
+        if (typeof renderCoachRecommendations === 'function') {
+            renderCoachRecommendations();
+        }
+        if (typeof updateProgressHero === 'function') {
+            updateProgressHero();
+        }
+        if (typeof renderProgressFeed === 'function') {
+            renderProgressFeed();
+        }
+        if (typeof renderWeeklyVolumeChart === 'function') {
+            renderWeeklyVolumeChart();
+        }
+        if (typeof renderMuscleVolumeChart === 'function') {
+            renderMuscleVolumeChart();
+        }
+        if (typeof renderMonthlyComparisonChart === 'function') {
+            renderMonthlyComparisonChart();
+        }
         
         return { session: historyEntry, newPRs };
     }
