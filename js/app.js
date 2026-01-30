@@ -335,6 +335,12 @@ function continueOffline() {
     showToast('Mode hors-ligne activé. Vos données sont stockées localement.', 'success');
 }
 
+// ==================== EXPORTS GLOBAUX ====================
+window.switchAuthTab = switchAuthTab;
+window.handleLogin = handleLogin;
+window.handleSignup = handleSignup;
+window.continueOffline = continueOffline;
+
 // ==================== LIFECYCLE ====================
 
 // Démarrer l'application quand le DOM est chargé

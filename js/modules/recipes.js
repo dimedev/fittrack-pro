@@ -1,11 +1,6 @@
 // ==================== RECIPES MODULE ====================
 // Permet de créer et gérer des recettes composées
 
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'recipes.js:1',message:'Script START loading',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-console.log('📦 recipes.js: Script START');
-// #endregion
-
 // Structure: state.recipes = { 'recipe-id': { name, ingredients: [{foodId, quantity}], ... } }
 
 /**
@@ -40,7 +35,56 @@ function openRecipeModal(recipeId = null) {
     if (container) {
         container.classList.remove('slide-down');
         container.classList.add('slide-up');
+        
+        // Activer swipe-to-close
+        enableRecipeSwipeToClose(modal, container);
     }
+}
+
+/**
+ * Active le swipe-to-close sur la modal recette
+ */
+function enableRecipeSwipeToClose(modal, container) {
+    if (container.dataset.swipeEnabled === 'true') return;
+    container.dataset.swipeEnabled = 'true';
+    
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    
+    const header = container.querySelector('.recipe-header') || container;
+    
+    header.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+        isDragging = true;
+        container.style.transition = 'none';
+    }, { passive: true });
+    
+    header.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+        
+        if (deltaY > 0) {
+            container.style.transform = `translateY(${deltaY}px)`;
+        }
+    }, { passive: true });
+    
+    header.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        container.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+        const deltaY = currentY - startY;
+        
+        if (deltaY > 100) {
+            closeRecipeModal();
+        } else {
+            container.style.transform = '';
+        }
+        startY = 0;
+        currentY = 0;
+    }, { passive: true });
 }
 
 /**

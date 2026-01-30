@@ -2468,3 +2468,14 @@ function isLoggedIn() {
 function getCurrentUser() {
     return currentUser;
 }
+
+// ==================== EXPORTS GLOBAUX ====================
+window.signOut = signOut;
+window.signInWithGoogle = signInWithGoogle;
+window.showAuthModal = showAuthModal;
+window.isLoggedIn = isLoggedIn;
+window.getCurrentUser = getCurrentUser;
+window.loadAllDataFromSupabase = loadAllDataFromSupabase;
+window.forceSyncPendingData = forceSyncPendingData;
+
+console.log('✅ supabase.js: Fonctions exportées au scope global');

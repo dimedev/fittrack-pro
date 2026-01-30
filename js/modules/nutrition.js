@@ -3289,10 +3289,6 @@ if (typeof document !== 'undefined') {
     });
 }
 
-// #region agent log - DEBUG: Exporter les fonctions au scope global
-fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'nutrition.js:END',message:'Exporting functions to global scope',data:{openMealSheet:typeof openMealSheet,closeMealSheet:typeof closeMealSheet,addQuickMeal:typeof addQuickMeal,toggleMealSection:typeof toggleMealSection},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-// #endregion
-
 // ==================== EXPORTS GLOBAUX ====================
 // Exporter toutes les fonctions appelées depuis le HTML
 window.openMealSheet = openMealSheet;
@@ -3335,9 +3331,5 @@ window.filterFoods = filterFoods;
 window.toggleCustomFoods = toggleCustomFoods;
 window.toggleFoodBrowse = toggleFoodBrowse;
 window.searchUnifiedFoods = searchUnifiedFoods;
-
-// #region agent log - DEBUG: Confirm exports
-fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'nutrition.js:EXPORTS_DONE',message:'Global exports completed',data:{windowOpenMealSheet:typeof window.openMealSheet,windowToggleMealSection:typeof window.toggleMealSection},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-// #endregion
 
 console.log('✅ nutrition.js: Fonctions exportées au scope global');

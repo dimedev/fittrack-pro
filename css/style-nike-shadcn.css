@@ -5885,6 +5885,9 @@ h1, h2, h3, h4, h5, h6 {
     border-bottom: 1px solid var(--border-color);
     position: relative;
     flex-shrink: 0;
+    touch-action: pan-y;
+    cursor: grab;
+    min-height: 60px;
 }
 
 /* Handle de drag iOS */
