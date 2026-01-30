@@ -256,20 +256,31 @@ function getExercisePRs(exerciseName) {
         } else {
             // Fallback si pas de setsDetail
             const avgRepsPerSet = log.sets > 0 ? (log.achievedReps || 0) / log.sets : 0;
-            if (log.weight > 0 && avgRepsPerSet > 0 && avgRepsPerSet <= 12) {
-                const estimated1RM = log.weight * (1 + avgRepsPerSet / 30);
+            
+            // Calculer 1RM même si reps > 12 (formule adaptée)
+            if (log.weight > 0 && avgRepsPerSet > 0) {
+                let estimated1RM;
+                if (avgRepsPerSet <= 12) {
+                    // Formule Epley classique
+                    estimated1RM = log.weight * (1 + avgRepsPerSet / 30);
+                } else {
+                    // Formule adaptée pour reps > 12 (estimation plus conservatrice)
+                    estimated1RM = log.weight * (1 + Math.min(avgRepsPerSet, 20) / 30);
+                }
+                
                 if (estimated1RM > max1RM) {
                     max1RM = estimated1RM;
                     max1RMDate = log.date;
                 }
             }
             
-            // Remplir maxRepsAtWeight même sans setsDetail
-            if (log.weight > 0 && log.achievedReps > 0) {
+            // Remplir maxRepsAtWeight avec la MOYENNE par série, pas le total
+            if (log.weight > 0 && avgRepsPerSet > 0) {
                 const weightKey = log.weight.toString();
-                const totalReps = log.achievedReps || 0;
-                if (!maxRepsAtWeight[weightKey] || totalReps > maxRepsAtWeight[weightKey].reps) {
-                    maxRepsAtWeight[weightKey] = { reps: totalReps, date: log.date };
+                // Arrondir la moyenne pour l'affichage
+                const avgRepsRounded = Math.round(avgRepsPerSet);
+                if (!maxRepsAtWeight[weightKey] || avgRepsRounded > maxRepsAtWeight[weightKey].reps) {
+                    maxRepsAtWeight[weightKey] = { reps: avgRepsRounded, date: log.date };
                 }
             }
         }

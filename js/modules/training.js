@@ -2116,7 +2116,13 @@ function detectPlateauForExercise(exerciseName) {
     if (logs.length < 3) return null;
     
     // Vérifier si le poids max n'a pas augmenté
-    const weights = logs.map(l => Math.max(...l.sets.map(s => s.weight)));
+    const weights = logs.map(l => {
+        // Utiliser setsDetail si disponible, sinon fallback sur weight moyen
+        if (l.setsDetail && l.setsDetail.length > 0) {
+            return Math.max(...l.setsDetail.map(s => s.weight));
+        }
+        return l.weight || 0;
+    });
     const hasProgressed = weights[2] > weights[0];
     
     if (!hasProgressed) {
@@ -2141,8 +2147,18 @@ function getDoubleProgressionRecommendation(exerciseName) {
     const lastLog = state.progressLog[exerciseName].slice(-1)[0];
     if (!lastLog) return null;
     
-    const avgReps = lastLog.sets.reduce((sum, s) => sum + s.achievedReps, 0) / lastLog.sets.length;
-    const weight = lastLog.sets[0].weight;
+    // Utiliser setsDetail si disponible, sinon fallback sur données agrégées
+    let avgReps, weight;
+    
+    if (lastLog.setsDetail && lastLog.setsDetail.length > 0) {
+        // Calculer depuis setsDetail
+        avgReps = lastLog.setsDetail.reduce((sum, s) => sum + s.reps, 0) / lastLog.setsDetail.length;
+        weight = lastLog.setsDetail[0].weight;
+    } else {
+        // Fallback : utiliser les données agrégées
+        avgReps = lastLog.sets > 0 ? (lastLog.achievedReps || 0) / lastLog.sets : 0;
+        weight = lastLog.weight || 0;
+    }
     
     // Phase 1 : Augmenter reps jusqu'à 12
     if (avgReps < 12) {

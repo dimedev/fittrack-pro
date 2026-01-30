@@ -1,10 +1,7 @@
 // ==================== MEAL HISTORY MODULE ====================
 // Permet de réutiliser les repas des jours précédents
 
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'meal-history.js:1',message:'Script START loading',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
 console.log('📦 meal-history.js: Script START');
-// #endregion
 
 // État de pagination
 let mealHistoryState = {
@@ -403,7 +400,4 @@ window.MealHistory = {
     quickAdd: quickAddMealFromHistory
 };
 
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'meal-history.js:END',message:'Script FULLY loaded, exports done',data:{openMealHistoryModalExists:typeof window.openMealHistoryModal},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
 console.log('✅ meal-history.js: Exports done, openMealHistoryModal =', typeof window.openMealHistoryModal);
-// #endregion

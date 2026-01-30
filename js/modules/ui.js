@@ -409,6 +409,45 @@ function getRelativeDate(dateString) {
     return date.toLocaleDateString('fr-FR');
 }
 
+// Changer de tab programmatiquement
+function switchTab(tabName, tabGroupId = null) {
+    if (!tabName) return;
+    
+    // Trouver le groupe de tabs
+    let tabGroup;
+    if (tabGroupId) {
+        tabGroup = document.getElementById(tabGroupId);
+    } else {
+        // Chercher dans tous les groupes de tabs
+        tabGroup = document.querySelector(`.tabs [data-tab="${tabName}"]`)?.closest('.tabs');
+    }
+    
+    if (!tabGroup) {
+        console.warn(`Tab group not found for tab: ${tabName}`);
+        return;
+    }
+    
+    // Activer le bon tab
+    tabGroup.querySelectorAll('.tab').forEach(tab => {
+        if (tab.dataset.tab === tabName) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+    
+    // Afficher le contenu correspondant
+    const parent = tabGroup.closest('.section') || tabGroup.parentElement;
+    parent.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    
+    const targetContent = document.getElementById(`tab-${tabName}`);
+    if (targetContent) {
+        targetContent.style.display = 'block';
+    }
+}
+
 // Initialisation de l'interface
 function initUI() {
     setupNavigation();

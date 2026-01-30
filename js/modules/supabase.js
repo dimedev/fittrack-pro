@@ -1498,7 +1498,8 @@ async function loadAllDataFromSupabase(silent = false) {
                 if (!supabaseProgressLog[log.exercise_name]) {
                     supabaseProgressLog[log.exercise_name] = [];
                 }
-                supabaseProgressLog[log.exercise_name].push({
+                
+                const logEntry = {
                     date: log.date,
                     sets: log.sets,
                     reps: log.reps,
@@ -1506,7 +1507,14 @@ async function loadAllDataFromSupabase(silent = false) {
                     achievedReps: log.achieved_reps,
                     achievedSets: log.achieved_sets,
                     synced: true // Marquer comme synchronisé
-                });
+                };
+                
+                // Récupérer setsDetail si disponible
+                if (log.sets_detail) {
+                    logEntry.setsDetail = log.sets_detail;
+                }
+                
+                supabaseProgressLog[log.exercise_name].push(logEntry);
             });
             
             // Merger : Supabase + logs locaux non présents dans Supabase
@@ -2220,18 +2228,25 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
     
     try {
         await withRetry(async () => {
+            const dataToInsert = {
+                user_id: currentUser.id,
+                exercise_name: exerciseName,
+                date: logData.date,
+                sets: logData.sets,
+                reps: logData.reps,
+                weight: logData.weight,
+                achieved_reps: logData.achievedReps,
+                achieved_sets: logData.achievedSets
+            };
+            
+            // Ajouter setsDetail si disponible (sérialiser en JSON)
+            if (logData.setsDetail && Array.isArray(logData.setsDetail) && logData.setsDetail.length > 0) {
+                dataToInsert.sets_detail = logData.setsDetail;
+            }
+            
             const { error } = await supabaseClient
                 .from('progress_log')
-                .insert({
-                    user_id: currentUser.id,
-                    exercise_name: exerciseName,
-                    date: logData.date,
-                    sets: logData.sets,
-                    reps: logData.reps,
-                    weight: logData.weight,
-                    achieved_reps: logData.achievedReps,
-                    achieved_sets: logData.achievedSets
-                });
+                .insert(dataToInsert);
             
             if (error) throw error;
             console.log('✅ Progression sauvegardée');
