@@ -1621,3 +1621,25 @@ function initProgressSection() {
     populateProgressExerciseSelect();
     renderWeeklyVolumeChart();
 }
+
+// ==================== EXPORTS GLOBAUX ====================
+window.switchProgressTab = switchProgressTab;
+window.filterProgressChart = filterProgressChart;
+window.openSessionDetail = openSessionDetail;
+window.closeSessionDetail = closeSessionDetail;
+window.openLastSessionDetail = openLastSessionDetail;
+window.updateProgressHero = updateProgressHero;
+window.renderProgressFeed = renderProgressFeed;
+window.renderPRsSection = renderPRsSection;
+window.updateSessionHistory = updateSessionHistory;
+window.populateProgressExerciseSelect = populateProgressExerciseSelect;
+window.updateProgressChart = updateProgressChart;
+window.initProgressSection = initProgressSection;
+window.renderWeeklyVolumeChart = renderWeeklyVolumeChart;
+window.renderMuscleVolumeChart = renderMuscleVolumeChart;
+window.renderFrequencyChart = renderFrequencyChart;
+window.renderMonthlyComparisonChart = renderMonthlyComparisonChart;
+window.checkForNewPR = checkForNewPR;
+window.getAllPRs = getAllPRs;
+
+console.log('✅ progress.js: Fonctions exportées au scope global');

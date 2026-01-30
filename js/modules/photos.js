@@ -585,3 +585,16 @@ function initPhotosModule() {
         dropZone.addEventListener('drop', handlePhotoDrop);
     }
 }
+
+// ==================== EXPORTS GLOBAUX ====================
+window.openAddPhotoModal = openAddPhotoModal;
+window.saveProgressPhoto = saveProgressPhoto;
+window.deleteCurrentPhoto = deleteCurrentPhoto;
+window.selectPose = selectPose;
+window.openPhotoViewer = openPhotoViewer;
+window.openCompareModal = openCompareModal;
+window.renderPhotosGallery = renderPhotosGallery;
+window.initPhotosModule = initPhotosModule;
+window.updateCompareImages = updateCompareImages;
+
+console.log('✅ photos.js: Fonctions exportées au scope global');

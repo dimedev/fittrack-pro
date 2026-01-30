@@ -424,3 +424,15 @@ function initUI() {
         trainingDaysSelect.value = state.trainingDays;
     }
 }
+
+// ==================== EXPORTS GLOBAUX ====================
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.showToast = showToast;
+window.initUI = initUI;
+window.switchTab = switchTab;
+window.formatNumber = formatNumber;
+window.getRelativeDate = getRelativeDate;
+window.initUniversalSwipeToClose = initUniversalSwipeToClose;
+
+console.log('✅ ui.js: Fonctions exportées au scope global');

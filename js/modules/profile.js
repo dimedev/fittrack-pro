@@ -770,10 +770,39 @@ function updateProgressionRecommendations() {
         return;
     }
 
-    container.innerHTML = recommendations.slice(0, 5).map(rec => `
+        container.innerHTML = recommendations.slice(0, 5).map(rec => `
         <div class="progression-indicator ${rec.type}">
             <span>${rec.type === 'increase' ? '📈' : rec.type === 'deload' ? '📉' : '➡️'}</span>
             <span><strong>${rec.exercise}:</strong> ${rec.message}</span>
         </div>
     `).join('');
 }
+
+// ==================== EXPORTS GLOBAUX ====================
+window.openProfileModal = openProfileModal;
+window.saveProfile = saveProfile;
+window.updateDashboard = updateDashboard;
+window.updateQuickSummary = updateQuickSummary;
+window.calculateProfile = calculateProfile;
+window.calculateMacros = calculateMacros;
+window.updateMacroBars = updateMacroBars;
+window.calculateConsumedMacros = calculateConsumedMacros;
+window.updateReadinessScore = updateReadinessScore;
+window.updateProgressionRecommendations = updateProgressionRecommendations;
+
+console.log('✅ profile.js: Fonctions exportées au scope global');
+
+// ==================== EXPORTS GLOBAUX ====================
+window.openProfileModal = openProfileModal;
+window.saveProfile = saveProfile;
+window.calculateProfile = calculateProfile;
+window.calculateMacros = calculateMacros;
+window.updateDashboard = updateDashboard;
+window.updateQuickSummary = updateQuickSummary;
+window.calculateReadinessScore = calculateReadinessScore;
+window.updateReadinessScore = updateReadinessScore;
+window.updateMacroBars = updateMacroBars;
+window.calculateConsumedMacros = calculateConsumedMacros;
+window.updateProgressionRecommendations = updateProgressionRecommendations;
+
+console.log('✅ profile.js: Fonctions exportées au scope global');

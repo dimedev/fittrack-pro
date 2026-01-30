@@ -3325,8 +3325,83 @@ function getMuscleForExercise(exerciseName) {
     return exercise?.muscle || 'unknown';
 }
 
-// Exposer les fonctions au scope global
+// ==================== EXPORTS GLOBAUX ====================
+// Fonctions de session
+window.quickStartSession = quickStartSession;
+window.showSessionPreview = showSessionPreview;
+window.closeSessionPreview = closeSessionPreview;
+window.startSessionFromPreview = startSessionFromPreview;
+window.startFullScreenSession = startFullScreenSession;
+window.restoreSession = restoreSession;
+window.minimizeSession = minimizeSession;
+window.finishSession = finishSession;
+window.quitSession = quitSession;
+window.returnToPreview = returnToPreview;
+window.closeFullScreenSession = closeFullScreenSession;
+
+// Fonctions wizard
+window.openProgramWizard = openProgramWizard;
+window.selectWizardOption = selectWizardOption;
+window.wizardNext = wizardNext;
+window.wizardBack = wizardBack;
+window.selectProgram = selectProgram;
+window.toggleWizardSensitivity = toggleWizardSensitivity;
+
+// Fonctions d'exercices
+window.openExerciseSwapSheet = openExerciseSwapSheet;
+window.openExerciseTips = openExerciseTips;
+window.closeExerciseInfo = closeExerciseInfo;
+window.closeBottomSheet = closeBottomSheet;
+window.swapExerciseInPreview = swapExerciseInPreview;
+window.executeSwap = executeSwap;
+window.handleSwapSearch = handleSwapSearch;
+window.clearSwapSearch = clearSwapSearch;
+
+// Fonctions de contrôle de session
+window.adjustWeight = adjustWeight;
+window.adjustReps = adjustReps;
+window.validateCurrentSet = validateCurrentSet;
+window.toggleAutoregulation = toggleAutoregulation;
+window.resetFsTimer = resetFsTimer;
+window.adjustFsTimer = adjustFsTimer;
+window.goToNextExercise = goToNextExercise;
+window.editCompletedSet = editCompletedSet;
+window.skipSet = typeof skipSet === 'function' ? skipSet : function() {};
+
+// Fonctions de paramètres
+window.openSessionSettings = openSessionSettings;
+window.closeSettingsSheet = closeSettingsSheet;
+window.adjustRestTime = adjustRestTime;
+window.selectDuration = selectDuration;
+window.showDurationPicker = showDurationPicker;
+window.closeDurationPicker = closeDurationPicker;
+window.filterExercisesByDuration = filterExercisesByDuration;
+
+// Fonctions de confirmation
+window.showParamsConfirmationSheet = showParamsConfirmationSheet;
+window.closeParamsConfirmationSheet = closeParamsConfirmationSheet;
+window.applySwapWithSuggestedParams = applySwapWithSuggestedParams;
+window.applySwapKeepParams = applySwapKeepParams;
+
+// Fonctions avancées
+window.startDropSet = startDropSet;
+window.createSuperset = createSuperset;
+window.removeSuperset = removeSuperset;
+window.machineOccupied = machineOccupied;
+window.postponeCurrentExercise = postponeCurrentExercise;
+
+// Fonctions de template
 window.duplicateSession = duplicateSession;
 window.startSessionFromTemplate = startSessionFromTemplate;
 window.updateTemplate = updateTemplate;
 window.deleteTemplate = deleteTemplate;
+
+// Fonctions de rendu
+window.renderProgramTypes = renderProgramTypes;
+window.updateWeeklySchedule = updateWeeklySchedule;
+window.populateSessionDaySelect = populateSessionDaySelect;
+window.loadSessionDay = loadSessionDay;
+window.updateTrainingDays = updateTrainingDays;
+window.renderTrainingSection = renderTrainingSection;
+
+console.log('✅ training.js: Fonctions exportées au scope global');

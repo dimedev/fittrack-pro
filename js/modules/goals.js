@@ -1747,3 +1747,18 @@ function renderSmartInsightsCard() {
 window.generateWeeklyInsights = generateWeeklyInsights;
 window.renderInsightsWidget = renderInsightsWidget;
 window.renderSmartInsightsCard = renderSmartInsightsCard;
+window.filterWeightChart = filterWeightChart;
+window.openLogWeightModal = openLogWeightModal;
+window.saveLogWeight = saveLogWeight;
+window.openSetGoalModal = openSetGoalModal;
+window.saveGoal = saveGoal;
+window.updateGoalTargetLabel = updateGoalTargetLabel;
+window.logBodyWeight = logBodyWeight;
+window.setGoal = setGoal;
+window.updateStreak = updateStreak;
+window.renderBodyWeightCard = renderBodyWeightCard;
+window.renderGoalCard = renderGoalCard;
+window.renderStreakCard = renderStreakCard;
+window.updateBodyWeightChart = updateBodyWeightChart;
+
+console.log('✅ goals.js: Fonctions exportées au scope global');
