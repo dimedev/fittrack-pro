@@ -2546,6 +2546,7 @@ async function addCardioSession() {
         duration: duration,
         intensity: cardioState.intensity,
         calories: calories,
+        date: date,
         addedAt: Date.now()
     };
     
@@ -3287,3 +3288,56 @@ if (typeof document !== 'undefined') {
         renderHydrationWidget();
     });
 }
+
+// #region agent log - DEBUG: Exporter les fonctions au scope global
+fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'nutrition.js:END',message:'Exporting functions to global scope',data:{openMealSheet:typeof openMealSheet,closeMealSheet:typeof closeMealSheet,addQuickMeal:typeof addQuickMeal,toggleMealSection:typeof toggleMealSection},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+// #endregion
+
+// ==================== EXPORTS GLOBAUX ====================
+// Exporter toutes les fonctions appelées depuis le HTML
+window.openMealSheet = openMealSheet;
+window.closeMealSheet = closeMealSheet;
+window.addQuickMeal = addQuickMeal;
+window.toggleMealSection = toggleMealSection;
+window.openCardioSheet = openCardioSheet;
+window.closeCardioSheet = closeCardioSheet;
+window.addCardioSession = addCardioSession;
+window.openFoodQuantitySheetForMeal = openFoodQuantitySheetForMeal;
+window.openFoodQuantitySheetForEdit = openFoodQuantitySheetForEdit;
+window.closeFoodQuantitySheet = closeFoodQuantitySheet;
+window.confirmAddFood = confirmAddFood;
+window.addWater = addWater;
+window.openCustomWaterModal = openCustomWaterModal;
+window.loadJournalDay = loadJournalDay;
+window.clearJournalDay = clearJournalDay;
+window.removeFromJournal = removeFromJournal;
+window.updateJournalQuantity = updateJournalQuantity;
+window.editMealItemQuantity = editMealItemQuantity;
+window.removeMealItem = removeMealItem;
+window.selectQuantityPresetAdaptive = selectQuantityPresetAdaptive;
+window.adjustQuantityUnit = adjustQuantityUnit;
+window.selectFoodForMeal = selectFoodForMeal;
+window.searchFoodsForMeal = searchFoodsForMeal;
+window.setNutritionFilter = setNutritionFilter;
+window.setNutritionSort = setNutritionSort;
+window.renderMealsByType = renderMealsByType;
+window.calculateJournalMacros = calculateJournalMacros;
+window.openCustomFoodModal = openCustomFoodModal;
+window.saveCustomFood = saveCustomFood;
+window.deleteCustomFood = deleteCustomFood;
+window.removeCardioSession = removeCardioSession;
+window.renderHydrationWidget = renderHydrationWidget;
+window.quickAddToJournal = quickAddToJournal;
+window.quickAddFromSearch = quickAddFromSearch;
+window.quickAdd100g = quickAdd100g;
+window.renderFoodsList = renderFoodsList;
+window.filterFoods = filterFoods;
+window.toggleCustomFoods = toggleCustomFoods;
+window.toggleFoodBrowse = toggleFoodBrowse;
+window.searchUnifiedFoods = searchUnifiedFoods;
+
+// #region agent log - DEBUG: Confirm exports
+fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'nutrition.js:EXPORTS_DONE',message:'Global exports completed',data:{windowOpenMealSheet:typeof window.openMealSheet,windowToggleMealSection:typeof window.toggleMealSection},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+// #endregion
+
+console.log('✅ nutrition.js: Fonctions exportées au scope global');

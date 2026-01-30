@@ -476,10 +476,13 @@ const validators = {
                ex.equipment;
     },
     progressLog: (log) => {
+        // Accepter les deux formats: sets/reps OU achievedSets/achievedReps
+        const sets = log.sets || log.achievedSets;
+        const reps = log.reps || log.achievedReps;
         return log &&
                log.date &&
-               typeof log.sets === 'number' && log.sets > 0 &&
-               typeof log.reps === 'number' && log.reps > 0 &&
+               typeof sets === 'number' && sets > 0 &&
+               typeof reps === 'number' && reps > 0 &&
                typeof log.weight === 'number' && log.weight >= 0;
     },
     hydration: (h) => {

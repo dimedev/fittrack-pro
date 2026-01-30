@@ -267,6 +267,42 @@ function updateDashboard() {
                 updateDashboard();
                 return;
             }
+        } else if (state.profile && (state.profile.weight || state.profile.goal)) {
+            // Profil minimal - afficher ce qui est disponible
+            const goalLabels = {
+                'cut': 'Sèche',
+                'maintain': 'Maintien',
+                'lean-bulk': 'Prise légère',
+                'bulk': 'Prise de masse'
+            };
+            
+            const totalSessions = state.sessionHistory ? state.sessionHistory.length : 0;
+            const profileSummary = document.getElementById('profile-summary');
+            
+            if (profileSummary) {
+                profileSummary.innerHTML = `
+                    <div class="profile-summary-compact">
+                        ${state.profile.goal ? `
+                        <div class="profile-stat-item">
+                            <span class="profile-stat-label">Objectif</span>
+                            <span class="profile-stat-value">${goalLabels[state.profile.goal] || state.profile.goal}</span>
+                        </div>` : ''}
+                        ${state.profile.weight ? `
+                        <div class="profile-stat-item">
+                            <span class="profile-stat-label">Poids</span>
+                            <span class="profile-stat-value">${state.profile.weight} kg</span>
+                        </div>` : ''}
+                        <div class="profile-stat-item">
+                            <span class="profile-stat-label">Séances</span>
+                            <span class="profile-stat-value">${totalSessions}</span>
+                        </div>
+                        <div class="profile-stat-item">
+                            <span class="profile-stat-label">⚠️</span>
+                            <span class="profile-stat-value" style="font-size: 0.8rem; color: var(--text-secondary);">Profil incomplet</span>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         // Stats du programme (hidden elements for compatibility)

@@ -236,15 +236,15 @@ function closeModal(modalId) {
 
 // Swipe to close for mobile drawers
 function setupModalSwipe(overlay) {
-    const modal = overlay.querySelector('.modal');
+    const modal = overlay.querySelector('.modal') || overlay.querySelector('.modal-content') || overlay.querySelector('.bottom-sheet') || overlay;
     if (!modal) return;
     
     let startY = 0;
     let currentY = 0;
     let isDragging = false;
     
-    const header = modal.querySelector('.modal-header');
-    if (!header) return;
+    // Chercher un header ou utiliser le modal lui-même
+    const header = modal.querySelector('.modal-header') || modal.querySelector('.bottom-sheet-header') || modal;
     
     header.addEventListener('touchstart', (e) => {
         startY = e.touches[0].clientY;
@@ -310,6 +310,32 @@ function setupModals() {
             document.body.style.overflow = '';
         }
     });
+    
+    // Initialiser swipe-to-close sur toutes les modals (mobile uniquement)
+    initUniversalSwipeToClose();
+}
+
+// Initialiser swipe-to-close sur TOUTES les modals au chargement
+function initUniversalSwipeToClose() {
+    // Ne faire que sur mobile
+    if (window.innerWidth > 768) return;
+    
+    // Sélectionner toutes les modals
+    const allModals = document.querySelectorAll('.modal-overlay, [id$="-modal"], [id$="-sheet"], [id*="modal"], [id*="sheet"]');
+    
+    let count = 0;
+    allModals.forEach(overlay => {
+        // Éviter de ré-initialiser
+        if (overlay.dataset.swipeInit === 'true') return;
+        overlay.dataset.swipeInit = 'true';
+        
+        setupModalSwipe(overlay);
+        count++;
+    });
+    
+    if (count > 0) {
+        console.log(`✅ Swipe-to-close activé sur ${count} modals`);
+    }
 }
 
 // Toast notifications - Premium redesign

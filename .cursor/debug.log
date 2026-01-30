@@ -1,6 +1,22 @@
-{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769760378035,"sessionId":"debug-session","hypothesisId":"A"}
-{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769760378040,"sessionId":"debug-session","hypothesisId":"A"}
-{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769760378036,"sessionId":"debug-session","hypothesisId":"A"}
-{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769760523610,"sessionId":"debug-session","hypothesisId":"A"}
-{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769760523612,"sessionId":"debug-session","hypothesisId":"A"}
-{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769760523611,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769766758795,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769766758796,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769766758797,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"nutrition.js:END","message":"Exporting functions to global scope","data":{"openMealSheet":"function","closeMealSheet":"function","addQuickMeal":"function","toggleMealSection":"function"},"timestamp":1769766758826,"sessionId":"debug-session","hypothesisId":"H1"}
+{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769766896764,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769766896765,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769766896766,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"nutrition.js:END","message":"Exporting functions to global scope","data":{"openMealSheet":"function","closeMealSheet":"function","addQuickMeal":"function","toggleMealSection":"function"},"timestamp":1769766896778,"sessionId":"debug-session","hypothesisId":"H1"}
+{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769767016733,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769767016732,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"nutrition.js:END","message":"Exporting functions to global scope","data":{"openMealSheet":"function","closeMealSheet":"function","addQuickMeal":"function","toggleMealSection":"function"},"timestamp":1769767016747,"sessionId":"debug-session","hypothesisId":"H1"}
+{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769767016734,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769767086034,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769767086037,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769767086036,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"nutrition.js:END","message":"Exporting functions to global scope","data":{"openMealSheet":"function","closeMealSheet":"function","addQuickMeal":"function","toggleMealSection":"function"},"timestamp":1769767086055,"sessionId":"debug-session","hypothesisId":"H1"}
+{"location":"nutrition.js:EXPORTS_DONE","message":"Global exports completed","data":{"windowOpenMealSheet":"function","windowToggleMealSection":"function"},"timestamp":1769767086055,"sessionId":"debug-session","hypothesisId":"H1"}
+{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769767307617,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769767307623,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769767307615,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"nutrition.js:END","message":"Exporting functions to global scope","data":{"openMealSheet":"function","closeMealSheet":"function","addQuickMeal":"function","toggleMealSection":"function"},"timestamp":1769767307635,"sessionId":"debug-session","hypothesisId":"H1"}
+{"location":"nutrition.js:EXPORTS_DONE","message":"Global exports completed","data":{"windowOpenMealSheet":"function","windowToggleMealSection":"function"},"timestamp":1769767307636,"sessionId":"debug-session","hypothesisId":"H1"}
