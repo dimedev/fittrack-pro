@@ -154,27 +154,77 @@ function showManualBarcodeInput() {
     const scannerContent = scannerModal.querySelector('.scanner-content');
     
     scannerContent.innerHTML = `
-        <h3 style="margin-bottom: 16px;">Saisie manuelle du code-barres</h3>
-        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.9rem;">
-            Votre navigateur ne supporte pas la détection automatique. Entrez le code-barres manuellement.
-        </p>
-        <input 
-            type="number" 
-            id="manual-barcode-input" 
-            placeholder="Ex: 3017620422003" 
-            class="form-input"
-            style="margin-bottom: 16px; width: 100%;"
-            inputmode="numeric"
-        >
-        <div style="display: flex; gap: 12px;">
-            <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1;">Annuler</button>
-            <button class="btn btn-primary" onclick="searchManualBarcode()" style="flex: 1;">Rechercher</button>
+        <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 3rem; margin-bottom: 16px;">📱</div>
+            <h3 style="margin-bottom: 12px; font-size: 1.2rem;">Saisie manuelle</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem; line-height: 1.5;">
+                La lecture automatique des codes-barres n'est pas disponible sur Safari.<br>
+                Entrez le code manuellement, c'est tout aussi rapide !
+            </p>
+            
+            <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: left;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">💡 Astuce</p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4;">
+                    Le code-barres se trouve généralement au dos du produit, composé de 8 ou 13 chiffres.
+                </p>
+            </div>
+            
+            <input 
+                type="text" 
+                id="manual-barcode-input" 
+                placeholder="Ex: 3017620422003" 
+                class="form-input"
+                style="margin-bottom: 16px; width: 100%; font-size: 1.1rem; text-align: center; letter-spacing: 1px;"
+                inputmode="numeric"
+                pattern="[0-9]*"
+            >
+            
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1;">Annuler</button>
+                <button class="btn btn-primary" onclick="searchManualBarcode()" style="flex: 2;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    Rechercher
+                </button>
+            </div>
+            
+            <details style="margin-top: 20px; text-align: left;">
+                <summary style="cursor: pointer; color: var(--accent-brand); font-weight: 600; font-size: 0.9rem; list-style: none; display: flex; align-items: center; gap: 6px; justify-content: center;">
+                    <span>ℹ️</span> Pourquoi la caméra ne fonctionne pas ?
+                </summary>
+                <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; margin-top: 12px; font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);">
+                    <p style="margin-bottom: 12px;">
+                        <strong>Safari iOS</strong> ne supporte pas encore l'API de détection de codes-barres (BarcodeDetector).
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        <strong>Solution :</strong> Utilisez Chrome ou Firefox sur mobile, ou saisissez le code manuellement.
+                    </p>
+                    <p style="margin-bottom: 0;">
+                        Apple travaille sur le support de cette fonctionnalité pour une prochaine version d'iOS.
+                    </p>
+                </div>
+            </details>
         </div>
     `;
     
-    // Focus sur l'input
+    // Focus sur l'input avec validation
     setTimeout(() => {
-        document.getElementById('manual-barcode-input')?.focus();
+        const input = document.getElementById('manual-barcode-input');
+        if (input) {
+            input.focus();
+            // Validation en temps réel : seulement chiffres
+            input.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            });
+            // Enter pour rechercher
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchManualBarcode();
+                }
+            });
+        }
     }, 100);
 }
 

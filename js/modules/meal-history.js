@@ -1,43 +1,68 @@
 // ==================== MEAL HISTORY MODULE ====================
 // Permet de réutiliser les repas des jours précédents
 
+// #region agent log
+fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'meal-history.js:1',message:'Script START loading',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+console.log('📦 meal-history.js: Script START');
+// #endregion
+
+// État de pagination
+let mealHistoryState = {
+    currentPage: 0,
+    daysPerPage: 7,
+    totalDays: 0,
+    allDates: []
+};
+
 /**
- * Obtenir l'historique des repas des 7 derniers jours
+ * Obtenir l'historique des repas avec pagination
  */
-function getMealHistory(days = 7) {
+function getMealHistory(page = 0, daysPerPage = 7) {
     const history = {};
     const today = new Date().toISOString().split('T')[0];
+    const allDates = [];
     
-    // Parcourir les N derniers jours
-    for (let i = 1; i <= days; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        if (state.foodJournal[dateStr]) {
-            const dayMeals = {};
-            
-            // Grouper par type de repas
-            state.foodJournal[dateStr].forEach(entry => {
-                const mealType = entry.mealType || 'snack';
-                if (!dayMeals[mealType]) {
-                    dayMeals[mealType] = [];
-                }
-                dayMeals[mealType].push(entry);
-            });
-            
-            // Ne garder que les repas non vides
-            if (Object.keys(dayMeals).length > 0) {
-                history[dateStr] = dayMeals;
-            }
+    // Scanner TOUS les jours disponibles (pour pagination)
+    Object.keys(state.foodJournal || {}).forEach(dateStr => {
+        if (dateStr < today && state.foodJournal[dateStr].length > 0) {
+            allDates.push(dateStr);
         }
-    }
+    });
+    
+    // Trier par date décroissante
+    allDates.sort().reverse();
+    mealHistoryState.allDates = allDates;
+    mealHistoryState.totalDays = allDates.length;
+    
+    // Extraire la page demandée
+    const startIdx = page * daysPerPage;
+    const endIdx = startIdx + daysPerPage;
+    const pageDates = allDates.slice(startIdx, endIdx);
+    
+    // Construire l'historique pour cette page
+    pageDates.forEach(dateStr => {
+        const dayMeals = {};
+        
+        // Grouper par type de repas
+        state.foodJournal[dateStr].forEach(entry => {
+            const mealType = entry.mealType || 'snack';
+            if (!dayMeals[mealType]) {
+                dayMeals[mealType] = [];
+            }
+            dayMeals[mealType].push(entry);
+        });
+        
+        // Ne garder que les repas non vides
+        if (Object.keys(dayMeals).length > 0) {
+            history[dateStr] = dayMeals;
+        }
+    });
     
     return history;
 }
 
 /**
- * Afficher la modal d'historique des repas
+ * Afficher la modal d'historique des repas avec pagination
  */
 function openMealHistoryModal(targetMealType = null) {
     const modal = document.getElementById('meal-history-modal');
@@ -51,32 +76,162 @@ function openMealHistoryModal(targetMealType = null) {
         window.HapticFeedback.tap();
     }
     
-    const history = getMealHistory(7);
+    // Reset pagination
+    mealHistoryState.currentPage = 0;
+    
+    // Charger la première page
+    loadMealHistoryPage(targetMealType);
+    
+    // Afficher la modal avec animation iOS
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Animation slide-up
+    const container = modal.querySelector('.meal-history-container');
+    if (container) {
+        container.classList.remove('slide-down');
+        container.classList.add('slide-up');
+    }
+    
+    // Activer le swipe down pour fermer
+    enableSwipeToClose(modal, container);
+}
+
+/**
+ * Charger une page d'historique
+ */
+function loadMealHistoryPage(targetMealType = null, append = false) {
+    const modal = document.getElementById('meal-history-modal');
+    const content = modal.querySelector('.meal-history-content');
+    
+    const history = getMealHistory(mealHistoryState.currentPage, mealHistoryState.daysPerPage);
     const historyDates = Object.keys(history).sort().reverse();
     
-    if (historyDates.length === 0) {
-        showToast('Aucun historique de repas trouvé', 'info');
+    if (historyDates.length === 0 && mealHistoryState.currentPage === 0) {
+        content.innerHTML = `
+            <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+                <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 16px;">📅</div>
+                <div class="empty-state-title">Aucun historique</div>
+                <div class="empty-state-text">Vos repas passés apparaîtront ici</div>
+            </div>
+        `;
         return;
     }
     
     // Rendre le contenu
-    const content = modal.querySelector('.meal-history-content');
-    content.innerHTML = renderMealHistory(history, historyDates, targetMealType);
+    const html = renderMealHistory(history, historyDates, targetMealType);
     
-    // Afficher la modal
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    if (append) {
+        content.insertAdjacentHTML('beforeend', html);
+    } else {
+        content.innerHTML = html;
+    }
+    
+    // Ajouter le bouton "Charger plus" si nécessaire
+    const hasMore = (mealHistoryState.currentPage + 1) * mealHistoryState.daysPerPage < mealHistoryState.totalDays;
+    
+    if (hasMore) {
+        const loadMoreBtn = `
+            <div class="meal-history-load-more">
+                <button class="btn btn-secondary" onclick="loadMoreMealHistory('${targetMealType}')">
+                    Charger ${Math.min(7, mealHistoryState.totalDays - (mealHistoryState.currentPage + 1) * mealHistoryState.daysPerPage)} jours de plus
+                </button>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; text-align: center;">
+                    ${(mealHistoryState.currentPage + 1) * mealHistoryState.daysPerPage} / ${mealHistoryState.totalDays} jours affichés
+                </p>
+            </div>
+        `;
+        content.insertAdjacentHTML('beforeend', loadMoreBtn);
+    }
 }
 
 /**
- * Fermer la modal d'historique
+ * Charger plus de jours
+ */
+function loadMoreMealHistory(targetMealType = null) {
+    mealHistoryState.currentPage++;
+    loadMealHistoryPage(targetMealType, true);
+    
+    if (window.HapticFeedback) {
+        window.HapticFeedback.light();
+    }
+}
+
+/**
+ * Activer le swipe down pour fermer
+ */
+function enableSwipeToClose(modal, container) {
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    
+    const handleTouchStart = (e) => {
+        const touch = e.touches[0];
+        startY = touch.clientY;
+        
+        // Seulement si on commence le swipe dans le header
+        const isInHeader = e.target.closest('.meal-history-header');
+        if (isInHeader || container.scrollTop === 0) {
+            isDragging = true;
+        }
+    };
+    
+    const handleTouchMove = (e) => {
+        if (!isDragging) return;
+        
+        const touch = e.touches[0];
+        currentY = touch.clientY;
+        const deltaY = currentY - startY;
+        
+        // Seulement swipe vers le bas
+        if (deltaY > 0) {
+            e.preventDefault();
+            container.style.transform = `translateY(${deltaY}px)`;
+            container.style.transition = 'none';
+        }
+    };
+    
+    const handleTouchEnd = () => {
+        if (!isDragging) return;
+        
+        const deltaY = currentY - startY;
+        
+        // Si swipe > 100px, fermer
+        if (deltaY > 100) {
+            closeMealHistoryModal();
+        } else {
+            // Revenir à la position
+            container.style.transform = '';
+            container.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+        }
+        
+        isDragging = false;
+    };
+    
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+}
+
+/**
+ * Fermer la modal d'historique avec animation
  */
 function closeMealHistoryModal() {
     const modal = document.getElementById('meal-history-modal');
-    if (modal) {
+    const container = modal?.querySelector('.meal-history-container');
+    
+    if (!modal || !container) return;
+    
+    // Animation slide-down
+    container.classList.remove('slide-up');
+    container.classList.add('slide-down');
+    
+    // Attendre la fin de l'animation
+    setTimeout(() => {
         modal.style.display = 'none';
         document.body.style.overflow = '';
-    }
+        container.classList.remove('slide-down');
+    }, 300);
 }
 
 /**
@@ -236,9 +391,19 @@ function formatQuantityDisplay(food, quantity) {
     return `${quantity}g`;
 }
 
-// Exporter les fonctions
+// Exporter les fonctions au scope global
+window.openMealHistoryModal = openMealHistoryModal;
+window.closeMealHistoryModal = closeMealHistoryModal;
+window.loadMoreMealHistory = loadMoreMealHistory;
+
+// Namespace pour accès alternatif
 window.MealHistory = {
     open: openMealHistoryModal,
     close: closeMealHistoryModal,
     quickAdd: quickAddMealFromHistory
 };
+
+// #region agent log
+fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'meal-history.js:END',message:'Script FULLY loaded, exports done',data:{openMealHistoryModalExists:typeof window.openMealHistoryModal},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+console.log('✅ meal-history.js: Exports done, openMealHistoryModal =', typeof window.openMealHistoryModal);
+// #endregion

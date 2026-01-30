@@ -1,0 +1,6 @@
+{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769760378035,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769760378040,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769760378036,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:1","message":"Script START loading","data":{},"timestamp":1769760523610,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"recipes.js:1","message":"Script START loading","data":{},"timestamp":1769760523612,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"meal-history.js:END","message":"Script FULLY loaded, exports done","data":{"openMealHistoryModalExists":"function"},"timestamp":1769760523611,"sessionId":"debug-session","hypothesisId":"A"}

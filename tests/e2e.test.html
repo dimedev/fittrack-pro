@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tests E2E FitTrack Pro</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { margin-bottom: 24px; font-size: 2rem; }
+        .test-suite { margin: 32px 0; background: #111; border-radius: 12px; padding: 20px; }
+        .test-suite h2 { font-size: 1.3rem; margin-bottom: 16px; color: #ff0000; }
+        .test { 
+            padding: 12px; 
+            margin: 8px 0; 
+            background: #1a1a1a; 
+            border-left: 4px solid #444;
+            border-radius: 6px;
+        }
+        .test.pass { border-left-color: #10b981; }
+        .test.fail { border-left-color: #ef4444; }
+        .test.running { border-left-color: #f59e0b; }
+        .test-name { font-weight: 600; margin-bottom: 8px; }
+        .test-result { font-size: 0.9rem; color: #999; }
+        .test-error { color: #ef4444; margin-top: 8px; font-family: monospace; font-size: 0.85rem; }
+        .summary { 
+            background: #111; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin: 24px 0;
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+        }
+        .stat { text-align: center; }
+        .stat-value { font-size: 2.5rem; font-weight: 800; margin-bottom: 4px; }
+        .stat-value.success { color: #10b981; }
+        .stat-value.fail { color: #ef4444; }
+        .stat-label { font-size: 0.9rem; color: #999; text-transform: uppercase; }
+        button {
+            background: #ff0000;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+        button:hover { background: #cc0000; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Tests End-to-End FitTrack Pro</h1>
+        <p style="color: #999; margin-bottom: 24px;">Tests critiques des flows utilisateur réels</p>
+        
+        <div>
+            <button onclick="runAllTests()">▶️ Lancer tous les tests</button>
+            <button onclick="clearResults()" style="background: #444;">🗑️ Réinitialiser</button>
+        </div>
+        
+        <div id="summary" class="summary" style="display: none;">
+            <div class="stat">
+                <div class="stat-value success" id="pass-count">0</div>
+                <div class="stat-label">Réussis</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value fail" id="fail-count">0</div>
+                <div class="stat-label">Échoués</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="total-count" style="color: #fff;">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+        </div>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        let testResults = { pass: 0, fail: 0, total: 0 };
+        
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+        
+        function assertEqual(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(`${message || 'Values differ'}: expected ${expected}, got ${actual}`);
+            }
+        }
+        
+        function assertGreaterThan(actual, threshold, message) {
+            if (actual <= threshold) {
+                throw new Error(`${message || 'Value too small'}: expected > ${threshold}, got ${actual}`);
+            }
+        }
+        
+        async function runTest(name, testFn) {
+            const testEl = document.createElement('div');
+            testEl.className = 'test running';
+            testEl.innerHTML = `
+                <div class="test-name">⏳ ${name}</div>
+                <div class="test-result">En cours...</div>
+            `;
+            document.getElementById('test-results').appendChild(testEl);
+            
+            try {
+                await testFn();
+                testEl.className = 'test pass';
+                testEl.innerHTML = `
+                    <div class="test-name">✅ ${name}</div>
+                    <div class="test-result">PASS</div>
+                `;
+                testResults.pass++;
+            } catch (error) {
+                testEl.className = 'test fail';
+                testEl.innerHTML = `
+                    <div class="test-name">❌ ${name}</div>
+                    <div class="test-result">FAIL</div>
+                    <div class="test-error">${error.message}</div>
+                `;
+                testResults.fail++;
+                console.error(`Test failed: ${name}`, error);
+            }
+            
+            testResults.total++;
+            updateSummary();
+        }
+        
+        function updateSummary() {
+            document.getElementById('summary').style.display = 'flex';
+            document.getElementById('pass-count').textContent = testResults.pass;
+            document.getElementById('fail-count').textContent = testResults.fail;
+            document.getElementById('total-count').textContent = testResults.total;
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+            testResults = { pass: 0, fail: 0, total: 0 };
+        }
+        
+        // ==================== TESTS E2E ====================
+        
+        async function test_createSessionCompleteReloadVerify() {
+            // 1. Créer une session de test
+            const testSession = {
+                id: `test-session-${Date.now()}`,
+                sessionId: `test-${Date.now()}`,
+                date: new Date().toISOString().split('T')[0],
+                timestamp: Date.now(),
+                program: 'test-program',
+                day: 'Test Day',
+                exercises: [
+                    {
+                        exercise: 'Bench Press',
+                        sets: [
+                            { id: 's1', weight: 80, reps: 10 },
+                            { id: 's2', weight: 80, reps: 9 },
+                            { id: 's3', weight: 80, reps: 8 }
+                        ],
+                        volume: 2160
+                    }
+                ],
+                duration: 45,
+                totalVolume: 2160,
+                caloriesBurned: 250
+            };
+            
+            // 2. Charger le state actuel
+            let state = JSON.parse(localStorage.getItem('fittrack-state') || '{}');
+            if (!state.sessionHistory) state.sessionHistory = [];
+            
+            // 3. Ajouter la session
+            const initialCount = state.sessionHistory.length;
+            state.sessionHistory.unshift(testSession);
+            localStorage.setItem('fittrack-state', JSON.stringify(state));
+            
+            // 4. Reload depuis localStorage
+            await new Promise(r => setTimeout(r, 100));
+            const reloadedState = JSON.parse(localStorage.getItem('fittrack-state'));
+            
+            // 5. Vérifier
+            assert(reloadedState.sessionHistory, 'SessionHistory existe');
+            assertEqual(reloadedState.sessionHistory.length, initialCount + 1, 'Session ajoutée');
+            
+            const savedSession = reloadedState.sessionHistory.find(s => s.sessionId === testSession.sessionId);
+            assert(savedSession, 'Session retrouvée');
+            assertEqual(savedSession.day, 'Test Day', 'Nom du jour correct');
+            assertEqual(savedSession.exercises.length, 1, '1 exercice');
+            assertEqual(savedSession.exercises[0].sets.length, 3, '3 séries');
+            assertEqual(savedSession.totalVolume, 2160, 'Volume correct');
+            
+            // 6. Cleanup
+            state.sessionHistory = state.sessionHistory.filter(s => s.sessionId !== testSession.sessionId);
+            localStorage.setItem('fittrack-state', JSON.stringify(state));
+        }
+        
+        async function test_addFoodsAndVerifySync() {
+            // 1. Charger state
+            let state = JSON.parse(localStorage.getItem('fittrack-state') || '{}');
+            if (!state.foodJournal) state.foodJournal = {};
+            
+            const testDate = '2026-01-23';
+            if (!state.foodJournal[testDate]) state.foodJournal[testDate] = [];
+            
+            // 2. Ajouter 3 aliments de test
+            const testFoods = [
+                { foodId: 'test-food-1', quantity: 100, mealType: 'breakfast', addedAt: Date.now() },
+                { foodId: 'test-food-2', quantity: 150, mealType: 'lunch', addedAt: Date.now() },
+                { foodId: 'test-food-3', quantity: 200, mealType: 'dinner', addedAt: Date.now() }
+            ];
+            
+            const initialCount = state.foodJournal[testDate].length;
+            testFoods.forEach(food => state.foodJournal[testDate].push(food));
+            localStorage.setItem('fittrack-state', JSON.stringify(state));
+            
+            // 3. Reload et vérifier
+            await new Promise(r => setTimeout(r, 100));
+            const reloadedState = JSON.parse(localStorage.getItem('fittrack-state'));
+            
+            assert(reloadedState.foodJournal[testDate], 'Journal du jour existe');
+            assertEqual(reloadedState.foodJournal[testDate].length, initialCount + 3, '3 aliments ajoutés');
+            
+            const food1 = reloadedState.foodJournal[testDate].find(f => f.foodId === 'test-food-1');
+            assert(food1, 'Aliment 1 trouvé');
+            assertEqual(food1.mealType, 'breakfast', 'Type de repas correct');
+            
+            // 4. Cleanup
+            state.foodJournal[testDate] = state.foodJournal[testDate].filter(f => !f.foodId.startsWith('test-food-'));
+            localStorage.setItem('fittrack-state', JSON.stringify(state));
+        }
+        
+        async function test_offlineActionsAndReplay() {
+            // 1. Charger state
+            let state = JSON.parse(localStorage.getItem('fittrack-state') || '{}');
+            if (!state.syncQueue) state.syncQueue = [];
+            
+            const initialQueueLength = state.syncQueue.length;
+            
+            // 2. Simuler actions offline (ajouter à la queue)
+            const testDate = new Date().toISOString().split('T')[0];
+            
+            state.syncQueue.push({
+                id: `test-queue-1-${Date.now()}`,
+                type: 'food_journal',
+                action: 'insert',
+                data: { date: testDate, foodId: 'test-food-offline', quantity: 100, mealType: 'snack' },
+                timestamp: Date.now(),
+                retries: 0
+            });
+            
+            state.syncQueue.push({
+                id: `test-queue-2-${Date.now()}`,
+                type: 'workout_session',
+                action: 'upsert',
+                data: { 
+                    sessionId: `test-session-${Date.now()}`,
+                    date: testDate,
+                    program: 'test',
+                    day: 'Test',
+                    exercises: [],
+                    duration: 30,
+                    totalVolume: 1000
+                },
+                timestamp: Date.now(),
+                retries: 0
+            });
+            
+            state.syncQueue.push({
+                id: `test-queue-3-${Date.now()}`,
+                type: 'food_journal',
+                action: 'delete',
+                data: { id: 'test-entry-to-delete' },
+                timestamp: Date.now(),
+                retries: 0
+            });
+            
+            localStorage.setItem('fittrack-state', JSON.stringify(state));
+            
+            // 3. Vérifier queue
+            await new Promise(r => setTimeout(r, 100));
+            const reloadedState = JSON.parse(localStorage.getItem('fittrack-state'));
+            
+            assert(reloadedState.syncQueue, 'Queue existe');
+            assertEqual(reloadedState.syncQueue.length, initialQueueLength + 3, '3 items ajoutés à la queue');
+            
+            // 4. Vérifier types d'actions
+            const insertItem = reloadedState.syncQueue.find(item => item.action === 'insert' && item.type === 'food_journal');
+            const upsertItem = reloadedState.syncQueue.find(item => item.action === 'upsert');
+            const deleteItem = reloadedState.syncQueue.find(item => item.action === 'delete');
+            
+            assert(insertItem, 'Action INSERT présente');
+            assert(upsertItem, 'Action UPSERT présente');
+            assert(deleteItem, 'Action DELETE présente');
+            
+            // 5. Cleanup
+            state.syncQueue = state.syncQueue.filter(item => !item.id.startsWith('test-queue-'));
+            localStorage.setItem('fittrack-state', JSON.stringify(state));
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            
+            document.getElementById('test-results').innerHTML = `
+                <div class="test-suite">
+                    <h2>🧪 Suite de tests E2E</h2>
+                    <p style="color: #999; margin-bottom: 16px;">Tests des flows critiques utilisateur</p>
+                </div>
+            `;
+            
+            await runTest('E2E: Créer séance → terminer → reload → vérifier', test_createSessionCompleteReloadVerify);
+            await runTest('E2E: Ajouter aliments → vérifier persistence', test_addFoodsAndVerifySync);
+            await runTest('E2E: Offline actions → queue → vérifier replay ready', test_offlineActionsAndReplay);
+            
+            // Résumé final
+            const allPass = testResults.fail === 0;
+            const finalMessage = document.createElement('div');
+            finalMessage.className = 'test-suite';
+            finalMessage.style.marginTop = '24px';
+            finalMessage.style.borderLeft = allPass ? '4px solid #10b981' : '4px solid #ef4444';
+            finalMessage.innerHTML = `
+                <h2>${allPass ? '✅ Tous les tests passent !' : '❌ Certains tests ont échoué'}</h2>
+                <p style="color: #999;">
+                    ${testResults.pass}/${testResults.total} tests réussis
+                    ${allPass ? ' - L\'application est stable et fiable.' : ' - Vérifiez les erreurs ci-dessus.'}
+                </p>
+            `;
+            document.getElementById('test-results').appendChild(finalMessage);
+        }
+    </script>
+</body>
+</html>

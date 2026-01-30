@@ -1548,9 +1548,6 @@ function renderCurrentExercise() {
         <button class="exercise-info-btn" onclick="openExerciseTips('${exercise.effectiveName.replace(/'/g, "\\'")}')" title="Informations" style="margin-left: 8px;">
             ⓘ
         </button>
-        <button class="exercise-postpone-btn" onclick="postponeCurrentExercise()" title="Faire plus tard" style="margin-left: 8px;">
-            ⏭️
-        </button>
     `;
     document.getElementById('fs-set-indicator').textContent = `Série ${currentSet} / ${totalSets}`;
 
@@ -3188,3 +3185,148 @@ function autoDeduplicatePeriodic() {
         }, 5 * 60 * 1000); // 5 minutes
     }, 2000);
 }
+
+// ==================== TEMPLATES PERSONNALISABLES ====================
+
+/**
+ * Dupliquer une séance existante pour créer un template
+ * @param {string} sessionId - ID de la séance à dupliquer
+ * @returns {Object|null} Le template créé ou null
+ */
+function duplicateSession(sessionId) {
+    const session = state.sessionHistory?.find(s => s.id === sessionId || s.sessionId === sessionId);
+    if (!session) {
+        showToast('Séance introuvable', 'error');
+        return null;
+    }
+    
+    // Créer template depuis la séance
+    const template = {
+        id: `template-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: `${session.day} (copie)`,
+        basedOn: sessionId,
+        exercises: (session.exercises || []).map(ex => ({
+            name: ex.exercise || ex.name,
+            muscle: ex.muscle || getMuscleForExercise(ex.exercise || ex.name),
+            sets: ex.sets?.length || 3,
+            reps: ex.sets?.[0]?.reps || 10,
+            rest: ex.rest || 90
+        })),
+        createdAt: Date.now(),
+        version: 1,
+        lastModified: Date.now()
+    };
+    
+    // Sauvegarder dans state.customTemplates
+    if (!state.customTemplates) state.customTemplates = [];
+    state.customTemplates.push(template);
+    saveState();
+    
+    if (window.HapticFeedback) {
+        window.HapticFeedback.success();
+    }
+    
+    showToast(`✅ Template "${template.name}" créé !`, 'success');
+    console.log('📋 Template créé:', template);
+    
+    return template;
+}
+
+/**
+ * Démarrer une séance depuis un template personnalisé
+ * @param {string} templateId - ID du template
+ */
+function startSessionFromTemplate(templateId) {
+    const template = state.customTemplates?.find(t => t.id === templateId);
+    if (!template) {
+        showToast('Template introuvable', 'error');
+        return;
+    }
+    
+    // Convertir template en format fsSession
+    const exercises = template.exercises.map(ex => ({
+        name: ex.name,
+        muscle: ex.muscle || getMuscleForExercise(ex.name),
+        sets: ex.sets || 3,
+        reps: String(ex.reps || 10),
+        effectiveName: ex.name,
+        rest: ex.rest || 90
+    }));
+    
+    if (window.HapticFeedback) {
+        window.HapticFeedback.tap();
+    }
+    
+    // Démarrer la séance en mode custom
+    startFullScreenSessionWithCustomExercises(-1, exercises, template.name);
+    console.log(`🎯 Séance démarrée depuis template: ${template.name}`);
+}
+
+/**
+ * Modifier un template existant
+ * @param {string} templateId - ID du template
+ * @param {Object} updates - Modifications à appliquer
+ */
+function updateTemplate(templateId, updates) {
+    if (!state.customTemplates) state.customTemplates = [];
+    
+    const template = state.customTemplates.find(t => t.id === templateId);
+    if (!template) {
+        showToast('Template introuvable', 'error');
+        return false;
+    }
+    
+    // Appliquer les modifications
+    Object.assign(template, updates);
+    template.version = (template.version || 1) + 1;
+    template.lastModified = Date.now();
+    
+    saveState();
+    showToast('Template modifié', 'success');
+    
+    return true;
+}
+
+/**
+ * Supprimer un template
+ * @param {string} templateId - ID du template
+ */
+function deleteTemplate(templateId) {
+    if (!state.customTemplates) return false;
+    
+    const index = state.customTemplates.findIndex(t => t.id === templateId);
+    if (index === -1) {
+        showToast('Template introuvable', 'error');
+        return false;
+    }
+    
+    const template = state.customTemplates[index];
+    
+    if (!confirm(`Supprimer le template "${template.name}" ?`)) {
+        return false;
+    }
+    
+    state.customTemplates.splice(index, 1);
+    saveState();
+    
+    showToast(`✅ "${template.name}" supprimé`, 'success');
+    return true;
+}
+
+/**
+ * Obtenir le muscle d'un exercice par son nom
+ * @param {string} exerciseName - Nom de l'exercice
+ * @returns {string} Groupe musculaire
+ */
+function getMuscleForExercise(exerciseName) {
+    const exercise = state.exercises?.find(ex => 
+        ex.name.toLowerCase() === exerciseName.toLowerCase()
+    );
+    return exercise?.muscle || 'unknown';
+}
+
+// Exposer les fonctions au scope global
+window.duplicateSession = duplicateSession;
+window.startSessionFromTemplate = startSessionFromTemplate;
+window.updateTemplate = updateTemplate;
+window.deleteTemplate = deleteTemplate;

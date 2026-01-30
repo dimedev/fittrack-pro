@@ -282,12 +282,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-primary {
-    background: var(--accent-primary);
-    color: var(--bg-primary);
+    background: var(--accent-brand);
+    color: #ffffff !important; /* Texte blanc sur fond rouge */
 }
 
 .btn-primary:hover {
-    background: var(--text-secondary);
+    background: var(--accent-brand-hover);
+    color: #ffffff !important;
     transform: translateY(-1px);
 }
 
@@ -304,7 +305,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-danger {
     background: var(--danger);
-    color: white;
+    color: #ffffff !important;
 }
 
 .btn-danger:hover {
@@ -313,7 +314,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-brand {
     background: var(--accent-brand);
-    color: white;
+    color: #ffffff !important;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -5837,35 +5838,66 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
 }
 
-/* ==================== RECIPE BUILDER ==================== */
+/* ==================== RECIPE BUILDER - iOS BOTTOM SHEET ==================== */
 .recipe-modal {
     position: fixed;
     inset: 0;
     z-index: 9997;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    padding: 16px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Desktop: centré */
+@media (min-width: 769px) {
+    .recipe-modal {
+        align-items: center;
+        padding: 20px;
+    }
+    
+    .recipe-container {
+        border-radius: var(--radius-xl) !important;
+    }
 }
 
 .recipe-container {
     position: relative;
     width: 100%;
     max-width: 600px;
-    max-height: 85vh;
+    max-height: 90vh;
+    max-height: 90dvh;
     background: var(--bg-card);
-    border-radius: var(--radius-xl);
+    border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
 }
 
 .recipe-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 28px 20px 16px;
     border-bottom: 1px solid var(--border-color);
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Handle de drag iOS */
+.recipe-header::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 5px;
+    background: var(--border-hover);
+    border-radius: 3px;
 }
 
 .recipe-header h3 {
@@ -5876,7 +5908,18 @@ h1, h2, h3, h4, h5, h6 {
 .recipe-content {
     flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 20px;
+}
+
+/* Animations slide iOS-like pour recipe */
+.recipe-container.slide-up {
+    animation: slideUpFromBottom 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.recipe-container.slide-down {
+    animation: slideDownToBottom 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .recipe-form-group {
@@ -6102,35 +6145,97 @@ h1, h2, h3, h4, h5, h6 {
     padding: 8px;
 }
 
-/* ==================== MEAL HISTORY MODAL ==================== */
+/* ==================== MEAL HISTORY MODAL - iOS BOTTOM SHEET ==================== */
 .meal-history-modal {
     position: fixed;
     inset: 0;
     z-index: 9998;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    padding: 16px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Desktop: centré */
+@media (min-width: 769px) {
+    .meal-history-modal {
+        align-items: center;
+        padding: 20px;
+    }
+    
+    .meal-history-container {
+        border-radius: var(--radius-xl) !important;
+    }
 }
 
 .meal-history-container {
     position: relative;
     width: 100%;
     max-width: 600px;
-    max-height: 80vh;
+    max-height: 85vh;
+    max-height: 85dvh;
     background: var(--bg-card);
-    border-radius: var(--radius-xl);
+    border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+/* Animations slide iOS-like */
+.meal-history-container.slide-up {
+    animation: slideUpFromBottom 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.meal-history-container.slide-down {
+    animation: slideDownToBottom 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes slideUpFromBottom {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideDownToBottom {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(100%);
+        opacity: 0;
+    }
 }
 
 .meal-history-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 28px 20px 16px;
     border-bottom: 1px solid var(--border-color);
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Handle de drag iOS */
+.meal-history-header::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 5px;
+    background: var(--border-hover);
+    border-radius: 3px;
 }
 
 .meal-history-header h3 {
@@ -6141,6 +6246,8 @@ h1, h2, h3, h4, h5, h6 {
 .meal-history-content {
     flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 20px;
 }
 
@@ -6228,23 +6335,35 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-quick-add-meal {
     width: 100%;
-    background: var(--accent-primary);
-    color: white;
+    background: var(--accent-brand);
+    color: #ffffff !important;
     border: none;
     border-radius: var(--radius-md);
-    padding: 8px 16px;
+    padding: 10px 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .btn-quick-add-meal:hover {
-    background: var(--accent-primary-hover);
+    background: var(--accent-brand-hover);
     transform: translateY(-1px);
 }
 
 .btn-quick-add-meal:active {
     transform: translateY(0);
+}
+
+/* Bouton charger plus */
+.meal-history-load-more {
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+    margin-top: 20px;
+}
+
+.meal-history-load-more .btn {
+    min-width: 200px;
 }
 
 .btn-icon.btn-accent-icon {

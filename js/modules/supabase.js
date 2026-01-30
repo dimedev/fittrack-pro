@@ -425,8 +425,11 @@ const validators = {
     foodJournalEntry: (entry) => {
         return entry && 
                entry.foodId && 
-               typeof entry.quantity === 'number' && entry.quantity > 0 && 
+               entry.date &&
+               typeof entry.quantity === 'number' && 
+               entry.quantity > 0 && entry.quantity <= 10000 &&
                entry.mealType && 
+               ['breakfast', 'lunch', 'snack', 'dinner'].includes(entry.mealType) &&
                entry.addedAt;
     },
     workoutSession: (session) => {
@@ -434,13 +437,58 @@ const validators = {
                session.sessionId &&
                session.date &&
                session.program &&
-               session.day;
+               session.day &&
+               Array.isArray(session.exercises) &&
+               typeof session.duration === 'number' && session.duration >= 0 &&
+               typeof session.totalVolume === 'number' && session.totalVolume >= 0;
     },
     cardioSession: (cardio) => {
         return cardio &&
-               cardio.type &&
-               typeof cardio.duration === 'number' && cardio.duration > 0 &&
-               cardio.intensity;
+               cardio.type && 
+               ['running', 'cycling', 'walking', 'swimming', 'boxing', 'other'].includes(cardio.type) &&
+               typeof cardio.duration === 'number' && cardio.duration > 0 && cardio.duration <= 600 &&
+               cardio.intensity && 
+               ['light', 'moderate', 'intense'].includes(cardio.intensity) &&
+               cardio.date;
+    },
+    profile: (p) => {
+        return p && 
+               typeof p.age === 'number' && p.age >= 10 && p.age <= 120 &&
+               typeof p.weight === 'number' && p.weight >= 20 && p.weight <= 500 &&
+               typeof p.height === 'number' && p.height >= 50 && p.height <= 300 &&
+               p.macros &&
+               typeof p.macros.protein === 'number' && p.macros.protein >= 0 &&
+               typeof p.macros.carbs === 'number' && p.macros.carbs >= 0 &&
+               typeof p.macros.fat === 'number' && p.macros.fat >= 0;
+    },
+    customFood: (f) => {
+        return f && 
+               f.name && f.name.trim().length > 0 &&
+               typeof f.calories === 'number' && f.calories >= 0 &&
+               typeof f.protein === 'number' && f.protein >= 0 &&
+               typeof f.carbs === 'number' && f.carbs >= 0 &&
+               typeof f.fat === 'number' && f.fat >= 0;
+    },
+    customExercise: (ex) => {
+        return ex &&
+               ex.name && ex.name.trim().length > 0 &&
+               ex.muscle &&
+               ex.equipment;
+    },
+    progressLog: (log) => {
+        return log &&
+               log.date &&
+               typeof log.sets === 'number' && log.sets > 0 &&
+               typeof log.reps === 'number' && log.reps > 0 &&
+               typeof log.weight === 'number' && log.weight >= 0;
+    },
+    hydration: (h) => {
+        return h &&
+               h.date &&
+               typeof h.amountMl === 'number' && h.amountMl >= 0 && h.amountMl <= 10000;
+    },
+    journalQuantity: (q) => {
+        return typeof q === 'number' && q > 0 && q <= 10000;
     }
 };
 
@@ -457,6 +505,41 @@ function validateBeforeSave(type, data) {
         syncLog.add({ event: 'validation_failed', type, data });
     }
     return isValid;
+}
+
+// ==================== COUCHE SAFESAVE CENTRALISÉE ====================
+
+/**
+ * Couche centralisée pour sauvegarder avec validation et retry
+ * @param {string} type - Type de données (profile, foodJournalEntry, etc.)
+ * @param {string} action - Action (insert, upsert, update, delete)
+ * @param {Object} data - Données à sauvegarder
+ * @param {Function} saveFn - Fonction de sauvegarde async
+ * @returns {Promise<{success: boolean, data?: any, reason?: string, error?: Error}>}
+ */
+async function safeSave(type, action, data, saveFn) {
+    // 1. Sanitize les valeurs corrompues
+    const sanitized = typeof sanitizeCorruptedValues === 'function' 
+        ? sanitizeCorruptedValues(data) 
+        : data;
+    
+    // 2. Validate
+    if (!validateBeforeSave(type, sanitized)) {
+        showToast('Données invalides', 'error');
+        syncLog.add({ event: 'save_rejected', type, action, data: sanitized });
+        return { success: false, reason: 'validation_failed' };
+    }
+    
+    // 3. Save avec retry
+    try {
+        const result = await saveFn(sanitized);
+        syncLog.add({ event: 'save_success', type, action });
+        return { success: true, data: result };
+    } catch (error) {
+        console.error(`❌ Erreur safeSave ${type}:`, error);
+        syncLog.add({ event: 'save_error', type, action, error: error.message });
+        return { success: false, reason: 'save_failed', error };
+    }
 }
 
 // ==================== QUEUE OFFLINE PERSISTANTE ====================
@@ -497,28 +580,85 @@ async function replaySyncQueue() {
     
     for (const item of state.syncQueue) {
         try {
+            // Backoff exponentiel avant chaque tentative
+            if (item.retries > 0) {
+                const delay = Math.min(1000 * Math.pow(2, item.retries), 30000);
+                console.log(`⏳ Retry ${item.retries} avec backoff ${delay}ms`);
+                await new Promise(r => setTimeout(r, delay));
+            }
+            
             console.log(`🔄 Replay: ${item.type} ${item.action}`);
             
-            // Rejouer l'opération selon le type
-            if (item.type === 'food_journal' && item.action === 'insert') {
-                await addJournalEntryToSupabase(item.data.foodId, item.data.quantity, item.data.mealType, item.data.addedAt);
-            } else if (item.type === 'workout_session' && item.action === 'upsert') {
-                await saveWorkoutSessionToSupabase(item.data);
-            } else if (item.type === 'cardio' && item.action === 'insert') {
-                await saveCardioSessionToSupabase(item.data);
-            } else if (item.type === 'hydration' && item.action === 'upsert') {
-                await saveHydrationToSupabase(item.data.date, item.data.amount);
+            // INSERT operations
+            if (item.action === 'insert') {
+                if (item.type === 'food_journal') {
+                    await addJournalEntryToSupabase(item.data.date, item.data.foodId, item.data.quantity, item.data.mealType);
+                } else if (item.type === 'workout_session') {
+                    await saveWorkoutSessionToSupabase(item.data);
+                } else if (item.type === 'cardio_session') {
+                    await saveCardioSessionToSupabase(item.data);
+                } else if (item.type === 'custom_food') {
+                    await saveCustomFoodToSupabase(item.data);
+                } else if (item.type === 'custom_exercise') {
+                    await saveCustomExerciseToSupabase(item.data);
+                } else if (item.type === 'progress_log') {
+                    await saveProgressLogToSupabase(item.data);
+                }
             }
-            // Ajouter d'autres types si nécessaire
+            // UPSERT operations
+            else if (item.action === 'upsert') {
+                if (item.type === 'profile') {
+                    await saveProfileToSupabase();
+                } else if (item.type === 'workout_session') {
+                    await saveWorkoutSessionToSupabase(item.data);
+                } else if (item.type === 'hydration') {
+                    await saveHydrationToSupabase(item.data.date, item.data.amountMl || item.data.amount);
+                } else if (item.type === 'exercise_swap') {
+                    await saveExerciseSwapToSupabase(item.data.originalExercise, item.data.replacementId);
+                } else if (item.type === 'training_settings') {
+                    await saveTrainingSettingsToSupabase();
+                }
+            }
+            // UPDATE operations
+            else if (item.action === 'update') {
+                if (item.type === 'food_journal') {
+                    await updateJournalEntryInSupabase(item.data.id, item.data.quantity);
+                } else if (item.type === 'meal_combo') {
+                    if (typeof updateMealComboUsageInSupabase === 'function') {
+                        await updateMealComboUsageInSupabase(item.data.id, item.data.usageCount, item.data.lastUsed);
+                    }
+                }
+            }
+            // DELETE operations
+            else if (item.action === 'delete') {
+                if (item.type === 'food_journal') {
+                    if (item.data.clearAll) {
+                        await clearJournalDayInSupabase(item.data.date);
+                    } else {
+                        await deleteJournalEntryFromSupabase(item.data.id);
+                    }
+                } else if (item.type === 'custom_food') {
+                    await deleteCustomFoodFromSupabase(item.data.id);
+                } else if (item.type === 'cardio_session') {
+                    await deleteCardioSessionFromSupabase(item.data.id);
+                } else if (item.type === 'exercise_swap') {
+                    await deleteExerciseSwapFromSupabase(item.data.originalExercise);
+                } else if (item.type === 'meal_combo') {
+                    if (typeof deleteMealComboFromSupabase === 'function') {
+                        await deleteMealComboFromSupabase(item.data.id);
+                    }
+                }
+            }
             
             itemsToRemove.push(item.id);
         } catch (error) {
-            console.error(`❌ Échec replay ${item.type}:`, error);
+            console.error(`❌ Échec replay ${item.type} ${item.action}:`, error);
             item.retries = (item.retries || 0) + 1;
             
             // Abandonner après 5 tentatives
             if (item.retries >= 5) {
                 console.warn(`⚠️ Item abandonné après 5 tentatives: ${item.id}`);
+                syncLog.add({ event: 'replay_abandoned', item, error: error.message });
                 itemsToRemove.push(item.id);
             }
         }
@@ -1525,6 +1665,13 @@ function refreshAllUI() {
 // Sauvegarder le profil
 async function saveProfileToSupabase(profileData) {
     if (!currentUser) return false;
+    
+    // Validation avant sauvegarde
+    if (!validateBeforeSave('profile', profileData)) {
+        showToast('Données profil invalides', 'error');
+        return false;
+    }
+    
     if (!isOnline) {
         console.log('📴 Hors-ligne: profil ajouté à la queue de sync');
         addToSyncQueue('profile', 'upsert', profileData);
@@ -1567,6 +1714,13 @@ async function saveProfileToSupabase(profileData) {
 // Sauvegarder un aliment personnalisé (avec retry et feedback)
 async function saveCustomFoodToSupabase(food) {
     if (!currentUser) return null;
+    
+    // Validation avant sauvegarde
+    if (!validateBeforeSave('customFood', food)) {
+        showToast('Données aliment invalides', 'error');
+        return null;
+    }
+    
     if (!isOnline) {
         console.log('📴 Hors-ligne: aliment ajouté à la queue de sync');
         addToSyncQueue('custom_food', 'insert', food);
@@ -1613,7 +1767,8 @@ async function deleteCustomFoodFromSupabase(foodId) {
     if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: suppression en attente');
-        return false;
+        addToSyncQueue('custom_food', 'delete', { id: foodId });
+        return true; // Confirmer suppression locale
     }
     
     const supabaseId = foodId.replace('custom-', '');
@@ -1640,6 +1795,13 @@ async function deleteCustomFoodFromSupabase(foodId) {
 // Sauvegarder un exercice personnalisé (avec retry et feedback)
 async function saveCustomExerciseToSupabase(exercise) {
     if (!currentUser) return null;
+    
+    // Validation avant sauvegarde
+    if (!validateBeforeSave('customExercise', exercise)) {
+        showToast('Données exercice invalides', 'error');
+        return null;
+    }
+    
     if (!isOnline) {
         console.log('📴 Hors-ligne: exercice ajouté à la queue de sync');
         addToSyncQueue('custom_exercise', 'insert', exercise);
@@ -1713,7 +1875,8 @@ async function deleteExerciseSwapFromSupabase(originalExercise) {
     if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: suppression en attente');
-        return false;
+        addToSyncQueue('exercise_swap', 'delete', { originalExercise });
+        return true; // Confirmer suppression locale
     }
     
     try {
@@ -1846,9 +2009,17 @@ async function addJournalEntryToSupabase(date, foodId, quantity, mealType = null
 // Mettre à jour une entrée du journal (avec retry et feedback)
 async function updateJournalEntryInSupabase(entryId, quantity) {
     if (!currentUser) return false;
+    
+    // Validation de la quantité
+    if (!validateBeforeSave('journalQuantity', quantity)) {
+        showToast('Quantité invalide', 'error');
+        return false;
+    }
+    
     if (!isOnline) {
         console.log('📴 Hors-ligne: modification en attente');
-        return false;
+        addToSyncQueue('food_journal', 'update', { id: entryId, quantity });
+        return true; // Confirmer modification locale
     }
     
     try {
@@ -1873,7 +2044,8 @@ async function deleteJournalEntryFromSupabase(entryId) {
     if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: suppression en attente');
-        return false;
+        addToSyncQueue('food_journal', 'delete', { id: entryId });
+        return true; // Confirmer suppression locale
     }
     
     try {
@@ -1899,7 +2071,8 @@ async function clearJournalDayInSupabase(date) {
     if (!currentUser) return false;
     if (!isOnline) {
         console.log('📴 Hors-ligne: vidage en attente de connexion');
-        return false;
+        addToSyncQueue('food_journal', 'delete', { date, clearAll: true });
+        return true; // Confirmer suppression locale
     }
     
     try {
@@ -1968,7 +2141,11 @@ async function saveCardioSessionToSupabase(date, session) {
 // Supprimer une session cardio
 async function deleteCardioSessionFromSupabase(sessionId) {
     if (!currentUser) return false;
-    if (!isOnline) return false;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: suppression cardio en attente');
+        addToSyncQueue('cardio_session', 'delete', { id: sessionId });
+        return true; // Confirmer suppression locale
+    }
     
     try {
         await withRetry(async () => {
@@ -2022,6 +2199,14 @@ async function loadCardioSessionsFromSupabase() {
 // Sauvegarder un log de progression (avec retry et feedback - CRITIQUE)
 async function saveProgressLogToSupabase(exerciseName, logData) {
     if (!currentUser) return false;
+    
+    // Validation avant sauvegarde
+    const dataToValidate = { ...logData, exerciseName };
+    if (!validateBeforeSave('progressLog', dataToValidate)) {
+        showToast('Données progression invalides', 'error');
+        return false;
+    }
+    
     if (!isOnline) {
         console.log('📴 Hors-ligne: progression ajoutée à la queue de sync');
         addToSyncQueue('progress_log', 'insert', { exerciseName, ...logData });
@@ -2160,9 +2345,16 @@ function updateSyncIndicator(status, message = '') {
  */
 async function saveHydrationToSupabase(date, amountMl) {
     if (!currentUser) return false;
+    
+    // Validation avant sauvegarde
+    if (!validateBeforeSave('hydration', { date, amountMl })) {
+        showToast('Données hydratation invalides', 'error');
+        return false;
+    }
+    
     if (!isOnline) {
         console.log('📴 Hors-ligne: hydratation ajoutée à la queue de sync');
-        addToSyncQueue('hydration', 'upsert', { date, amount: amountMl });
+        addToSyncQueue('hydration', 'upsert', { date, amountMl });
         return false;
     }
     

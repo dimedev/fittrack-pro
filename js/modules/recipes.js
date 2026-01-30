@@ -1,10 +1,15 @@
 // ==================== RECIPES MODULE ====================
 // Permet de créer et gérer des recettes composées
 
+// #region agent log
+fetch('http://127.0.0.1:7242/ingest/69c64c66-4926-4787-8b23-1d114ad6d8e8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'recipes.js:1',message:'Script START loading',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+console.log('📦 recipes.js: Script START');
+// #endregion
+
 // Structure: state.recipes = { 'recipe-id': { name, ingredients: [{foodId, quantity}], ... } }
 
 /**
- * Ouvrir la modal de création de recette
+ * Ouvrir la modal de création de recette avec animation iOS
  */
 function openRecipeModal(recipeId = null) {
     const modal = document.getElementById('recipe-modal');
@@ -29,17 +34,34 @@ function openRecipeModal(recipeId = null) {
     
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    
+    // Animation slide-up iOS
+    const container = modal.querySelector('.recipe-container');
+    if (container) {
+        container.classList.remove('slide-down');
+        container.classList.add('slide-up');
+    }
 }
 
 /**
- * Fermer la modal de recette
+ * Fermer la modal de recette avec animation
  */
 function closeRecipeModal() {
     const modal = document.getElementById('recipe-modal');
-    if (modal) {
+    const container = modal?.querySelector('.recipe-container');
+    
+    if (!modal || !container) return;
+    
+    // Animation slide-down
+    container.classList.remove('slide-up');
+    container.classList.add('slide-down');
+    
+    // Attendre la fin de l'animation
+    setTimeout(() => {
         modal.style.display = 'none';
         document.body.style.overflow = '';
-    }
+        container.classList.remove('slide-down');
+    }, 300);
 }
 
 /**
@@ -310,7 +332,12 @@ async function saveRecipe() {
     window.tempRecipeIngredients = [];
 }
 
-// Exporter les fonctions
+// Exporter les fonctions au scope global
+window.openRecipeModal = openRecipeModal;
+window.closeRecipeModal = closeRecipeModal;
+window.saveRecipe = saveRecipe;
+
+// Namespace pour accès alternatif
 window.Recipes = {
     open: openRecipeModal,
     close: closeRecipeModal,

@@ -589,15 +589,61 @@ function detectConflict(serverUpdatedAt) {
 
 // Export des données
 function exportData() {
-    const data = JSON.stringify(state, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
+    const exportPayload = {
+        version: '2.0.0',
+        exportedAt: new Date().toISOString(),
+        app: 'FitTrack Pro',
+        data: {
+            // Données critiques utilisateur
+            profile: state.profile,
+            foodJournal: state.foodJournal,
+            sessionHistory: state.sessionHistory,
+            cardioLog: state.cardioLog,
+            hydration: state.hydration,
+            bodyWeightLog: state.bodyWeightLog,
+            progressLog: state.progressLog,
+            progressPhotos: state.progressPhotos,
+            // Configuration
+            wizardResults: state.wizardResults,
+            trainingProgress: state.trainingProgress,
+            sessionTemplates: state.sessionTemplates,
+            exerciseSwaps: state.exerciseSwaps,
+            goals: state.goals,
+            recipes: state.recipes,
+            mealCombos: state.mealCombos,
+            unlockedAchievements: state.unlockedAchievements,
+            // Préférences
+            preferences: state.preferences,
+            selectedProgram: state.selectedProgram,
+            trainingDays: state.trainingDays,
+            periodization: state.periodization,
+            // Custom templates (si présent)
+            customTemplates: state.customTemplates
+        },
+        metadata: {
+            totalJournalDays: Object.keys(state.foodJournal || {}).length,
+            totalSessions: (state.sessionHistory || []).length,
+            totalPhotos: (state.progressPhotos || []).length,
+            totalRecipes: Object.keys(state.recipes || {}).length,
+            hasProfile: !!state.profile,
+            programConfigured: !!state.selectedProgram,
+            exportSize: 0 // Sera calculé après stringify
+        }
+    };
+    
+    const jsonString = JSON.stringify(exportPayload, null, 2);
+    exportPayload.metadata.exportSize = Math.round(jsonString.length / 1024); // Ko
+    
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `repzy-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `fittrack-pro-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Données exportées !', 'success');
+    
+    showToast(`✅ Données exportées (${exportPayload.metadata.exportSize}Ko)`, 'success');
+    console.log('📦 Export complet:', exportPayload.metadata);
 }
 
 // Import des données
@@ -612,7 +658,30 @@ function handleImport(event) {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            let imported = JSON.parse(e.target.result);
+            const rawImported = JSON.parse(e.target.result);
+            
+            // Détecter le format (v1 = direct state, v2 = avec version)
+            const isV2Format = rawImported.version && rawImported.data;
+            let imported = isV2Format ? rawImported.data : rawImported;
+            const importVersion = isV2Format ? rawImported.version : '1.0.0';
+            
+            // Vérifier compatibilité version
+            if (!isCompatibleVersion(importVersion)) {
+                showToast(`⚠️ Version incompatible: ${importVersion}`, 'error');
+                return;
+            }
+            
+            // BACKUP AUTOMATIQUE avant import
+            const backupKey = `fittrack-backup-${Date.now()}`;
+            try {
+                localStorage.setItem(backupKey, JSON.stringify(state));
+                console.log(`💾 Backup créé: ${backupKey}`);
+            } catch (err) {
+                console.warn('Impossible de créer backup:', err);
+                if (!confirm('⚠️ Backup impossible. Continuer l\'import quand même ?')) {
+                    return;
+                }
+            }
             
             // 1. Nettoyer les valeurs corrompues
             imported = sanitizeCorruptedValues(imported, 'import');
@@ -621,15 +690,21 @@ function handleImport(event) {
             const { sanitized, errors } = validateAndSanitizeState(imported);
             imported = sanitized;
             
-            // 3. Merger avec l'état existant
-            state = { ...state, ...imported };
+            // 3. Détecter conflits
+            const conflicts = detectImportConflicts(state, imported);
             
-            // Re-merger les aliments par défaut
-            const customFoods = (state.foods || []).filter(f => !defaultFoods.find(df => df.id === f.id));
-            state.foods = [...defaultFoods, ...customFoods];
+            // 4. Merge intelligent par catégorie
+            const mergedState = mergeImportedData(state, imported, conflicts);
+            
+            // 5. Re-merger les aliments par défaut
+            const customFoods = (mergedState.foods || []).filter(f => !defaultFoods.find(df => df.id === f.id));
+            mergedState.foods = [...defaultFoods, ...customFoods];
+            
+            // 6. Appliquer le nouvel état
+            state = mergedState;
             saveState();
             
-            // Rafraîchir l'interface
+            // 7. Rafraîchir l'interface
             if (typeof renderProgramTypes === 'function') renderProgramTypes();
             if (typeof renderFoodsList === 'function') renderFoodsList();
             if (typeof updateDashboard === 'function') updateDashboard();
@@ -639,11 +714,18 @@ function handleImport(event) {
             if (typeof updateSessionHistory === 'function') updateSessionHistory();
             if (typeof loadJournalDay === 'function') loadJournalDay();
             
-            if (errors.length > 0) {
-                showToast(`Données importées (${errors.length} corrections)`, 'warning');
-            } else {
-                showToast('Données importées avec succès !', 'success');
-            }
+            // 8. Toast de succès
+            const stats = [];
+            if (conflicts.sessions > 0) stats.push(`${conflicts.sessions} séances fusionnées`);
+            if (errors.length > 0) stats.push(`${errors.length} corrections`);
+            
+            const message = stats.length > 0 
+                ? `✅ Import réussi (${stats.join(', ')})`
+                : '✅ Données importées avec succès !';
+            
+            showToast(message, 'success', 4000);
+            console.log(`📥 Import v${importVersion} complété. Backup: ${backupKey}`);
+            
         } catch (err) {
             console.error('Erreur import:', err);
             showToast('Fichier invalide ou corrompu', 'error');
@@ -651,4 +733,129 @@ function handleImport(event) {
     };
     reader.readAsText(file);
     event.target.value = '';
+}
+
+// Vérifier si la version est compatible
+function isCompatibleVersion(version) {
+    const [major] = version.split('.').map(Number);
+    return major <= 2; // Support v1.x et v2.x
+}
+
+// Détecter les conflits d'import
+function detectImportConflicts(currentState, importedState) {
+    const conflicts = {
+        sessions: 0,
+        journalDays: 0,
+        photos: 0,
+        hasConflicts: false
+    };
+    
+    // Détecter doublons de séances (même date + même jour)
+    if (importedState.sessionHistory && currentState.sessionHistory) {
+        importedState.sessionHistory.forEach(importedSession => {
+            const exists = currentState.sessionHistory.some(s => 
+                s.date === importedSession.date && 
+                s.day === importedSession.day &&
+                Math.abs((s.timestamp || 0) - (importedSession.timestamp || 0)) < 60000
+            );
+            if (exists) conflicts.sessions++;
+        });
+    }
+    
+    // Détecter conflits journal (même date avec données différentes)
+    if (importedState.foodJournal && currentState.foodJournal) {
+        Object.keys(importedState.foodJournal).forEach(date => {
+            if (currentState.foodJournal[date]) {
+                conflicts.journalDays++;
+            }
+        });
+    }
+    
+    conflicts.hasConflicts = conflicts.sessions > 0 || conflicts.journalDays > 0;
+    return conflicts;
+}
+
+// Merger intelligemment les données importées
+function mergeImportedData(currentState, importedState, conflicts) {
+    const merged = { ...currentState };
+    
+    // 1. Profile : prendre l'importé si plus récent ou si local vide
+    if (importedState.profile) {
+        if (!merged.profile || 
+            (importedState.profile.weight && merged.profile.weight !== importedState.profile.weight)) {
+            merged.profile = importedState.profile;
+        }
+    }
+    
+    // 2. SessionHistory : merger sans doublons
+    if (importedState.sessionHistory) {
+        const allSessions = [...(merged.sessionHistory || [])];
+        
+        importedState.sessionHistory.forEach(importedSession => {
+            const exists = allSessions.find(s => 
+                s.sessionId === importedSession.sessionId ||
+                (s.date === importedSession.date && 
+                 s.day === importedSession.day &&
+                 Math.abs((s.timestamp || 0) - (importedSession.timestamp || 0)) < 60000)
+            );
+            
+            if (!exists) {
+                allSessions.push({ ...importedSession, synced: false });
+            } else {
+                // Garder celle avec le plus de données
+                const currentIdx = allSessions.indexOf(exists);
+                if ((importedSession.exercises?.length || 0) > (exists.exercises?.length || 0)) {
+                    allSessions[currentIdx] = { ...importedSession, synced: false };
+                }
+            }
+        });
+        
+        merged.sessionHistory = allSessions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 100);
+    }
+    
+    // 3. FoodJournal : merger par jour
+    if (importedState.foodJournal) {
+        merged.foodJournal = { ...(merged.foodJournal || {}) };
+        
+        Object.keys(importedState.foodJournal).forEach(date => {
+            if (!merged.foodJournal[date]) {
+                // Jour absent : ajouter directement
+                merged.foodJournal[date] = importedState.foodJournal[date];
+            } else {
+                // Jour existant : merger sans doublons
+                const currentEntries = merged.foodJournal[date];
+                const importedEntries = importedState.foodJournal[date];
+                
+                importedEntries.forEach(entry => {
+                    const exists = currentEntries.find(e => 
+                        e.foodId === entry.foodId && 
+                        e.quantity === entry.quantity && 
+                        e.mealType === entry.mealType &&
+                        Math.abs((e.addedAt || 0) - (entry.addedAt || 0)) < 60000
+                    );
+                    
+                    if (!exists) {
+                        currentEntries.push({ ...entry, supabaseId: null });
+                    }
+                });
+            }
+        });
+    }
+    
+    // 4. Autres données : merger simplement
+    const simpleFields = [
+        'cardioLog', 'hydration', 'bodyWeightLog', 'progressLog', 
+        'wizardResults', 'trainingProgress', 'sessionTemplates', 
+        'exerciseSwaps', 'goals', 'recipes', 'mealCombos', 
+        'unlockedAchievements', 'preferences', 'selectedProgram', 
+        'trainingDays', 'periodization', 'progressPhotos', 'customTemplates'
+    ];
+    
+    simpleFields.forEach(field => {
+        if (importedState[field] !== undefined) {
+            merged[field] = importedState[field];
+        }
+    });
+    
+    return merged;
 }

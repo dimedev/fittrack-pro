@@ -529,7 +529,14 @@ async function saveMealComboToSupabase(combo) {
 }
 
 async function deleteMealComboFromSupabase(comboId) {
-    if (!currentUser || !isOnline) return;
+    if (!currentUser) return;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: suppression combo en attente');
+        if (typeof addToSyncQueue === 'function') {
+            addToSyncQueue('meal_combo', 'delete', { id: comboId });
+        }
+        return;
+    }
     
     try {
         const { error } = await supabaseClient
@@ -545,7 +552,14 @@ async function deleteMealComboFromSupabase(comboId) {
 }
 
 async function updateMealComboUsageInSupabase(comboId, usageCount, lastUsed) {
-    if (!currentUser || !isOnline) return;
+    if (!currentUser) return;
+    if (!isOnline) {
+        console.log('📴 Hors-ligne: mise à jour combo en attente');
+        if (typeof addToSyncQueue === 'function') {
+            addToSyncQueue('meal_combo', 'update', { id: comboId, usageCount, lastUsed });
+        }
+        return;
+    }
     
     try {
         await supabaseClient

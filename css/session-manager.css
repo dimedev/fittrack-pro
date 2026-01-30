@@ -863,6 +863,22 @@
     /* L'animation est déclenchée via la classe .animate-in */
 }
 
+/* Bloquer TOUT scroll quand fullscreen est actif */
+body:has(.fullscreen-session[style*="display: flex"]) {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+body:has(.fullscreen-session[style*="display: flex"]) html {
+    overflow: hidden !important;
+}
+
+body:has(.fullscreen-session[style*="display: flex"]) .main {
+    overflow: hidden !important;
+}
+
 .fullscreen-session[style*="display: none"] {
     pointer-events: none;
 }
