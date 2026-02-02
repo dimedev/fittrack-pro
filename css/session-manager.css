@@ -561,6 +561,27 @@
     margin-top: 4px;
 }
 
+.wizard-option-cycle {
+    font-size: 0.7rem;
+    color: var(--accent-primary);
+    margin-top: 6px;
+    padding: 4px 8px;
+    background: rgba(0, 255, 136, 0.1);
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.wizard-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm, 6px);
+    border-left: 3px solid var(--accent-primary);
+}
+
 /* Wizard Toggle Options (multi-select for sensitivities) */
 .wizard-options-multi {
     display: grid;
@@ -817,6 +838,69 @@
 
 .session-card-upcoming .session-card-meta {
     margin-bottom: 0;
+}
+
+/* Training Periodization Card */
+.training-period-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(0, 255, 136, 0.05) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 12px);
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.training-period-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.training-period-card:active {
+    transform: translateY(0);
+}
+
+.training-period-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.training-period-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.training-period-badge.hypertrophy { color: #3b82f6; }
+.training-period-badge.strength { color: #ef4444; }
+.training-period-badge.deload { color: #22c55e; }
+.training-period-badge.peak { color: #f97316; }
+
+.training-period-week {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.training-period-action {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm, 6px);
+}
+
+.training-period-action svg {
+    opacity: 0.7;
 }
 
 .training-stats {
@@ -1156,6 +1240,141 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     transform: translateY(0);
 }
 
+/* ==================== DROP SET & REST-PAUSE BUTTONS ==================== */
+
+.fs-drop-btn,
+.fs-restpause-btn {
+    width: 100%;
+    max-width: 300px;
+    margin: 12px auto 0;
+    padding: 14px 20px;
+    border: 2px solid;
+    border-radius: var(--radius-lg, 16px);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Drop Set - Blue theme */
+.fs-drop-btn {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #3b82f6;
+}
+
+.fs-drop-btn:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.25));
+    border-color: #3b82f6;
+    transform: scale(1.02);
+}
+
+.fs-drop-btn:active {
+    transform: scale(0.98);
+}
+
+/* Rest-Pause - Purple theme */
+.fs-restpause-btn {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(139, 92, 246, 0.15));
+    border-color: rgba(168, 85, 247, 0.5);
+    color: #a855f7;
+}
+
+.fs-restpause-btn:hover {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(139, 92, 246, 0.25));
+    border-color: #a855f7;
+    transform: scale(1.02);
+}
+
+.fs-restpause-btn:active {
+    transform: scale(0.98);
+}
+
+/* Advanced techniques container */
+.fs-advanced-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 300px;
+    margin: 12px auto 0;
+}
+
+.fs-advanced-btns .fs-drop-btn,
+.fs-advanced-btns .fs-restpause-btn {
+    margin: 0;
+}
+
+/* Completed set badges for Drop/Rest-Pause */
+.fs-completed-set.is-drop {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.fs-completed-set.is-drop .fs-completed-set-num {
+    color: #3b82f6;
+}
+
+.fs-completed-set.is-drop::before {
+    content: '💧';
+    font-size: 0.7rem;
+    margin-right: 4px;
+}
+
+.fs-completed-set.is-restpause {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(139, 92, 246, 0.1));
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.fs-completed-set.is-restpause .fs-completed-set-num {
+    color: #a855f7;
+}
+
+.fs-completed-set.is-restpause::before {
+    content: '⏸️';
+    font-size: 0.7rem;
+    margin-right: 4px;
+}
+
+/* ==================== PLATE CALCULATOR BUTTON ==================== */
+.fs-plate-calc-btn {
+    background: var(--bg-hover, #1a1a1a);
+    border: 1px solid var(--border-color, #262626);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    margin-left: 6px;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+
+.fs-plate-calc-btn:hover {
+    background: var(--bg-tertiary, #111);
+    border-color: var(--accent-brand, #ff0000);
+    transform: scale(1.1);
+}
+
+.fs-plate-calc-btn:active {
+    transform: scale(0.95);
+}
+
 .fs-completed-sets {
     display: flex;
     flex-wrap: wrap;
@@ -1194,6 +1413,74 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 
 .fs-completed-set-edit:hover {
     color: var(--text-primary);
+}
+
+/* ==================== PHASE INDICATOR ==================== */
+
+.fs-phase-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.fs-phase-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.fs-phase-icon {
+    font-size: 1.1rem;
+}
+
+.fs-phase-name {
+    color: var(--text-primary);
+}
+
+.fs-phase-week {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Phase-specific badge colors */
+.fs-phase-badge[data-phase="hypertrophy"] {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.fs-phase-badge[data-phase="strength"] {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.fs-phase-badge[data-phase="deload"] {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    .fs-phase-indicator {
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 12px;
+    }
+
+    .fs-phase-badge {
+        padding: 5px 12px;
+        font-size: 0.85rem;
+    }
 }
 
 /* ==================== TIMER REPOS PROMINENT (EN HAUT) ==================== */
@@ -3509,12 +3796,722 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
         grid-template-columns: 1fr;
         gap: 12px;
     }
-    
+
     .params-exercise-name {
         font-size: 1.2rem;
     }
-    
+
     .params-box {
         padding: 16px 14px;
+    }
+}
+
+/* ==================== SESSION BRIEF ==================== */
+/* Smart preview showing workout objectives with AI suggestions */
+
+.session-brief {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg, 16px);
+    border: 1px solid var(--border-color);
+    margin: 16px;
+    overflow: hidden;
+}
+
+.session-brief-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-card) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.session-brief-icon {
+    font-size: 1.3rem;
+}
+
+.session-brief-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.session-brief-collapse {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 8px;
+    cursor: pointer;
+    border-radius: var(--radius-sm, 6px);
+    transition: all 0.2s ease;
+}
+
+.session-brief-collapse:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Phase Badge in Brief */
+.session-brief-phase {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.brief-phase-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.brief-phase-badge.hypertrophy {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.brief-phase-badge.strength {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.brief-phase-badge.deload {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.brief-phase-icon {
+    font-size: 1.1rem;
+}
+
+.brief-phase-name {
+    font-weight: 600;
+}
+
+.brief-phase-week {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-left: auto;
+    padding-left: 12px;
+}
+
+.brief-phase-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.brief-phase-desc {
+    font-size: 0.75rem;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+/* Exercise List */
+.session-brief-exercises {
+    padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.brief-exercise-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s ease;
+}
+
+.brief-exercise-item:last-child {
+    border-bottom: none;
+}
+
+.brief-exercise-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.brief-exercise-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.brief-exercise-num {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-width: 20px;
+}
+
+.brief-exercise-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.brief-exercise-target {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.brief-target-weight {
+    font-family: 'Space Mono', monospace;
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.brief-target-sets {
+    color: var(--text-muted);
+}
+
+/* Progression Indicator */
+.brief-exercise-progression {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    min-width: 70px;
+}
+
+.brief-exercise-progression:hover {
+    transform: scale(1.05);
+}
+
+.brief-progression-icon {
+    font-size: 1rem;
+    margin-bottom: 2px;
+}
+
+.brief-progression-text {
+    font-size: 0.65rem;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 65px;
+}
+
+.brief-exercise-progression.up {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.brief-exercise-progression.down {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.brief-exercise-progression.maintain {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.brief-exercise-progression.new {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+}
+
+/* New exercise highlight */
+.brief-exercise-new {
+    background: rgba(168, 85, 247, 0.05);
+}
+
+/* Summary Footer */
+.session-brief-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border-color);
+    border-top: 1px solid var(--border-color);
+}
+
+.brief-summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 12px;
+    background: var(--bg-card);
+    gap: 2px;
+}
+
+.brief-summary-icon {
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+}
+
+.brief-summary-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    order: -1;
+}
+
+.brief-summary-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Brief collapsed state */
+.session-brief.collapsed .session-brief-exercises,
+.session-brief.collapsed .session-brief-phase,
+.session-brief.collapsed .session-brief-summary {
+    display: none;
+}
+
+.session-brief.collapsed .session-brief-collapse svg {
+    transform: rotate(180deg);
+}
+
+/* Subtle animation on load */
+@keyframes briefFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.session-brief {
+    animation: briefFadeIn 0.3s ease-out;
+}
+
+.brief-exercise-item {
+    animation: briefFadeIn 0.3s ease-out;
+    animation-fill-mode: both;
+}
+
+.brief-exercise-item:nth-child(1) { animation-delay: 0.05s; }
+.brief-exercise-item:nth-child(2) { animation-delay: 0.1s; }
+.brief-exercise-item:nth-child(3) { animation-delay: 0.15s; }
+.brief-exercise-item:nth-child(4) { animation-delay: 0.2s; }
+.brief-exercise-item:nth-child(5) { animation-delay: 0.25s; }
+.brief-exercise-item:nth-child(6) { animation-delay: 0.3s; }
+
+/* Mobile responsive */
+@media (max-width: 400px) {
+    .session-brief {
+        margin: 12px;
+    }
+
+    .session-brief-header {
+        padding: 14px 16px;
+    }
+
+    .brief-exercise-item {
+        padding: 12px 16px;
+    }
+
+    .brief-exercise-name {
+        font-size: 0.9rem;
+    }
+
+    .session-brief-summary {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .brief-summary-value {
+        font-size: 1rem;
+    }
+
+    .brief-summary-label {
+        font-size: 0.65rem;
+    }
+}
+
+/* ==================== PERIODIZATION SETTINGS ==================== */
+/* Premium UI for cycle configuration */
+
+.bottom-sheet-large {
+    max-height: 90vh;
+}
+
+.bottom-sheet-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.periodization-content {
+    padding-bottom: 24px;
+}
+
+/* Current Status Card */
+.period-status-card {
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-card) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg, 16px);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+}
+
+.period-status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.period-status-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.period-status-badge {
+    padding: 6px 12px;
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.period-status-badge.strength {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.period-status-badge.deload {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.period-status-badge.peak {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+}
+
+/* Week Dots Progress */
+.period-week-dots {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.period-week-dot {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+}
+
+.period-week-dot.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+.period-week-dot.completed {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: #22c55e;
+    color: #22c55e;
+}
+
+.period-cycle-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+}
+
+.period-cycle-info span:first-child {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.period-cycle-info span:last-child {
+    color: var(--text-muted);
+}
+
+/* Section */
+.period-section {
+    margin-bottom: 24px;
+}
+
+.period-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.period-section-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 16px 0;
+}
+
+/* Cycle Options */
+.period-cycle-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.period-cycle-option {
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg, 16px);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.period-cycle-option:hover {
+    border-color: var(--text-muted);
+}
+
+.period-cycle-option.selected {
+    border-color: var(--accent-primary);
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.period-cycle-option.selected .period-cycle-check {
+    display: flex;
+}
+
+.period-cycle-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.period-cycle-icon {
+    font-size: 1.5rem;
+}
+
+.period-cycle-title {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.period-cycle-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.period-cycle-duration {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.period-cycle-check {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+/* Timeline */
+.period-cycle-timeline {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.period-phase {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px;
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.65rem;
+    text-align: center;
+}
+
+.period-phase.hypertrophy {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.period-phase.strength {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.period-phase.deload {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.period-phase.peak {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+}
+
+.period-phase-weeks {
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.period-phase-name {
+    font-size: 0.6rem;
+    white-space: nowrap;
+}
+
+.period-cycle-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+/* Tags */
+.period-cycle-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.period-tag {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    border-radius: 4px;
+}
+
+.period-tag:last-child {
+    background: rgba(0, 255, 136, 0.15);
+    color: var(--accent-primary);
+}
+
+/* Education Section */
+.period-education {
+    margin-bottom: 20px;
+}
+
+.period-education-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 12px);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.period-education-toggle:hover {
+    background: var(--bg-card);
+}
+
+.period-education-arrow {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+}
+
+.period-education-toggle.expanded .period-education-arrow {
+    transform: rotate(180deg);
+}
+
+.period-education-content {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.period-edu-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 12px);
+    padding: 14px;
+}
+
+.period-edu-card h5 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.period-edu-card > p:first-of-type {
+    font-size: 0.8rem;
+    color: var(--accent-primary);
+    margin: 0 0 8px 0;
+    font-weight: 500;
+}
+
+.period-edu-detail {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Actions */
+.period-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.period-actions .btn {
+    flex: 1;
+}
+
+/* Mobile adjustments */
+@media (max-width: 400px) {
+    .period-cycle-option {
+        padding: 12px;
+    }
+
+    .period-phase-name {
+        font-size: 0.55rem;
+    }
+
+    .period-cycle-desc {
+        font-size: 0.75rem;
     }
 }

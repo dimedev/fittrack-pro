@@ -6739,22 +6739,22 @@ h1, h2, h3, h4, h5, h6 {
 .hydration-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 16px;
+    border-radius: var(--radius-lg);
+    padding: 20px;
 }
 
 .hydration-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .hydration-title {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -6762,37 +6762,662 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .hydration-title .icon {
-    font-size: 18px;
+    font-size: 20px;
+}
+
+.hydration-status {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.hydration-status.hydration-complete {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.hydration-status.hydration-good {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.hydration-status.hydration-mid {
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+}
+
+.hydration-status.hydration-low {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.hydration-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Progress Circle */
+.hydration-progress {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.hydration-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.hydration-ring-bg {
+    fill: none;
+    stroke: var(--bg-tertiary);
+    stroke-width: 8;
+}
+
+.hydration-ring-fill {
+    fill: none;
+    stroke: #3b82f6;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.5s ease, stroke 0.3s ease;
+}
+
+.hydration-progress.hydration-complete .hydration-ring-fill {
+    stroke: #22c55e;
 }
 
 .hydration-value {
-    font-size: 0.875rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hydration-current {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.hydration-unit {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Quick Add Buttons */
+.hydration-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.hydration-quick-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.hydration-quick-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 70px;
+}
+
+.hydration-quick-btn:hover {
+    background: var(--bg-hover);
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+}
+
+.hydration-quick-btn:active {
+    transform: scale(0.95);
+}
+
+.hydration-btn-icon {
+    font-size: 1.2rem;
+}
+
+.hydration-btn-amount {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.hydration-custom-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hydration-custom-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+.hydration-custom-section {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    animation: fadeIn 0.2s ease;
+}
+
+.hydration-input {
+    flex: 1;
+    text-align: center;
+    font-weight: 600;
+}
+
+.hydration-add-btn {
+    min-width: 80px;
+}
+
+.hydration-correction-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    cursor: pointer;
+    padding: 8px;
+    transition: color 0.2s ease;
+}
+
+.hydration-correction-btn:hover {
+    color: var(--danger);
+}
+
+/* Footer Stats */
+.hydration-footer {
+    display: flex;
+    justify-content: space-around;
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.hydration-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.hydration-stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.hydration-stat-label {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .hydration-progress {
+        width: 100px;
+        height: 100px;
+    }
+
+    .hydration-current {
+        font-size: 1.3rem;
+    }
+
+    .hydration-quick-btn {
+        padding: 10px 12px;
+        min-width: 60px;
+    }
+
+    .hydration-btn-amount {
+        font-size: 0.7rem;
+    }
+}
+
+/* ==================== PLATE CALCULATOR ==================== */
+
+/* Modal overlay */
+.plate-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.plate-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.plate-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.plate-modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.plate-modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    border-radius: 50%;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.plate-modal-close:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.plate-modal-body {
+    padding: 20px;
+}
+
+.plate-modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Input section */
+.plate-input-section {
+    margin-bottom: 20px;
+}
+
+.plate-input-section label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.plate-weight-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.plate-weight-btn {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.plate-weight-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.plate-weight-btn:active {
+    transform: scale(0.95);
+}
+
+.plate-weight-input {
+    width: 80px;
+    height: 48px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+
+.plate-weight-input::-webkit-outer-spin-button,
+.plate-weight-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.plate-weight-input:focus {
+    outline: none;
+    border-color: var(--accent-brand);
+}
+
+.plate-weight-unit {
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text-secondary);
 }
 
-.hydration-progress-bar {
-    height: 8px;
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    margin-bottom: 12px;
+/* Bar type selector */
+.plate-bar-section {
+    margin-bottom: 20px;
 }
 
-.hydration-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #3b82f6, #06b6d4);
-    border-radius: var(--radius-sm);
-    transition: width 0.3s ease;
+.plate-bar-section label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
 }
 
-.hydration-actions {
-    display: flex;
+.plate-bar-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    justify-content: space-between;
 }
 
-.hydration-actions .btn {
-    flex: 1;
+.plate-bar-option {
+    padding: 10px 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+
+.plate-bar-option:hover {
+    background: var(--bg-hover);
+}
+
+.plate-bar-option.active {
+    background: var(--accent-brand);
+    border-color: var(--accent-brand);
+    color: white;
+}
+
+.plate-bar-weight {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+/* Visualization */
+.plate-result {
+    margin-top: 20px;
+}
+
+.plate-warning {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid var(--warning);
+    color: var(--warning);
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.plate-visualization {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 20px 10px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+    min-height: 120px;
+}
+
+.plate-viz-empty {
+    text-align: center;
+    padding: 20px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+}
+
+.plate-viz-empty p {
+    margin: 10px 0 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.plate-bar-only {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.plate-bar-sleeve {
+    width: 40px;
+    height: 20px;
+    background: linear-gradient(180deg, #666 0%, #444 50%, #666 100%);
+    border-radius: 2px;
+}
+
+.plate-bar-center {
+    width: 80px;
+    height: 28px;
+    background: linear-gradient(180deg, #888 0%, #555 50%, #888 100%);
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.plate-side {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+}
+
+.plate-side-left {
+    flex-direction: row-reverse;
+}
+
+.plate-disc {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 -4px;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+                0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.plate-weight-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.7);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+/* Pour les disques blancs, texte foncé */
+.plate-disc[style*="background-color: #f5f5f5"] .plate-weight-label {
+    color: #333;
+}
+
+/* Summary */
+.plate-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.plate-summary-item {
+    text-align: center;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+}
+
+.plate-summary-item.plate-summary-total {
+    background: var(--accent-brand);
+}
+
+.plate-summary-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.plate-summary-total .plate-summary-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.plate-summary-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.plate-summary-total .plate-summary-value {
+    color: white;
+}
+
+/* Plate list */
+.plate-list {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 14px;
+}
+
+.plate-list-title {
     font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.plate-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.plate-list-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.plate-list-count {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 30px;
+}
+
+.plate-list-weight {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #000;
+}
+
+.plate-list-detail {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    .plate-bar-selector {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .plate-weight-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 0.75rem;
+    }
+
+    .plate-weight-input {
+        width: 70px;
+        font-size: 1.1rem;
+    }
+
+    .plate-disc {
+        transform: scale(0.85);
+    }
 }

@@ -1592,25 +1592,29 @@
 
                 <!-- Step 2: Goal -->
                 <div class="wizard-content" id="wizard-step-2" style="display: none;">
-                    <h3 class="wizard-title">Quel est ton objectif ?</h3>
-                    <p class="wizard-subtitle">Cela détermine les temps de repos et les répétitions</p>
+                    <h3 class="wizard-title">Quel est ton profil d'entraînement ?</h3>
+                    <p class="wizard-subtitle">Définit ta base • La périodisation ajuste automatiquement selon ton cycle</p>
                     <div class="wizard-options">
                         <button class="wizard-option" data-value="strength" onclick="selectWizardOption('goal', 'strength')">
                             <span class="wizard-option-icon">🏋️</span>
                             <span class="wizard-option-label">Force</span>
                             <span class="wizard-option-desc">3-6 reps • 2-3 min repos</span>
+                            <span class="wizard-option-cycle">Cycle: Force → Peaking → Deload</span>
                         </button>
                         <button class="wizard-option" data-value="hypertrophy" onclick="selectWizardOption('goal', 'hypertrophy')">
                             <span class="wizard-option-icon">💪</span>
                             <span class="wizard-option-label">Hypertrophie</span>
                             <span class="wizard-option-desc">8-12 reps • 1-2 min repos</span>
+                            <span class="wizard-option-cycle">Cycle: Volume → Force → Deload</span>
                         </button>
                         <button class="wizard-option" data-value="endurance" onclick="selectWizardOption('goal', 'endurance')">
                             <span class="wizard-option-icon">🔥</span>
                             <span class="wizard-option-label">Endurance</span>
                             <span class="wizard-option-desc">15-20 reps • 45-60s repos</span>
+                            <span class="wizard-option-cycle">Cycle: Volume → Intensité → Deload</span>
                         </button>
                     </div>
+                    <p class="wizard-hint">💡 L'app ajuste automatiquement tes séances sur un cycle de 4 semaines</p>
                 </div>
 
                 <!-- Step 3: Experience -->
@@ -1724,6 +1728,23 @@
         </div>
 
         <div class="preview-content">
+            <!-- Session Brief - Objectifs intelligents -->
+            <div class="session-brief" id="session-brief">
+                <div class="session-brief-header">
+                    <span class="session-brief-icon">🎯</span>
+                    <span class="session-brief-title">Objectifs de la séance</span>
+                </div>
+                <div class="session-brief-phase" id="session-brief-phase">
+                    <!-- Phase badge généré dynamiquement -->
+                </div>
+                <div class="session-brief-exercises" id="session-brief-exercises">
+                    <!-- Objectifs par exercice générés dynamiquement -->
+                </div>
+                <div class="session-brief-summary" id="session-brief-summary">
+                    <!-- Volume estimé, durée, etc. -->
+                </div>
+            </div>
+
             <div class="preview-info">
                 <p id="preview-template-status"></p>
             </div>
@@ -1868,6 +1889,183 @@
                     </button>
                     <button class="settings-action-btn danger" onclick="quitSession()">
                         Quitter la séance
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Periodization Settings Bottom Sheet -->
+    <div class="bottom-sheet-overlay" id="periodization-sheet" style="display: none;" onclick="closePeriodizationSheet()">
+        <div class="bottom-sheet bottom-sheet-large" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">🔄 Périodisation</h3>
+                <p class="bottom-sheet-subtitle">Configure ton cycle d'entraînement</p>
+            </div>
+            <div class="bottom-sheet-content periodization-content">
+                <!-- Current Status -->
+                <div class="period-status-card">
+                    <div class="period-status-header">
+                        <span class="period-status-label">Cycle actuel</span>
+                        <span class="period-status-badge" id="period-current-phase">💪 Hypertrophie</span>
+                    </div>
+                    <div class="period-status-progress">
+                        <div class="period-week-dots" id="period-week-dots">
+                            <div class="period-week-dot active" data-week="1">S1</div>
+                            <div class="period-week-dot" data-week="2">S2</div>
+                            <div class="period-week-dot" data-week="3">S3</div>
+                            <div class="period-week-dot" data-week="4">S4</div>
+                        </div>
+                        <div class="period-cycle-info">
+                            <span id="period-cycle-number">Cycle 1</span>
+                            <span id="period-next-phase">→ Force dans 2 semaines</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cycle Type Selection -->
+                <div class="period-section">
+                    <h4 class="period-section-title">Type de cycle</h4>
+                    <p class="period-section-desc">Choisis selon tes objectifs et ta disponibilité</p>
+
+                    <div class="period-cycle-options">
+                        <!-- 4 Weeks -->
+                        <div class="period-cycle-option" data-cycle="4" onclick="selectPeriodizationCycle('4')">
+                            <div class="period-cycle-header">
+                                <span class="period-cycle-icon">⚡</span>
+                                <div class="period-cycle-title">
+                                    <span class="period-cycle-name">Rapide</span>
+                                    <span class="period-cycle-duration">4 semaines</span>
+                                </div>
+                                <div class="period-cycle-check">✓</div>
+                            </div>
+                            <div class="period-cycle-timeline">
+                                <div class="period-phase hypertrophy">
+                                    <span class="period-phase-weeks">S1-2</span>
+                                    <span class="period-phase-name">💪 Volume</span>
+                                </div>
+                                <div class="period-phase strength">
+                                    <span class="period-phase-weeks">S3</span>
+                                    <span class="period-phase-name">🏋️ Force</span>
+                                </div>
+                                <div class="period-phase deload">
+                                    <span class="period-phase-weeks">S4</span>
+                                    <span class="period-phase-name">🧘 Deload</span>
+                                </div>
+                            </div>
+                            <p class="period-cycle-desc">Idéal pour rester motivé avec des résultats rapides. Récupération fréquente.</p>
+                            <div class="period-cycle-tags">
+                                <span class="period-tag">Débutants</span>
+                                <span class="period-tag">Motivation</span>
+                                <span class="period-tag">Récup régulière</span>
+                            </div>
+                        </div>
+
+                        <!-- 8 Weeks -->
+                        <div class="period-cycle-option" data-cycle="8" onclick="selectPeriodizationCycle('8')">
+                            <div class="period-cycle-header">
+                                <span class="period-cycle-icon">📈</span>
+                                <div class="period-cycle-title">
+                                    <span class="period-cycle-name">Classique</span>
+                                    <span class="period-cycle-duration">8 semaines</span>
+                                </div>
+                                <div class="period-cycle-check">✓</div>
+                            </div>
+                            <div class="period-cycle-timeline">
+                                <div class="period-phase hypertrophy">
+                                    <span class="period-phase-weeks">S1-4</span>
+                                    <span class="period-phase-name">💪 Volume</span>
+                                </div>
+                                <div class="period-phase strength">
+                                    <span class="period-phase-weeks">S5-6</span>
+                                    <span class="period-phase-name">🏋️ Force</span>
+                                </div>
+                                <div class="period-phase peak">
+                                    <span class="period-phase-weeks">S7</span>
+                                    <span class="period-phase-name">⚡ Peak</span>
+                                </div>
+                                <div class="period-phase deload">
+                                    <span class="period-phase-weeks">S8</span>
+                                    <span class="period-phase-name">🧘 Deload</span>
+                                </div>
+                            </div>
+                            <p class="period-cycle-desc">L'approche traditionnelle des coachs. Plus de temps pour s'adapter à chaque phase.</p>
+                            <div class="period-cycle-tags">
+                                <span class="period-tag">Intermédiaires</span>
+                                <span class="period-tag">Progression linéaire</span>
+                                <span class="period-tag">Recommandé</span>
+                            </div>
+                        </div>
+
+                        <!-- 12 Weeks -->
+                        <div class="period-cycle-option" data-cycle="12" onclick="selectPeriodizationCycle('12')">
+                            <div class="period-cycle-header">
+                                <span class="period-cycle-icon">🎯</span>
+                                <div class="period-cycle-title">
+                                    <span class="period-cycle-name">Transformation</span>
+                                    <span class="period-cycle-duration">12 semaines</span>
+                                </div>
+                                <div class="period-cycle-check">✓</div>
+                            </div>
+                            <div class="period-cycle-timeline">
+                                <div class="period-phase hypertrophy">
+                                    <span class="period-phase-weeks">S1-6</span>
+                                    <span class="period-phase-name">💪 Volume</span>
+                                </div>
+                                <div class="period-phase strength">
+                                    <span class="period-phase-weeks">S7-10</span>
+                                    <span class="period-phase-name">🏋️ Force</span>
+                                </div>
+                                <div class="period-phase deload">
+                                    <span class="period-phase-weeks">S11-12</span>
+                                    <span class="period-phase-name">🧘 Deload</span>
+                                </div>
+                            </div>
+                            <p class="period-cycle-desc">Pour les objectifs ambitieux : compétition, transformation physique, PRs.</p>
+                            <div class="period-cycle-tags">
+                                <span class="period-tag">Avancés</span>
+                                <span class="period-tag">Compétition</span>
+                                <span class="period-tag">Transformation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Educational Section -->
+                <div class="period-education">
+                    <button class="period-education-toggle" onclick="togglePeriodEducation()">
+                        <span>📚 Comprendre la périodisation</span>
+                        <svg class="period-education-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div class="period-education-content" id="period-education-content" style="display: none;">
+                        <div class="period-edu-card">
+                            <h5>💪 Phase Hypertrophie (Volume)</h5>
+                            <p>8-12 répétitions • RPE 7 • Repos modéré</p>
+                            <p class="period-edu-detail">Focus sur le volume total pour stimuler la croissance musculaire. Les muscles ont besoin de stress mécanique répété.</p>
+                        </div>
+                        <div class="period-edu-card">
+                            <h5>🏋️ Phase Force (Intensité)</h5>
+                            <p>4-6 répétitions • RPE 8 • Repos long (+25%)</p>
+                            <p class="period-edu-detail">Focus sur les charges lourdes. Le système nerveux s'adapte pour recruter plus de fibres musculaires.</p>
+                        </div>
+                        <div class="period-edu-card">
+                            <h5>⚡ Phase Peak (Optionnel)</h5>
+                            <p>1-3 répétitions • RPE 9 • Test de PRs</p>
+                            <p class="period-edu-detail">Semaine(s) pour tester tes records personnels. Uniquement sur cycles 8+ semaines.</p>
+                        </div>
+                        <div class="period-edu-card">
+                            <h5>🧘 Phase Deload (Récupération)</h5>
+                            <p>-30% volume • -15% poids • RPE 5</p>
+                            <p class="period-edu-detail">Récupération active pour permettre au corps de s'adapter. Essentiel pour progresser sur le long terme.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="period-actions">
+                    <button class="btn btn-secondary" onclick="resetPeriodizationCycle()">
+                        🔄 Recommencer le cycle
                     </button>
                 </div>
             </div>
@@ -2237,6 +2435,15 @@
         </div>
 
         <div class="fs-content">
+            <!-- Phase Indicator -->
+            <div class="fs-phase-indicator" id="fs-phase-indicator">
+                <span class="fs-phase-badge" id="fs-phase-badge" data-phase="hypertrophy">
+                    <span class="fs-phase-icon">💪</span>
+                    <span class="fs-phase-name">Hypertrophie</span>
+                </span>
+                <span class="fs-phase-week" id="fs-phase-week">Semaine 1/4 • Cycle 1</span>
+            </div>
+
             <!-- Exercise Header -->
             <div class="fs-exercise-header">
                 <h2 class="fs-exercise-name" id="fs-exercise-name">Développé Couché Barre</h2>
@@ -2257,7 +2464,7 @@
             <!-- Main Input -->
             <div class="fs-input-section">
                 <div class="fs-input-group">
-                    <label class="fs-input-label">Poids</label>
+                    <label class="fs-input-label">Poids <button class="fs-plate-calc-btn" onclick="window.PlateCalculator.show(parseFloat(document.getElementById('fs-weight-input').value))" title="Calculateur de disques">🏋️</button></label>
                     <div class="fs-input-wrapper">
                         <button class="fs-input-btn minus" onclick="adjustWeight(-2.5)">−</button>
                         <input type="number" class="fs-input" id="fs-weight-input" value="80" step="2.5">
@@ -2317,12 +2524,24 @@
                 <span>Valider la série</span>
             </button>
             
-            <!-- Drop Set Button (affiché après validation) -->
-            <button class="fs-drop-btn" id="fs-drop-btn" onclick="startDropSet()" style="display: none;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                <span>Drop Set (-20%)</span>
-            </button>
-            
+            <!-- Advanced Techniques Buttons (après dernière série) -->
+            <div class="fs-advanced-btns" id="fs-advanced-btns" style="display: none;">
+                <!-- Drop Set Button -->
+                <button class="fs-drop-btn" id="fs-drop-btn" onclick="startDropSet()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <span>Drop Set (-20% poids)</span>
+                </button>
+
+                <!-- Rest-Pause Button -->
+                <button class="fs-restpause-btn" id="fs-restpause-btn" onclick="startRestPause()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                    <span>Rest-Pause (10s repos)</span>
+                </button>
+            </div>
+
             <!-- Machine Occupée Button -->
             <button class="fs-machine-occupied-btn" onclick="machineOccupied()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2552,6 +2771,8 @@
     <script src="js/modules/goals.js?v=7"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=6"></script>
+    <script src="js/modules/hydration.js?v=1"></script>
+    <script src="js/modules/plate-calculator.js?v=1"></script>
     <script src="js/modules/mobile-gestures.js?v=12"></script>
     <script src="js/app.js?v=32"></script>
 </body>

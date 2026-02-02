@@ -388,7 +388,91 @@
             });
         }
         
+        // Initialiser Pull-to-Refresh sur les sections principales
+        initPullToRefresh();
+
         console.log('📱 Mobile gestures initialized');
+    }
+
+    // ==================== PULL TO REFRESH INITIALIZATION ====================
+    function initPullToRefresh() {
+        // Dashboard - refresh sync data
+        const dashboard = document.getElementById('dashboard');
+        if (dashboard) {
+            new PullToRefresh(dashboard, async () => {
+                console.log('🔄 Pull-to-refresh: Dashboard');
+
+                // Sync données si connecté
+                if (window.supabaseClient && window.currentUser) {
+                    try {
+                        await loadTrainingSettingsFromSupabase();
+                        showToast('✅ Données synchronisées', 'success', 2000);
+                    } catch (err) {
+                        console.error('Refresh error:', err);
+                        showToast('Erreur de synchronisation', 'error');
+                    }
+                }
+
+                // Re-render widgets
+                if (window.SmartTraining?.renderMuscleRecoveryWidget) {
+                    window.SmartTraining.renderMuscleRecoveryWidget();
+                }
+                if (window.Hydration?.renderHydrationWidget) {
+                    window.Hydration.renderHydrationWidget();
+                }
+                if (typeof renderDailyMacros === 'function') {
+                    renderDailyMacros();
+                }
+                if (typeof renderTodaySession === 'function') {
+                    renderTodaySession();
+                }
+            });
+        }
+
+        // Nutrition - refresh journal
+        const nutrition = document.getElementById('nutrition');
+        if (nutrition) {
+            new PullToRefresh(nutrition, async () => {
+                console.log('🔄 Pull-to-refresh: Nutrition');
+
+                // Sync si connecté
+                if (window.supabaseClient && window.currentUser) {
+                    try {
+                        await loadNutritionFromSupabase();
+                        showToast('✅ Journal synchronisé', 'success', 2000);
+                    } catch (err) {
+                        console.error('Refresh error:', err);
+                    }
+                }
+
+                // Re-render
+                if (typeof renderFoodJournal === 'function') {
+                    renderFoodJournal();
+                }
+            });
+        }
+
+        // Progress - refresh history
+        const progress = document.getElementById('progress');
+        if (progress) {
+            new PullToRefresh(progress, async () => {
+                console.log('🔄 Pull-to-refresh: Progress');
+
+                if (window.supabaseClient && window.currentUser) {
+                    try {
+                        await loadTrainingSettingsFromSupabase();
+                        showToast('✅ Historique synchronisé', 'success', 2000);
+                    } catch (err) {
+                        console.error('Refresh error:', err);
+                    }
+                }
+
+                // Re-render progress tab
+                if (typeof renderProgressTab === 'function') {
+                    renderProgressTab();
+                }
+            });
+        }
     }
 
     // ==================== STYLES DYNAMIQUES ====================

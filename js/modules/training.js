@@ -1,6 +1,91 @@
 // ==================== TRAINING MODULE (REFONTE) ====================
 // Nouveau flow: Wizard → Liste Séances → Full-Screen Session
 
+// ==================== PERIODIZATION CYCLE PRESETS ====================
+const CYCLE_PRESETS = {
+    '4': {
+        name: 'Rapide',
+        totalWeeks: 4,
+        phases: {
+            hypertrophy: {
+                weeks: [1, 2],
+                repsMin: 8, repsMax: 12,
+                setsMultiplier: 1.0, weightMultiplier: 1.0, restMultiplier: 1.0,
+                targetRPE: 7
+            },
+            strength: {
+                weeks: [3],
+                repsMin: 4, repsMax: 6,
+                setsMultiplier: 1.0, weightMultiplier: 1.05, restMultiplier: 1.25,
+                targetRPE: 8
+            },
+            deload: {
+                weeks: [4],
+                repsMin: 6, repsMax: 10,
+                setsMultiplier: 0.7, weightMultiplier: 0.85, restMultiplier: 0.8,
+                targetRPE: 5
+            }
+        },
+        plannedVolume: { 1: 1.0, 2: 1.10, 3: 1.05, 4: 0.65 }
+    },
+    '8': {
+        name: 'Classique',
+        totalWeeks: 8,
+        phases: {
+            hypertrophy: {
+                weeks: [1, 2, 3, 4],
+                repsMin: 8, repsMax: 12,
+                setsMultiplier: 1.0, weightMultiplier: 1.0, restMultiplier: 1.0,
+                targetRPE: 7
+            },
+            strength: {
+                weeks: [5, 6],
+                repsMin: 4, repsMax: 6,
+                setsMultiplier: 1.0, weightMultiplier: 1.05, restMultiplier: 1.25,
+                targetRPE: 8
+            },
+            peak: {
+                weeks: [7],
+                repsMin: 1, repsMax: 3,
+                setsMultiplier: 0.8, weightMultiplier: 1.10, restMultiplier: 1.5,
+                targetRPE: 9
+            },
+            deload: {
+                weeks: [8],
+                repsMin: 6, repsMax: 10,
+                setsMultiplier: 0.6, weightMultiplier: 0.80, restMultiplier: 0.8,
+                targetRPE: 5
+            }
+        },
+        plannedVolume: { 1: 1.0, 2: 1.05, 3: 1.10, 4: 1.15, 5: 1.10, 6: 1.05, 7: 0.90, 8: 0.60 }
+    },
+    '12': {
+        name: 'Transformation',
+        totalWeeks: 12,
+        phases: {
+            hypertrophy: {
+                weeks: [1, 2, 3, 4, 5, 6],
+                repsMin: 8, repsMax: 12,
+                setsMultiplier: 1.0, weightMultiplier: 1.0, restMultiplier: 1.0,
+                targetRPE: 7
+            },
+            strength: {
+                weeks: [7, 8, 9, 10],
+                repsMin: 4, repsMax: 6,
+                setsMultiplier: 1.0, weightMultiplier: 1.05, restMultiplier: 1.25,
+                targetRPE: 8
+            },
+            deload: {
+                weeks: [11, 12],
+                repsMin: 6, repsMax: 10,
+                setsMultiplier: 0.6, weightMultiplier: 0.80, restMultiplier: 0.8,
+                targetRPE: 5
+            }
+        },
+        plannedVolume: { 1: 1.0, 2: 1.03, 3: 1.06, 4: 1.09, 5: 1.12, 6: 1.15, 7: 1.10, 8: 1.05, 9: 1.00, 10: 0.95, 11: 0.60, 12: 0.55 }
+    }
+};
+
 // ==================== WIZARD STATE ====================
 let wizardState = {
     currentStep: 1,
@@ -21,11 +106,13 @@ let fsSession = {
     exercises: [],
     currentExerciseIndex: 0,
     currentSetIndex: 0,
-    completedSets: [], // { exerciseIndex, setIndex, weight, reps }
+    completedSets: [], // { exerciseIndex, setIndex, weight, reps, isDrop, isRestPause }
     startTime: null,
     supersets: [], // { exercise1Index, exercise2Index } pour les paires de supersets
     currentSuperset: null, // Index du superset en cours (null si pas en superset)
-    supersetPhase: null // 'A' ou 'B' (A = premier exercice, B = deuxième)
+    supersetPhase: null, // 'A' ou 'B' (A = premier exercice, B = deuxième)
+    isDropMode: false, // Mode drop set actif
+    isRestPauseMode: false // Mode rest-pause actif
 };
 
 // ==================== SESSION PERSISTENCE ====================
@@ -271,6 +358,14 @@ function renderSessionsList(container) {
     }
     sessionsHTML += '</div>';
 
+    // Infos périodisation
+    const phase = state.periodization?.currentPhase || 'hypertrophy';
+    const week = state.periodization?.currentWeek || 1;
+    const cycleType = state.periodization?.cycleType || '4';
+    const totalWeeks = CYCLE_PRESETS[cycleType]?.totalWeeks || 4;
+    const phaseIcons = { hypertrophy: '💪', strength: '🏋️', deload: '🧘', peak: '⚡' };
+    const phaseNames = { hypertrophy: 'Hypertrophie', strength: 'Force', deload: 'Deload', peak: 'Peak' };
+
     container.innerHTML = `
         <div class="training-header">
             <div class="training-header-info">
@@ -280,6 +375,18 @@ function renderSessionsList(container) {
             <button class="btn btn-sm btn-secondary" onclick="openProgramWizard()" title="Changer de programme">
                 ⚙️ Modifier
             </button>
+        </div>
+
+        <!-- Periodization Badge -->
+        <div class="training-period-card" onclick="openPeriodizationSheet()">
+            <div class="training-period-info">
+                <span class="training-period-badge ${phase}">${phaseIcons[phase]} ${phaseNames[phase]}</span>
+                <span class="training-period-week">Semaine ${week}/${totalWeeks} • Cycle ${state.periodization?.currentCycle || 1}</span>
+            </div>
+            <div class="training-period-action">
+                <span>Configurer</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
         </div>
 
         <div class="sessions-list">
@@ -805,6 +912,204 @@ function renderSessionPreviewUI() {
     } else {
         hintEl.style.display = 'none';
     }
+
+    // Générer le Session Brief avec objectifs intelligents
+    generateSessionBrief();
+}
+
+/**
+ * Génère le Session Brief avec les objectifs intelligents pour chaque exercice
+ * Utilise smart-training pour calculer les poids suggérés et la progression
+ */
+function generateSessionBrief() {
+    const briefContainer = document.getElementById('session-brief');
+    if (!briefContainer) return;
+
+    // Phase actuelle
+    const phaseEl = document.getElementById('session-brief-phase');
+    const exercisesEl = document.getElementById('session-brief-exercises');
+    const summaryEl = document.getElementById('session-brief-summary');
+
+    // Initialiser périodisation si nécessaire
+    initPeriodization();
+    updateCurrentPhase();
+
+    const phase = state.periodization?.currentPhase || 'hypertrophy';
+    const week = state.periodization?.currentWeek || 1;
+    const cycle = state.periodization?.currentCycle || 1;
+    const phaseAdjustments = getPhaseAdjustments();
+
+    // Phase badge
+    const phaseConfig = {
+        hypertrophy: { icon: '💪', name: 'Hypertrophie', color: '#3b82f6', desc: 'Focus volume (8-12 reps)' },
+        strength: { icon: '🏋️', name: 'Force', color: '#ef4444', desc: 'Focus intensité (4-6 reps)' },
+        deload: { icon: '🧘', name: 'Deload', color: '#22c55e', desc: 'Récupération active (-30%)' }
+    };
+    const phaseCfg = phaseConfig[phase] || phaseConfig.hypertrophy;
+
+    phaseEl.innerHTML = `
+        <div class="brief-phase-badge" style="border-color: ${phaseCfg.color}; background: ${phaseCfg.color}15;">
+            <span class="brief-phase-icon">${phaseCfg.icon}</span>
+            <div class="brief-phase-info">
+                <span class="brief-phase-name">${phaseCfg.name}</span>
+                <span class="brief-phase-desc">${phaseCfg.desc}</span>
+            </div>
+            <span class="brief-phase-week">W${week}/4 • C${cycle}</span>
+        </div>
+    `;
+
+    // Générer les objectifs pour chaque exercice
+    let totalEstimatedVolume = 0;
+    let totalSets = 0;
+
+    const exercisesHTML = previewSession.exercises.map((ex, idx) => {
+        const exerciseName = ex.swappedName || ex.originalName;
+
+        // Calculer les sets ajustés selon la phase
+        const adjustedSets = Math.max(1, Math.round(ex.sets * phaseAdjustments.setsMultiplier));
+
+        // Utiliser smart-training pour obtenir le poids suggéré
+        let suggestedWeight = null;
+        let progressionInfo = null;
+        let lastWeight = null;
+
+        if (window.SmartTraining && typeof window.SmartTraining.calculateSuggestedWeight === 'function') {
+            const suggestion = window.SmartTraining.calculateSuggestedWeight(exerciseName, 10);
+            suggestedWeight = suggestion.suggested;
+            lastWeight = suggestion.lastWeight;
+            progressionInfo = suggestion.message;
+        } else if (state.progressLog && state.progressLog[exerciseName]) {
+            // Fallback: utiliser le dernier log
+            const logs = state.progressLog[exerciseName];
+            if (logs.length > 0) {
+                const lastLog = logs[logs.length - 1];
+                lastWeight = lastLog.weight;
+                // Appliquer multiplicateur de phase
+                suggestedWeight = Math.round(lastWeight * phaseAdjustments.weightMultiplier * 4) / 4;
+
+                if (phaseAdjustments.weightMultiplier > 1) {
+                    progressionInfo = `+${Math.round((phaseAdjustments.weightMultiplier - 1) * 100)}% phase`;
+                } else if (phaseAdjustments.weightMultiplier < 1) {
+                    progressionInfo = `${Math.round((phaseAdjustments.weightMultiplier - 1) * 100)}% deload`;
+                } else {
+                    // Suggérer progression standard
+                    const isCompound = isCompoundExercise(exerciseName);
+                    const increment = isCompound ? 2.5 : 1.25;
+                    suggestedWeight = lastWeight + increment;
+                    progressionInfo = `+${increment}kg progression`;
+                }
+            }
+        }
+
+        // Calculer volume estimé pour cet exercice
+        if (suggestedWeight) {
+            const avgReps = (phaseAdjustments.repsMin + phaseAdjustments.repsMax) / 2;
+            totalEstimatedVolume += suggestedWeight * avgReps * adjustedSets;
+        }
+        totalSets += adjustedSets;
+
+        // Déterminer l'indicateur de progression
+        let progressionIcon = '➡️';
+        let progressionClass = 'maintain';
+
+        if (progressionInfo) {
+            if (progressionInfo.includes('+') && !progressionInfo.includes('deload')) {
+                progressionIcon = '📈';
+                progressionClass = 'up';
+            } else if (progressionInfo.includes('-') || progressionInfo.includes('deload')) {
+                progressionIcon = '📉';
+                progressionClass = 'down';
+            } else if (progressionInfo.includes('Maintenir') || progressionInfo.includes('stable')) {
+                progressionIcon = '➡️';
+                progressionClass = 'maintain';
+            }
+        }
+
+        // Générer HTML pour cet exercice
+        if (suggestedWeight) {
+            return `
+                <div class="brief-exercise-item">
+                    <div class="brief-exercise-main">
+                        <span class="brief-exercise-num">${idx + 1}.</span>
+                        <span class="brief-exercise-name">${exerciseName}</span>
+                    </div>
+                    <div class="brief-exercise-target">
+                        <span class="brief-target-weight">${suggestedWeight}kg</span>
+                        <span class="brief-target-sets">× ${adjustedSets} séries × ${phaseAdjustments.repsRange}</span>
+                    </div>
+                    <div class="brief-exercise-progression ${progressionClass}">
+                        <span class="brief-progression-icon">${progressionIcon}</span>
+                        <span class="brief-progression-text">${progressionInfo || 'Nouveau'}</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Pas d'historique - première fois
+            return `
+                <div class="brief-exercise-item brief-exercise-new">
+                    <div class="brief-exercise-main">
+                        <span class="brief-exercise-num">${idx + 1}.</span>
+                        <span class="brief-exercise-name">${exerciseName}</span>
+                    </div>
+                    <div class="brief-exercise-target">
+                        <span class="brief-target-sets">${adjustedSets} séries × ${phaseAdjustments.repsRange}</span>
+                    </div>
+                    <div class="brief-exercise-progression new">
+                        <span class="brief-progression-icon">🆕</span>
+                        <span class="brief-progression-text">Première fois</span>
+                    </div>
+                </div>
+            `;
+        }
+    }).join('');
+
+    exercisesEl.innerHTML = exercisesHTML;
+
+    // Résumé de la séance
+    const estimatedDuration = Math.round(totalSets * 2.5 + previewSession.exercises.length * 3); // ~2.5 min/set + transitions
+
+    summaryEl.innerHTML = `
+        <div class="brief-summary-item">
+            <span class="brief-summary-icon">⚖️</span>
+            <span class="brief-summary-label">Volume estimé</span>
+            <span class="brief-summary-value">${totalEstimatedVolume > 0 ? formatVolume(totalEstimatedVolume) : '—'}</span>
+        </div>
+        <div class="brief-summary-item">
+            <span class="brief-summary-icon">⏱️</span>
+            <span class="brief-summary-label">Durée estimée</span>
+            <span class="brief-summary-value">~${estimatedDuration} min</span>
+        </div>
+        <div class="brief-summary-item">
+            <span class="brief-summary-icon">🎯</span>
+            <span class="brief-summary-label">RPE cible</span>
+            <span class="brief-summary-value">${phaseAdjustments.targetRPE}/10</span>
+        </div>
+    `;
+
+    // Afficher le brief
+    briefContainer.style.display = 'block';
+}
+
+/**
+ * Formate le volume (ex: 15000 → "15.0k kg")
+ */
+function formatVolume(volume) {
+    if (volume >= 1000) {
+        return (volume / 1000).toFixed(1) + 'k kg';
+    }
+    return Math.round(volume) + ' kg';
+}
+
+/**
+ * Vérifie si un exercice est un compound (multi-articulaire)
+ */
+function isCompoundExercise(exerciseName) {
+    const compoundKeywords = [
+        'développé', 'squat', 'soulevé', 'rowing', 'tirage', 'presse',
+        'dips', 'tractions', 'fentes', 'hip thrust', 'bench', 'deadlift'
+    ];
+    const nameLower = exerciseName.toLowerCase();
+    return compoundKeywords.some(kw => nameLower.includes(kw));
 }
 
 /**
@@ -1073,8 +1378,9 @@ function executeSwap(exerciseId, exerciseName, idx) {
     closeParamsConfirmationSheet();
     showToast(`Exercice changé pour ${exerciseName}`, 'success');
 
-    // Re-render
+    // Re-render UI + Brief (pour mettre à jour les suggestions)
     renderSessionPreviewUI();
+    generateSessionBrief();
 }
 
 /**
@@ -1091,8 +1397,9 @@ function executeSwapWithParams(exerciseId, exerciseName, idx, newSets, newRepsMi
     closeParamsConfirmationSheet();
     showToast(`${exerciseName} : ${newSets}x${newRepsMin}-${newRepsMax}`, 'success');
 
-    // Re-render
+    // Re-render UI + Brief (pour mettre à jour les suggestions)
     renderSessionPreviewUI();
+    generateSessionBrief();
 }
 
 /**
@@ -1353,6 +1660,14 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
     if (nav) nav.style.display = 'none';
     if (mobileNav) mobileNav.style.display = 'none';
 
+    // Initialiser la périodisation et afficher l'indicateur de phase
+    initPeriodization();
+    updateCurrentPhase();
+    updatePhaseIndicator();
+
+    // Appliquer les ajustements de phase aux exercices
+    applyPhaseToAllExercises();
+
     // Render first exercise
     renderCurrentExercise();
 }
@@ -1560,20 +1875,31 @@ function renderCurrentExercise() {
     const previousEl = document.getElementById('fs-previous');
     const previousValueEl = document.getElementById('fs-previous-value');
 
+    // Plage de reps selon la phase (targetReps) ou reps original
+    const repsPlaceholder = exercise.targetReps || exercise.reps || '8-12';
+
     if (lastLog && lastLog.setsDetail && lastLog.setsDetail.length > 0) {
         const lastSet = lastLog.setsDetail[Math.min(fsSession.currentSetIndex, lastLog.setsDetail.length - 1)];
         previousValueEl.textContent = `${lastSet.weight}kg × ${lastSet.reps}`;
         previousEl.style.display = 'flex';
 
-        // Pre-fill inputs with last values
-        document.getElementById('fs-weight-input').value = lastSet.weight || '';
+        // Pre-fill inputs with last values (ajusté selon phase si deload)
+        const phaseAdjustments = getPhaseAdjustments();
+        let suggestedWeight = lastSet.weight || 0;
+
+        // Appliquer multiplicateur de phase au poids si défini
+        if (phaseAdjustments.weightMultiplier !== 1.0 && suggestedWeight > 0) {
+            suggestedWeight = Math.round(suggestedWeight * phaseAdjustments.weightMultiplier * 4) / 4;
+        }
+
+        document.getElementById('fs-weight-input').value = suggestedWeight || '';
         document.getElementById('fs-reps-input').value = '';
-        document.getElementById('fs-reps-input').placeholder = lastSet.reps || exercise.reps;
+        document.getElementById('fs-reps-input').placeholder = repsPlaceholder;
     } else {
         previousEl.style.display = 'none';
         document.getElementById('fs-weight-input').value = '';
         document.getElementById('fs-reps-input').value = '';
-        document.getElementById('fs-reps-input').placeholder = exercise.reps;
+        document.getElementById('fs-reps-input').placeholder = repsPlaceholder;
     }
 
     // Render completed sets for this exercise
@@ -1583,7 +1909,7 @@ function renderCurrentExercise() {
 function renderCompletedSets() {
     const container = document.getElementById('fs-completed-sets');
     const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
-    
+
     // Get completed sets for current exercise
     const exerciseSets = fsSession.completedSets.filter(s => s.exerciseIndex === fsSession.currentExerciseIndex);
 
@@ -1592,13 +1918,29 @@ function renderCompletedSets() {
         return;
     }
 
-    container.innerHTML = exerciseSets.map(set => `
-        <div class="fs-completed-set">
-            <span class="fs-completed-set-num">S${set.setIndex + 1}</span>
-            <span class="fs-completed-set-value">${set.weight}kg × ${set.reps}</span>
-            <button class="fs-completed-set-edit" onclick="editCompletedSet(${set.setIndex})">✎</button>
-        </div>
-    `).join('');
+    container.innerHTML = exerciseSets.map(set => {
+        // Déterminer les classes et labels pour techniques avancées
+        let extraClass = '';
+        let labelPrefix = '';
+
+        if (set.isDrop) {
+            extraClass = ' is-drop';
+            labelPrefix = `D${set.dropNumber || 1}`;
+        } else if (set.isRestPause) {
+            extraClass = ' is-restpause';
+            labelPrefix = `RP${set.restPauseNumber || 1}`;
+        } else {
+            labelPrefix = `S${set.setIndex + 1}`;
+        }
+
+        return `
+            <div class="fs-completed-set${extraClass}">
+                <span class="fs-completed-set-num">${labelPrefix}</span>
+                <span class="fs-completed-set-value">${set.weight}kg × ${set.reps}</span>
+                <button class="fs-completed-set-edit" onclick="editCompletedSet(${set.setIndex})">✎</button>
+            </div>
+        `;
+    }).join('');
 }
 
 // Constantes de validation
@@ -1677,9 +2019,31 @@ function validateCurrentSet() {
         reps: reps,
         rpe: rpe,  // Rating of Perceived Exertion (1-10)
         rir: rir,   // Reps In Reserve (0-5)
-        isDrop: false,
-        dropNumber: 0
+        isDrop: fsSession.isDropMode || false,
+        dropNumber: 0,
+        isRestPause: fsSession.isRestPauseMode || false,
+        restPauseNumber: 0
     };
+
+    // Si c'est un drop set, compter le numéro
+    if (fsSession.isDropMode) {
+        const dropsForThisExercise = fsSession.completedSets.filter(
+            s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isDrop
+        ).length;
+        completedSet.dropNumber = dropsForThisExercise + 1;
+        fsSession.isDropMode = false;
+        resetValidateButton();
+    }
+
+    // Si c'est un rest-pause, compter le numéro
+    if (fsSession.isRestPauseMode) {
+        const restPausesForThisExercise = fsSession.completedSets.filter(
+            s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isRestPause
+        ).length;
+        completedSet.restPauseNumber = restPausesForThisExercise + 1;
+        fsSession.isRestPauseMode = false;
+        resetValidateButton();
+    }
     
     fsSession.completedSets.push(completedSet);
 
@@ -1705,19 +2069,35 @@ function validateCurrentSet() {
         return; // Gestion spéciale superset
     }
     
-    // Afficher le bouton Drop Set si c'est la dernière série et < 2 drops déjà faits
+    // Afficher les boutons techniques avancées si c'est la dernière série
     const dropsForThisExercise = fsSession.completedSets.filter(
         s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isDrop
     ).length;
-    
-    if (isLastSet && dropsForThisExercise < 2 && weight > 5) {
-        // Afficher le bouton drop set pendant 5 secondes
+    const restPausesForThisExercise = fsSession.completedSets.filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isRestPause
+    ).length;
+
+    // Conditions: dernière série, poids > 5kg, pas trop de techniques déjà utilisées
+    const canDrop = dropsForThisExercise < 2 && weight > 5;
+    const canRestPause = restPausesForThisExercise < 3 && weight > 0;
+
+    if (isLastSet && (canDrop || canRestPause)) {
+        // Afficher le container des techniques avancées
+        const advancedBtns = document.getElementById('fs-advanced-btns');
         const dropBtn = document.getElementById('fs-drop-btn');
-        if (dropBtn) {
-            dropBtn.style.display = 'flex';
+        const restPauseBtn = document.getElementById('fs-restpause-btn');
+
+        if (advancedBtns) {
+            advancedBtns.style.display = 'flex';
+
+            // Afficher/masquer les boutons selon les conditions
+            if (dropBtn) dropBtn.style.display = canDrop ? 'flex' : 'none';
+            if (restPauseBtn) restPauseBtn.style.display = canRestPause ? 'flex' : 'none';
+
+            // Masquer après 8 secondes
             setTimeout(() => {
-                if (dropBtn) dropBtn.style.display = 'none';
-            }, 5000);
+                if (advancedBtns) advancedBtns.style.display = 'none';
+            }, 8000);
         }
     }
     
@@ -1912,9 +2292,13 @@ function startRestTimer() {
     // Get exercise name and goal
     const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
     const goal = state.wizardResults?.goal || 'hypertrophy';
-    
+
     // Temps de repos intelligent selon exercice + objectif
-    fsTimerTarget = getSmartRestTime(exercise.effectiveName, goal);
+    let baseRestTime = getSmartRestTime(exercise.effectiveName, goal);
+
+    // Appliquer le multiplicateur de phase (périodisation)
+    const phaseAdjustments = getPhaseAdjustments();
+    fsTimerTarget = Math.round(baseRestTime * phaseAdjustments.restMultiplier);
     fsTimerSeconds = fsTimerTarget;
 
     updateFsTimerDisplay();
@@ -2045,57 +2429,277 @@ function adjustFsTimer(delta) {
     updateFsTimerDisplay();
 }
 
-// ==================== PERIODISATION ====================
+// ==================== PERIODISATION AVANCÉE ====================
 
-function updatePeriodization() {
-    if (!state.periodization) {
+/**
+ * Détermine la phase courante basée sur la semaine
+ * @returns {'hypertrophy' | 'strength' | 'deload'}
+ */
+function getCurrentPhase() {
+    const week = state.periodization?.currentWeek || 1;
+    const config = state.periodization?.phaseConfig;
+
+    if (!config) return 'hypertrophy';
+
+    for (const [phase, cfg] of Object.entries(config)) {
+        if (cfg.weeks && cfg.weeks.includes(week)) {
+            return phase;
+        }
+    }
+    return 'hypertrophy';
+}
+
+/**
+ * Met à jour la phase courante et affiche un toast si changement
+ */
+function updateCurrentPhase() {
+    const phase = getCurrentPhase();
+    const previousPhase = state.periodization?.currentPhase;
+
+    if (previousPhase !== phase) {
+        if (!state.periodization) initPeriodization();
+        state.periodization.currentPhase = phase;
+
+        // Toast informatif sur le changement de phase
+        const messages = {
+            hypertrophy: '💪 Phase Hypertrophie - Focus volume (8-12 reps)',
+            strength: '🏋️ Phase Force - Focus intensité (4-6 reps)',
+            deload: '🧘 Semaine Deload - Récupération active (-30%)'
+        };
+
+        if (previousPhase) { // Ne pas afficher au premier chargement
+            showToast(messages[phase], 'info', 4000);
+
+            // Haptic feedback
+            if (window.HapticFeedback) {
+                window.HapticFeedback.notification('warning');
+            }
+        }
+
+        saveState();
+    }
+
+    // Mettre à jour l'UI
+    updatePhaseIndicator();
+}
+
+/**
+ * Retourne les ajustements à appliquer selon la phase courante
+ */
+function getPhaseAdjustments() {
+    const phase = state.periodization?.currentPhase || 'hypertrophy';
+    const config = state.periodization?.phaseConfig?.[phase];
+
+    if (!config) {
+        return {
+            repsRange: '8-12',
+            repsMin: 8,
+            repsMax: 12,
+            setsMultiplier: 1.0,
+            weightMultiplier: 1.0,
+            restMultiplier: 1.0,
+            targetRPE: 7,
+            phase: 'hypertrophy'
+        };
+    }
+
+    return {
+        repsRange: `${config.repsMin}-${config.repsMax}`,
+        repsMin: config.repsMin,
+        repsMax: config.repsMax,
+        setsMultiplier: config.setsMultiplier,
+        weightMultiplier: config.weightMultiplier,
+        restMultiplier: config.restMultiplier,
+        targetRPE: config.targetRPE,
+        phase: phase
+    };
+}
+
+/**
+ * Vérifie l'adhérence au volume planifié
+ */
+function checkVolumeAdherence() {
+    const week = state.periodization?.currentWeek || 1;
+    const baseline = state.periodization?.baselineVolume;
+    const actual = state.periodization?.weeklyVolume?.[week - 1] || 0;
+    const plannedMultiplier = state.periodization?.plannedWeeklyVolume?.[week];
+
+    // Pas de comparaison si pas de baseline ou si W1
+    if (!baseline || !plannedMultiplier || actual === 0 || week === 1) return;
+
+    const expectedVolume = baseline * plannedMultiplier;
+    const adherence = actual / expectedVolume;
+
+    // Alerter seulement à des seuils significatifs
+    if (adherence < 0.7) {
+        showToast(`⚠️ Volume sous-optimal (${Math.round(adherence * 100)}%). Ajoute des séries!`, 'warning', 4000);
+    } else if (adherence > 1.3 && week !== 4) {
+        showToast(`⚠️ Volume élevé (${Math.round(adherence * 100)}%). Attention récupération!`, 'warning', 4000);
+    }
+}
+
+/**
+ * Initialise la périodisation avec les valeurs par défaut
+ */
+function initPeriodization() {
+    if (!state.periodization || !state.periodization.phaseConfig) {
+        const defaultCycle = CYCLE_PRESETS['4'];
         state.periodization = {
             currentWeek: 1,
             currentCycle: 1,
             cycleStartDate: new Date().toISOString(),
             weeklyVolume: [],
-            autoDeload: true
+            autoDeload: true,
+            currentPhase: 'hypertrophy',
+            cycleType: '4',
+            totalWeeks: defaultCycle.totalWeeks,
+            phaseConfig: defaultCycle.phases,
+            plannedWeeklyVolume: defaultCycle.plannedVolume,
+            baselineVolume: null
         };
     }
-    
+    // Assurer que cycleType existe pour les anciens états
+    if (!state.periodization.cycleType) {
+        state.periodization.cycleType = '4';
+        state.periodization.totalWeeks = 4;
+    }
+}
+
+/**
+ * Met à jour l'indicateur de phase dans l'UI
+ */
+function updatePhaseIndicator() {
+    const badge = document.getElementById('fs-phase-badge');
+    const weekEl = document.getElementById('fs-phase-week');
+
+    if (!badge || !weekEl) return;
+
+    const phase = state.periodization?.currentPhase || 'hypertrophy';
+    const week = state.periodization?.currentWeek || 1;
+    const cycle = state.periodization?.currentCycle || 1;
+
+    const phaseConfig = {
+        hypertrophy: { icon: '💪', name: 'Hypertrophie', color: '#3b82f6' },
+        strength: { icon: '🏋️', name: 'Force', color: '#ef4444' },
+        deload: { icon: '🧘', name: 'Deload', color: '#22c55e' }
+    };
+
+    const cfg = phaseConfig[phase] || phaseConfig.hypertrophy;
+    badge.innerHTML = `<span class="fs-phase-icon">${cfg.icon}</span><span class="fs-phase-name">${cfg.name}</span>`;
+    badge.style.borderColor = cfg.color;
+    badge.setAttribute('data-phase', phase);
+    weekEl.textContent = `Semaine ${week}/4 • Cycle ${cycle}`;
+}
+
+/**
+ * Applique les ajustements de phase à tous les exercices de la session
+ */
+function applyPhaseToAllExercises() {
+    if (!fsSession || !fsSession.exercises) return;
+
+    const adjustments = getPhaseAdjustments();
+    const phase = adjustments.phase;
+
+    console.log(`📊 Application phase ${phase}:`, adjustments);
+
+    fsSession.exercises = fsSession.exercises.map(exercise => {
+        // Stocker les valeurs originales si pas déjà fait
+        if (!exercise.originalSets) {
+            exercise.originalSets = exercise.sets;
+            exercise.originalReps = exercise.reps;
+            exercise.originalRest = exercise.rest;
+        }
+
+        // Ajuster le nombre de séries selon la phase
+        const adjustedSets = Math.max(1, Math.round(exercise.originalSets * adjustments.setsMultiplier));
+
+        // Ajuster le temps de repos
+        const adjustedRest = Math.round((exercise.originalRest || 90) * adjustments.restMultiplier);
+
+        return {
+            ...exercise,
+            sets: adjustedSets,
+            targetReps: adjustments.repsRange,
+            rest: adjustedRest,
+            targetRPE: adjustments.targetRPE,
+            phaseApplied: phase
+        };
+    });
+
+    // Log si deload actif
+    if (phase === 'deload') {
+        console.log('🧘 Deload appliqué: -30% sets, -15% poids suggéré');
+    }
+}
+
+function updatePeriodization() {
+    // Initialiser si nécessaire
+    initPeriodization();
+
     // Calculer le volume de cette session
     let sessionVolume = 0;
     fsSession.completedSets.forEach(set => {
         sessionVolume += set.weight * set.reps;
     });
-    
+
     // Ajouter au volume de la semaine
     const weekIndex = state.periodization.currentWeek - 1;
     if (!state.periodization.weeklyVolume[weekIndex]) {
         state.periodization.weeklyVolume[weekIndex] = 0;
     }
     state.periodization.weeklyVolume[weekIndex] += sessionVolume;
-    
-    // Vérifier si on doit passer à la semaine suivante (basé sur fréquence)
+
+    // Mettre à jour baseline volume après W1 complète
+    if (state.periodization.currentWeek === 1 && !state.periodization.baselineVolume) {
+        const frequency = state.wizardResults?.frequency || 3;
+        const sessionsThisWeek = countSessionsThisWeek();
+
+        // Si on a terminé W1, enregistrer le baseline
+        if (sessionsThisWeek >= frequency) {
+            state.periodization.baselineVolume = state.periodization.weeklyVolume[0];
+            console.log('📊 Baseline volume établi:', state.periodization.baselineVolume);
+        }
+    }
+
+    // Vérifier si on doit passer à la semaine suivante
     const frequency = state.wizardResults?.frequency || 3;
-    const sessionsThisWeek = state.sessionHistory.filter(s => {
-        const daysDiff = Math.floor((Date.now() - new Date(s.date).getTime()) / (1000 * 60 * 60 * 24));
-        return daysDiff < 7;
-    }).length;
-    
+    const sessionsThisWeek = countSessionsThisWeek();
+
     // Avancer la semaine si on a complété le nombre de sessions prévu
     if (sessionsThisWeek >= frequency) {
         state.periodization.currentWeek++;
-        
+
         // Reset cycle après semaine 4
         if (state.periodization.currentWeek > 4) {
             state.periodization.currentWeek = 1;
             state.periodization.currentCycle++;
             state.periodization.weeklyVolume = [];
             state.periodization.cycleStartDate = new Date().toISOString();
-            
+            // Reset baseline pour nouveau cycle
+            state.periodization.baselineVolume = null;
+
             showToast(`🎯 Nouveau cycle ${state.periodization.currentCycle} démarré !`, 'success', 3000);
-        } else if (state.periodization.currentWeek === 4 && state.periodization.autoDeload) {
-            showToast('📉 Semaine 4 : Deload automatique (-30% volume)', 'info', 4000);
         }
     }
-    
+
+    // Mettre à jour la phase courante (avec toast si changement)
+    updateCurrentPhase();
+
+    // Vérifier adhérence au volume planifié
+    checkVolumeAdherence();
+
     saveState();
+}
+
+/**
+ * Compte les sessions cette semaine
+ */
+function countSessionsThisWeek() {
+    if (!state.sessionHistory) return 0;
+    return state.sessionHistory.filter(s => {
+        const daysDiff = Math.floor((Date.now() - new Date(s.date).getTime()) / (1000 * 60 * 60 * 24));
+        return daysDiff < 7;
+    }).length;
 }
 
 function shouldApplyDeload() {
@@ -2104,8 +2708,8 @@ function shouldApplyDeload() {
 }
 
 function getDeloadAdjustedSets(originalSets) {
-    if (!shouldApplyDeload()) return originalSets;
-    return Math.max(1, Math.round(originalSets * 0.7)); // -30% volume
+    const adjustments = getPhaseAdjustments();
+    return Math.max(1, Math.round(originalSets * adjustments.setsMultiplier));
 }
 
 // Détection de plateau automatique
@@ -2180,70 +2784,182 @@ function getDoubleProgressionRecommendation(exerciseName) {
     };
 }
 
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Remet le bouton validate à son état normal
+ */
+function resetValidateButton() {
+    const validateBtn = document.getElementById('fs-validate-btn');
+    if (validateBtn) {
+        validateBtn.innerHTML = `
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Valider la série</span>
+        `;
+        validateBtn.style.background = 'var(--accent-primary)'; // Reset to green
+    }
+}
+
 // ==================== DROP SETS ====================
 
 function startDropSet() {
     if (!fsSession.active) return;
-    
-    // Masquer le bouton drop
-    const dropBtn = document.getElementById('fs-drop-btn');
-    if (dropBtn) dropBtn.style.display = 'none';
-    
+
+    // Masquer le container des techniques avancées
+    const advancedBtns = document.getElementById('fs-advanced-btns');
+    if (advancedBtns) advancedBtns.style.display = 'none';
+
     // Récupérer le dernier set complété
     const lastSet = fsSession.completedSets[fsSession.completedSets.length - 1];
     if (!lastSet) return;
-    
+
     // Calculer le poids réduit (-20%)
     const newWeight = Math.max(2.5, Math.round((lastSet.weight * 0.8) * 2) / 2); // Arrondi à 0.5kg
-    
+
     // Pré-remplir les inputs
     document.getElementById('fs-weight-input').value = newWeight;
     document.getElementById('fs-reps-input').value = ''; // L'utilisateur entre les reps
     document.getElementById('fs-reps-input').focus();
-    
+
     // Indiquer visuellement qu'on est en drop set
     const validateBtn = document.getElementById('fs-validate-btn');
     if (validateBtn) {
         validateBtn.innerHTML = `
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            <span>Valider Drop Set</span>
+            <span>💧 Valider Drop Set</span>
         `;
+        validateBtn.style.background = '#3b82f6'; // Blue for drop
     }
-    
+
     // Marquer qu'on est en mode drop
     fsSession.isDropMode = true;
-    
-    showToast('💧 Drop Set : -20% poids', 'info', 2000);
+
+    // Haptic feedback
+    if (window.HapticFeedback) {
+        window.HapticFeedback.light();
+    }
+
+    showToast('💧 Drop Set : -20% poids, pas de repos !', 'info', 2500);
 }
 
-// Modifier validateCurrentSet pour gérer les drops
-const originalValidateCurrentSet = validateCurrentSet;
-function validateCurrentSetWithDrop() {
-    const result = originalValidateCurrentSet();
-    
-    // Si on était en drop mode, marquer le set comme drop
-    if (fsSession.isDropMode && fsSession.completedSets.length > 0) {
-        const lastSet = fsSession.completedSets[fsSession.completedSets.length - 1];
-        const dropsForThisExercise = fsSession.completedSets.filter(
-            s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isDrop
-        ).length;
-        
-        lastSet.isDrop = true;
-        lastSet.dropNumber = dropsForThisExercise;
-        
-        fsSession.isDropMode = false;
-        
-        // Restaurer le bouton
-        const validateBtn = document.getElementById('fs-validate-btn');
-        if (validateBtn) {
-            validateBtn.innerHTML = `
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span>Valider la série</span>
-            `;
+// ==================== REST-PAUSE ====================
+
+function startRestPause() {
+    if (!fsSession.active) return;
+
+    // Masquer le container des techniques avancées
+    const advancedBtns = document.getElementById('fs-advanced-btns');
+    if (advancedBtns) advancedBtns.style.display = 'none';
+
+    // Récupérer le dernier set complété
+    const lastSet = fsSession.completedSets[fsSession.completedSets.length - 1];
+    if (!lastSet) return;
+
+    // Garder le même poids
+    document.getElementById('fs-weight-input').value = lastSet.weight;
+    document.getElementById('fs-reps-input').value = ''; // L'utilisateur entre les reps
+
+    // Indiquer visuellement qu'on est en rest-pause
+    const validateBtn = document.getElementById('fs-validate-btn');
+    if (validateBtn) {
+        validateBtn.innerHTML = `
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>⏸️ Valider Rest-Pause</span>
+        `;
+        validateBtn.style.background = '#a855f7'; // Purple for rest-pause
+    }
+
+    // Marquer qu'on est en mode rest-pause
+    fsSession.isRestPauseMode = true;
+
+    // Démarrer un mini-timer de 10-15 secondes
+    startRestPauseTimer(15);
+
+    // Haptic feedback
+    if (window.HapticFeedback) {
+        window.HapticFeedback.light();
+    }
+
+    showToast('⏸️ Rest-Pause : 15s repos puis continue !', 'info', 2500);
+}
+
+// Mini-timer pour rest-pause (15 secondes par défaut)
+let restPauseTimerInterval = null;
+
+function startRestPauseTimer(seconds = 15) {
+    // Afficher le timer prominent
+    const timerContainer = document.getElementById('fs-rest-timer-prominent');
+    if (!timerContainer) return;
+
+    timerContainer.style.display = 'flex';
+    timerContainer.classList.add('timer-restpause');
+
+    let remaining = seconds;
+
+    // Initialiser l'affichage
+    updateRestPauseTimerDisplay(remaining, seconds);
+
+    restPauseTimerInterval = setInterval(() => {
+        remaining--;
+
+        if (remaining <= 0) {
+            clearInterval(restPauseTimerInterval);
+            restPauseTimerInterval = null;
+
+            // Timer terminé - focus sur input reps
+            const repsInput = document.getElementById('fs-reps-input');
+            if (repsInput) repsInput.focus();
+
+            // Haptic et audio
+            if (window.HapticFeedback) {
+                window.HapticFeedback.success();
+            }
+            if (window.AudioFeedback && window.AudioFeedback.playTimerEnd) {
+                window.AudioFeedback.playTimerEnd();
+            }
+
+            // Masquer le timer après 1 seconde
+            setTimeout(() => {
+                timerContainer.style.display = 'none';
+                timerContainer.classList.remove('timer-restpause');
+            }, 1000);
+
+            showToast('⏸️ Go ! Fais tes reps !', 'success', 2000);
+        } else {
+            updateRestPauseTimerDisplay(remaining, seconds);
+
+            // Vibration aux dernières secondes
+            if (remaining <= 3 && window.HapticFeedback) {
+                window.HapticFeedback.light();
+            }
+        }
+    }, 1000);
+}
+
+function updateRestPauseTimerDisplay(remaining, total) {
+    const timeDisplay = document.querySelector('#fs-rest-timer-prominent .timer-time');
+    const progressCircle = document.querySelector('#fs-rest-timer-prominent .progress-ring__circle');
+    const timerContainer = document.getElementById('fs-rest-timer-prominent');
+
+    if (timeDisplay) {
+        timeDisplay.textContent = remaining;
+    }
+
+    if (progressCircle) {
+        const circumference = 2 * Math.PI * 45;
+        const offset = circumference * (1 - remaining / total);
+        progressCircle.style.strokeDashoffset = offset;
+    }
+
+    // Couleur selon le temps restant
+    if (timerContainer) {
+        timerContainer.classList.remove('timer-green', 'timer-yellow', 'timer-red');
+        if (remaining > 5) {
+            timerContainer.classList.add('timer-yellow'); // Jaune pour rest-pause
+        } else {
+            timerContainer.classList.add('timer-red');
         }
     }
-    
-    return result;
 }
 
 // ==================== SUPERSETS ====================
@@ -2448,7 +3164,14 @@ function finishSession() {
             setNumber: s.setIndex + 1,
             weight: s.weight,
             reps: s.reps,
-            completed: true
+            completed: true,
+            // Données techniques avancées
+            isDropSet: s.isDropSet || false,
+            dropNumber: s.dropNumber || null,
+            isRestPause: s.isRestPause || false,
+            restPauseNumber: s.restPauseNumber || null,
+            rpe: s.rpe || null,
+            rir: s.rir || null
         }));
 
         // Check for PRs
@@ -3407,10 +4130,18 @@ window.applySwapKeepParams = applySwapKeepParams;
 
 // Fonctions avancées
 window.startDropSet = startDropSet;
+window.startRestPause = startRestPause;
 window.createSuperset = createSuperset;
 window.removeSuperset = removeSuperset;
 window.machineOccupied = machineOccupied;
 window.postponeCurrentExercise = postponeCurrentExercise;
+
+// Fonctions périodisation
+window.getCurrentPhase = getCurrentPhase;
+window.getPhaseAdjustments = getPhaseAdjustments;
+window.updatePhaseIndicator = updatePhaseIndicator;
+window.initPeriodization = initPeriodization;
+window.updateCurrentPhase = updateCurrentPhase;
 
 // Fonctions de template
 window.duplicateSession = duplicateSession;
@@ -3425,5 +4156,185 @@ window.populateSessionDaySelect = populateSessionDaySelect;
 window.loadSessionDay = loadSessionDay;
 window.updateTrainingDays = updateTrainingDays;
 window.renderTrainingSection = renderTrainingSection;
+
+// ==================== PERIODIZATION CONFIG UI ====================
+
+/**
+ * Ouvre le bottom sheet de configuration périodisation
+ */
+function openPeriodizationSheet() {
+    const sheet = document.getElementById('periodization-sheet');
+    if (!sheet) return;
+
+    // Mettre à jour l'affichage
+    updatePeriodizationSheetUI();
+
+    sheet.style.display = 'flex';
+    requestAnimationFrame(() => {
+        sheet.classList.add('active');
+    });
+}
+
+/**
+ * Ferme le bottom sheet de périodisation
+ */
+function closePeriodizationSheet() {
+    const sheet = document.getElementById('periodization-sheet');
+    if (!sheet) return;
+
+    sheet.classList.remove('active');
+    setTimeout(() => {
+        sheet.style.display = 'none';
+    }, 300);
+}
+
+/**
+ * Met à jour l'UI du sheet de périodisation
+ */
+function updatePeriodizationSheetUI() {
+    const cycleType = state.periodization?.cycleType || '4';
+    const currentWeek = state.periodization?.currentWeek || 1;
+    const currentCycle = state.periodization?.currentCycle || 1;
+    const phase = state.periodization?.currentPhase || 'hypertrophy';
+    const preset = CYCLE_PRESETS[cycleType];
+    const totalWeeks = preset?.totalWeeks || 4;
+
+    // Status badge
+    const statusBadge = document.getElementById('period-current-phase');
+    if (statusBadge) {
+        const phaseIcons = { hypertrophy: '💪', strength: '🏋️', deload: '🧘', peak: '⚡' };
+        const phaseNames = { hypertrophy: 'Hypertrophie', strength: 'Force', deload: 'Deload', peak: 'Peak' };
+        statusBadge.textContent = `${phaseIcons[phase] || '💪'} ${phaseNames[phase] || 'Hypertrophie'}`;
+        statusBadge.className = `period-status-badge ${phase}`;
+    }
+
+    // Week dots
+    const weekDots = document.getElementById('period-week-dots');
+    if (weekDots) {
+        let dotsHTML = '';
+        for (let i = 1; i <= totalWeeks; i++) {
+            const isActive = i === currentWeek;
+            const isCompleted = i < currentWeek;
+            dotsHTML += `<div class="period-week-dot ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}" data-week="${i}">S${i}</div>`;
+        }
+        weekDots.innerHTML = dotsHTML;
+    }
+
+    // Cycle info
+    const cycleNumber = document.getElementById('period-cycle-number');
+    const nextPhase = document.getElementById('period-next-phase');
+    if (cycleNumber) cycleNumber.textContent = `Cycle ${currentCycle}`;
+
+    if (nextPhase) {
+        // Calculer la prochaine phase
+        let nextPhaseName = '';
+        let weeksUntil = 0;
+
+        for (const [phaseName, config] of Object.entries(preset.phases)) {
+            const firstWeek = Math.min(...config.weeks);
+            if (firstWeek > currentWeek) {
+                nextPhaseName = phaseName;
+                weeksUntil = firstWeek - currentWeek;
+                break;
+            }
+        }
+
+        if (nextPhaseName) {
+            const phaseNames = { hypertrophy: 'Hypertrophie', strength: 'Force', deload: 'Deload', peak: 'Peak' };
+            nextPhase.textContent = `→ ${phaseNames[nextPhaseName]} dans ${weeksUntil} semaine${weeksUntil > 1 ? 's' : ''}`;
+        } else {
+            nextPhase.textContent = `→ Fin du cycle dans ${totalWeeks - currentWeek + 1} semaine${totalWeeks - currentWeek > 0 ? 's' : ''}`;
+        }
+    }
+
+    // Sélection du cycle
+    document.querySelectorAll('.period-cycle-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.cycle === cycleType);
+    });
+}
+
+/**
+ * Sélectionne un nouveau type de cycle
+ */
+function selectPeriodizationCycle(cycleType) {
+    if (!CYCLE_PRESETS[cycleType]) return;
+
+    const preset = CYCLE_PRESETS[cycleType];
+    const previousType = state.periodization?.cycleType || '4';
+
+    // Si on change de type, demander confirmation
+    if (previousType !== cycleType && state.periodization?.currentWeek > 1) {
+        if (!confirm(`Changer de cycle va recommencer à la semaine 1. Continuer ?`)) {
+            return;
+        }
+    }
+
+    // Appliquer le nouveau preset
+    state.periodization = {
+        ...state.periodization,
+        cycleType: cycleType,
+        currentWeek: previousType !== cycleType ? 1 : (state.periodization?.currentWeek || 1),
+        currentCycle: previousType !== cycleType ? 1 : (state.periodization?.currentCycle || 1),
+        totalWeeks: preset.totalWeeks,
+        phaseConfig: preset.phases,
+        plannedWeeklyVolume: preset.plannedVolume,
+        baselineVolume: previousType !== cycleType ? null : state.periodization?.baselineVolume
+    };
+
+    // Recalculer la phase courante
+    updateCurrentPhase();
+    saveState();
+
+    // Mettre à jour l'UI
+    updatePeriodizationSheetUI();
+
+    // Toast
+    showToast(`Cycle ${preset.name} (${preset.totalWeeks} semaines) activé`, 'success');
+}
+
+/**
+ * Recommence le cycle à zéro
+ */
+function resetPeriodizationCycle() {
+    if (!confirm('Recommencer le cycle ? Ta progression de semaines sera réinitialisée.')) {
+        return;
+    }
+
+    state.periodization = {
+        ...state.periodization,
+        currentWeek: 1,
+        currentCycle: (state.periodization?.currentCycle || 0) + 1,
+        weeklyVolume: [],
+        baselineVolume: null
+    };
+
+    updateCurrentPhase();
+    saveState();
+    updatePeriodizationSheetUI();
+
+    showToast('Cycle recommencé ! Semaine 1 💪', 'success');
+}
+
+/**
+ * Toggle la section éducative
+ */
+function togglePeriodEducation() {
+    const content = document.getElementById('period-education-content');
+    const toggle = document.querySelector('.period-education-toggle');
+
+    if (!content || !toggle) return;
+
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'flex' : 'none';
+    toggle.classList.toggle('expanded', isHidden);
+}
+
+// Exports périodisation UI
+window.openPeriodizationSheet = openPeriodizationSheet;
+window.closePeriodizationSheet = closePeriodizationSheet;
+window.selectPeriodizationCycle = selectPeriodizationCycle;
+window.resetPeriodizationCycle = resetPeriodizationCycle;
+window.togglePeriodEducation = togglePeriodEducation;
+window.CYCLE_PRESETS = CYCLE_PRESETS;
 
 console.log('✅ training.js: Fonctions exportées au scope global');

@@ -28,6 +28,38 @@ let autoSyncInterval = null;
 const AUTO_SYNC_INTERVAL_MS = 30000; // 30 secondes
 let lastSyncTimestamp = 0;
 
+/**
+ * Formate le temps écoulé depuis la dernière sync
+ * @returns {string} "à l'instant", "il y a X min", etc.
+ */
+function formatLastSyncTime() {
+    if (lastSyncTimestamp === 0) return '';
+
+    const now = Date.now();
+    const diffMs = now - lastSyncTimestamp;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+
+    if (diffSec < 30) {
+        return 'à l\'instant';
+    } else if (diffMin < 1) {
+        return 'il y a moins d\'1 min';
+    } else if (diffMin === 1) {
+        return 'il y a 1 min';
+    } else if (diffMin < 60) {
+        return `il y a ${diffMin} min`;
+    } else if (diffHour === 1) {
+        return 'il y a 1 heure';
+    } else if (diffHour < 24) {
+        return `il y a ${diffHour} heures`;
+    } else {
+        // Afficher la date
+        const date = new Date(lastSyncTimestamp);
+        return `le ${date.toLocaleDateString('fr-FR')} à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+}
+
 // Fonction de backup automatique des données en conflit
 function saveConflictBackup(entity, localData) {
     try {
@@ -237,7 +269,8 @@ function updateSyncIndicator(status, message = null) {
             break;
         case SyncStatus.SUCCESS:
             indicator.classList.add('success');
-            indicator.title = 'Données synchronisées';
+            lastSyncTimestamp = Date.now(); // Mettre à jour le timestamp
+            indicator.title = 'Données synchronisées - ' + formatLastSyncTime();
             // Reset après 3 secondes
             setTimeout(() => {
                 if (currentSyncStatus === SyncStatus.SUCCESS) {
@@ -255,7 +288,9 @@ function updateSyncIndicator(status, message = null) {
             indicator.title = 'Mode hors-ligne';
             break;
         default:
-            indicator.title = 'Synchronisé';
+            indicator.title = lastSyncTimestamp > 0
+                ? 'Synchronisé - ' + formatLastSyncTime()
+                : 'Synchronisé';
     }
     
     // Mettre à jour le badge
@@ -285,7 +320,8 @@ function updateSyncIndicator(status, message = null) {
             
             // Mettre à jour le titre avec le nombre d'items
             if (status === SyncStatus.IDLE) {
-                indicator.title = `${pendingSyncCount} élément(s) en attente - Cliquer pour sync`;
+                const lastSyncInfo = lastSyncTimestamp > 0 ? ` (sync ${formatLastSyncTime()})` : '';
+                indicator.title = `${pendingSyncCount} élément(s) en attente - Cliquer pour sync${lastSyncInfo}`;
             }
         } else {
             badge.style.display = 'none';
@@ -1252,7 +1288,15 @@ async function loadAllDataFromSupabase(silent = false) {
                 state.wizardResults = trainingSettings.wizard_results;
             }
             if (trainingSettings.training_progress) {
-                state.trainingProgress = trainingSettings.training_progress;
+                // Extraire periodization si présent dans training_progress
+                const { periodization, ...trainingProgressOnly } = trainingSettings.training_progress;
+                state.trainingProgress = trainingProgressOnly;
+
+                // Restaurer periodization si présent
+                if (periodization) {
+                    state.periodization = { ...state.periodization, ...periodization };
+                    console.log('✅ Périodisation restaurée depuis Supabase');
+                }
             }
             if (trainingSettings.session_templates) {
                 state.sessionTemplates = trainingSettings.session_templates;
@@ -1913,13 +1957,20 @@ async function deleteExerciseSwapFromSupabase(originalExercise) {
 // Sauvegarder les paramètres d'entraînement (avec retry et feedback)
 async function saveTrainingSettingsToSupabase() {
     if (!currentUser) return false;
+
+    // Combiner training_progress avec periodization pour une seule colonne JSONB
+    const trainingProgressWithPeriodization = {
+        ...state.trainingProgress,
+        periodization: state.periodization
+    };
+
     if (!isOnline) {
         console.log('📴 Hors-ligne: paramètres ajoutés à la queue de sync');
         addToSyncQueue('training_settings', 'upsert', {
             selected_program: state.selectedProgram,
             training_days: state.trainingDays,
             wizard_results: state.wizardResults,
-            training_progress: state.trainingProgress,
+            training_progress: trainingProgressWithPeriodization,
             session_templates: state.sessionTemplates,
             goals: state.goals,
             body_weight_log: state.bodyWeightLog,
@@ -1927,7 +1978,7 @@ async function saveTrainingSettingsToSupabase() {
         });
         return false;
     }
-    
+
     try {
         await withRetry(async () => {
             const { error } = await supabaseClient
@@ -1937,16 +1988,16 @@ async function saveTrainingSettingsToSupabase() {
                     selected_program: state.selectedProgram,
                     training_days: state.trainingDays,
                     wizard_results: state.wizardResults || null,
-                    training_progress: state.trainingProgress || null,
+                    training_progress: trainingProgressWithPeriodization || null,
                     session_templates: state.sessionTemplates || null,
                     goals: state.goals || null,
                     body_weight_log: state.bodyWeightLog || null,
                     unlocked_achievements: state.unlockedAchievements || null,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id' });
-            
+
             if (error) throw error;
-            console.log('✅ Paramètres entraînement sauvegardés');
+            console.log('✅ Paramètres entraînement sauvegardés (incl. périodisation)');
         }, { maxRetries: 3, critical: false });
         return true;
     } catch (error) {
@@ -2495,5 +2546,6 @@ window.isLoggedIn = isLoggedIn;
 window.getCurrentUser = getCurrentUser;
 window.loadAllDataFromSupabase = loadAllDataFromSupabase;
 window.forceSyncPendingData = forceSyncPendingData;
+window.saveHydrationToSupabase = saveHydrationToSupabase;
 
 console.log('✅ supabase.js: Fonctions exportées au scope global');

@@ -242,13 +242,56 @@ let state = {
     // Sync Queue Offline (Priorité 2 - Stabilité)
     syncQueue: [], // [{ id, type, action, data, timestamp, retries }]
     
-    // Périodisation (Priorité 4)
+    // Périodisation avancée (Priorité 4)
     periodization: {
         currentWeek: 1,        // 1-4
         currentCycle: 1,       // Numéro du mesocycle
         cycleStartDate: null,
         weeklyVolume: [],      // Historique du volume par semaine
-        autoDeload: true       // Semaine 4 = deload automatique
+        autoDeload: true,      // Semaine 4 = deload automatique
+
+        // Phase courante et configuration
+        currentPhase: 'hypertrophy',  // 'hypertrophy' | 'strength' | 'deload'
+
+        // Configuration des phases (personnalisable)
+        phaseConfig: {
+            hypertrophy: {
+                weeks: [1, 2],
+                repsMin: 8,
+                repsMax: 12,
+                setsMultiplier: 1.0,
+                weightMultiplier: 1.0,
+                restMultiplier: 1.0,
+                targetRPE: 7
+            },
+            strength: {
+                weeks: [3],
+                repsMin: 4,
+                repsMax: 6,
+                setsMultiplier: 1.0,
+                weightMultiplier: 1.05,  // +5% poids
+                restMultiplier: 1.25,    // +25% repos
+                targetRPE: 8
+            },
+            deload: {
+                weeks: [4],
+                repsMin: 6,
+                repsMax: 10,
+                setsMultiplier: 0.7,     // -30% sets
+                weightMultiplier: 0.85,  // -15% poids
+                restMultiplier: 0.8,     // -20% repos
+                targetRPE: 5
+            }
+        },
+
+        // Volume planifié pour comparaison (multiplicateur vs W1)
+        plannedWeeklyVolume: {
+            1: 1.0,   // Baseline
+            2: 1.10,  // +10% de W1
+            3: 1.05,  // +5% de W1
+            4: 0.65   // -35% de W1 (deload)
+        },
+        baselineVolume: null  // Volume de référence (calculé après W1)
     },
     
     // Habitudes alimentaires (pour suggestions intelligentes)

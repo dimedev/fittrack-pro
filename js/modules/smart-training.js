@@ -86,14 +86,32 @@
             message = 'Repos insuffisant';
         }
         
+        // NOUVEAU: Ajuster selon la phase de périodisation
+        const phaseAdjustments = window.getPhaseAdjustments
+            ? window.getPhaseAdjustments()
+            : { weightMultiplier: 1.0, phase: 'hypertrophy' };
+
+        const phaseMultiplier = phaseAdjustments.weightMultiplier || 1.0;
+        const adjustedWeight = Math.round(suggestedWeight * phaseMultiplier * 4) / 4;
+
+        // Ajuster le message si phase modifie le poids
+        let phaseMessage = '';
+        if (phaseMultiplier !== 1.0) {
+            const pct = Math.round((phaseMultiplier - 1) * 100);
+            const sign = pct > 0 ? '+' : '';
+            phaseMessage = ` (${sign}${pct}% phase ${phaseAdjustments.phase})`;
+        }
+
         return {
-            suggested: suggestedWeight,
+            suggested: adjustedWeight,
             lastWeight: lastWeight,
             progression: progressionAmount,
             confidence: confidence,
-            message: message,
+            message: message + phaseMessage,
             daysSinceLastSession: daysSinceLastSession,
-            trend: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable'
+            trend: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable',
+            phase: phaseAdjustments.phase,
+            phaseMultiplier: phaseMultiplier
         };
     }
     
