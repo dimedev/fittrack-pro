@@ -3442,6 +3442,167 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 }
 
+/* ==================== GIF HERO STYLES ==================== */
+
+.exercise-hero-gif {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.exercise-hero-gif.loaded {
+    opacity: 1;
+}
+
+.exercise-hero-skeleton {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    z-index: 0;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.gif-control-btn {
+    position: absolute;
+    bottom: 50px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.gif-control-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.gif-control-btn:active {
+    transform: scale(0.95);
+}
+
+/* Reduced motion: cacher GIF, montrer image statique */
+@media (prefers-reduced-motion: reduce) {
+    .exercise-hero-gif {
+        display: none !important;
+    }
+    .gif-control-btn {
+        display: none !important;
+    }
+    .exercise-hero-image {
+        display: block !important;
+    }
+}
+
+/* ==================== FULLSCREEN GIF CONTAINER ==================== */
+
+.fs-gif-container {
+    margin: 0 16px 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.fs-gif-wrapper {
+    position: relative;
+    width: 100%;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+
+.fs-gif {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.fs-gif.loaded {
+    opacity: 1;
+}
+
+.fs-gif-skeleton {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.fs-gif-toggle {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.fs-gif-toggle:hover {
+    color: var(--text-primary);
+}
+
+.fs-gif-toggle svg {
+    transition: transform 0.3s ease;
+}
+
+.fs-gif-container.collapsed .fs-gif-wrapper {
+    display: none;
+}
+
+.fs-gif-container.collapsed .fs-gif-toggle svg {
+    transform: rotate(180deg);
+}
+
+/* Hide on reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .fs-gif-container {
+        display: none !important;
+    }
+}
+
 .exercise-hero-overlay {
     position: absolute;
     bottom: 0;

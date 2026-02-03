@@ -1124,6 +1124,7 @@ function searchExercises(query, excludeId = null, favoriteExercises = []) {
 // Configuration Storage pour les images d'exercices
 const EXERCISE_STORAGE_URL = 'https://erszjvaajztewcukvwbj.supabase.co';
 const EXERCISE_IMAGES_BUCKET = 'exercise-images';
+const EXERCISE_GIFS_BUCKET = 'exercise-gifs';
 
 // Mapping ID exercice → nom fichier image (si différent)
 const exerciseImageMapping = {
@@ -1166,6 +1167,25 @@ function getExerciseImageUrl(exerciseId) {
     // Utiliser le mapping si existe, sinon l'ID directement
     const imageName = exerciseImageMapping[exerciseId] || exerciseId;
     return `${EXERCISE_STORAGE_URL}/storage/v1/object/public/${EXERCISE_IMAGES_BUCKET}/${imageName}.webp`;
+}
+
+/**
+ * Génère l'URL d'un GIF animé d'exercice depuis Supabase Storage (WebP animé)
+ * @param {string} exerciseId - ID de l'exercice
+ * @returns {string} - URL du GIF ou null
+ */
+function getExerciseGifUrl(exerciseId) {
+    if (!exerciseId) return null;
+    // Les GIFs utilisent directement l'ID de l'exercice comme nom de fichier
+    return `${EXERCISE_STORAGE_URL}/storage/v1/object/public/${EXERCISE_GIFS_BUCKET}/${exerciseId}.webp`;
+}
+
+/**
+ * Vérifie si l'utilisateur préfère les animations réduites
+ * @returns {boolean} - true si reduced motion est activé
+ */
+function shouldShowAnimatedGif() {
+    return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /**

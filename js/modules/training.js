@@ -1881,6 +1881,9 @@ function renderCurrentExercise() {
     `;
     document.getElementById('fs-set-indicator').textContent = `Série ${currentSet} / ${totalSets}`;
 
+    // Load GIF for fullscreen session
+    loadFsExerciseGif(exercise);
+
     // Update progress bar
     const progress = ((fsSession.currentExerciseIndex * totalSets) + fsSession.currentSetIndex) / (totalExercises * totalSets) * 100;
     document.getElementById('fs-progress-fill').style.width = `${progress}%`;
@@ -3540,10 +3543,13 @@ function openExerciseTips(exerciseName) {
         return;
     }
     
-    // Gestion de l'image Hero
+    // Gestion de l'image/GIF Hero
+    const heroGif = document.getElementById('info-exercise-gif');
     const heroImage = document.getElementById('info-exercise-image');
     const heroFallback = document.getElementById('info-exercise-fallback');
-    
+    const heroSkeleton = document.getElementById('exercise-hero-skeleton');
+    const gifControlBtn = document.getElementById('gif-control-btn');
+
     // Icônes fallback selon le groupe musculaire
     const muscleIcons = {
         'chest': '🫁', 'back': '🔙', 'shoulders': '🎯', 'rear-delts': '🎯',
@@ -3551,28 +3557,67 @@ function openExerciseTips(exerciseName) {
         'glutes': '🍑', 'calves': '🦶', 'traps': '🔺', 'abs': '🎽', 'forearms': '✊'
     };
     const fallbackIcon = muscleIcons[exercise.muscle] || '💪';
-    
-    if (heroImage && heroFallback) {
-        // Réinitialiser l'état
-        heroImage.style.display = 'none';
-        heroFallback.style.display = 'flex';
-        heroFallback.textContent = fallbackIcon;
-        
-        // Essayer de charger l'image depuis Supabase Storage
+
+    // Helper pour charger l'image statique en fallback
+    function loadStaticImage() {
         if (typeof getExerciseImageUrl === 'function' && exercise.id) {
             const imageUrl = getExerciseImageUrl(exercise.id);
             heroImage.src = imageUrl;
             heroImage.alt = exercise.name;
-            
-            // Gérer le chargement
+
             heroImage.onload = function() {
+                if (heroSkeleton) heroSkeleton.style.display = 'none';
                 this.style.display = 'block';
                 heroFallback.style.display = 'none';
             };
-            heroImage.onerror = function() {
-                this.style.display = 'none';
-                heroFallback.style.display = 'flex';
+            heroImage.onerror = showFallback;
+        } else {
+            showFallback();
+        }
+    }
+
+    // Helper pour montrer le fallback emoji
+    function showFallback() {
+        if (heroSkeleton) heroSkeleton.style.display = 'none';
+        if (heroGif) heroGif.classList.remove('loaded');
+        heroImage.style.display = 'none';
+        heroFallback.style.display = 'flex';
+        heroFallback.textContent = fallbackIcon;
+    }
+
+    if (heroGif && heroImage && heroFallback) {
+        // Réinitialiser l'état
+        heroGif.classList.remove('loaded');
+        heroGif.src = '';
+        heroImage.style.display = 'none';
+        heroFallback.style.display = 'none';
+        if (heroSkeleton) heroSkeleton.style.display = 'block';
+        if (gifControlBtn) gifControlBtn.style.display = 'none';
+        heroFallback.textContent = fallbackIcon;
+
+        // Vérifier si on doit charger le GIF animé
+        const showAnimated = typeof shouldShowAnimatedGif === 'function' ? shouldShowAnimatedGif() : true;
+
+        if (showAnimated && typeof getExerciseGifUrl === 'function' && exercise.id) {
+            const gifUrl = getExerciseGifUrl(exercise.id);
+            heroGif.src = gifUrl;
+            heroGif.alt = exercise.name;
+
+            heroGif.onload = function() {
+                if (heroSkeleton) heroSkeleton.style.display = 'none';
+                this.classList.add('loaded');
+                heroFallback.style.display = 'none';
+                if (gifControlBtn) gifControlBtn.style.display = 'flex';
             };
+
+            heroGif.onerror = function() {
+                // Fallback vers image statique
+                this.classList.remove('loaded');
+                loadStaticImage();
+            };
+        } else {
+            // Charger directement l'image statique
+            loadStaticImage();
         }
     }
     
@@ -4351,5 +4396,157 @@ window.selectPeriodizationCycle = selectPeriodizationCycle;
 window.resetPeriodizationCycle = resetPeriodizationCycle;
 window.togglePeriodEducation = togglePeriodEducation;
 window.CYCLE_PRESETS = CYCLE_PRESETS;
+
+// ==================== GIF EXERCISE HELPERS ====================
+
+/**
+ * Charge le GIF dans le conteneur fullscreen
+ * @param {Object} exercise - L'exercice courant
+ */
+function loadFsExerciseGif(exercise) {
+    const fsGifContainer = document.getElementById('fs-gif-container');
+    const fsGif = document.getElementById('fs-exercise-gif');
+    const fsSkeleton = fsGifContainer?.querySelector('.fs-gif-skeleton');
+
+    if (!fsGifContainer || !fsGif) return;
+
+    // Vérifier la préférence utilisateur
+    const showGif = localStorage.getItem('fittrack-fs-gif-visible') !== 'false';
+    const showAnimated = typeof shouldShowAnimatedGif === 'function' ? shouldShowAnimatedGif() : true;
+
+    if (!showAnimated) {
+        fsGifContainer.style.display = 'none';
+        return;
+    }
+
+    if (showGif && typeof getExerciseGifUrl === 'function') {
+        const exerciseId = exercise.effectiveId || exercise.id || exercise.originalId;
+
+        if (!exerciseId) {
+            fsGifContainer.style.display = 'none';
+            return;
+        }
+
+        const gifUrl = getExerciseGifUrl(exerciseId);
+
+        // Reset state
+        fsGif.classList.remove('loaded');
+        if (fsSkeleton) fsSkeleton.style.display = 'block';
+        fsGifContainer.style.display = 'block';
+        fsGifContainer.classList.toggle('collapsed', !showGif);
+
+        fsGif.src = gifUrl;
+        fsGif.alt = exercise.effectiveName || exercise.name;
+
+        fsGif.onload = function() {
+            this.classList.add('loaded');
+            if (fsSkeleton) fsSkeleton.style.display = 'none';
+        };
+
+        fsGif.onerror = function() {
+            // Cacher le conteneur si pas de GIF disponible
+            fsGifContainer.style.display = 'none';
+        };
+
+        // Preload next exercise GIF
+        preloadNextExerciseGif();
+    } else {
+        fsGifContainer.style.display = 'none';
+    }
+}
+
+/**
+ * Toggle visibilité du GIF fullscreen
+ */
+function toggleFsGifVisibility() {
+    const container = document.getElementById('fs-gif-container');
+    const text = document.getElementById('fs-gif-toggle-text');
+
+    if (!container) return;
+
+    const isCollapsed = container.classList.toggle('collapsed');
+    if (text) text.textContent = isCollapsed ? 'Afficher démo' : 'Masquer';
+
+    localStorage.setItem('fittrack-fs-gif-visible', !isCollapsed);
+
+    if (window.HapticFeedback) {
+        window.HapticFeedback.light();
+    }
+}
+
+/**
+ * Preload le GIF du prochain exercice
+ */
+function preloadNextExerciseGif() {
+    if (!fsSession.active) return;
+
+    const nextIdx = fsSession.currentExerciseIndex + 1;
+    if (nextIdx < fsSession.exercises.length) {
+        const next = fsSession.exercises[nextIdx];
+        const exerciseId = next.effectiveId || next.id || next.originalId;
+
+        if (exerciseId && typeof getExerciseGifUrl === 'function') {
+            const url = getExerciseGifUrl(exerciseId);
+            const preloadImg = new Image();
+            preloadImg.src = url;
+        }
+    }
+}
+
+// État pour le toggle pause/play du GIF
+let gifPaused = false;
+let cachedGifSrc = null;
+
+/**
+ * Toggle pause/play du GIF dans la fiche exercice
+ * @param {Event} event - L'événement click
+ */
+function toggleGifPlayback(event) {
+    if (event) event.stopPropagation();
+
+    const gif = document.getElementById('info-exercise-gif');
+    const pauseIcon = document.querySelector('.gif-pause-icon');
+    const playIcon = document.querySelector('.gif-play-icon');
+
+    if (!gif || !pauseIcon || !playIcon) return;
+
+    if (gifPaused) {
+        // Reprendre l'animation
+        if (cachedGifSrc) {
+            gif.src = cachedGifSrc;
+        }
+        pauseIcon.style.display = 'block';
+        playIcon.style.display = 'none';
+        gifPaused = false;
+    } else {
+        // Mettre en pause - capturer la frame actuelle
+        cachedGifSrc = gif.src;
+
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = gif.naturalWidth || 400;
+            canvas.height = gif.naturalHeight || 300;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(gif, 0, 0);
+            gif.src = canvas.toDataURL('image/png');
+        } catch (e) {
+            // Si CORS bloque, on garde juste l'état
+            console.warn('Impossible de capturer la frame (CORS)');
+        }
+
+        pauseIcon.style.display = 'none';
+        playIcon.style.display = 'block';
+        gifPaused = true;
+    }
+
+    if (window.HapticFeedback) {
+        window.HapticFeedback.light();
+    }
+}
+
+// Exports GIF helpers
+window.loadFsExerciseGif = loadFsExerciseGif;
+window.toggleFsGifVisibility = toggleFsGifVisibility;
+window.toggleGifPlayback = toggleGifPlayback;
 
 console.log('✅ training.js: Fonctions exportées au scope global');

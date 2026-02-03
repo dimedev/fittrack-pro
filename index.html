@@ -1877,8 +1877,20 @@
             <div class="bottom-sheet-handle exercise-hero-handle"></div>
             <!-- Hero Header avec image pleine largeur -->
             <div class="exercise-info-hero">
-                <img class="exercise-hero-image" id="info-exercise-image" src="" alt="" onerror="this.style.display='none'; document.getElementById('info-exercise-fallback').style.display='flex';">
+                <!-- Skeleton loader -->
+                <div class="exercise-hero-skeleton skeleton" id="exercise-hero-skeleton"></div>
+                <!-- GIF animé (priorité) -->
+                <img class="exercise-hero-gif" id="info-exercise-gif" src="" alt="">
+                <!-- Image statique (fallback) -->
+                <img class="exercise-hero-image" id="info-exercise-image" src="" alt="" style="display:none;">
+                <!-- Emoji (fallback final) -->
                 <div class="exercise-hero-fallback" id="info-exercise-fallback">💪</div>
+                <!-- Bouton pause/play -->
+                <button class="gif-control-btn" id="gif-control-btn" onclick="toggleGifPlayback(event)" style="display:none;">
+                    <span class="gif-pause-icon">⏸</span>
+                    <span class="gif-play-icon" style="display:none;">▶️</span>
+                </button>
+                <!-- Overlay avec titre -->
                 <div class="exercise-hero-overlay">
                     <h3 class="exercise-hero-title" id="info-exercise-name">Exercice</h3>
                     <div class="info-muscle-tags" id="info-muscle-tags"></div>
@@ -2502,6 +2514,20 @@
                 <div class="fs-progress-bar">
                     <div class="fs-progress-fill" id="fs-progress-fill" style="width: 0%"></div>
                 </div>
+            </div>
+
+            <!-- GIF Demo (collapsible) -->
+            <div class="fs-gif-container" id="fs-gif-container" style="display:none;">
+                <div class="fs-gif-wrapper" id="fs-gif-wrapper">
+                    <img class="fs-gif" id="fs-exercise-gif" src="" alt="">
+                    <div class="fs-gif-skeleton skeleton"></div>
+                </div>
+                <button class="fs-gif-toggle" id="fs-gif-toggle" onclick="toggleFsGifVisibility()">
+                    <span id="fs-gif-toggle-text">Masquer</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                </button>
             </div>
 
             <!-- Previous Performance -->
