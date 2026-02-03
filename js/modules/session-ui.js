@@ -778,9 +778,8 @@ function handleDragEnd(e) {
     }
 
     draggedExercise.classList.remove('dragging');
-    
-    // Calculer la nouvelle position
-    const container = document.getElementById('session-exercises');
+
+    // Calculer la nouvelle position (réutiliser container déjà déclaré)
     const cards = Array.from(container.querySelectorAll('.exercise-card'));
     const newIndex = cards.indexOf(draggedExercise);
     const exerciseId = draggedExercise.dataset.exerciseId;
