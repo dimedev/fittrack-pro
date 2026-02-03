@@ -3969,34 +3969,54 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     text-overflow: ellipsis;
 }
 
-/* Row 2: Poids + Séries + Info progression */
+/* Row 2: Poids centré (layout 3 lignes) */
+.brief-exercise-weight-line {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+    margin: 4px 0;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 8px;
+}
+
+.brief-target-weight {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+/* Row 3: Séries + badge progression */
+.brief-exercise-details-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.brief-target-sets {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.brief-progression-text {
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Legacy: ancien format 2 lignes (pour compatibilité) */
 .brief-exercise-row-2 {
     display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
     padding-left: 34px;
-}
-
-.brief-target-weight {
-    font-family: 'Space Mono', monospace;
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--accent-primary);
-}
-
-.brief-target-sets {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.brief-progression-text {
-    font-size: 0.8rem;
-    font-weight: 500;
-    padding: 4px 10px;
-    border-radius: 12px;
-    background: var(--bg-tertiary);
-    color: var(--text-muted);
 }
 
 /* Progression Indicator (Row 1) */
@@ -4134,8 +4154,8 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
         gap: 8px;
     }
 
-    .brief-exercise-row-2 {
-        padding-left: 28px;
+    .brief-exercise-weight-line {
+        padding: 10px 0;
     }
 
     .brief-exercise-name {
@@ -4143,16 +4163,16 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     }
 
     .brief-target-weight {
-        font-size: 1rem;
+        font-size: 1.3rem;
     }
 
     .brief-target-sets {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
     }
 
     .brief-progression-text {
         font-size: 0.75rem;
-        padding: 3px 8px;
+        padding: 4px 8px;
     }
 
     .session-brief-summary {

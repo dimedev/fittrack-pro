@@ -1025,10 +1025,11 @@ function generateSessionBrief() {
             }
         }
 
-        // Générer HTML pour cet exercice (layout 2 lignes - premium)
+        // Générer HTML pour cet exercice (layout 3 lignes - premium)
         if (suggestedWeight) {
             return `
                 <div class="brief-exercise-item">
+                    <!-- Ligne 1: Nom + icône -->
                     <div class="brief-exercise-row-1">
                         <div class="brief-exercise-name-wrap">
                             <span class="brief-exercise-num">${idx + 1}.</span>
@@ -1038,8 +1039,12 @@ function generateSessionBrief() {
                             <span class="brief-progression-icon">${progressionIcon}</span>
                         </div>
                     </div>
-                    <div class="brief-exercise-row-2">
+                    <!-- Ligne 2: Poids seul, centré -->
+                    <div class="brief-exercise-weight-line">
                         <span class="brief-target-weight">${suggestedWeight}kg</span>
+                    </div>
+                    <!-- Ligne 3: Séries + badge -->
+                    <div class="brief-exercise-details-line">
                         <span class="brief-target-sets">${adjustedSets} séries × ${phaseAdjustments.repsRange}</span>
                         <span class="brief-progression-text">${progressionInfo || ''}</span>
                     </div>
@@ -1049,6 +1054,7 @@ function generateSessionBrief() {
             // Pas d'historique - première fois
             return `
                 <div class="brief-exercise-item brief-exercise-new">
+                    <!-- Ligne 1: Nom + icône -->
                     <div class="brief-exercise-row-1">
                         <div class="brief-exercise-name-wrap">
                             <span class="brief-exercise-num">${idx + 1}.</span>
@@ -1058,8 +1064,12 @@ function generateSessionBrief() {
                             <span class="brief-progression-icon">🆕</span>
                         </div>
                     </div>
-                    <div class="brief-exercise-row-2">
+                    <!-- Ligne 2: Poids placeholder -->
+                    <div class="brief-exercise-weight-line">
                         <span class="brief-target-weight">—</span>
+                    </div>
+                    <!-- Ligne 3: Séries + badge -->
+                    <div class="brief-exercise-details-line">
                         <span class="brief-target-sets">${adjustedSets} séries × ${phaseAdjustments.repsRange}</span>
                         <span class="brief-progression-text">Première fois</span>
                     </div>

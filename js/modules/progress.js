@@ -489,20 +489,28 @@ function renderPRsSection() {
         // Fallback: chercher les reps directement dans progressLog si maxReps = 0
         if (maxReps === 0 && state.progressLog[exerciseName]) {
             const logs = state.progressLog[exerciseName];
-            // Chercher le log qui correspond au maxWeight
+
+            // FIX: Ne PAS matcher sur log.weight (c'est une moyenne qui ne matche jamais)
+            // Chercher directement dans setsDetail un set au poids max
             for (const log of logs) {
-                if (log.weight === prs.maxWeight.value) {
-                    // Si setsDetail existe, prendre le max de reps pour ce poids
-                    if (log.setsDetail && log.setsDetail.length > 0) {
-                        const matchingSets = log.setsDetail.filter(s => s.weight === prs.maxWeight.value);
-                        if (matchingSets.length > 0) {
-                            maxReps = Math.max(...matchingSets.map(s => s.reps || 0));
-                        }
-                    } else if (log.achievedReps && log.sets) {
-                        // Fallback: utiliser la moyenne par série
-                        maxReps = Math.round(log.achievedReps / log.sets);
+                if (log.setsDetail && log.setsDetail.length > 0) {
+                    // Chercher un set qui a exactement le poids max
+                    const matchingSets = log.setsDetail.filter(s => s.weight === prs.maxWeight.value);
+                    if (matchingSets.length > 0) {
+                        maxReps = Math.max(...matchingSets.map(s => s.reps || 0));
+                        if (maxReps > 0) break;
                     }
-                    if (maxReps > 0) break;
+                }
+            }
+
+            // Fallback ultime si toujours 0: utiliser les reps moyennes de l'ancien format
+            if (maxReps === 0) {
+                for (const log of logs) {
+                    if (!log.setsDetail && log.achievedReps && log.sets) {
+                        // Format ancien sans setsDetail
+                        maxReps = Math.round(log.achievedReps / log.sets);
+                        if (maxReps > 0) break;
+                    }
                 }
             }
         }
