@@ -1025,21 +1025,23 @@ function generateSessionBrief() {
             }
         }
 
-        // Générer HTML pour cet exercice
+        // Générer HTML pour cet exercice (layout 2 lignes - premium)
         if (suggestedWeight) {
             return `
                 <div class="brief-exercise-item">
-                    <div class="brief-exercise-main">
-                        <span class="brief-exercise-num">${idx + 1}.</span>
-                        <span class="brief-exercise-name">${exerciseName}</span>
+                    <div class="brief-exercise-row-1">
+                        <div class="brief-exercise-name-wrap">
+                            <span class="brief-exercise-num">${idx + 1}.</span>
+                            <span class="brief-exercise-name" title="${exerciseName}">${exerciseName}</span>
+                        </div>
+                        <div class="brief-exercise-progression ${progressionClass}">
+                            <span class="brief-progression-icon">${progressionIcon}</span>
+                        </div>
                     </div>
-                    <div class="brief-exercise-target">
+                    <div class="brief-exercise-row-2">
                         <span class="brief-target-weight">${suggestedWeight}kg</span>
-                        <span class="brief-target-sets">× ${adjustedSets} séries × ${phaseAdjustments.repsRange}</span>
-                    </div>
-                    <div class="brief-exercise-progression ${progressionClass}">
-                        <span class="brief-progression-icon">${progressionIcon}</span>
-                        <span class="brief-progression-text">${progressionInfo || 'Nouveau'}</span>
+                        <span class="brief-target-sets">${adjustedSets} séries × ${phaseAdjustments.repsRange}</span>
+                        <span class="brief-progression-text">${progressionInfo || ''}</span>
                     </div>
                 </div>
             `;
@@ -1047,15 +1049,18 @@ function generateSessionBrief() {
             // Pas d'historique - première fois
             return `
                 <div class="brief-exercise-item brief-exercise-new">
-                    <div class="brief-exercise-main">
-                        <span class="brief-exercise-num">${idx + 1}.</span>
-                        <span class="brief-exercise-name">${exerciseName}</span>
+                    <div class="brief-exercise-row-1">
+                        <div class="brief-exercise-name-wrap">
+                            <span class="brief-exercise-num">${idx + 1}.</span>
+                            <span class="brief-exercise-name" title="${exerciseName}">${exerciseName}</span>
+                        </div>
+                        <div class="brief-exercise-progression new">
+                            <span class="brief-progression-icon">🆕</span>
+                        </div>
                     </div>
-                    <div class="brief-exercise-target">
+                    <div class="brief-exercise-row-2">
+                        <span class="brief-target-weight">—</span>
                         <span class="brief-target-sets">${adjustedSets} séries × ${phaseAdjustments.repsRange}</span>
-                    </div>
-                    <div class="brief-exercise-progression new">
-                        <span class="brief-progression-icon">🆕</span>
                         <span class="brief-progression-text">Première fois</span>
                     </div>
                 </div>

@@ -7,6 +7,58 @@ let muscleVolumeChart = null;
 let frequencyChart = null;
 let monthlyComparisonChart = null;
 
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Calcule la progression de volume entre ce mois et le mois précédent
+ * @returns {number|null} - Pourcentage de progression ou null si pas assez de données
+ */
+function calculateMonthlyProgression() {
+    if (!state.sessionHistory || state.sessionHistory.length === 0) return null;
+
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    let currentMonthVolume = 0;
+    let previousMonthVolume = 0;
+
+    state.sessionHistory.forEach(session => {
+        const sessionDate = new Date(session.date);
+        let sessionVolume = 0;
+
+        // Calculer le volume de la séance
+        (session.exercises || []).forEach(ex => {
+            const setsData = ex.setsDetail || ex.sets || [];
+            if (Array.isArray(setsData)) {
+                setsData.forEach(set => {
+                    if (set.completed !== false) {
+                        sessionVolume += (set.weight || 0) * (set.reps || 0);
+                    }
+                });
+            } else {
+                // Format ancien: sets est un nombre
+                sessionVolume += (ex.weight || 0) * (ex.achievedReps || 0);
+            }
+        });
+
+        // Attribuer au bon mois
+        if (sessionDate >= startOfCurrentMonth) {
+            currentMonthVolume += sessionVolume;
+        } else if (sessionDate >= startOfPreviousMonth && sessionDate <= endOfPreviousMonth) {
+            previousMonthVolume += sessionVolume;
+        }
+    });
+
+    // Si pas de données le mois précédent, pas de calcul possible
+    if (previousMonthVolume === 0) return null;
+
+    // Calculer la progression
+    const progression = ((currentMonthVolume - previousMonthVolume) / previousMonthVolume) * 100;
+    return Math.round(progression);
+}
+
 // ==================== TAB SWITCHING ====================
 
 function switchProgressTab(tabName) {
@@ -64,9 +116,20 @@ function updateProgressHero() {
     const prsEl = document.getElementById('progress-prs-month');
     if (prsEl) prsEl.textContent = prsThisMonth;
     
-    // Progression (calculer la diff avec le mois dernier)
+    // Progression (calculer la diff de volume avec le mois dernier)
     const percentEl = document.getElementById('progress-percentage');
-    if (percentEl) percentEl.textContent = '+15%'; // TODO: calculer réellement
+    if (percentEl) {
+        const progression = calculateMonthlyProgression();
+        if (progression !== null) {
+            const sign = progression >= 0 ? '+' : '';
+            percentEl.textContent = `${sign}${progression}%`;
+            // Changer la couleur selon la progression
+            percentEl.style.color = progression >= 0 ? 'var(--accent-primary)' : 'var(--warning)';
+        } else {
+            percentEl.textContent = '--%';
+            percentEl.style.color = 'var(--text-muted)';
+        }
+    }
     
     // Badges count
     if (typeof Achievements !== 'undefined') {
@@ -420,7 +483,29 @@ function renderPRsSection() {
 
         // Trouver le nombre de reps pour le max weight spécifique
         const maxWeightKey = prs.maxWeight.value.toString();
-        const maxReps = prs.maxRepsAtWeight[maxWeightKey]?.reps || 0;
+        // Fix: Si maxRepsAtWeight n'a pas ce poids exact, chercher dans les logs
+        let maxReps = prs.maxRepsAtWeight[maxWeightKey]?.reps || 0;
+
+        // Fallback: chercher les reps directement dans progressLog si maxReps = 0
+        if (maxReps === 0 && state.progressLog[exerciseName]) {
+            const logs = state.progressLog[exerciseName];
+            // Chercher le log qui correspond au maxWeight
+            for (const log of logs) {
+                if (log.weight === prs.maxWeight.value) {
+                    // Si setsDetail existe, prendre le max de reps pour ce poids
+                    if (log.setsDetail && log.setsDetail.length > 0) {
+                        const matchingSets = log.setsDetail.filter(s => s.weight === prs.maxWeight.value);
+                        if (matchingSets.length > 0) {
+                            maxReps = Math.max(...matchingSets.map(s => s.reps || 0));
+                        }
+                    } else if (log.achievedReps && log.sets) {
+                        // Fallback: utiliser la moyenne par série
+                        maxReps = Math.round(log.achievedReps / log.sets);
+                    }
+                    if (maxReps > 0) break;
+                }
+            }
+        }
 
         html += `
             <div class="pr-card-premium ${isRecentPR ? 'pr-recent' : ''}" style="animation-delay: ${index * 0.05}s">

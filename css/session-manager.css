@@ -3914,18 +3914,17 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     opacity: 0.8;
 }
 
-/* Exercise List */
+/* Exercise List - Premium 2-row layout */
 .session-brief-exercises {
     padding: 0;
-    max-height: 300px;
-    overflow-y: auto;
+    /* Supprimé: max-height et overflow pour éviter double scroll */
 }
 
 .brief-exercise-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border-color);
     transition: background 0.2s ease;
 }
@@ -3938,79 +3937,83 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     background: var(--bg-tertiary);
 }
 
-.brief-exercise-main {
+/* Row 1: Nom exercice + indicateur progression */
+.brief-exercise-row-1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.brief-exercise-name-wrap {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex: 1;
     min-width: 0;
 }
 
 .brief-exercise-num {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    min-width: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    min-width: 24px;
 }
 
 .brief-exercise-name {
     font-weight: 600;
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 1rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.brief-exercise-target {
+/* Row 2: Poids + Séries + Info progression */
+.brief-exercise-row-2 {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
+    width: 100%;
+    padding-left: 34px;
 }
 
 .brief-target-weight {
     font-family: 'Space Mono', monospace;
-    font-weight: 600;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: var(--accent-primary);
 }
 
 .brief-target-sets {
-    color: var(--text-muted);
-}
-
-/* Progression Indicator */
-.brief-exercise-progression {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 10px;
-    border-radius: var(--radius-sm, 6px);
-    font-size: 0.75rem;
-    flex-shrink: 0;
-    transition: transform 0.2s ease;
-    min-width: 70px;
-}
-
-.brief-exercise-progression:hover {
-    transform: scale(1.05);
-}
-
-.brief-progression-icon {
-    font-size: 1rem;
-    margin-bottom: 2px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
 }
 
 .brief-progression-text {
-    font-size: 0.65rem;
+    font-size: 0.8rem;
     font-weight: 500;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 65px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+}
+
+/* Progression Indicator (Row 1) */
+.brief-exercise-progression {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.brief-exercise-progression:hover {
+    transform: scale(1.1);
 }
 
 .brief-exercise-progression.up {
@@ -4127,11 +4130,29 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     }
 
     .brief-exercise-item {
-        padding: 12px 16px;
+        padding: 14px 16px;
+        gap: 8px;
+    }
+
+    .brief-exercise-row-2 {
+        padding-left: 28px;
     }
 
     .brief-exercise-name {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+    }
+
+    .brief-target-weight {
+        font-size: 1rem;
+    }
+
+    .brief-target-sets {
+        font-size: 0.85rem;
+    }
+
+    .brief-progression-text {
+        font-size: 0.75rem;
+        padding: 3px 8px;
     }
 
     .session-brief-summary {

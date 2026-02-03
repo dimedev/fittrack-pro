@@ -259,7 +259,7 @@
                 </div>
                 <span class="pull-refresh-text">Tirer pour actualiser</span>
             `;
-            this.container.style.position = 'relative';
+            // Insérer au début du container (pousse le contenu vers le bas)
             this.container.insertBefore(indicator, this.container.firstChild);
             return indicator;
         }
@@ -274,34 +274,40 @@
         
         onTouchMove(e) {
             if (!this.pulling || this.refreshing) return;
-            
+
             const currentY = e.touches[0].clientY;
             const pull = currentY - this.startY;
-            
+
             if (pull > 0 && this.container.scrollTop === 0) {
                 e.preventDefault();
-                
-                const resistance = 0.4;
-                const actualPull = pull * resistance;
+
+                const resistance = 0.5;
+                const actualPull = Math.min(pull * resistance, 100);
                 const progress = Math.min(actualPull / this.pullThreshold, 1);
-                
-                this.indicator.style.transform = `translateY(${actualPull}px)`;
-                this.indicator.style.opacity = progress;
-                
+
+                // Utiliser la hauteur pour pousser le contenu (pas translateY)
+                this.indicator.style.height = `${actualPull}px`;
+                this.indicator.style.padding = actualPull > 20 ? '12px 0' : '0';
+
                 // Rotation du spinner
                 const rotation = pull * 2;
                 this.indicator.querySelector('.pull-refresh-spinner').style.transform = `rotate(${rotation}deg)`;
-                
+
                 if (progress >= 1) {
                     this.indicator.querySelector('.pull-refresh-text').textContent = 'Relâcher pour actualiser';
+                    this.indicator.classList.add('visible');
                     if (!this.hasVibrated) {
                         Haptics.light();
                         this.hasVibrated = true;
                     }
                 } else {
                     this.indicator.querySelector('.pull-refresh-text').textContent = 'Tirer pour actualiser';
+                    this.indicator.classList.remove('visible');
                     this.hasVibrated = false;
                 }
+
+                // Stocker la valeur pour onTouchEnd
+                this.currentPull = actualPull;
             }
         }
         
@@ -309,37 +315,41 @@
             if (!this.pulling || this.refreshing) return;
             this.pulling = false;
             this.hasVibrated = false;
-            
-            const transform = this.indicator.style.transform;
-            const pull = parseFloat(transform.match(/translateY\(([^)]+)px\)/)?.[1] || 0);
-            
+
+            const pull = this.currentPull || 0;
+
             if (pull >= this.pullThreshold) {
                 // Déclencher refresh
                 this.refreshing = true;
                 Haptics.medium();
-                
+
                 this.indicator.classList.add('refreshing');
-                this.indicator.style.transform = 'translateY(60px)';
+                this.indicator.classList.remove('visible');
+                this.indicator.style.height = '60px';
                 this.indicator.querySelector('.pull-refresh-text').textContent = 'Actualisation...';
-                
+
                 try {
                     await this.onRefresh();
                     Haptics.success();
                 } catch (error) {
                     Haptics.error();
                 }
-                
+
                 this.indicator.classList.remove('refreshing');
             }
-            
-            this.indicator.style.transition = 'all 0.3s ease';
-            this.indicator.style.transform = 'translateY(0)';
-            this.indicator.style.opacity = '0';
-            
+
+            // Animation de retour fluide
+            this.indicator.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease';
+            this.indicator.style.height = '0';
+            this.indicator.style.padding = '0';
+            this.indicator.classList.remove('visible');
+
             setTimeout(() => {
                 this.indicator.style.transition = '';
                 this.indicator.querySelector('.pull-refresh-text').textContent = 'Tirer pour actualiser';
+                this.indicator.querySelector('.pull-refresh-spinner').style.transform = '';
                 this.refreshing = false;
+                this.currentPull = 0;
             }, 300);
         }
     }
@@ -518,41 +528,53 @@
                 font-size: 1.2rem;
             }
             
-            /* Pull to Refresh */
+            /* Pull to Refresh - Push content design */
             .pull-refresh-indicator {
-                position: absolute;
-                top: -60px;
-                left: 50%;
-                transform: translateX(-50%) translateY(0);
+                width: 100%;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
+                justify-content: center;
                 gap: 8px;
-                opacity: 0;
-                transition: opacity 0.1s ease;
-                z-index: 10;
+                height: 0;
+                overflow: hidden;
+                transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                background: linear-gradient(180deg, var(--bg-tertiary) 0%, var(--bg-primary) 100%);
             }
-            
+
+            .pull-refresh-indicator.visible {
+                height: 70px;
+                padding: 12px 0;
+            }
+
+            .pull-refresh-indicator.refreshing {
+                height: 60px;
+                padding: 10px 0;
+            }
+
             .pull-refresh-spinner {
-                width: 32px;
-                height: 32px;
-                color: var(--accent-brand);
+                width: 28px;
+                height: 28px;
+                color: var(--accent-primary);
+                transition: transform 0.1s ease;
             }
-            
+
             .pull-refresh-spinner svg {
                 width: 100%;
                 height: 100%;
             }
-            
+
             .pull-refresh-indicator.refreshing .pull-refresh-spinner svg {
                 animation: spin 1s linear infinite;
             }
-            
+
             .pull-refresh-text {
-                font-size: 0.75rem;
+                font-size: 0.8rem;
+                font-weight: 500;
                 color: var(--text-secondary);
+                text-align: center;
             }
-            
+
             @keyframes spin {
                 to { transform: rotate(360deg); }
             }
