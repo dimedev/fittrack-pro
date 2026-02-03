@@ -135,6 +135,11 @@ function navigateToSection(sectionId) {
     
     // Mettre à jour la section actuelle
     currentSection = sectionId;
+
+    // Rafraîchir les données spécifiques à la section
+    if (sectionId === 'nutrition' && typeof window.updateMacroRings === 'function') {
+        window.updateMacroRings();
+    }
 }
 
 /**

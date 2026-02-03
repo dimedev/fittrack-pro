@@ -2048,6 +2048,118 @@
     opacity: 0.5;
 }
 
+/* NEW: Muscles prêts à entraîner */
+.recovery-ready-muscles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.recovery-ready-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 20px;
+    font-size: 0.8rem;
+}
+
+.ready-muscle-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ready-muscle-badge {
+    font-size: 0.7rem;
+    color: var(--success);
+    font-weight: 500;
+}
+
+/* NEW: Note muscles fatigués */
+.recovery-fatigued-note {
+    font-size: 0.75rem;
+    color: var(--warning);
+    padding: 8px 12px;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+/* NEW: Recommandation repos */
+.recovery-recommendation {
+    text-align: center;
+    padding: 16px;
+}
+
+.recovery-rec-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.recovery-rec-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.recovery-rec-detail {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.recovery-fatigued-list {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.recovery-fatigued-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.fatigued-name {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.fatigued-percent {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* NEW: Message tous prêts */
+.recovery-ready-message {
+    text-align: center;
+    padding: 16px;
+}
+
+.ready-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.ready-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.ready-suggestion {
+    font-size: 0.75rem;
+    color: var(--success);
+}
+
 .recovery-muscles {
     display: flex;
     flex-direction: column;

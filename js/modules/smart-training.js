@@ -586,73 +586,108 @@
     
     /**
      * Génère le HTML pour l'indicateur de récupération musculaire
+     * FIX: Affiche les muscles PRÊTS à entraîner au lieu des muscles fatigués
      */
     function renderMuscleRecoveryWidget() {
         const recovery = calculateMuscleRecovery();
-        
-        // Trier par récupération (les plus fatigués en premier)
-        const sortedMuscles = Object.entries(recovery)
-            .filter(([_, data]) => data.lastWorked !== null)
-            .sort((a, b) => a[1].recovery - b[1].recovery);
-        
-        if (sortedMuscles.length === 0) {
-            return `
-                <div class="recovery-widget">
-                    <div class="recovery-header">
-                        <span class="recovery-title">💪 Récupération</span>
-                    </div>
-                    <div class="recovery-empty">
-                        <div class="recovery-empty-icon">✅</div>
-                        <div>Tous vos muscles sont prêts !</div>
-                        <div style="margin-top: 8px; font-size: 0.75rem;">Commencez à vous entraîner pour voir le suivi de récupération</div>
-                    </div>
-                </div>
-            `;
-        }
-        
+
+        // Séparer muscles prêts (>= 80%) et muscles fatigués (< 80%)
+        const allMuscles = Object.entries(recovery);
+        const readyMuscles = allMuscles
+            .filter(([_, data]) => data.recovery >= 80)
+            .sort((a, b) => b[1].recovery - a[1].recovery); // Meilleurs en premier
+
+        const fatiguedMuscles = allMuscles
+            .filter(([_, data]) => data.lastWorked !== null && data.recovery < 80)
+            .sort((a, b) => a[1].recovery - b[1].recovery); // Pires en premier
+
         const statusColors = {
             ready: 'var(--success)',
             ok: 'var(--success)',
             caution: 'var(--warning)',
             fatigue: 'var(--danger)'
         };
-        
-        const statusLabels = {
-            ready: 'Prêt',
-            ok: 'OK',
-            caution: 'Prudence',
-            fatigue: 'Fatigué'
-        };
-        
+
+        // CAS 1: Tous les muscles sont fatigués
+        if (readyMuscles.length === 0 && fatiguedMuscles.length > 0) {
+            let html = `
+                <div class="recovery-widget">
+                    <div class="recovery-header">
+                        <span class="recovery-title">🧘 Repos Recommandé</span>
+                    </div>
+                    <div class="recovery-recommendation">
+                        <div class="recovery-rec-icon">😴</div>
+                        <div class="recovery-rec-text">Vos muscles récupèrent</div>
+                        <div class="recovery-rec-detail">Journée repos ou cardio léger</div>
+                    </div>
+                    <div class="recovery-fatigued-list">
+            `;
+
+            fatiguedMuscles.slice(0, 3).forEach(([muscle, data]) => {
+                const muscleInfo = MUSCLE_GROUPS[muscle];
+                html += `
+                    <div class="recovery-fatigued-item">
+                        <span class="fatigued-name">${muscleInfo.name}</span>
+                        <span class="fatigued-percent" style="color: ${statusColors[data.status]}">${data.recovery}%</span>
+                    </div>
+                `;
+            });
+
+            html += `</div></div>`;
+            return html;
+        }
+
+        // CAS 2: Aucun entraînement récent (tous à 100%, aucun lastWorked)
+        if (fatiguedMuscles.length === 0 && readyMuscles.every(([_, data]) => data.lastWorked === null)) {
+            // Suggérer des groupes musculaires à entraîner
+            const suggestions = ['chest', 'back', 'legs'].map(m => MUSCLE_GROUPS[m]?.name).filter(Boolean);
+            return `
+                <div class="recovery-widget">
+                    <div class="recovery-header">
+                        <span class="recovery-title">💪 Prêt à Entraîner</span>
+                    </div>
+                    <div class="recovery-ready-message">
+                        <div class="ready-icon">🎯</div>
+                        <div class="ready-text">Tous vos muscles sont disponibles !</div>
+                        <div class="ready-suggestion">Suggéré : ${suggestions.join(', ')}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // CAS 3: Mix de muscles prêts et fatigués - Afficher les prêts
         let html = `
             <div class="recovery-widget">
                 <div class="recovery-header">
-                    <span class="recovery-title">💪 Récupération Musculaire</span>
+                    <span class="recovery-title">✅ Prêts à Entraîner</span>
                 </div>
-                <div class="recovery-muscles">
+                <div class="recovery-ready-muscles">
         `;
-        
-        sortedMuscles.slice(0, 6).forEach(([muscle, data]) => {
+
+        // Afficher jusqu'à 4 muscles prêts
+        readyMuscles.slice(0, 4).forEach(([muscle, data]) => {
             const muscleInfo = MUSCLE_GROUPS[muscle];
             html += `
-                <div class="recovery-muscle-item">
-                    <div class="muscle-info">
-                        <span class="muscle-name">${muscleInfo.name}</span>
-                        <span class="muscle-status" style="color: ${statusColors[data.status]}">${statusLabels[data.status]}</span>
-                    </div>
-                    <div class="muscle-bar">
-                        <div class="muscle-bar-fill" style="width: ${data.recovery}%; background: ${statusColors[data.status]}"></div>
-                    </div>
-                    <span class="muscle-percent">${data.recovery}%</span>
+                <div class="recovery-ready-item">
+                    <span class="ready-muscle-name">${muscleInfo.name}</span>
+                    <span class="ready-muscle-badge">✓ ${data.recovery}%</span>
                 </div>
             `;
         });
-        
-        html += `
+
+        html += `</div>`;
+
+        // Si il y a des muscles fatigués, les mentionner brièvement
+        if (fatiguedMuscles.length > 0) {
+            const fatiguedNames = fatiguedMuscles.slice(0, 2).map(([m]) => MUSCLE_GROUPS[m]?.name).join(', ');
+            html += `
+                <div class="recovery-fatigued-note">
+                    ⚠️ En récup : ${fatiguedNames}
                 </div>
-            </div>
-        `;
-        
+            `;
+        }
+
+        html += `</div>`;
         return html;
     }
     

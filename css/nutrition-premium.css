@@ -1399,3 +1399,209 @@ body.modal-open {
 .meal-scrollable-content {
     max-height: calc(90vh - 180px); /* Hauteur viewport - header - controls */
 }
+
+/* ==================== PROGRESS RINGS - PREMIUM UI ==================== */
+/* Anneaux SVG animés style Apple Health */
+
+.nutrition-macros-rings {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px 16px;
+    margin-bottom: 16px;
+}
+
+.macro-ring-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.macro-ring-svg {
+    width: 80px;
+    height: 80px;
+    transform: rotate(-90deg);
+}
+
+.ring-bg {
+    fill: none;
+    stroke: var(--bg-tertiary);
+    stroke-width: 8;
+}
+
+.ring-progress {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 314; /* 2 * PI * 50 (rayon) */
+    stroke-dashoffset: 314;
+    transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Couleurs par macro */
+.ring-progress.calories {
+    stroke: #FF3B30;
+}
+
+.ring-progress.protein {
+    stroke: #FF9500;
+}
+
+.ring-progress.carbs {
+    stroke: #34C759;
+}
+
+.ring-progress.fat {
+    stroke: #007AFF;
+}
+
+/* Contenu central du ring */
+.ring-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% - 4px));
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.ring-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.ring-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+/* Glow effect quand objectif atteint */
+.macro-ring-container.complete .ring-progress {
+    filter: drop-shadow(0 0 6px currentColor);
+}
+
+.macro-ring-container.complete .ring-value {
+    color: var(--success);
+}
+
+/* Légende sous le ring */
+.ring-macro-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    .nutrition-macros-rings {
+        gap: 12px;
+        padding: 16px 8px;
+    }
+
+    .macro-ring-svg {
+        width: 65px;
+        height: 65px;
+    }
+
+    .ring-value {
+        font-size: 0.95rem;
+    }
+
+    .ring-label {
+        font-size: 0.55rem;
+    }
+}
+
+/* ==================== MEAL CARDS - GRADIENT COLORS ==================== */
+/* Gradients thématiques par type de repas */
+
+/* Style de base pour les icônes de repas - cercle coloré */
+.meal-section .meal-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 1.3rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Petit-déjeuner - Orange/Doré (sunrise) */
+.meal-section[data-meal="breakfast"] .meal-icon {
+    background: linear-gradient(135deg, #FFA500, #FFD700);
+    box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+}
+
+/* Déjeuner - Rouge/Corail (midday energy) */
+.meal-section[data-meal="lunch"] .meal-icon {
+    background: linear-gradient(135deg, #FF6B6B, #FFA07A);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+/* Collation - Turquoise/Vert (fresh) */
+.meal-section[data-meal="snack"] .meal-icon {
+    background: linear-gradient(135deg, #4ECDC4, #44A08D);
+    box-shadow: 0 2px 8px rgba(78, 205, 196, 0.3);
+}
+
+/* Dîner - Violet/Indigo (evening) */
+.meal-section[data-meal="dinner"] .meal-icon {
+    background: linear-gradient(135deg, #667EEA, #764BA2);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Hover effect sur les icônes */
+.meal-section:hover .meal-icon {
+    transform: scale(1.05);
+}
+
+/* Hover effect sur les meal sections */
+.meal-section {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.meal-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation d'ajout d'aliment */
+@keyframes foodAddPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.food-item-added {
+    animation: foodAddPop 0.3s ease forwards;
+}
+
+/* Glow subtil sur les headers colorés */
+.meal-section[data-meal="breakfast"] .meal-header {
+    box-shadow: inset 0 -2px 8px rgba(255, 165, 0, 0.1);
+}
+
+.meal-section[data-meal="lunch"] .meal-header {
+    box-shadow: inset 0 -2px 8px rgba(255, 107, 107, 0.1);
+}
+
+.meal-section[data-meal="snack"] .meal-header {
+    box-shadow: inset 0 -2px 8px rgba(78, 205, 196, 0.1);
+}
+
+.meal-section[data-meal="dinner"] .meal-header {
+    box-shadow: inset 0 -2px 8px rgba(102, 126, 234, 0.1);
+}

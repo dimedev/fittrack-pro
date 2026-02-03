@@ -617,12 +617,12 @@ let touchStartY = 0;
 function initExerciseDragDrop() {
     const container = document.getElementById('session-exercises');
     if (!container) return;
-    
+
     // Touch events pour mobile
-    container.addEventListener('touchstart', handleDragStart, { passive: false });
-    container.addEventListener('touchmove', handleDragMove, { passive: false });
+    // FIX: touchstart passif par défaut, touchmove ajouté seulement pendant le drag
+    container.addEventListener('touchstart', handleDragStart, { passive: true });
     container.addEventListener('touchend', handleDragEnd);
-    
+
     // Mouse events pour desktop
     container.addEventListener('mousedown', handleDragStart);
     document.addEventListener('mousemove', handleDragMove);
@@ -632,21 +632,32 @@ function initExerciseDragDrop() {
 function handleDragStart(e) {
     const handle = e.target.closest('.exercise-drag-handle');
     if (!handle) return;
-    
-    e.preventDefault();
-    
+
+    // Pour mouse events, on peut preventDefault
+    if (!e.touches) {
+        e.preventDefault();
+    }
+
     const card = handle.closest('.exercise-card');
     if (!card) return;
-    
+
     draggedExercise = card;
     card.classList.add('dragging');
-    
+
     touchStartY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    // FIX: Ajouter le listener touchmove non-passif seulement pendant le drag
+    if (e.touches) {
+        const container = document.getElementById('session-exercises');
+        container.addEventListener('touchmove', handleDragMove, { passive: false });
+    }
 }
 
 function handleDragMove(e) {
+    // FIX: Seulement bloquer le scroll si on est vraiment en train de drag
     if (!draggedExercise) return;
-    
+
+    // Seulement maintenant qu'on sait qu'on drag, on peut bloquer le scroll
     e.preventDefault();
     
     const currentY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -669,7 +680,13 @@ function handleDragMove(e) {
 
 function handleDragEnd(e) {
     if (!draggedExercise) return;
-    
+
+    // FIX: Retirer le listener touchmove à la fin du drag
+    const container = document.getElementById('session-exercises');
+    if (container) {
+        container.removeEventListener('touchmove', handleDragMove);
+    }
+
     draggedExercise.classList.remove('dragging');
     
     // Calculer la nouvelle position

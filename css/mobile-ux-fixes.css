@@ -1334,6 +1334,16 @@ html, body, main {
 
 /* ==================== FIX 11: STAT CARDS OVERFLOW ==================== */
 
+/* FIX: Permettre le scroll vertical natif sur les cards */
+.stat-card,
+.coach-card,
+.journal-entry,
+.program-card,
+.meal-section,
+.pr-card-premium {
+    touch-action: pan-y;  /* Permet le scroll vertical, bloque horizontal */
+}
+
 @media (max-width: 768px) {
     .stat-card {
         padding: 14px 16px;

@@ -6,7 +6,8 @@
       "Bash(cd:*)",
       "Bash(wc:*)",
       "Bash(node --check:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ]
   }
 }

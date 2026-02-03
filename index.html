@@ -394,6 +394,55 @@
 
                     <!-- Macros du jour - EN PREMIER -->
                     <div class="nutrition-macros-summary" style="margin-bottom: 20px;">
+                        <!-- Progress Rings - Premium UI -->
+                        <div class="nutrition-macros-rings" id="nutrition-macros-rings">
+                            <div class="macro-ring-container" data-macro="calories" id="ring-container-cals">
+                                <svg class="macro-ring-svg" viewBox="0 0 120 120">
+                                    <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                                    <circle class="ring-progress calories" cx="60" cy="60" r="50" id="ring-cals"/>
+                                </svg>
+                                <div class="ring-content">
+                                    <span class="ring-value" id="ring-cals-value">0</span>
+                                    <span class="ring-label">kcal</span>
+                                </div>
+                                <span class="ring-macro-name">Calories</span>
+                            </div>
+                            <div class="macro-ring-container" data-macro="protein" id="ring-container-prot">
+                                <svg class="macro-ring-svg" viewBox="0 0 120 120">
+                                    <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                                    <circle class="ring-progress protein" cx="60" cy="60" r="50" id="ring-prot"/>
+                                </svg>
+                                <div class="ring-content">
+                                    <span class="ring-value" id="ring-prot-value">0</span>
+                                    <span class="ring-label">g</span>
+                                </div>
+                                <span class="ring-macro-name">Protéines</span>
+                            </div>
+                            <div class="macro-ring-container" data-macro="carbs" id="ring-container-carbs">
+                                <svg class="macro-ring-svg" viewBox="0 0 120 120">
+                                    <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                                    <circle class="ring-progress carbs" cx="60" cy="60" r="50" id="ring-carbs"/>
+                                </svg>
+                                <div class="ring-content">
+                                    <span class="ring-value" id="ring-carbs-value">0</span>
+                                    <span class="ring-label">g</span>
+                                </div>
+                                <span class="ring-macro-name">Glucides</span>
+                            </div>
+                            <div class="macro-ring-container" data-macro="fat" id="ring-container-fat">
+                                <svg class="macro-ring-svg" viewBox="0 0 120 120">
+                                    <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                                    <circle class="ring-progress fat" cx="60" cy="60" r="50" id="ring-fat"/>
+                                </svg>
+                                <div class="ring-content">
+                                    <span class="ring-value" id="ring-fat-value">0</span>
+                                    <span class="ring-label">g</span>
+                                </div>
+                                <span class="ring-macro-name">Lipides</span>
+                            </div>
+                        </div>
+
+                        <!-- Barres détaillées (masquées par défaut sur mobile) -->
                         <div id="journal-macros-bars" class="journal-macro-bars">
                             <div class="journal-macro-bar-item">
                                 <div class="journal-macro-bar-header">

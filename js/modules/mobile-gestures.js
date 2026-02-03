@@ -95,19 +95,22 @@
         
         handleTouchMove(e) {
             if (!this.isDragging) return;
-            
+
             this.currentX = e.touches[0].clientX;
             const currentY = e.touches[0].clientY;
             const diffX = this.currentX - this.startX;
             const diffY = currentY - this.startY;
-            
-            // Si scroll vertical, annuler le swipe
-            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffX) < 10) {
+
+            // FIX: Si scroll vertical (geste plus vertical qu'horizontal), laisser le scroll natif
+            if (Math.abs(diffY) > Math.abs(diffX)) {
+                // Reset le swipe et laisse le scroll fonctionner
+                this.content.style.transform = '';
+                this.deleteBackground.style.opacity = '0';
                 return;
             }
-            
-            // Seulement swipe vers la gauche
-            if (diffX < 0) {
+
+            // Seulement swipe vers la gauche ET avec un mouvement significatif (> 10px)
+            if (diffX < 0 && Math.abs(diffX) > 10) {
                 e.preventDefault();
                 const maxSwipe = this.element.offsetWidth * 0.7; // Max 70% de la largeur
                 const translateX = Math.max(diffX, -maxSwipe);

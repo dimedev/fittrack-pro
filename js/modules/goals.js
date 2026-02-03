@@ -1065,14 +1065,25 @@ function generateWeeklyInsights() {
 /**
  * Analyse le volume d'entraînement de la semaine
  * OPTIMISÉ: Limite aux 50 dernières sessions
+ * FIX: Utilise semaine calendaire (lundi-dimanche) au lieu de fenêtre glissante
  */
 function getVolumeInsight() {
     if (!state.sessionHistory || state.sessionHistory.length === 0) return null;
-    
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const twoWeeksAgo = new Date();
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+    // FIX: Calculer le lundi de la semaine actuelle (semaine calendaire)
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = dimanche, 1 = lundi, etc.
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+    const mondayThisWeek = new Date(today);
+    mondayThisWeek.setDate(today.getDate() - daysToMonday);
+    mondayThisWeek.setHours(0, 0, 0, 0);
+
+    const mondayLastWeek = new Date(mondayThisWeek);
+    mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+
+    const mondayTwoWeeksAgo = new Date(mondayLastWeek);
+    mondayTwoWeeksAgo.setDate(mondayLastWeek.getDate() - 7);
     
     let currentWeekSessions = 0;
     let currentWeekVolume = 0;
@@ -1081,24 +1092,28 @@ function getVolumeInsight() {
     
     // OPTIMISATION: Ne traiter que les 50 dernières sessions
     const recentSessions = state.sessionHistory.slice(-50);
-    
+
     for (const session of recentSessions) {
         const sessionDate = new Date(session.date);
-        
-        // Ignorer les sessions trop anciennes
-        if (sessionDate < twoWeeksAgo) continue;
-        
+        sessionDate.setHours(0, 0, 0, 0);
+
+        // Ignorer les sessions trop anciennes (plus de 2 semaines)
+        if (sessionDate < mondayTwoWeeksAgo) continue;
+
         let sessionVolume = 0;
         for (const ex of (session.exercises || [])) {
-            sessionVolume += (ex.achievedSets || ex.sets || 0) * 
-                            (ex.achievedReps || ex.reps || 0) * 
+            sessionVolume += (ex.achievedSets || ex.sets || 0) *
+                            (ex.achievedReps || ex.reps || 0) *
                             (ex.weight || 10);
         }
-        
-        if (sessionDate >= oneWeekAgo) {
+
+        // FIX: Semaine calendaire au lieu de fenêtre glissante
+        if (sessionDate >= mondayThisWeek) {
+            // Cette semaine (depuis lundi)
             currentWeekSessions++;
             currentWeekVolume += sessionVolume;
-        } else {
+        } else if (sessionDate >= mondayLastWeek) {
+            // Semaine dernière (lundi-dimanche)
             lastWeekSessions++;
             lastWeekVolume += sessionVolume;
         }

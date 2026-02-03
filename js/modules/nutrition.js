@@ -1605,6 +1605,49 @@ function updateMacroRings() {
     
     // Aussi mettre à jour les barres de fallback
     updateMacroBars();
+
+    // NOUVEAU: Mettre à jour les anneaux SVG statiques de l'onglet Nutrition
+    updateNutritionSVGRings(consumed, targets);
+}
+
+// Animer les progress rings SVG de l'onglet Nutrition
+function updateNutritionSVGRings(consumed, targets) {
+    const circumference = 2 * Math.PI * 50; // 314.159... (rayon = 50)
+
+    const ringConfigs = [
+        { ringId: 'ring-cals', valueId: 'ring-cals-value', containerId: 'ring-container-cals', value: consumed.calories, max: targets.calories },
+        { ringId: 'ring-prot', valueId: 'ring-prot-value', containerId: 'ring-container-prot', value: consumed.protein, max: targets.protein },
+        { ringId: 'ring-carbs', valueId: 'ring-carbs-value', containerId: 'ring-container-carbs', value: consumed.carbs, max: targets.carbs },
+        { ringId: 'ring-fat', valueId: 'ring-fat-value', containerId: 'ring-container-fat', value: consumed.fat, max: targets.fat }
+    ];
+
+    ringConfigs.forEach(config => {
+        const ring = document.getElementById(config.ringId);
+        const valueEl = document.getElementById(config.valueId);
+        const container = document.getElementById(config.containerId);
+
+        if (!ring) return;
+
+        const percentage = Math.min((config.value / config.max) * 100, 100);
+        const offset = circumference - (percentage / 100) * circumference;
+
+        // Animer le stroke-dashoffset
+        ring.style.strokeDashoffset = offset;
+
+        // Mettre à jour la valeur affichée
+        if (valueEl) {
+            valueEl.textContent = Math.round(config.value);
+        }
+
+        // Ajouter/retirer la classe "complete" pour le glow effect
+        if (container) {
+            if (percentage >= 100) {
+                container.classList.add('complete');
+            } else {
+                container.classList.remove('complete');
+            }
+        }
+    });
 }
 
 // Mise à jour des barres de macros (fallback mobile)
@@ -3331,5 +3374,6 @@ window.filterFoods = filterFoods;
 window.toggleCustomFoods = toggleCustomFoods;
 window.toggleFoodBrowse = toggleFoodBrowse;
 window.searchUnifiedFoods = searchUnifiedFoods;
+window.updateMacroRings = updateMacroRings;
 
 console.log('✅ nutrition.js: Fonctions exportées au scope global');
