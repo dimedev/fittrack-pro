@@ -1,5 +1,81 @@
 // ==================== UI MODULE ====================
 
+// ==================== AUTOSAVE INDICATOR ====================
+
+/**
+ * Gère l'indicateur visuel d'autosave
+ * États: 'saving' | 'saved' | 'error' | 'hidden'
+ */
+const AutosaveIndicator = {
+    _element: null,
+    _textElement: null,
+    _hideTimeout: null,
+
+    /**
+     * Initialise les références DOM
+     */
+    init() {
+        this._element = document.getElementById('autosave-indicator');
+        this._textElement = document.getElementById('autosave-text');
+    },
+
+    /**
+     * Affiche l'état "Sauvegarde en cours..."
+     */
+    showSaving() {
+        if (!this._element) this.init();
+        if (!this._element) return;
+
+        clearTimeout(this._hideTimeout);
+        this._element.className = 'autosave-indicator saving visible';
+        if (this._textElement) this._textElement.textContent = 'Sauvegarde...';
+    },
+
+    /**
+     * Affiche l'état "Sauvegardé ✓"
+     * @param {number} hideAfter - Délai avant masquage (ms), défaut 2000
+     */
+    showSaved(hideAfter = 2000) {
+        if (!this._element) this.init();
+        if (!this._element) return;
+
+        clearTimeout(this._hideTimeout);
+        this._element.className = 'autosave-indicator saved visible';
+        if (this._textElement) this._textElement.textContent = 'Sauvegardé';
+
+        // Masquer après délai
+        this._hideTimeout = setTimeout(() => {
+            this.hide();
+        }, hideAfter);
+    },
+
+    /**
+     * Affiche l'état "Erreur"
+     * @param {string} message - Message d'erreur optionnel
+     */
+    showError(message = 'Erreur de sauvegarde') {
+        if (!this._element) this.init();
+        if (!this._element) return;
+
+        clearTimeout(this._hideTimeout);
+        this._element.className = 'autosave-indicator error visible';
+        if (this._textElement) this._textElement.textContent = message;
+
+        // Masquer après délai plus long pour les erreurs
+        this._hideTimeout = setTimeout(() => {
+            this.hide();
+        }, 4000);
+    },
+
+    /**
+     * Masque l'indicateur
+     */
+    hide() {
+        if (!this._element) return;
+        this._element.classList.remove('visible');
+    }
+};
+
 // ==================== SKELETON LOADERS ====================
 
 function showSkeleton(containerId, type = 'card') {
@@ -343,13 +419,30 @@ function initUniversalSwipeToClose() {
     }
 }
 
-// Toast notifications - Premium redesign
+// Toast notifications - Premium redesign with Actions
 const MAX_TOASTS = 3;
 
-function showToast(message, type = 'success', duration = 2500) {
+/**
+ * Affiche un toast avec support optionnel d'action (ex: "Annuler")
+ * @param {string} message - Le message à afficher
+ * @param {string} type - 'success' | 'error' | 'info'
+ * @param {object} options - Options avancées
+ * @param {number} options.duration - Durée en ms (défaut: 2500, 5000 si action)
+ * @param {object} options.action - { label: string, callback: function }
+ */
+function showToast(message, type = 'success', options = {}) {
     const container = document.getElementById('toast-container');
     if (!container) return;
-    
+
+    // Support legacy: si options est un nombre, c'est la durée
+    if (typeof options === 'number') {
+        options = { duration: options };
+    }
+
+    const { action, duration: customDuration } = options;
+    // Durée plus longue si action présente
+    const duration = customDuration || (action ? 5000 : 2500);
+
     // Limiter le nombre de toasts affichés
     const existingToasts = container.querySelectorAll('.toast:not(.hiding)');
     if (existingToasts.length >= MAX_TOASTS) {
@@ -357,10 +450,11 @@ function showToast(message, type = 'success', duration = 2500) {
         const oldest = existingToasts[0];
         removeToast(oldest);
     }
-    
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+    if (action) toast.classList.add('has-action');
+
     // Icônes premium
     const icons = {
         success: '✓',
@@ -368,18 +462,41 @@ function showToast(message, type = 'success', duration = 2500) {
         info: 'ℹ'
     };
     const icon = icons[type] || icons.info;
-    
+
+    // Build HTML with optional action button
+    let actionHTML = '';
+    if (action && action.label) {
+        actionHTML = `<button class="toast-action-btn">${action.label}</button>`;
+    }
+
     toast.innerHTML = `
         <span class="toast-icon">${icon}</span>
         <span class="toast-message">${message}</span>
+        ${actionHTML}
     `;
-    
+
+    // Attach action callback if present
+    if (action && action.callback) {
+        const actionBtn = toast.querySelector('.toast-action-btn');
+        if (actionBtn) {
+            actionBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                action.callback();
+                removeToast(toast);
+            });
+        }
+    }
+
     container.appendChild(toast);
 
-    // Animation de sortie après la durée
-    setTimeout(() => {
+    // Store timeout reference for potential early dismissal
+    const timeoutId = setTimeout(() => {
         removeToast(toast);
     }, duration);
+
+    toast.dataset.timeoutId = timeoutId;
+
+    return toast;
 }
 
 function removeToast(toast) {
@@ -469,6 +586,203 @@ function initUI() {
     }
 }
 
+// ==================== UNDO MANAGER ====================
+
+/**
+ * Système UNDO global pour annuler les actions destructives
+ * Supporte une stack d'actions avec undo/redo
+ */
+const UndoManager = {
+    _stack: [],
+    _maxSize: 10,
+
+    /**
+     * Enregistre une action annulable
+     * @param {string} actionType - Type d'action (ex: 'delete-exercise', 'delete-meal')
+     * @param {object} data - Données à restaurer
+     * @param {function} undoFn - Fonction pour annuler l'action
+     * @param {string} description - Description pour le toast (ex: "Squat supprimé")
+     */
+    push(actionType, data, undoFn, description) {
+        this._stack.push({
+            type: actionType,
+            data: data,
+            undo: undoFn,
+            description: description,
+            timestamp: Date.now()
+        });
+
+        // Limiter la taille de la stack
+        if (this._stack.length > this._maxSize) {
+            this._stack.shift();
+        }
+
+        // Afficher toast avec action "Annuler"
+        showToast(description, 'info', {
+            duration: 5000,
+            action: {
+                label: 'Annuler',
+                callback: () => this.undo()
+            }
+        });
+
+        console.log(`📝 UndoManager: Action enregistrée (${actionType})`, data);
+    },
+
+    /**
+     * Annule la dernière action
+     * @returns {boolean} True si une action a été annulée
+     */
+    undo() {
+        if (this._stack.length === 0) {
+            showToast('Rien à annuler', 'info');
+            return false;
+        }
+
+        const lastAction = this._stack.pop();
+
+        try {
+            lastAction.undo(lastAction.data);
+            showToast('Action annulée ✓', 'success');
+
+            // Haptic feedback si disponible
+            if (window.HapticFeedback) {
+                window.HapticFeedback.notification('success');
+            }
+
+            console.log(`↩️ UndoManager: Action annulée (${lastAction.type})`);
+            return true;
+        } catch (err) {
+            console.error('❌ UndoManager: Erreur lors de l\'annulation', err);
+            showToast('Erreur lors de l\'annulation', 'error');
+            return false;
+        }
+    },
+
+    /**
+     * Vide la stack d'undo
+     */
+    clear() {
+        this._stack = [];
+        console.log('🗑️ UndoManager: Stack vidée');
+    },
+
+    /**
+     * Vérifie si une action peut être annulée
+     */
+    canUndo() {
+        return this._stack.length > 0;
+    },
+
+    /**
+     * Retourne le nombre d'actions annulables
+     */
+    get stackSize() {
+        return this._stack.length;
+    }
+};
+
+// ==================== CONFIRM MODAL CUSTOM ====================
+
+/**
+ * Affiche une modal de confirmation custom (remplace confirm() natif)
+ * @param {object} config - Configuration de la modal
+ * @param {string} config.title - Titre de la modal
+ * @param {string} config.message - Message de description
+ * @param {string} config.icon - Emoji/icône (défaut: ⚠️)
+ * @param {string} config.confirmLabel - Texte du bouton confirmer (défaut: "Supprimer")
+ * @param {string} config.cancelLabel - Texte du bouton annuler (défaut: "Annuler")
+ * @param {string} config.confirmType - Type de bouton ('danger', 'primary')
+ * @param {string} config.preview - Preview de ce qui sera affecté (optionnel)
+ * @returns {Promise<boolean>} - True si confirmé, false sinon
+ */
+function showConfirmModal(config) {
+    return new Promise((resolve) => {
+        const {
+            title = 'Confirmer',
+            message = 'Êtes-vous sûr ?',
+            icon = '⚠️',
+            confirmLabel = 'Confirmer',
+            cancelLabel = 'Annuler',
+            confirmType = 'danger',
+            preview = null
+        } = config;
+
+        // Créer l'overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-modal-overlay';
+        overlay.id = 'confirm-modal-overlay';
+
+        // Preview HTML optionnel
+        const previewHTML = preview ? `
+            <div class="confirm-modal-preview">
+                <span class="confirm-modal-preview-label">Élément concerné :</span>
+                <span class="confirm-modal-preview-value">${preview}</span>
+            </div>
+        ` : '';
+
+        overlay.innerHTML = `
+            <div class="confirm-modal">
+                <div class="confirm-modal-icon">${icon}</div>
+                <h3 class="confirm-modal-title">${title}</h3>
+                <p class="confirm-modal-message">${message}</p>
+                ${previewHTML}
+                <div class="confirm-modal-actions">
+                    <button class="btn btn-secondary confirm-modal-cancel">${cancelLabel}</button>
+                    <button class="btn btn-${confirmType} confirm-modal-confirm">${confirmLabel}</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+
+        // Animer l'entrée
+        requestAnimationFrame(() => {
+            overlay.classList.add('active');
+        });
+
+        // Handlers
+        const closeModal = (result) => {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.remove();
+                document.body.style.overflow = '';
+            }, 200);
+            resolve(result);
+        };
+
+        // Bouton Annuler
+        overlay.querySelector('.confirm-modal-cancel').addEventListener('click', () => {
+            closeModal(false);
+        });
+
+        // Bouton Confirmer
+        overlay.querySelector('.confirm-modal-confirm').addEventListener('click', () => {
+            closeModal(true);
+        });
+
+        // Click overlay = annuler
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeModal(false);
+            }
+        });
+
+        // Escape = annuler
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal(false);
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // Focus sur le bouton annuler
+        overlay.querySelector('.confirm-modal-cancel').focus();
+    });
+}
+
 // ==================== EXPORTS GLOBAUX ====================
 window.openModal = openModal;
 window.closeModal = closeModal;
@@ -478,5 +792,8 @@ window.switchTab = switchTab;
 window.formatNumber = formatNumber;
 window.getRelativeDate = getRelativeDate;
 window.initUniversalSwipeToClose = initUniversalSwipeToClose;
+window.UndoManager = UndoManager;
+window.showConfirmModal = showConfirmModal;
+window.AutosaveIndicator = AutosaveIndicator;
 
-console.log('✅ ui.js: Fonctions exportées au scope global');
+console.log('✅ ui.js: Fonctions exportées au scope global (+ UndoManager, showConfirmModal, AutosaveIndicator)');

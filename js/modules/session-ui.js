@@ -312,21 +312,78 @@ function handleDeleteSet(exerciseId, setId) {
 }
 
 /**
- * Confirme et supprime un exercice
+ * Confirme et supprime un exercice (avec modal custom et UNDO)
  */
-function confirmDeleteExercise(exerciseId, exerciseName) {
-    if (confirm(`Supprimer "${exerciseName}" de cette séance ?`)) {
+async function confirmDeleteExercise(exerciseId, exerciseName) {
+    // Utiliser la modal custom si disponible, sinon fallback sur confirm()
+    let confirmed = false;
+
+    if (typeof showConfirmModal === 'function') {
+        confirmed = await showConfirmModal({
+            title: 'Supprimer l\'exercice ?',
+            message: 'Cette action supprimera l\'exercice et ses séries de la séance en cours.',
+            icon: '🗑️',
+            confirmLabel: 'Supprimer',
+            confirmType: 'danger',
+            preview: exerciseName
+        });
+    } else {
+        confirmed = confirm(`Supprimer "${exerciseName}" de cette séance ?`);
+    }
+
+    if (confirmed) {
+        // Sauvegarder les données de l'exercice pour UNDO
+        const exerciseData = SessionManager.getExerciseById ?
+            SessionManager.getExerciseById(exerciseId) :
+            fsSession?.exercises?.find(e => e.id === exerciseId || e.uniqueId === exerciseId);
+
+        // Supprimer l'exercice
         SessionManager.deleteExercise(exerciseId);
         loadSessionDayV2(); // Re-render
-        showToast(`${exerciseName} supprimé`, 'success');
+
+        // Enregistrer dans UndoManager si disponible et si on a les données
+        if (typeof UndoManager !== 'undefined' && exerciseData) {
+            UndoManager.push(
+                'delete-exercise',
+                exerciseData,
+                (data) => {
+                    // Fonction UNDO: restaurer l'exercice
+                    if (SessionManager.addExerciseFromData) {
+                        SessionManager.addExerciseFromData(data);
+                    } else {
+                        // Fallback: réajouter via la méthode standard
+                        SessionManager.addExercise(data.id || data.exerciseId, data.sets);
+                    }
+                    loadSessionDayV2();
+                },
+                `${exerciseName} supprimé`
+            );
+        } else {
+            showToast(`${exerciseName} supprimé`, 'success');
+        }
     }
 }
 
 /**
- * Copie la dernière séance du même type
+ * Copie la dernière séance du même type (avec modal custom)
  */
-function copyLastSession(dayType) {
-    if (confirm('Copier les poids de la dernière séance ? Les données actuelles seront remplacées.')) {
+async function copyLastSession(dayType) {
+    let confirmed = false;
+
+    if (typeof showConfirmModal === 'function') {
+        confirmed = await showConfirmModal({
+            title: 'Copier la séance précédente ?',
+            message: 'Les données actuelles seront remplacées par celles de votre dernière séance du même type.',
+            icon: '📋',
+            confirmLabel: 'Copier',
+            confirmType: 'primary',
+            preview: dayType
+        });
+    } else {
+        confirmed = confirm('Copier les poids de la dernière séance ? Les données actuelles seront remplacées.');
+    }
+
+    if (confirmed) {
         const session = SessionManager.copyLastSessionOfType(dayType);
         if (session) {
             loadSessionDayV2();
@@ -338,10 +395,24 @@ function copyLastSession(dayType) {
 }
 
 /**
- * Réinitialise la session courante
+ * Réinitialise la session courante (avec modal custom)
  */
-function resetCurrentSession() {
-    if (confirm('Réinitialiser cette séance ? Toutes les données non sauvegardées seront perdues.')) {
+async function resetCurrentSession() {
+    let confirmed = false;
+
+    if (typeof showConfirmModal === 'function') {
+        confirmed = await showConfirmModal({
+            title: 'Réinitialiser la séance ?',
+            message: 'Toutes les données non sauvegardées seront perdues. Cette action est irréversible.',
+            icon: '⚠️',
+            confirmLabel: 'Réinitialiser',
+            confirmType: 'danger'
+        });
+    } else {
+        confirmed = confirm('Réinitialiser cette séance ? Toutes les données non sauvegardées seront perdues.');
+    }
+
+    if (confirmed) {
         const selectEl = document.getElementById('session-day-select');
         const dayIndex = selectEl ? parseInt(selectEl.value) : 0;
         SessionManager.clearActiveSession();
@@ -552,26 +623,34 @@ function addExerciseToSession(exerciseId) {
  * Sauvegarde la session avec le nouveau système
  */
 async function saveSessionV2() {
-    const btn = document.querySelector('#save-session-btn .btn-primary') || 
+    const btn = document.querySelector('#save-session-btn .btn-primary') ||
                 document.querySelector('#save-session-btn button');
-    
+
     // Activer l'état loading
     if (btn) {
         btn.classList.add('loading');
         btn.disabled = true;
     }
-    
+
+    // Afficher l'indicateur d'autosave
+    if (typeof AutosaveIndicator !== 'undefined') {
+        AutosaveIndicator.showSaving();
+    }
+
     try {
         const result = SessionManager.finalizeSession();
-        
+
         if (!result) {
             showToast('Remplissez au moins une série pour sauvegarder', 'error');
+            if (typeof AutosaveIndicator !== 'undefined') {
+                AutosaveIndicator.hide();
+            }
             return;
         }
-        
+
         // Petit délai pour feedback visuel
         await new Promise(resolve => setTimeout(resolve, 300));
-        
+
         // Mettre à jour l'UI
         if (typeof updateStreak === 'function') updateStreak();
         if (typeof updateProgressionRecommendations === 'function') updateProgressionRecommendations();
@@ -579,24 +658,35 @@ async function saveSessionV2() {
         if (typeof renderPRsSection === 'function') renderPRsSection();
         updateSessionHistory();
         populateProgressExerciseSelect();
-        
+
+        // Afficher l'état "Sauvegardé"
+        if (typeof AutosaveIndicator !== 'undefined') {
+            AutosaveIndicator.showSaved();
+        }
+
         // Afficher notification PR si nécessaire
         if (result.newPRs && result.newPRs.length > 0) {
             showPRNotification(result.newPRs);
         } else {
             showToast('Séance enregistrée ! 💪', 'success');
         }
-        
+
         // Afficher les recommandations du coach après quelques secondes
         setTimeout(() => {
             if (typeof showCoachRecommendationsToast === 'function') {
                 showCoachRecommendationsToast();
             }
         }, 2000);
-        
+
         // Réinitialiser la vue
         loadSessionDayV2();
-        
+
+    } catch (error) {
+        console.error('Erreur sauvegarde session:', error);
+        if (typeof AutosaveIndicator !== 'undefined') {
+            AutosaveIndicator.showError();
+        }
+        showToast('Erreur lors de la sauvegarde', 'error');
     } finally {
         // Désactiver l'état loading
         if (btn) {

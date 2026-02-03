@@ -1170,14 +1170,14 @@ function getExerciseImageUrl(exerciseId) {
 }
 
 /**
- * Génère l'URL d'un GIF animé d'exercice depuis Supabase Storage (WebP animé)
+ * Génère l'URL d'un GIF animé d'exercice depuis Supabase Storage
  * @param {string} exerciseId - ID de l'exercice
  * @returns {string} - URL du GIF ou null
  */
 function getExerciseGifUrl(exerciseId) {
     if (!exerciseId) return null;
     // Les GIFs utilisent directement l'ID de l'exercice comme nom de fichier
-    return `${EXERCISE_STORAGE_URL}/storage/v1/object/public/${EXERCISE_GIFS_BUCKET}/${exerciseId}.webp`;
+    return `${EXERCISE_STORAGE_URL}/storage/v1/object/public/${EXERCISE_GIFS_BUCKET}/${exerciseId}.gif`;
 }
 
 /**

@@ -33,24 +33,24 @@
     <div class="bg-grid"></div>
 
     <!-- Navigation -->
-    <nav class="nav">
-        <div class="logo">REPZY</div>
+    <nav class="nav" role="navigation" aria-label="Navigation principale">
+        <div class="logo" aria-label="Repzy - Application de fitness">REPZY</div>
         <!-- Sync Indicator -->
-        <div class="sync-indicator" id="sync-indicator" title="Synchronisé">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="sync-indicator" id="sync-indicator" title="Synchronisé" role="status" aria-live="polite">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
             </svg>
-            <span class="sync-badge" style="display: none;">0</span>
+            <span class="sync-badge" style="display: none;" aria-label="Éléments à synchroniser">0</span>
         </div>
-        <div class="nav-tabs">
-            <button class="nav-tab active" data-section="dashboard">Dashboard</button>
-            <button class="nav-tab" data-section="nutrition">Nutrition</button>
-            <button class="nav-tab" data-section="training">Training</button>
-            <button class="nav-tab" data-section="progress">Progression</button>
+        <div class="nav-tabs" role="tablist" aria-label="Sections de l'application">
+            <button class="nav-tab active" data-section="dashboard" role="tab" aria-selected="true" aria-controls="dashboard">Dashboard</button>
+            <button class="nav-tab" data-section="nutrition" role="tab" aria-selected="false" aria-controls="nutrition">Nutrition</button>
+            <button class="nav-tab" data-section="training" role="tab" aria-selected="false" aria-controls="training">Training</button>
+            <button class="nav-tab" data-section="progress" role="tab" aria-selected="false" aria-controls="progress">Progression</button>
         </div>
         <div class="nav-actions">
-            <span id="user-email" style="font-size: 0.8rem; color: var(--text-secondary); margin-right: 10px;"></span>
-            <button class="btn btn-sm btn-secondary" id="auth-btn" onclick="isLoggedIn() ? signOut() : showAuthModal()">Connexion</button>
+            <span id="user-email" style="font-size: 0.8rem; color: var(--text-secondary); margin-right: 10px;" aria-label="Email de l'utilisateur connecté"></span>
+            <button class="btn btn-sm btn-secondary" id="auth-btn" onclick="isLoggedIn() ? signOut() : showAuthModal()" aria-label="Connexion ou déconnexion">Connexion</button>
         </div>
     </nav>
 
@@ -66,6 +66,29 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
     </div>
 
+    <!-- Autosave Indicator -->
+    <div class="autosave-indicator" id="autosave-indicator" aria-live="polite" aria-atomic="true">
+        <span class="autosave-icon autosave-saving">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+            </svg>
+        </span>
+        <span class="autosave-icon autosave-saved">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 6L9 17l-5-5"/>
+            </svg>
+        </span>
+        <span class="autosave-icon autosave-error">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+        </span>
+        <span class="autosave-text" id="autosave-text">Sauvegardé</span>
+    </div>
+
     <!-- Sync Indicator -->
     <div id="sync-indicator" class="sync-indicator" style="display: none;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -76,34 +99,34 @@
     </div>
 
     <!-- Mobile Navigation -->
-    <div class="mobile-nav">
-        <div class="mobile-nav-items">
-            <div class="mobile-nav-indicator"></div>
-            <button class="mobile-nav-item active" data-section="dashboard">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <nav class="mobile-nav" role="navigation" aria-label="Navigation mobile">
+        <div class="mobile-nav-items" role="tablist">
+            <div class="mobile-nav-indicator" aria-hidden="true"></div>
+            <button class="mobile-nav-item active" data-section="dashboard" role="tab" aria-selected="true" aria-controls="dashboard" aria-label="Aller au Dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                 <span>Dashboard</span>
             </button>
-            <button class="mobile-nav-item" data-section="nutrition">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            <button class="mobile-nav-item" data-section="nutrition" role="tab" aria-selected="false" aria-controls="nutrition" aria-label="Aller à Nutrition">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
                 <span>Nutrition</span>
             </button>
-            <button class="mobile-nav-item" data-section="training">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M4 10v4"/><path d="M20 10v4"/><path d="M2 8v8"/><path d="M22 8v8"/><path d="M12 6v12"/></svg>
+            <button class="mobile-nav-item" data-section="training" role="tab" aria-selected="false" aria-controls="training" aria-label="Aller à Training">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M4 10v4"/><path d="M20 10v4"/><path d="M2 8v8"/><path d="M22 8v8"/><path d="M12 6v12"/></svg>
                 <span>Training</span>
             </button>
-            <button class="mobile-nav-item" data-section="progress">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <button class="mobile-nav-item" data-section="progress" role="tab" aria-selected="false" aria-controls="progress" aria-label="Aller à Progression">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 <span>Progression</span>
             </button>
         </div>
     </div>
 
     <!-- Main Content -->
-    <main class="main">
+    <main class="main" role="main">
         <div class="container">
 
             <!-- Dashboard Section -->
-            <section id="dashboard" class="section active">
+            <section id="dashboard" class="section active" role="tabpanel" aria-labelledby="tab-dashboard">
                 <!-- Quick Summary Card - NEW -->
                 <div class="quick-summary-card" id="quick-summary-card">
                     <div class="quick-summary-greeting" id="quick-summary-greeting">Bienvenue</div>
@@ -333,7 +356,7 @@
             </section>
 
             <!-- Nutrition Section -->
-            <section id="nutrition" class="section">
+            <section id="nutrition" class="section" role="tabpanel" aria-labelledby="tab-nutrition">
                 <!-- Sticky Header Macros -->
                 <div class="nutrition-sticky-header" id="nutrition-sticky-header">
                     <div class="sticky-header-cals">
@@ -619,7 +642,7 @@
             </section>
 
             <!-- Training Section -->
-            <section id="training" class="section">
+            <section id="training" class="section" role="tabpanel" aria-labelledby="tab-training">
                 <!-- Training Content - Dynamic -->
                 <div id="training-content">
                     <!-- Will be filled by renderTrainingSection() -->
@@ -627,7 +650,7 @@
             </section>
 
             <!-- Progress Section -->
-            <section id="progress" class="section">
+            <section id="progress" class="section" role="tabpanel" aria-labelledby="tab-progress">
                 <!-- Hero Header avec Résumé -->
                 <div class="progress-hero">
                     <div class="progress-summary-stats">
@@ -835,14 +858,14 @@
     </main>
 
     <!-- Toast Container -->
-    <div class="toast-container" id="toast-container"></div>
+    <div class="toast-container" id="toast-container" role="alert" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Profile Modal -->
     <div class="modal-overlay" id="profile-modal">
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">Mon Profil</div>
-                <button class="modal-close" onclick="closeModal('profile-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('profile-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -904,7 +927,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">Ajouter un Aliment</div>
-                <button class="modal-close" onclick="closeModal('add-food-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('add-food-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -930,7 +953,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">Quantité</div>
-                <button class="modal-close" onclick="closeModal('quantity-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('quantity-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="quantity-food-info"></div>
@@ -951,7 +974,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">Ajouter un Aliment Personnalisé</div>
-                <button class="modal-close" onclick="closeModal('custom-food-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('custom-food-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -1032,7 +1055,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">Échanger l'Aliment</div>
-                <button class="modal-close" onclick="closeModal('swap-food-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('swap-food-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">
@@ -1051,7 +1074,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">Supprimer l'Aliment</div>
-                <button class="modal-close" onclick="closeModal('remove-food-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('remove-food-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <p style="font-size: 0.95rem; margin-bottom: 8px;">
@@ -1088,7 +1111,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">⭐ Sauvegarder comme Favori</div>
-                <button class="modal-close" onclick="closeModal('save-favorite-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('save-favorite-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -1136,7 +1159,7 @@
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
                 <div class="modal-title">Créer un Repas Favori</div>
-                <button class="modal-close" onclick="closeModal('create-favorite-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('create-favorite-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="grid grid-2">
@@ -1207,7 +1230,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">Appliquer le Favori</div>
-                <button class="modal-close" onclick="closeModal('apply-favorite-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('apply-favorite-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="apply-favorite-info"></div>
@@ -1240,7 +1263,7 @@
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
                 <div class="modal-title">Changer l'Exercice</div>
-                <button class="modal-close" onclick="closeModal('swap-exercise-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('swap-exercise-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 5px;">
@@ -1279,7 +1302,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">Ajouter un Exercice</div>
-                <button class="modal-close" onclick="closeModal('custom-exercise-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('custom-exercise-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -1401,7 +1424,7 @@
         <div class="modal" style="max-width: 550px;">
             <div class="modal-header">
                 <div class="modal-title">🔍 Rechercher un Aliment</div>
-                <button class="modal-close" onclick="closeOFFSearchModal()">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeOFFSearchModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <!-- Barre de recherche -->
@@ -1456,7 +1479,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">📸 Ajouter une Photo</div>
-                <button class="modal-close" onclick="closeModal('add-photo-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('add-photo-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <input type="file" id="photo-input" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
@@ -1511,7 +1534,7 @@
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
                 <div class="modal-title">📸 Détails</div>
-                <button class="modal-close" onclick="closeModal('photo-viewer-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('photo-viewer-modal')">&times;</button>
             </div>
             <div class="modal-body" style="padding: 0;">
                 <img id="viewer-image" src="" alt="Photo" style="width: 100%; max-height: 400px; object-fit: contain; background: var(--bg-tertiary);">
@@ -1548,7 +1571,7 @@
         <div class="modal" style="max-width: 800px;">
             <div class="modal-header">
                 <div class="modal-title">🔄 Comparaison Avant/Après</div>
-                <button class="modal-close" onclick="closeModal('compare-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('compare-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="compare-selectors">
@@ -1595,7 +1618,7 @@
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
                 <div class="modal-title">🎯 Configurer mon Programme</div>
-                <button class="modal-close" onclick="closeModal('program-wizard-modal')">&times;</button>
+                <button class="modal-close" aria-label="Fermer" onclick="closeModal('program-wizard-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <!-- Progress indicator -->

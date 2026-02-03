@@ -7,7 +7,17 @@
       "Bash(wc:*)",
       "Bash(node --check:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(npm install:*)",
+      "Bash(wsl npm install:*)",
+      "Bash(wsl -d Ubuntu -- bash -c \"source ~/.nvm/nvm.sh && cd /home/dim/projets/fittrack-pro && npm install:*)",
+      "Bash(wsl -d Ubuntu -- bash -c \"source ~/.nvm/nvm.sh && cd /home/dim/projets/fittrack-pro && node scripts/import-exercise-gifs.js\")",
+      "Bash(wsl -d Ubuntu -- bash -c \"source ~/.nvm/nvm.sh && cd /home/dim/projets/fittrack-pro && ls -la node_modules/@supabase/ 2>&1\":*)",
+      "Bash(wsl -d Ubuntu -- bash -c \"source ~/.nvm/nvm.sh && cd /home/dim/projets/fittrack-pro && node -e \"\"console.log\\(require\\(''@supabase/supabase-js''\\)\\)\"\"\")",
+      "Bash(wsl:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(du -sh:*)"
     ]
   }
 }

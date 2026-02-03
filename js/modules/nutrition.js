@@ -991,19 +991,61 @@ function initCustomFoodUnitToggle() {
     }
 }
 
-function deleteCustomFood(foodId) {
-    if (!confirm('Supprimer cet aliment ?')) return;
-    
+async function deleteCustomFood(foodId) {
+    // Trouver l'aliment pour UNDO et preview
+    const foodToDelete = state.foods.find(f => f.id === foodId);
+    const foodName = foodToDelete?.name || 'Aliment';
+
+    let confirmed = false;
+
+    if (typeof showConfirmModal === 'function') {
+        confirmed = await showConfirmModal({
+            title: 'Supprimer cet aliment ?',
+            message: 'L\'aliment sera supprimé de votre liste personnalisée.',
+            icon: '🗑️',
+            confirmLabel: 'Supprimer',
+            confirmType: 'danger',
+            preview: foodName
+        });
+    } else {
+        confirmed = confirm('Supprimer cet aliment ?');
+    }
+
+    if (!confirmed) return;
+
+    // Sauvegarder pour UNDO avant suppression
+    const foodData = { ...foodToDelete };
+
     state.foods = state.foods.filter(f => f.id !== foodId);
     saveState();
-    
+
     // Sync avec Supabase si connecté
     if (typeof isLoggedIn === 'function' && isLoggedIn()) {
         deleteCustomFoodFromSupabase(foodId);
     }
-    
+
     renderFoodsList();
-    showToast('Aliment supprimé', 'success');
+
+    // Enregistrer dans UndoManager
+    if (typeof UndoManager !== 'undefined' && foodData) {
+        UndoManager.push(
+            'delete-food',
+            foodData,
+            (data) => {
+                // Restaurer l'aliment
+                state.foods.push(data);
+                saveState();
+                // Re-sync si connecté
+                if (typeof isLoggedIn === 'function' && isLoggedIn() && typeof syncCustomFoodToSupabase === 'function') {
+                    syncCustomFoodToSupabase(data);
+                }
+                renderFoodsList();
+            },
+            `${foodName} supprimé`
+        );
+    } else {
+        showToast('Aliment supprimé', 'success');
+    }
 }
 
 // ==================== JOURNAL ALIMENTAIRE ====================
@@ -1317,29 +1359,61 @@ function updateJournalQuantity(index, quantity) {
     }
 }
 
-// Supprimer une entrée du journal
+// Supprimer une entrée du journal (avec UNDO)
 function removeFromJournal(index) {
     const date = document.getElementById('journal-date').value;
 
     if (state.foodJournal[date]) {
         const entry = state.foodJournal[date][index];
-        
+        const entryName = entry?.name || 'Aliment';
+
+        // Sauvegarder pour UNDO
+        const entryData = { ...entry, journalDate: date, journalIndex: index };
+
         // Sync avec Supabase si connecté
         if (typeof isLoggedIn === 'function' && isLoggedIn() && entry.supabaseId) {
             deleteJournalEntryFromSupabase(entry.supabaseId);
         }
-        
+
         state.foodJournal[date].splice(index, 1);
         saveState();
         renderJournalEntries();
         updateJournalSummary();
         updateMacroRings();
-        showToast('Aliment supprimé', 'success');
+
+        // Enregistrer dans UndoManager
+        if (typeof UndoManager !== 'undefined') {
+            UndoManager.push(
+                'delete-journal-entry',
+                entryData,
+                (data) => {
+                    // Restaurer l'entrée dans le journal
+                    const targetDate = data.journalDate;
+                    if (!state.foodJournal[targetDate]) {
+                        state.foodJournal[targetDate] = [];
+                    }
+                    // Retirer les propriétés temporaires
+                    const { journalDate, journalIndex, ...cleanEntry } = data;
+                    state.foodJournal[targetDate].push(cleanEntry);
+                    saveState();
+                    // Re-sync si connecté
+                    if (typeof isLoggedIn === 'function' && isLoggedIn() && typeof syncJournalEntryToSupabase === 'function') {
+                        syncJournalEntryToSupabase(cleanEntry, targetDate);
+                    }
+                    renderJournalEntries();
+                    updateJournalSummary();
+                    updateMacroRings();
+                },
+                `${entryName} supprimé`
+            );
+        } else {
+            showToast('Aliment supprimé', 'success');
+        }
     }
 }
 
-// Vider le menu du jour
-function clearJournalDay() {
+// Vider le menu du jour (avec modal custom et UNDO)
+async function clearJournalDay() {
     const date = document.getElementById('journal-date').value;
 
     if (!state.foodJournal[date] || state.foodJournal[date].length === 0) {
@@ -1347,18 +1421,59 @@ function clearJournalDay() {
         return;
     }
 
-    if (confirm('Vider le journal de cette journée ?')) {
+    const entriesCount = state.foodJournal[date].length;
+    let confirmed = false;
+
+    if (typeof showConfirmModal === 'function') {
+        confirmed = await showConfirmModal({
+            title: 'Vider le journal ?',
+            message: `Tous les aliments de cette journée seront supprimés.`,
+            icon: '🗑️',
+            confirmLabel: 'Vider',
+            confirmType: 'danger',
+            preview: `${entriesCount} entrée${entriesCount > 1 ? 's' : ''}`
+        });
+    } else {
+        confirmed = confirm('Vider le journal de cette journée ?');
+    }
+
+    if (confirmed) {
+        // Sauvegarder pour UNDO
+        const journalBackup = [...state.foodJournal[date]];
+
         // Sync avec Supabase si connecté
         if (typeof isLoggedIn === 'function' && isLoggedIn()) {
             clearJournalDayInSupabase(date);
         }
-        
+
         state.foodJournal[date] = [];
         saveState();
         renderJournalEntries();
         updateJournalSummary();
         updateMacroRings();
-        showToast('Journal vidé', 'success');
+
+        // Enregistrer dans UndoManager
+        if (typeof UndoManager !== 'undefined') {
+            UndoManager.push(
+                'clear-journal-day',
+                { date, entries: journalBackup },
+                (data) => {
+                    // Restaurer toutes les entrées
+                    state.foodJournal[data.date] = data.entries;
+                    saveState();
+                    // Re-sync avec Supabase
+                    if (typeof isLoggedIn === 'function' && isLoggedIn() && typeof syncJournalDayToSupabase === 'function') {
+                        syncJournalDayToSupabase(data.date, data.entries);
+                    }
+                    renderJournalEntries();
+                    updateJournalSummary();
+                    updateMacroRings();
+                },
+                `Journal vidé (${entriesCount} entrées)`
+            );
+        } else {
+            showToast('Journal vidé', 'success');
+        }
     }
 }
 
