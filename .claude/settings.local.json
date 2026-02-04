@@ -17,7 +17,8 @@
       "Bash(wsl -d Ubuntu -- bash -c \"source ~/.nvm/nvm.sh && cd /home/dim/projets/fittrack-pro && node -e \"\"console.log\\(require\\(''@supabase/supabase-js''\\)\\)\"\"\")",
       "Bash(wsl:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(du -sh:*)"
+      "Bash(du -sh:*)",
+      "Bash(~/.nvm/versions/node/v22.14.0/bin/node --check:*)"
     ]
   }
 }
