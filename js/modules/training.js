@@ -115,6 +115,57 @@ let fsSession = {
     isRestPauseMode: false // Mode rest-pause actif
 };
 
+// ==================== OVERFLOW MANAGER (FIX SCROLL BUG) ====================
+/**
+ * Gestionnaire centralisé pour le blocage du scroll
+ * Évite les conflits quand plusieurs modales/fullscreen s'ouvrent/ferment
+ */
+const OverflowManager = {
+    count: 0,
+    originalOverflow: '',
+    originalPosition: '',
+    scrollY: 0,
+
+    lock() {
+        if (this.count === 0) {
+            this.scrollY = window.scrollY;
+            this.originalOverflow = document.body.style.overflow;
+            this.originalPosition = document.body.style.position;
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${this.scrollY}px`;
+            document.body.style.width = '100%';
+        }
+        this.count++;
+        console.log(`🔒 OverflowManager.lock() - count: ${this.count}`);
+    },
+
+    unlock() {
+        this.count = Math.max(0, this.count - 1);
+        console.log(`🔓 OverflowManager.unlock() - count: ${this.count}`);
+        if (this.count === 0) {
+            document.body.style.overflow = this.originalOverflow;
+            document.body.style.position = this.originalPosition;
+            document.body.style.top = '';
+            document.body.style.width = '';
+            window.scrollTo(0, this.scrollY);
+        }
+    },
+
+    // Forcer le déverrouillage (en cas de bug)
+    forceUnlock() {
+        this.count = 0;
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        console.log('⚠️ OverflowManager.forceUnlock()');
+    }
+};
+
+// Exposer globalement pour debug
+window.OverflowManager = OverflowManager;
+
 // ==================== SESSION PERSISTENCE ====================
 let fsSessionSaveInterval = null;
 
@@ -123,7 +174,7 @@ let fsSessionSaveInterval = null;
  */
 function saveFsSessionToStorage() {
     if (!fsSession.active) return;
-    
+
     try {
         const sessionData = {
             ...fsSession,
@@ -131,9 +182,58 @@ function saveFsSessionToStorage() {
         };
         localStorage.setItem('pendingFsSession', JSON.stringify(sessionData));
         console.log('💾 Séance sauvegardée automatiquement');
+
+        // Afficher brièvement l'indicateur de sauvegarde
+        showSaveIndicator();
     } catch (err) {
         console.error('Erreur sauvegarde session:', err);
     }
+}
+
+/**
+ * Affiche un indicateur visuel de sauvegarde dans le fullscreen
+ */
+function showSaveIndicator() {
+    let indicator = document.getElementById('fs-save-indicator');
+
+    if (!indicator) {
+        // Créer l'indicateur s'il n'existe pas
+        indicator = document.createElement('div');
+        indicator.id = 'fs-save-indicator';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 60px;
+            right: 12px;
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 10000;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        `;
+        indicator.innerHTML = '<span>💾</span><span>Sauvegardé</span>';
+        document.body.appendChild(indicator);
+    }
+
+    // Animer l'apparition
+    requestAnimationFrame(() => {
+        indicator.style.opacity = '1';
+        indicator.style.transform = 'translateY(0)';
+    });
+
+    // Masquer après 1.5s
+    setTimeout(() => {
+        indicator.style.opacity = '0';
+        indicator.style.transform = 'translateY(-10px)';
+    }, 1500);
 }
 
 /**
@@ -216,7 +316,7 @@ function tryRestorePendingSession() {
         const fsElement = document.getElementById('fullscreen-session');
         if (fsElement) {
             fsElement.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+            OverflowManager.lock();
             
             // Masquer la nav
             const nav = document.querySelector('.nav');
@@ -838,7 +938,7 @@ function closeSessionPreview() {
     }
 
     document.getElementById('session-preview').style.display = 'none';
-    document.body.style.overflow = '';
+    OverflowManager.unlock();
 
     const nav = document.querySelector('.nav');
     const mobileNav = document.querySelector('.mobile-nav');
@@ -1532,7 +1632,7 @@ function selectDuration(duration) {
     previewElement.classList.remove('animate-in');
     void previewElement.offsetWidth;
     previewElement.classList.add('animate-in');
-    document.body.style.overflow = 'hidden';
+    OverflowManager.lock();
 
     // Hide nav
     const nav = document.querySelector('.nav');
@@ -1667,7 +1767,7 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
     fsElement.classList.remove('animate-in');
     void fsElement.offsetWidth; // Force reflow
     fsElement.classList.add('animate-in');
-    document.body.style.overflow = 'hidden';
+    OverflowManager.lock();
 
     // Hide nav
     const nav = document.querySelector('.nav');
@@ -1765,7 +1865,7 @@ function minimizeSession() {
     
     // Masquer l'UI fullscreen
     document.getElementById('fullscreen-session').style.display = 'none';
-    document.body.style.overflow = '';
+    OverflowManager.unlock();
 
     // Afficher la nav
     const nav = document.querySelector('.nav');
@@ -1794,7 +1894,7 @@ function restoreSession() {
     // Afficher l'UI fullscreen
     const fsElement = document.getElementById('fullscreen-session');
     fsElement.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    OverflowManager.lock();
 
     // Masquer la nav
     const nav = document.querySelector('.nav');
@@ -1841,7 +1941,7 @@ function closeFullScreenSession() {
     clearFsSessionFromStorage();
 
     document.getElementById('fullscreen-session').style.display = 'none';
-    document.body.style.overflow = '';
+    OverflowManager.unlock();
 
     // Show nav
     const nav = document.querySelector('.nav');
@@ -2067,7 +2167,11 @@ function validateCurrentSet() {
 
     // Sauvegarder immédiatement après chaque série
     saveFsSessionToStorage();
-    
+
+    // Vérifier si c'est un PR en temps réel
+    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    checkForRealtimePR(exercise.effectiveName, weight, reps);
+
     // Haptic feedback sur completion de set
     if (window.HapticFeedback) {
         window.HapticFeedback.success();
@@ -2112,10 +2216,25 @@ function validateCurrentSet() {
             if (dropBtn) dropBtn.style.display = canDrop ? 'flex' : 'none';
             if (restPauseBtn) restPauseBtn.style.display = canRestPause ? 'flex' : 'none';
 
-            // Masquer après 8 secondes
-            setTimeout(() => {
+            // Masquer après 20 secondes (au lieu de 8) - plus de temps pour réagir
+            // Annuler le timeout précédent s'il existe
+            if (window._advancedBtnsTimeout) {
+                clearTimeout(window._advancedBtnsTimeout);
+            }
+            window._advancedBtnsTimeout = setTimeout(() => {
                 if (advancedBtns) advancedBtns.style.display = 'none';
-            }, 8000);
+            }, 20000);
+
+            // Masquer si l'utilisateur interagit avec les inputs (il a choisi de ne pas faire de technique avancée)
+            const weightInput = document.getElementById('fs-weight-input');
+            if (weightInput) {
+                weightInput.addEventListener('focus', () => {
+                    if (window._advancedBtnsTimeout) {
+                        clearTimeout(window._advancedBtnsTimeout);
+                    }
+                    if (advancedBtns) advancedBtns.style.display = 'none';
+                }, { once: true });
+            }
         }
     }
     
@@ -2361,19 +2480,43 @@ function startRestTimer() {
         }
 
         if (remaining <= 0) {
-            clearInterval(fsTimerInterval);
-            fsTimerInterval = null;
-            fsTimerSeconds = 0;
-            
-            // Vibrate if available (fin)
-            if (navigator.vibrate) {
-                try {
-                    navigator.vibrate([200, 100, 200]);
-                } catch(e) {}
+            // Timer terminé mais on continue pour afficher le dépassement
+            fsTimerSeconds = Math.floor(remaining / 1000); // Négatif = dépassement
+
+            // Première fois qu'on atteint 0
+            if (fsTimerSeconds === 0 || (fsTimerSeconds === -1 && !window._timerEndedNotified)) {
+                window._timerEndedNotified = true;
+
+                // Vibration agressive pattern
+                if (navigator.vibrate) {
+                    try {
+                        navigator.vibrate([200, 100, 200, 100, 200]);
+                    } catch(e) {}
+                }
+
+                // Toast plus visible avec animation
+                showToast('⏰ REPOS TERMINÉ ! C\'est parti ! 💪', 'success', 3000);
+
+                // Ajouter classe overtime pour animation pulsante
+                const circleContainer = document.getElementById('rest-timer-circle-container');
+                if (circleContainer) {
+                    circleContainer.classList.add('timer-overtime');
+                }
             }
-            
-            // Play sound or show notification
-            showToast('Repos terminé ! 💪', 'info');
+
+            // Vibrations périodiques en overtime (toutes les 10s)
+            if (fsTimerSeconds < 0 && fsTimerSeconds % 10 === 0) {
+                if (navigator.vibrate) {
+                    try { navigator.vibrate([50, 50, 50]); } catch(e) {}
+                }
+            }
+
+            // Arrêter après 2 minutes de dépassement
+            if (fsTimerSeconds <= -120) {
+                clearInterval(fsTimerInterval);
+                fsTimerInterval = null;
+                window._timerEndedNotified = false;
+            }
         }
     }, 1000);
 
@@ -3408,8 +3551,29 @@ function getEffectiveExerciseName(originalName, muscle) {
 }
 
 function getLastLog(exerciseName) {
-    const logs = state.progressLog[exerciseName];
+    if (!state.progressLog) return null;
+
+    // Essayer d'abord avec le nom exact
+    let logs = state.progressLog[exerciseName];
+
+    // Si pas trouvé, essayer avec des variantes du nom (normalisation)
+    if (!logs || logs.length === 0) {
+        const normalizedName = exerciseName.toLowerCase().trim();
+
+        // Chercher une correspondance partielle
+        for (const [logName, logData] of Object.entries(state.progressLog)) {
+            if (logName.toLowerCase().trim() === normalizedName) {
+                logs = logData;
+                break;
+            }
+        }
+    }
+
     if (!logs || logs.length === 0) return null;
+
+    // DEBUG: Afficher dans la console pour diagnostic
+    console.log(`📊 getLastLog("${exerciseName}"):`, logs[logs.length - 1]);
+
     return logs[logs.length - 1];
 }
 
@@ -3445,6 +3609,122 @@ function quitSession() {
         closeFullScreenSession();
     }
     closeSettingsSheet();
+}
+
+// ==================== PR DETECTION EN TEMPS RÉEL ====================
+
+/**
+ * Vérifie si le set actuel est un PR (Personal Record) en temps réel
+ * Compare avec l'historique de l'exercice
+ */
+function checkForRealtimePR(exerciseName, weight, reps) {
+    if (!state.progressLog || weight <= 0 || reps <= 0) return;
+
+    const logs = state.progressLog[exerciseName];
+    if (!logs || logs.length === 0) {
+        // Premier log = toujours un PR implicite mais pas de notif
+        return;
+    }
+
+    // Calculer le 1RM actuel avec la formule Epley
+    const current1RM = reps === 1 ? weight : Math.round(weight * (1 + reps / 30));
+
+    // Trouver le meilleur 1RM historique
+    let best1RM = 0;
+    let bestWeight = 0;
+
+    logs.forEach(log => {
+        // Vérifier le 1RM estimé
+        if (log.setsDetail && log.setsDetail.length > 0) {
+            log.setsDetail.forEach(set => {
+                const estimated = set.reps === 1 ? set.weight : Math.round(set.weight * (1 + set.reps / 30));
+                if (estimated > best1RM) {
+                    best1RM = estimated;
+                }
+                if (set.weight > bestWeight) {
+                    bestWeight = set.weight;
+                }
+            });
+        } else if (log.weight) {
+            const estimated = (log.achievedReps || 1) === 1 ? log.weight : Math.round(log.weight * (1 + (log.achievedReps || 10) / 30));
+            if (estimated > best1RM) {
+                best1RM = estimated;
+            }
+            if (log.weight > bestWeight) {
+                bestWeight = log.weight;
+            }
+        }
+    });
+
+    // Détecter les types de PR
+    let prType = null;
+    let prMessage = '';
+
+    if (current1RM > best1RM && best1RM > 0) {
+        prType = '1rm';
+        prMessage = `Nouveau 1RM: ${current1RM}kg`;
+    } else if (weight > bestWeight && bestWeight > 0) {
+        prType = 'weight';
+        prMessage = `Nouveau record de poids: ${weight}kg`;
+    }
+
+    if (prType) {
+        showRealtimePRBadge(exerciseName, prMessage, prType);
+    }
+}
+
+/**
+ * Affiche un badge PR discret mais visible pendant la séance
+ */
+function showRealtimePRBadge(exerciseName, message, type) {
+    // Haptic feedback spécial
+    if (window.HapticFeedback) {
+        window.HapticFeedback.achievement();
+    }
+
+    // Créer le badge
+    let badge = document.getElementById('fs-realtime-pr');
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'fs-realtime-pr';
+        badge.style.cssText = `
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1a1a1a;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10001;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 8px 30px rgba(251, 191, 36, 0.5);
+        `;
+        document.body.appendChild(badge);
+    }
+
+    badge.innerHTML = `
+        <span style="font-size: 1.5rem;">🏆</span>
+        <span>PR! ${message}</span>
+    `;
+
+    // Animation d'apparition
+    requestAnimationFrame(() => {
+        badge.style.opacity = '1';
+        badge.style.transform = 'translateX(-50%) scale(1)';
+    });
+
+    // Masquer après 3 secondes
+    setTimeout(() => {
+        badge.style.opacity = '0';
+        badge.style.transform = 'translateX(-50%) scale(0.8)';
+    }, 3000);
 }
 
 // ==================== PR NOTIFICATION SPECTACULAIRE ====================
@@ -3697,7 +3977,7 @@ function openExerciseTips(exerciseName) {
         sheet.classList.remove('animate-in');
         void sheet.offsetWidth;
         sheet.classList.add('animate-in');
-        document.body.style.overflow = 'hidden';
+        OverflowManager.lock();
         
         // Initialiser le swipe to dismiss (une seule fois)
         initExerciseSheetSwipe();
@@ -3780,7 +4060,7 @@ function closeExerciseInfo() {
     const sheet = document.getElementById('exercise-info-sheet');
     if (sheet) {
         sheet.style.display = 'none';
-        document.body.style.overflow = '';
+        OverflowManager.unlock();
     }
 }
 
