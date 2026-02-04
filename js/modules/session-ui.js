@@ -2,6 +2,8 @@
 // Interface utilisateur pour la gestion des sessions avec SessionManager
 // Fonctionnalités : rendu, suppression d'exercice, copie de séance, stats temps réel
 
+console.log('✅ session-ui.js: Module chargé');
+
 /**
  * Charge et affiche les exercices du jour avec le nouveau système SessionManager
  * Cette fonction remplace progressivement loadSessionDay()
