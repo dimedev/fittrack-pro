@@ -2545,7 +2545,6 @@ window.showAuthModal = showAuthModal;
 window.isLoggedIn = isLoggedIn;
 window.getCurrentUser = getCurrentUser;
 window.loadAllDataFromSupabase = loadAllDataFromSupabase;
-window.forceSyncPendingData = forceSyncPendingData;
 window.saveHydrationToSupabase = saveHydrationToSupabase;
 
 console.log('✅ supabase.js: Fonctions exportées au scope global');
