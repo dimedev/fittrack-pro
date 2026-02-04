@@ -2178,7 +2178,6 @@ function validateCurrentSet() {
     }
 
     // Move to next set or exercise
-    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
     const totalSets = exercise.sets;
 
     // Vérifier si c'est la dernière série
