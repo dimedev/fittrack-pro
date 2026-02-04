@@ -1,5 +1,97 @@
 // ==================== BASE D'EXERCICES PREMIUM ====================
 
+// URL de base pour les images des exercices dans Supabase Storage
+const EXERCISE_IMAGE_BASE_URL = 'https://erszjvaajztewcukvwbj.supabase.co/storage/v1/object/public/exercise-images/';
+
+// Mapping exerciseId → nom du fichier image (images disponibles dans le bucket)
+const exerciseImageMap = {
+    // Pectoraux
+    'bench-press': 'barbell-bench-press.webp',
+    'bench-press-db': 'bench-press-db.webp',
+    'incline-bench': 'incline-bench.webp',
+    'incline-bench-db': 'incline-bench-db.webp',
+    'decline-bench': 'decline-bench.webp',
+    'chest-press-machine': 'converging-chest-press.webp',
+    'smith-bench': 'smith-bench.webp',
+    'smith-incline': 'smith-incline.webp',
+    'push-ups': 'push-ups.webp',
+    'push-ups-incline': 'push-ups-incline.webp',
+    'push-ups-decline': 'push-ups-decline.webp',
+    'diamond-push-ups': 'diamond-pushups.webp',
+    'dips-chest': null, // Pas d'image disponible
+    'chest-fly-machine': 'pec-deck.webp',
+    'chest-fly-cable': 'cable-chest-fly.webp',
+    'chest-fly-db': 'chest-fly-db.webp',
+    'cable-crossover': 'cable-crossover.webp',
+    'pullover': 'pullover.webp',
+    'pullover-cable': 'pullover-cable.webp',
+
+    // Dos
+    'pull-ups': 'pull-ups.webp',
+    'chin-ups': 'chin-ups.webp',
+    'lat-pulldown': 'lat-pulldown.webp',
+    'lat-pulldown-close': 'lat-pulldown-close.webp',
+    'lat-pulldown-vbar': 'lat-pulldown-vbar.webp',
+    'straight-arm-pulldown': 'straight-arm-pulldown.webp',
+    'bent-over-row': 'bent-over-row.webp',
+    'bent-over-row-db': 'bent-over-row-db.webp',
+    'tbar-row': 'tbar-row.webp',
+    'cable-row': 'seated-row-machine.webp',
+    'seated-row-machine': 'seated-row-machine.webp',
+    'chest-supported-row': 'chest-supported-row.webp',
+    'meadows-row': 'meadows-row.webp',
+
+    // Épaules
+    'seated-shoulder-press': 'seated-shoulder-press.webp',
+    'shoulder-press-db': 'seated-shoulder-press.webp',
+    'lateral-raise': 'dumbbell-lateral-raises.webp',
+    'lateral-raise-db': 'dumbbell-lateral-raises.webp',
+    'rear-delt-fly': 'rear-delt-row.webp',
+    'rear-delt-row': 'rear-delt-row.webp',
+
+    // Biceps
+    'bicep-curl-db': 'dumbbell-bicep-curl.webp',
+    'bicep-curl-barbell': 'dumbbell-bicep-curl.webp',
+    'hammer-curl': 'dumbbell-bicep-curl.webp',
+
+    // Triceps
+    'triceps-pushdown': 'cable-triceps-pushdown.webp',
+    'cable-triceps-pushdown': 'cable-triceps-pushdown.webp',
+    'close-grip-bench': 'close-grip-bench.webp',
+
+    // Jambes
+    'squat': 'barbell-squat.webp',
+    'barbell-squat': 'barbell-squat.webp',
+    'leg-press': 'leg-press-machine.webp',
+    'leg-press-machine': 'leg-press-machine.webp',
+    'hip-thrust': 'hip-thrust.webp',
+    'leg-raise': 'leg-raise.webp',
+    'hanging-leg-raise': 'hanging-leg-raise.webp',
+
+    // Abdominaux
+    'crunch': 'crunch.webp',
+    'decline-crunch': 'decline-crunch.webp',
+    'cable-crunch': 'cable-crunch.webp',
+    'ab-crunch-machine': 'ab-crunch-machine.webp',
+    'ab-wheel': 'ab-wheel.webp',
+    'plank': 'plank-exercise.webp',
+    'side-plank': 'side-plank.webp',
+    'mountain-climber': 'mountain-climber.webp',
+    'russian-twist': 'russian-twist.webp',
+    'dead-bug': 'dead-bug.webp'
+};
+
+/**
+ * Récupère l'URL de l'image pour un exercice
+ * @param {string} exerciseId - ID de l'exercice
+ * @returns {string|null} URL de l'image ou null si non disponible
+ */
+function getExerciseImageUrl(exerciseId) {
+    const imageName = exerciseImageMap[exerciseId];
+    if (!imageName) return null;
+    return EXERCISE_IMAGE_BASE_URL + imageName;
+}
+
 // Catégories de muscles
 const muscleGroups = {
     'chest': { name: 'Pectoraux', icon: '🫁' },

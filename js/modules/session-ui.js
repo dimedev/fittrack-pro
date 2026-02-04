@@ -63,17 +63,19 @@ function loadSessionDayV2() {
     container.innerHTML = session.exercises.map((exercise, exIdx) => {
         const prBadge = typeof getPRBadgeHTML === 'function' ? getPRBadgeHTML(exercise.effectiveName) : '';
         const lastLog = getLastLog(exercise.effectiveName);
-        
+        const imageUrl = typeof getExerciseImageUrl === 'function' ? getExerciseImageUrl(exercise.id) : null;
+
         return `
-            <div class="exercise-card" 
-                 data-exercise-id="${exercise.id}" 
-                 data-exercise="${exercise.effectiveName}" 
-                 data-original="${exercise.originalName}" 
-                 data-muscle="${exercise.muscle}" 
+            <div class="exercise-card"
+                 data-exercise-id="${exercise.id}"
+                 data-exercise="${exercise.effectiveName}"
+                 data-original="${exercise.originalName}"
+                 data-muscle="${exercise.muscle}"
                  data-index="${exIdx}">
                 <div class="exercise-card-header" onclick="toggleExerciseAccordion(${exIdx})">
                     <div class="exercise-card-header-left">
                         <button class="exercise-drag-handle" title="Réordonner">⋮⋮</button>
+                        ${imageUrl ? `<img src="${imageUrl}" alt="${exercise.effectiveName}" class="exercise-card-thumb" loading="lazy" onerror="this.style.display='none'">` : ''}
                         <span class="exercise-card-toggle">▶</span>
                         <div class="exercise-card-title" onclick="event.stopPropagation(); openExerciseSwapModal('${exercise.originalName}', '${exercise.muscle}', ${exercise.targetSets}, '${exercise.targetReps}')">
                             <span class="exercise-card-name">${exercise.effectiveName}</span>

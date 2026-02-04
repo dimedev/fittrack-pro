@@ -1868,6 +1868,15 @@ h1, h2, h3, h4, h5, h6 {
     gap: 10px;
 }
 
+.exercise-card-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--bg-tertiary);
+    flex-shrink: 0;
+}
+
 .exercise-card-toggle {
     width: 20px;
     height: 20px;

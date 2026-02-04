@@ -1440,21 +1440,21 @@ body.modal-open {
     transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Couleurs par macro */
+/* Couleurs par macro - harmonisées avec les barres */
 .ring-progress.calories {
-    stroke: #FF3B30;
+    stroke: #22c55e; /* Vert - même que la barre calories */
 }
 
 .ring-progress.protein {
-    stroke: #FF9500;
+    stroke: #ef4444; /* Rouge - même que la barre protéines */
 }
 
 .ring-progress.carbs {
-    stroke: #34C759;
+    stroke: #3b82f6; /* Bleu - même que la barre glucides */
 }
 
 .ring-progress.fat {
-    stroke: #007AFF;
+    stroke: #f59e0b; /* Orange/Jaune - même que la barre lipides */
 }
 
 /* Contenu central du ring */

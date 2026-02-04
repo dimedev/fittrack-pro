@@ -339,128 +339,182 @@ let state = {
     unlockedAchievements: [] // [achievementId, ...]
 };
 
-// Charger l'état depuis localStorage (avec validation)
+// Charger l'état depuis IndexedDB ou localStorage (avec validation)
+async function loadStateAsync() {
+    let parsed = null;
+    let source = 'none';
+
+    // 1. Essayer IndexedDB d'abord (prioritaire)
+    if (window.RepzyDB && window.RepzyDB.isReady()) {
+        try {
+            parsed = await window.RepzyDB.loadState();
+            if (parsed) {
+                source = 'IndexedDB';
+                console.log('📦 State chargé depuis IndexedDB');
+            }
+        } catch (e) {
+            console.warn('Erreur lecture IndexedDB:', e);
+        }
+    }
+
+    // 2. Fallback localStorage si IndexedDB échoue
+    if (!parsed) {
+        const saved = localStorage.getItem('fittrack-state');
+        if (saved) {
+            try {
+                parsed = JSON.parse(saved);
+                source = 'localStorage';
+                console.log('📦 State chargé depuis localStorage');
+            } catch (e) {
+                console.error('Erreur parse localStorage:', e);
+            }
+        }
+    }
+
+    if (parsed) {
+        applyParsedState(parsed);
+    }
+
+    return { source, loaded: !!parsed };
+}
+
+// Version synchrone pour compatibilité (charge depuis localStorage uniquement)
 function loadState() {
     const saved = localStorage.getItem('fittrack-state');
     if (saved) {
         try {
             let parsed = JSON.parse(saved);
-            
-            // 1. Nettoyer les valeurs corrompues (NaN, Infinity)
-            parsed = sanitizeCorruptedValues(parsed, 'state');
-            
-            // 2. Valider et corriger les valeurs hors limites
-            const { sanitized, errors } = validateAndSanitizeState(parsed);
-            parsed = sanitized;
-            
-            // 3. Merger avec l'état par défaut
-            state = { ...state, ...parsed };
-            
-            // S'assurer que les aliments par défaut sont inclus
-            const customFoods = (state.foods || []).filter(f => !defaultFoods.find(df => df.id === f.id));
-            state.foods = [...defaultFoods, ...customFoods];
-            
-            // S'assurer que les exercices par défaut sont inclus avec tags
-            const customExercises = (state.exercises || []).filter(e => !defaultExercises.find(de => de.id === e.id));
-            state.exercises = enrichExercisesWithTags([...defaultExercises, ...customExercises]);
-            
-            // Initialiser les champs manquants
-            if (!state.exerciseSwaps) state.exerciseSwaps = {};
-            if (!state.foodAccordionState) state.foodAccordionState = {};
-            if (!state.progressLog) state.progressLog = {};
-            if (!state.sessionHistory) state.sessionHistory = [];
-            if (!state.activeSession) state.activeSession = null;
-            if (!state.foodJournal) state.foodJournal = {};
-            if (!state.cardioLog) state.cardioLog = {};
-            if (!state.mealHistory) state.mealHistory = {};
-            if (!state.mealCombos) state.mealCombos = [];
-            if (!state.progressPhotos) state.progressPhotos = [];
-            
-            // Initialiser les préférences utilisateur
-            if (!state.preferences) {
-                state.preferences = {
-                    conflictResolution: 'server' // 'server', 'local', 'ask'
-                };
-            }
-            if (!state.preferences.conflictResolution) {
-                state.preferences.conflictResolution = 'server';
-            }
-            
-            // Migration: ajouter mealType aux entrées existantes
-            migrateFoodJournalToMeals();
-            
-            // Nouveaux champs pour la refonte Training
-            if (!state.wizardResults) state.wizardResults = null;
-            
-            // VALIDATION: vérifier que l'équipement est défini dans wizardResults
-            if (state.wizardResults && !state.wizardResults.equipment) {
-                console.warn('⚠️ Equipment manquant dans wizardResults, réinitialisation du wizard');
-                state.wizardResults = null; // Forcer la reconfiguration
-            }
-            
-            if (!state.trainingProgress) {
-                state.trainingProgress = {
-                    currentSplitIndex: 0,
-                    lastSessionDate: null,
-                    totalSessionsCompleted: 0
-                };
-            }
-            
-            // Templates de séances personnalisés
-            if (!state.sessionTemplates) state.sessionTemplates = {};
-            
-            // Migration: si dailyMenu existe encore, on le supprime
-            if (state.dailyMenu) {
-                delete state.dailyMenu;
-            }
-            
-            // Migration: supprimer les champs obsolètes
-            if (state.favoriteMeals) delete state.favoriteMeals;
-            if (state.progressionSuggestions) delete state.progressionSuggestions;
-            if (state.trainingModes) delete state.trainingModes;
-            if (state.aiCustomProgram) delete state.aiCustomProgram;
-            
-            // Log si des erreurs ont été corrigées
-            if (errors.length > 0) {
-                console.log('✅ State chargé avec corrections automatiques');
-            }
-            
+            applyParsedState(parsed);
         } catch (e) {
-            console.error('Erreur lors du chargement des données:', e);
-            
-            // Sauvegarder backup avant reset
-            try {
-                const corruptedData = localStorage.getItem('fittrack-state');
-                if (corruptedData) {
-                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                    localStorage.setItem(`fittrack-state-backup-${timestamp}`, corruptedData);
-                    console.log('💾 Backup sauvegardé avant reset');
-                }
-            } catch (backupError) {
-                console.error('Impossible de créer backup:', backupError);
-            }
-            
-            showToast('⚠️ Erreur de lecture. Un backup a été créé. Contactez le support si le problème persiste.', 'error');
-            localStorage.removeItem('fittrack-state');
+            handleLoadError(e);
         }
     }
 }
 
-// Sauvegarder l'état dans localStorage (avec validation)
+// Applique un state parsé (utilisé par loadState et loadStateAsync)
+function applyParsedState(parsed) {
+    try {
+            
+        // 1. Nettoyer les valeurs corrompues (NaN, Infinity)
+        parsed = sanitizeCorruptedValues(parsed, 'state');
+
+        // 2. Valider et corriger les valeurs hors limites
+        const { sanitized, errors } = validateAndSanitizeState(parsed);
+        parsed = sanitized;
+
+        // 3. Merger avec l'état par défaut
+        state = { ...state, ...parsed };
+            
+        // S'assurer que les aliments par défaut sont inclus
+        const customFoods = (state.foods || []).filter(f => !defaultFoods.find(df => df.id === f.id));
+        state.foods = [...defaultFoods, ...customFoods];
+
+        // S'assurer que les exercices par défaut sont inclus avec tags
+        const customExercises = (state.exercises || []).filter(e => !defaultExercises.find(de => de.id === e.id));
+        state.exercises = enrichExercisesWithTags([...defaultExercises, ...customExercises]);
+
+        // Initialiser les champs manquants
+        if (!state.exerciseSwaps) state.exerciseSwaps = {};
+        if (!state.foodAccordionState) state.foodAccordionState = {};
+        if (!state.progressLog) state.progressLog = {};
+        if (!state.sessionHistory) state.sessionHistory = [];
+        if (!state.activeSession) state.activeSession = null;
+        if (!state.foodJournal) state.foodJournal = {};
+        if (!state.cardioLog) state.cardioLog = {};
+        if (!state.mealHistory) state.mealHistory = {};
+        if (!state.mealCombos) state.mealCombos = [];
+        if (!state.progressPhotos) state.progressPhotos = [];
+        if (!state.recentFoods) state.recentFoods = []; // Favoris récents
+
+        // Initialiser les préférences utilisateur
+        if (!state.preferences) {
+            state.preferences = {
+                conflictResolution: 'server' // 'server', 'local', 'ask'
+            };
+        }
+        if (!state.preferences.conflictResolution) {
+            state.preferences.conflictResolution = 'server';
+        }
+
+        // Migration: ajouter mealType aux entrées existantes
+        migrateFoodJournalToMeals();
+
+        // Nouveaux champs pour la refonte Training
+        if (!state.wizardResults) state.wizardResults = null;
+
+        // VALIDATION: vérifier que l'équipement est défini dans wizardResults
+        if (state.wizardResults && !state.wizardResults.equipment) {
+            console.warn('⚠️ Equipment manquant dans wizardResults, réinitialisation du wizard');
+            state.wizardResults = null; // Forcer la reconfiguration
+        }
+
+        if (!state.trainingProgress) {
+            state.trainingProgress = {
+                currentSplitIndex: 0,
+                lastSessionDate: null,
+                totalSessionsCompleted: 0
+            };
+        }
+
+        // Templates de séances personnalisés
+        if (!state.sessionTemplates) state.sessionTemplates = {};
+
+        // Migration: si dailyMenu existe encore, on le supprime
+        if (state.dailyMenu) {
+            delete state.dailyMenu;
+        }
+
+        // Migration: supprimer les champs obsolètes
+        if (state.favoriteMeals) delete state.favoriteMeals;
+        if (state.progressionSuggestions) delete state.progressionSuggestions;
+        if (state.trainingModes) delete state.trainingModes;
+        if (state.aiCustomProgram) delete state.aiCustomProgram;
+
+        // Log si des erreurs ont été corrigées
+        if (errors && errors.length > 0) {
+            console.log('✅ State chargé avec corrections automatiques');
+        }
+
+    } catch (e) {
+        handleLoadError(e);
+    }
+}
+
+// Gère les erreurs de chargement
+function handleLoadError(e) {
+    console.error('Erreur lors du chargement des données:', e);
+
+    // Sauvegarder backup avant reset
+    try {
+        const corruptedData = localStorage.getItem('fittrack-state');
+        if (corruptedData) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            localStorage.setItem(`fittrack-state-backup-${timestamp}`, corruptedData);
+            console.log('💾 Backup sauvegardé avant reset');
+        }
+    } catch (backupError) {
+        console.error('Impossible de créer backup:', backupError);
+    }
+
+    showToast('⚠️ Erreur de lecture. Un backup a été créé.', 'error');
+    localStorage.removeItem('fittrack-state');
+}
+
+// Sauvegarder l'état dans localStorage ET IndexedDB (avec validation)
 function saveState() {
     try {
         // Mettre à jour le timestamp de modification locale
         state._localModifiedAt = new Date().toISOString();
-        
+
         // Nettoyer les valeurs corrompues avant sauvegarde
         const cleanState = sanitizeCorruptedValues(state, 'state');
         const dataString = JSON.stringify(cleanState);
-        
+
         // Vérifier la taille des données (limite localStorage ~5MB)
         const dataSize = new Blob([dataString]).size;
         const maxSize = 4.5 * 1024 * 1024; // 4.5MB pour marge de sécurité
         const warningSize = 3.5 * 1024 * 1024; // 3.5MB pour avertissement
-        
+
         if (dataSize > warningSize && dataSize <= maxSize) {
             console.warn(`⚠️ localStorage utilisé à ${((dataSize / maxSize) * 100).toFixed(1)}%`);
             // Avertissement une seule fois par session
@@ -469,14 +523,23 @@ function saveState() {
                 showToast('Espace de stockage local presque plein. Connectez-vous pour sauvegarder sur le cloud.', 'warning');
             }
         }
-        
+
+        // 1. Sauvegarder dans localStorage (synchrone, fallback)
         localStorage.setItem('fittrack-state', dataString);
+
+        // 2. Sauvegarder dans IndexedDB (asynchrone, principal)
+        if (window.RepzyDB && window.RepzyDB.isReady()) {
+            window.RepzyDB.saveState(cleanState).catch(err => {
+                console.warn('Erreur sauvegarde IndexedDB:', err);
+            });
+        }
+
     } catch (e) {
         // Gérer spécifiquement l'erreur de quota dépassé
         if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
             console.error('❌ Quota localStorage dépassé!', e);
             showToast('Stockage local plein! Tentative de nettoyage...', 'warning');
-            
+
             // Tenter de nettoyer et réessayer
             if (cleanupOldLocalData()) {
                 try {
@@ -488,11 +551,20 @@ function saveState() {
                     console.error('Échec après nettoyage:', retryError);
                 }
             }
-            
-            showToast('Impossible de sauvegarder. Connectez-vous à Supabase pour ne pas perdre vos données!', 'error');
+
+            // IndexedDB peut encore fonctionner même si localStorage est plein
+            if (window.RepzyDB && window.RepzyDB.isReady()) {
+                window.RepzyDB.saveState(state).then(() => {
+                    showToast('Données sauvegardées dans IndexedDB', 'success');
+                }).catch(() => {
+                    showToast('Impossible de sauvegarder. Connectez-vous à Supabase!', 'error');
+                });
+            } else {
+                showToast('Impossible de sauvegarder. Connectez-vous à Supabase pour ne pas perdre vos données!', 'error');
+            }
         } else {
             console.error('Erreur lors de la sauvegarde:', e);
-            showToast('⚠️ Impossible de sauvegarder localement. Libérez de l\'espace ou connectez-vous à Supabase.', 'error');
+            showToast('⚠️ Impossible de sauvegarder localement.', 'error');
         }
     }
 }
@@ -630,12 +702,17 @@ function detectConflict(serverUpdatedAt) {
     return { hasConflict: false, serverIsNewer: serverTime > localTime };
 }
 
-// Export des données
-function exportData() {
+// Export des données (JSON)
+function exportData(format = 'json') {
+    if (format === 'csv') {
+        openExportCSVModal();
+        return;
+    }
+
     const exportPayload = {
         version: '2.0.0',
         exportedAt: new Date().toISOString(),
-        app: 'FitTrack Pro',
+        app: 'Repzy',
         data: {
             // Données critiques utilisateur
             profile: state.profile,
@@ -646,6 +723,7 @@ function exportData() {
             bodyWeightLog: state.bodyWeightLog,
             progressLog: state.progressLog,
             progressPhotos: state.progressPhotos,
+            recentFoods: state.recentFoods,
             // Configuration
             wizardResults: state.wizardResults,
             trainingProgress: state.trainingProgress,
@@ -673,20 +751,158 @@ function exportData() {
             exportSize: 0 // Sera calculé après stringify
         }
     };
-    
+
     const jsonString = JSON.stringify(exportPayload, null, 2);
     exportPayload.metadata.exportSize = Math.round(jsonString.length / 1024); // Ko
-    
+
     const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fittrack-pro-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `repzy-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    
+
     showToast(`✅ Données exportées (${exportPayload.metadata.exportSize}Ko)`, 'success');
     console.log('📦 Export complet:', exportPayload.metadata);
+}
+
+// Ouvrir modal de choix d'export CSV
+function openExportCSVModal() {
+    const modal = document.getElementById('export-csv-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    } else {
+        // Fallback: export nutrition par défaut
+        exportToCSV('nutrition');
+    }
+}
+
+// Export CSV par type
+function exportToCSV(type) {
+    let data = [];
+    let headers = [];
+    let filename = '';
+
+    switch (type) {
+        case 'nutrition':
+            headers = ['Date', 'Repas', 'Aliment', 'Quantite_g', 'Calories', 'Proteines_g', 'Glucides_g', 'Lipides_g'];
+            filename = 'repzy-nutrition';
+
+            Object.entries(state.foodJournal || {}).forEach(([date, entries]) => {
+                entries.forEach(entry => {
+                    const food = state.foods.find(f => f.id === entry.foodId);
+                    const ratio = (entry.quantity || 100) / 100;
+                    data.push({
+                        Date: date,
+                        Repas: MEAL_TYPES[entry.mealType]?.label || entry.mealType,
+                        Aliment: food?.name || entry.foodId,
+                        Quantite_g: entry.quantity || 100,
+                        Calories: Math.round((food?.calories || 0) * ratio),
+                        Proteines_g: Math.round((food?.protein || 0) * ratio * 10) / 10,
+                        Glucides_g: Math.round((food?.carbs || 0) * ratio * 10) / 10,
+                        Lipides_g: Math.round((food?.fat || 0) * ratio * 10) / 10
+                    });
+                });
+            });
+            break;
+
+        case 'training':
+            headers = ['Date', 'Type_Seance', 'Duree_min', 'Volume_Total_kg', 'Exercices', 'Series_Totales'];
+            filename = 'repzy-training';
+
+            (state.sessionHistory || []).forEach(session => {
+                let totalVolume = 0;
+                let totalSets = 0;
+
+                (session.exercises || []).forEach(ex => {
+                    const sets = ex.setsDetail || ex.sets || [];
+                    if (Array.isArray(sets)) {
+                        sets.forEach(set => {
+                            if (set.completed !== false) {
+                                totalVolume += (set.weight || 0) * (set.reps || 0);
+                                totalSets++;
+                            }
+                        });
+                    }
+                });
+
+                data.push({
+                    Date: session.date,
+                    Type_Seance: session.dayType || session.day || 'Custom',
+                    Duree_min: session.duration || 0,
+                    Volume_Total_kg: Math.round(totalVolume),
+                    Exercices: (session.exercises || []).length,
+                    Series_Totales: totalSets
+                });
+            });
+            break;
+
+        case 'bodyweight':
+            headers = ['Date', 'Poids_kg'];
+            filename = 'repzy-poids';
+
+            (state.bodyWeightLog || []).forEach(entry => {
+                data.push({
+                    Date: entry.date,
+                    Poids_kg: entry.weight
+                });
+            });
+            break;
+
+        case 'progress':
+            headers = ['Date', 'Exercice', 'Poids_kg', 'Reps', 'Volume_kg'];
+            filename = 'repzy-progression';
+
+            Object.entries(state.progressLog || {}).forEach(([exercise, logs]) => {
+                logs.forEach(log => {
+                    data.push({
+                        Date: log.date,
+                        Exercice: exercise,
+                        Poids_kg: log.weight || 0,
+                        Reps: log.reps || 0,
+                        Volume_kg: (log.weight || 0) * (log.reps || 0)
+                    });
+                });
+            });
+            break;
+
+        default:
+            showToast('Type d\'export non supporté', 'error');
+            return;
+    }
+
+    if (data.length === 0) {
+        showToast('Aucune donnée à exporter', 'warning');
+        return;
+    }
+
+    // Générer CSV
+    const csvContent = [
+        headers.join(';'), // Séparateur ; pour Excel FR
+        ...data.map(row => headers.map(h => {
+            const val = row[h];
+            // Escape quotes
+            if (typeof val === 'string' && (val.includes(';') || val.includes('"'))) {
+                return `"${val.replace(/"/g, '""')}"`;
+            }
+            return val ?? '';
+        }).join(';'))
+    ].join('\n');
+
+    // BOM UTF-8 pour Excel
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast(`✅ Export CSV "${type}" (${data.length} lignes)`, 'success');
+    closeModal('export-csv-modal');
 }
 
 // Import des données

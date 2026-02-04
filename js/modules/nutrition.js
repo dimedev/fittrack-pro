@@ -22,6 +22,312 @@ let shownSuggestionIds = [];
 let currentNutritionFilter = 'all';
 let currentNutritionSort = 'relevance';
 
+// ==================== ALIMENTS RÉCENTS (FAVORIS RAPIDES) ====================
+
+const MAX_RECENT_FOODS = 10;
+
+/**
+ * Ajoute un aliment aux récents (favoris rapides)
+ * @param {string} foodId - ID de l'aliment
+ * @param {number} quantity - Quantité utilisée
+ */
+function addToRecentFoods(foodId, quantity) {
+    if (!state.recentFoods) state.recentFoods = [];
+
+    // Supprimer si déjà présent
+    state.recentFoods = state.recentFoods.filter(r => r.foodId !== foodId);
+
+    // Ajouter en premier
+    state.recentFoods.unshift({
+        foodId,
+        lastQuantity: quantity,
+        usedAt: Date.now(),
+        usageCount: (state.recentFoods.find(r => r.foodId === foodId)?.usageCount || 0) + 1
+    });
+
+    // Garder seulement les 10 derniers
+    state.recentFoods = state.recentFoods.slice(0, MAX_RECENT_FOODS);
+}
+
+/**
+ * Récupère les aliments récents avec leurs détails
+ * @returns {Array} Liste des aliments récents enrichis
+ */
+function getRecentFoodsWithDetails() {
+    if (!state.recentFoods || state.recentFoods.length === 0) return [];
+
+    return state.recentFoods
+        .map(recent => {
+            const food = state.foods.find(f => f.id === recent.foodId);
+            if (!food) return null;
+            return {
+                ...food,
+                lastQuantity: recent.lastQuantity,
+                usedAt: recent.usedAt,
+                usageCount: recent.usageCount
+            };
+        })
+        .filter(Boolean);
+}
+
+/**
+ * Affiche la section des aliments récents
+ */
+function renderRecentFoodsSection() {
+    const container = document.getElementById('recent-foods-section');
+    if (!container) return;
+
+    const recentFoods = getRecentFoodsWithDetails();
+
+    if (recentFoods.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    container.innerHTML = `
+        <div class="recent-foods-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">⚡ Récents</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Tap pour ajouter</span>
+        </div>
+        <div class="recent-foods-grid" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            ${recentFoods.map(food => {
+                const hasUnit = hasNaturalUnit(food);
+                const displayQty = hasUnit
+                    ? `${Math.round(food.lastQuantity / food.unitWeight)} ${food.unitLabel}`
+                    : `${food.lastQuantity}g`;
+
+                return `
+                    <button class="recent-food-chip" onclick="quickAddRecent('${food.id}', ${food.lastQuantity})"
+                        style="display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+                               background: var(--bg-tertiary); border: 1px solid var(--border-color);
+                               border-radius: 20px; cursor: pointer; transition: all 0.2s;
+                               font-size: 0.85rem; color: var(--text-primary);">
+                        <span style="font-weight: 500;">${food.name}</span>
+                        <span style="color: var(--text-muted); font-size: 0.75rem;">${displayQty}</span>
+                    </button>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+/**
+ * Ajoute rapidement un aliment depuis les récents
+ */
+async function quickAddRecent(foodId, quantity) {
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) return;
+
+    // Haptic feedback
+    if (window.HapticFeedback) {
+        window.HapticFeedback.success();
+    }
+
+    await addToJournalDirect(foodId, quantity);
+    showToast(`${food.name} ajouté`, 'success');
+}
+
+// ==================== COPIER JOUR / REPAS ====================
+
+/**
+ * Ouvre la modal pour copier un jour entier
+ */
+function openCopyDayModal() {
+    const currentDate = document.getElementById('journal-date')?.value;
+    if (!currentDate) return;
+
+    // Chercher les jours récents avec des entrées
+    const recentDays = Object.keys(state.foodJournal || {})
+        .filter(date => date !== currentDate && state.foodJournal[date]?.length > 0)
+        .sort((a, b) => b.localeCompare(a))
+        .slice(0, 7);
+
+    if (recentDays.length === 0) {
+        showToast('Aucun jour à copier', 'warning');
+        return;
+    }
+
+    const modal = document.getElementById('copy-day-modal');
+    if (!modal) {
+        // Créer la modal dynamiquement si elle n'existe pas
+        createCopyDayModal(recentDays, currentDate);
+    } else {
+        populateCopyDayModal(recentDays, currentDate);
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+/**
+ * Crée la modal de copie de jour
+ */
+function createCopyDayModal(recentDays, targetDate) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'copy-day-modal';
+    modal.innerHTML = `
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Copier un jour</h2>
+                <button class="modal-close" onclick="closeCopyDayModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="copy-day-list">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeCopyDayModal()">Annuler</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    populateCopyDayModal(recentDays, targetDate);
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+/**
+ * Remplit la liste des jours à copier
+ */
+function populateCopyDayModal(recentDays, targetDate) {
+    const container = document.getElementById('copy-day-list');
+    if (!container) return;
+
+    container.innerHTML = recentDays.map(date => {
+        const entries = state.foodJournal[date] || [];
+        const totalCals = entries.reduce((sum, e) => {
+            const food = state.foods.find(f => f.id === e.foodId);
+            return sum + ((food?.calories || 0) * (e.quantity || 100) / 100);
+        }, 0);
+
+        const dateObj = new Date(date);
+        const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'long' });
+        const dayDate = dateObj.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+
+        return `
+            <div class="copy-day-item" onclick="copyDayTo('${date}', '${targetDate}')"
+                 style="padding: 16px; border: 1px solid var(--border-color); border-radius: 12px;
+                        margin-bottom: 12px; cursor: pointer; transition: all 0.2s;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary); text-transform: capitalize;">${dayName}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">${dayDate}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 600; color: var(--accent-brand);">${Math.round(totalCals)} kcal</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">${entries.length} aliments</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Copie un jour vers un autre
+ */
+async function copyDayTo(sourceDate, targetDate) {
+    const sourceEntries = state.foodJournal[sourceDate] || [];
+    if (sourceEntries.length === 0) {
+        showToast('Jour source vide', 'error');
+        return;
+    }
+
+    if (!state.foodJournal[targetDate]) {
+        state.foodJournal[targetDate] = [];
+    }
+
+    // Copier toutes les entrées
+    for (const entry of sourceEntries) {
+        const newEntry = {
+            foodId: entry.foodId,
+            quantity: entry.quantity,
+            mealType: entry.mealType,
+            addedAt: Date.now(),
+            copiedFrom: sourceDate
+        };
+
+        // Sync avec Supabase si connecté
+        if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+            const supabaseId = await addJournalEntryToSupabase(targetDate, entry.foodId, entry.quantity, entry.mealType);
+            if (supabaseId) newEntry.supabaseId = supabaseId;
+        }
+
+        state.foodJournal[targetDate].push(newEntry);
+    }
+
+    saveState();
+    closeCopyDayModal();
+
+    // Recharger le journal
+    document.getElementById('journal-date').value = targetDate;
+    loadJournalDay();
+
+    showToast(`${sourceEntries.length} aliments copiés`, 'success');
+
+    // Haptic feedback
+    if (window.HapticFeedback) {
+        window.HapticFeedback.success();
+    }
+}
+
+/**
+ * Ferme la modal de copie
+ */
+function closeCopyDayModal() {
+    const modal = document.getElementById('copy-day-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+/**
+ * Copie un repas spécifique vers aujourd'hui
+ */
+async function copyMealToToday(sourceDate, mealType) {
+    const today = new Date().toISOString().split('T')[0];
+    const sourceEntries = (state.foodJournal[sourceDate] || [])
+        .filter(e => e.mealType === mealType);
+
+    if (sourceEntries.length === 0) {
+        showToast('Repas vide', 'error');
+        return;
+    }
+
+    if (!state.foodJournal[today]) {
+        state.foodJournal[today] = [];
+    }
+
+    for (const entry of sourceEntries) {
+        const newEntry = {
+            foodId: entry.foodId,
+            quantity: entry.quantity,
+            mealType: mealType,
+            addedAt: Date.now(),
+            copiedFrom: sourceDate
+        };
+
+        if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+            const supabaseId = await addJournalEntryToSupabase(today, entry.foodId, entry.quantity, mealType);
+            if (supabaseId) newEntry.supabaseId = supabaseId;
+        }
+
+        state.foodJournal[today].push(newEntry);
+    }
+
+    saveState();
+
+    // Recharger si on est sur aujourd'hui
+    const currentDate = document.getElementById('journal-date')?.value;
+    if (currentDate === today) {
+        loadJournalDay();
+    }
+
+    const mealName = MEAL_TYPES[mealType]?.label || mealType;
+    showToast(`${mealName} copié`, 'success');
+}
+
 // Catégories d'aliments
 const foodCategories = {
     'protein': { name: 'Protéines', icon: '🥩' },
@@ -1063,12 +1369,15 @@ function initJournal() {
 function loadJournalDay() {
     const date = document.getElementById('journal-date')?.value;
     if (!date) return;
-    
+
     if (!state.foodJournal) state.foodJournal = {};
 
     renderJournalEntries();
     updateJournalSummary();
-    
+
+    // Afficher les aliments récents
+    renderRecentFoodsSection();
+
     // Mettre à jour les anneaux du dashboard
     updateMacroRings();
 }
@@ -1248,6 +1557,10 @@ async function addToJournalDirect(foodId, quantity) {
     }
     
     state.foodJournal[date].push(entry);
+
+    // Ajouter aux aliments récents (favoris)
+    addToRecentFoods(food.id, quantity);
+
     saveState();
 
     renderJournalEntries();
@@ -1672,8 +1985,9 @@ function initNutritionStickyScroll() {
 
 // Mettre à jour les anneaux de macros du dashboard
 function updateMacroRings() {
-    const today = new Date().toISOString().split('T')[0];
-    const consumed = calculateJournalMacros(today);
+    // Utiliser la date sélectionnée dans le journal, sinon aujourd'hui
+    const selectedDate = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
+    const consumed = calculateJournalMacros(selectedDate);
     
     if (!state.profile) return;
     

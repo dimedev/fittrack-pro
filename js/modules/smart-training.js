@@ -733,30 +733,254 @@
         };
     }
     
+    // ==================== DOUBLE PROGRESSION ====================
+
+    /**
+     * Calcule la suggestion de double progression
+     * Logique: Si reps max atteintes → +poids et reset reps
+     * @param {string} exerciseName - Nom de l'exercice
+     * @param {Array} targetRepsRange - [min, max] reps (défaut [8, 12])
+     * @returns {object|null} - { weight, reps, action, message }
+     */
+    function calculateDoubleProgression(exerciseName, targetRepsRange = [8, 12]) {
+        const [minReps, maxReps] = targetRepsRange;
+        const logs = state.progressLog?.[exerciseName] || [];
+
+        if (logs.length === 0) {
+            return null;
+        }
+
+        const lastLog = logs[logs.length - 1];
+        const lastReps = lastLog.reps || 0;
+        const lastWeight = lastLog.weight || 0;
+
+        let suggestion = {
+            weight: lastWeight,
+            reps: lastReps,
+            action: 'maintain',
+            message: 'Maintenir',
+            icon: '➡️'
+        };
+
+        if (lastReps >= maxReps) {
+            // Reps max atteintes → augmenter poids
+            const increment = isCompoundExercise(exerciseName) ? 2.5 : 1.25;
+            suggestion = {
+                weight: Math.round((lastWeight + increment) * 4) / 4,
+                reps: minReps,
+                action: 'weight_up',
+                message: `+${increment}kg, reset à ${minReps} reps`,
+                icon: '🏋️'
+            };
+        } else if (lastReps < minReps) {
+            // Reps trop basses → réduire poids
+            const decrement = isCompoundExercise(exerciseName) ? 2.5 : 1.25;
+            suggestion = {
+                weight: Math.max(0, Math.round((lastWeight - decrement) * 4) / 4),
+                reps: maxReps,
+                action: 'weight_down',
+                message: `Réduire à ${lastWeight - decrement}kg`,
+                icon: '⬇️'
+            };
+        } else {
+            // Entre min et max → augmenter reps
+            suggestion = {
+                weight: lastWeight,
+                reps: lastReps + 1,
+                action: 'reps_up',
+                message: `Viser ${lastReps + 1} reps`,
+                icon: '📈'
+            };
+        }
+
+        return suggestion;
+    }
+
+    /**
+     * Génère le widget de double progression pour un exercice
+     * @param {string} exerciseName - Nom de l'exercice
+     * @param {Array} targetRepsRange - [min, max] reps
+     * @returns {string} HTML du widget
+     */
+    function renderDoubleProgressionWidget(exerciseName, targetRepsRange = [8, 12]) {
+        const dp = calculateDoubleProgression(exerciseName, targetRepsRange);
+        if (!dp) return '';
+
+        const colors = {
+            weight_up: 'var(--success)',
+            reps_up: 'var(--primary)',
+            weight_down: 'var(--warning)',
+            maintain: 'var(--text-muted)'
+        };
+
+        return `
+            <div class="double-progression-badge" style="
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 4px 8px;
+                border-radius: 12px;
+                background: color-mix(in srgb, ${colors[dp.action]} 15%, transparent);
+                border: 1px solid color-mix(in srgb, ${colors[dp.action]} 30%, transparent);
+                font-size: 0.75rem;
+            " title="${dp.message}">
+                <span>${dp.icon}</span>
+                <span style="color: ${colors[dp.action]}; font-weight: 500;">
+                    ${dp.action === 'weight_up' ? '+Poids' : dp.action === 'reps_up' ? '+Reps' : dp.action === 'weight_down' ? '-Poids' : 'Maintenir'}
+                </span>
+            </div>
+        `;
+    }
+
+    // ==================== 1RM ESTIMÉ (EPLEY) ====================
+
+    /**
+     * Calcule le 1RM estimé avec la formule Epley
+     * @param {number} weight - Poids utilisé (kg)
+     * @param {number} reps - Répétitions effectuées
+     * @returns {number} 1RM estimé arrondi
+     */
+    function calculate1RM(weight, reps) {
+        if (reps <= 0 || weight <= 0) return 0;
+        if (reps === 1) return weight;
+        // Formule Epley: 1RM = weight × (1 + reps/30)
+        return Math.round(weight * (1 + reps / 30));
+    }
+
+    /**
+     * Récupère le 1RM max historique pour un exercice
+     * @param {string} exerciseName - Nom de l'exercice
+     * @returns {object|null} - { estimated1RM, weight, reps, date }
+     */
+    function getEstimated1RM(exerciseName) {
+        const logs = state.progressLog?.[exerciseName] || [];
+        if (logs.length === 0) return null;
+
+        let max1RM = 0;
+        let maxData = null;
+
+        logs.forEach(log => {
+            const estimated = calculate1RM(log.weight || 0, log.reps || 0);
+            if (estimated > max1RM) {
+                max1RM = estimated;
+                maxData = {
+                    estimated1RM: max1RM,
+                    weight: log.weight,
+                    reps: log.reps,
+                    date: log.date
+                };
+            }
+        });
+
+        return maxData;
+    }
+
+    /**
+     * Calcule le 1RM actuel (dernière séance)
+     * @param {string} exerciseName - Nom de l'exercice
+     * @returns {object|null} - { current1RM, weight, reps }
+     */
+    function getCurrent1RM(exerciseName) {
+        const logs = state.progressLog?.[exerciseName] || [];
+        if (logs.length === 0) return null;
+
+        const lastLog = logs[logs.length - 1];
+        const current1RM = calculate1RM(lastLog.weight || 0, lastLog.reps || 0);
+
+        return {
+            current1RM,
+            weight: lastLog.weight,
+            reps: lastLog.reps,
+            date: lastLog.date
+        };
+    }
+
+    /**
+     * Génère le widget 1RM pour un exercice
+     * @param {string} exerciseName - Nom de l'exercice
+     * @returns {string} HTML du widget
+     */
+    function render1RMWidget(exerciseName) {
+        const maxData = getEstimated1RM(exerciseName);
+        if (!maxData || !maxData.estimated1RM) return '';
+
+        const currentData = getCurrent1RM(exerciseName);
+        const isNewPR = currentData && currentData.current1RM >= maxData.estimated1RM;
+
+        // Formater la date
+        const dateStr = maxData.date ? new Date(maxData.date).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'short'
+        }) : '';
+
+        return `
+            <div class="estimated-1rm-badge" style="
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 10px;
+                border-radius: 8px;
+                background: ${isNewPR ? 'var(--success-bg, rgba(34, 197, 94, 0.1))' : 'var(--bg-tertiary)'};
+                border: 1px solid ${isNewPR ? 'var(--success)' : 'var(--border-color)'};
+                font-size: 0.8rem;
+            " title="1RM estimé basé sur ${maxData.weight}kg × ${maxData.reps} reps (${dateStr})">
+                <span style="font-size: 1rem;">${isNewPR ? '🎉' : '🏆'}</span>
+                <span style="font-weight: 600; color: ${isNewPR ? 'var(--success)' : 'var(--text-primary)'};">
+                    ${maxData.estimated1RM}kg
+                </span>
+                <span style="color: var(--text-muted); font-size: 0.7rem;">1RM</span>
+            </div>
+        `;
+    }
+
+    /**
+     * Calcule le pourcentage du 1RM pour un poids donné
+     * @param {string} exerciseName - Nom de l'exercice
+     * @param {number} weight - Poids à évaluer
+     * @returns {number|null} Pourcentage du 1RM
+     */
+    function get1RMPercentage(exerciseName, weight) {
+        const maxData = getEstimated1RM(exerciseName);
+        if (!maxData || maxData.estimated1RM <= 0) return null;
+
+        return Math.round((weight / maxData.estimated1RM) * 100);
+    }
+
     // ==================== EXPORT ====================
-    
+
     window.SmartTraining = {
         // Weight suggestions
         calculateSuggestedWeight,
         renderWeightSuggestion,
-        
+
         // Recovery
         calculateMuscleRecovery,
         renderMuscleRecoveryWidget,
         checkSessionRecovery,
-        
+
         // NOUVEAU: Fatigue cumulative
         calculateCumulativeFatigue,
         getUserAverageVolume,
         calculateVolumeTrend,
-        
+
         // NOUVEAU: Progression personnalisée
         getPersonalProgressionRate,
-        
+
+        // NOUVEAU: Double progression
+        calculateDoubleProgression,
+        renderDoubleProgressionWidget,
+
+        // NOUVEAU: 1RM estimé
+        calculate1RM,
+        getEstimated1RM,
+        getCurrent1RM,
+        render1RMWidget,
+        get1RMPercentage,
+
         // Constants
         MUSCLE_GROUPS
     };
-    
-    console.log('🧠 Smart Training module loaded (v2 - fatigue cumulative + progression perso)');
+
+    console.log('🧠 Smart Training module loaded (v3 - double progression + 1RM)');
 
 })();
