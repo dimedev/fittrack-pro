@@ -1996,29 +1996,85 @@ function renderCurrentExercise() {
     // Plage de reps selon la phase (targetReps) ou reps original
     const repsPlaceholder = exercise.targetReps || exercise.reps || '8-12';
 
-    if (lastLog && lastLog.setsDetail && lastLog.setsDetail.length > 0) {
+    // Variables pour le pré-remplissage
+    let suggestedWeight = 0;
+    let suggestedReps = '';
+    let hasPreviousData = false;
+    let dataSource = 'none';
+
+    // 0. D'abord vérifier si on a déjà des sets complétés pour cet exercice DANS cette session
+    const currentSessionSets = fsSession.completedSets?.filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex
+    ) || [];
+
+    if (currentSessionSets.length > 0) {
+        // Utiliser le dernier set de cette session comme référence
+        const lastSessionSet = currentSessionSets[currentSessionSets.length - 1];
+        if (lastSessionSet.weight > 0) {
+            previousValueEl.textContent = `Cette session: ${lastSessionSet.weight}kg × ${lastSessionSet.reps}`;
+            previousEl.style.display = 'flex';
+            suggestedWeight = lastSessionSet.weight;
+            hasPreviousData = true;
+            dataSource = 'current-session';
+        }
+    }
+
+    // 1. Sinon essayer avec setsDetail (données précises par série de la dernière session)
+    if (!hasPreviousData && lastLog && lastLog.setsDetail && lastLog.setsDetail.length > 0) {
         const lastSet = lastLog.setsDetail[Math.min(fsSession.currentSetIndex, lastLog.setsDetail.length - 1)];
         previousValueEl.textContent = `${lastSet.weight}kg × ${lastSet.reps}`;
         previousEl.style.display = 'flex';
+        suggestedWeight = lastSet.weight || 0;
+        hasPreviousData = true;
+        dataSource = 'setsDetail';
+    }
+    // 2. Sinon essayer avec les données agrégées du log
+    else if (!hasPreviousData && lastLog && lastLog.weight > 0) {
+        previousValueEl.textContent = `${lastLog.weight}kg × ${lastLog.achievedReps || lastLog.reps || '?'}`;
+        previousEl.style.display = 'flex';
+        suggestedWeight = lastLog.weight;
+        hasPreviousData = true;
+        dataSource = 'aggregated-log';
+    }
+    // 3. Sinon utiliser SmartTraining pour une suggestion intelligente
+    else if (!hasPreviousData && window.SmartTraining && typeof window.SmartTraining.calculateSuggestedWeight === 'function') {
+        const smartSuggestion = window.SmartTraining.calculateSuggestedWeight(exercise.effectiveName);
+        if (smartSuggestion && smartSuggestion.suggested > 0) {
+            suggestedWeight = smartSuggestion.suggested;
+            previousValueEl.textContent = `Suggéré: ${suggestedWeight}kg`;
+            previousEl.style.display = 'flex';
+            hasPreviousData = true;
+            dataSource = 'smart-training';
+        }
+    }
 
-        // Pre-fill inputs with last values (ajusté selon phase si deload)
+    // Appliquer multiplicateur de phase au poids si défini
+    if (suggestedWeight > 0) {
         const phaseAdjustments = getPhaseAdjustments();
-        let suggestedWeight = lastSet.weight || 0;
-
-        // Appliquer multiplicateur de phase au poids si défini
-        if (phaseAdjustments.weightMultiplier !== 1.0 && suggestedWeight > 0) {
+        if (phaseAdjustments.weightMultiplier !== 1.0) {
             suggestedWeight = Math.round(suggestedWeight * phaseAdjustments.weightMultiplier * 4) / 4;
         }
-
-        document.getElementById('fs-weight-input').value = suggestedWeight || '';
-        document.getElementById('fs-reps-input').value = '';
-        document.getElementById('fs-reps-input').placeholder = repsPlaceholder;
-    } else {
-        previousEl.style.display = 'none';
-        document.getElementById('fs-weight-input').value = '';
-        document.getElementById('fs-reps-input').value = '';
-        document.getElementById('fs-reps-input').placeholder = repsPlaceholder;
     }
+
+    // Remplir les inputs
+    document.getElementById('fs-weight-input').value = suggestedWeight > 0 ? suggestedWeight : '';
+    document.getElementById('fs-reps-input').value = suggestedReps;
+    document.getElementById('fs-reps-input').placeholder = repsPlaceholder;
+
+    // Masquer le "précédent" si pas de données
+    if (!hasPreviousData) {
+        previousEl.style.display = 'none';
+    }
+
+    // DEBUG: Afficher dans la console pour diagnostic
+    console.log(`🏋️ renderCurrentExercise("${exercise.effectiveName}"):`, {
+        dataSource,
+        suggestedWeight,
+        hasPreviousData,
+        currentSessionSets: currentSessionSets.length,
+        lastLog,
+        progressLogKeys: Object.keys(state.progressLog || {})
+    });
 
     // Render completed sets for this exercise
     renderCompletedSets();
@@ -3550,7 +3606,14 @@ function getEffectiveExerciseName(originalName, muscle) {
 }
 
 function getLastLog(exerciseName) {
-    if (!state.progressLog) return null;
+    if (!state.progressLog) {
+        console.log(`📊 getLastLog("${exerciseName}"): progressLog est vide/null`);
+        return null;
+    }
+
+    // DEBUG: Afficher toutes les clés disponibles
+    const allKeys = Object.keys(state.progressLog);
+    console.log(`📊 getLastLog("${exerciseName}"): Clés disponibles:`, allKeys);
 
     // Essayer d'abord avec le nom exact
     let logs = state.progressLog[exerciseName];
@@ -3559,21 +3622,38 @@ function getLastLog(exerciseName) {
     if (!logs || logs.length === 0) {
         const normalizedName = exerciseName.toLowerCase().trim();
 
-        // Chercher une correspondance partielle
+        // Chercher une correspondance exacte (insensible à la casse)
         for (const [logName, logData] of Object.entries(state.progressLog)) {
             if (logName.toLowerCase().trim() === normalizedName) {
+                console.log(`📊 getLastLog: Trouvé via normalisation: "${logName}"`);
                 logs = logData;
                 break;
             }
         }
+
+        // Si toujours pas trouvé, chercher une correspondance partielle
+        if (!logs || logs.length === 0) {
+            for (const [logName, logData] of Object.entries(state.progressLog)) {
+                // Chercher si le nom contient ou est contenu
+                if (logName.toLowerCase().includes(normalizedName) ||
+                    normalizedName.includes(logName.toLowerCase())) {
+                    console.log(`📊 getLastLog: Trouvé via correspondance partielle: "${logName}"`);
+                    logs = logData;
+                    break;
+                }
+            }
+        }
     }
 
-    if (!logs || logs.length === 0) return null;
+    if (!logs || logs.length === 0) {
+        console.log(`📊 getLastLog("${exerciseName}"): Aucune donnée trouvée`);
+        return null;
+    }
 
-    // DEBUG: Afficher dans la console pour diagnostic
-    console.log(`📊 getLastLog("${exerciseName}"):`, logs[logs.length - 1]);
+    const lastLog = logs[logs.length - 1];
+    console.log(`📊 getLastLog("${exerciseName}"): Trouvé!`, lastLog);
 
-    return logs[logs.length - 1];
+    return lastLog;
 }
 
 function openSessionSettings() {
