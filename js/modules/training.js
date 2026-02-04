@@ -2030,7 +2030,16 @@ function renderCurrentExercise() {
     }
     // 2. Sinon essayer avec les données agrégées du log
     else if (!hasPreviousData && lastLog && lastLog.weight > 0) {
-        previousValueEl.textContent = `${lastLog.weight}kg × ${lastLog.achievedReps || lastLog.reps || '?'}`;
+        // achievedReps est le TOTAL des reps, pas par série !
+        // Il faut calculer les reps moyennes par série
+        let displayReps = '?';
+        if (lastLog.achievedReps && lastLog.achievedSets && lastLog.achievedSets > 0) {
+            // Reps moyennes par série = total / nombre de séries
+            displayReps = Math.round(lastLog.achievedReps / lastLog.achievedSets);
+        } else if (lastLog.reps) {
+            displayReps = lastLog.reps;
+        }
+        previousValueEl.textContent = `${lastLog.weight}kg × ${displayReps}`;
         previousEl.style.display = 'flex';
         suggestedWeight = lastLog.weight;
         hasPreviousData = true;
