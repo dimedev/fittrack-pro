@@ -299,22 +299,51 @@
 [data-theme="light"] .nav-tab,
 [data-theme="light"] .bottom-nav-item {
     color: #6e6e73 !important;
+    background: transparent !important;
 }
 
 [data-theme="light"] .nav-tab.active,
 [data-theme="light"] .bottom-nav-item.active {
     color: #ff0000 !important;
+    background: transparent !important;
+}
+
+/* Bottom nav active indicator - red line at bottom instead of bg */
+[data-theme="light"] .bottom-nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    background: #ff0000;
+    border-radius: 2px;
 }
 
 @media (prefers-color-scheme: light) {
     [data-theme="auto"] .nav-tab,
     [data-theme="auto"] .bottom-nav-item {
         color: #6e6e73 !important;
+        background: transparent !important;
     }
 
     [data-theme="auto"] .nav-tab.active,
     [data-theme="auto"] .bottom-nav-item.active {
         color: #ff0000 !important;
+        background: transparent !important;
+    }
+
+    [data-theme="auto"] .bottom-nav-item.active::after {
+        content: '';
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 24px;
+        height: 3px;
+        background: #ff0000;
+        border-radius: 2px;
     }
 }
 

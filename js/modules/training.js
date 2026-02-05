@@ -125,6 +125,8 @@ const OverflowManager = {
     originalOverflow: '',
     originalPosition: '',
     scrollY: 0,
+    failsafeTimeout: null,
+    MAX_LOCK_TIME: 30000, // 30 secondes max de lock
 
     lock() {
         if (this.count === 0) {
@@ -135,6 +137,9 @@ const OverflowManager = {
             document.body.style.position = 'fixed';
             document.body.style.top = `-${this.scrollY}px`;
             document.body.style.width = '100%';
+
+            // Failsafe: auto-unlock après 30s
+            this.startFailsafe();
         }
         this.count++;
         console.log(`🔒 OverflowManager.lock() - count: ${this.count}`);
@@ -149,6 +154,7 @@ const OverflowManager = {
             document.body.style.top = '';
             document.body.style.width = '';
             window.scrollTo(0, this.scrollY);
+            this.clearFailsafe();
         }
     },
 
@@ -159,12 +165,45 @@ const OverflowManager = {
         document.body.style.position = '';
         document.body.style.top = '';
         document.body.style.width = '';
+        this.clearFailsafe();
         console.log('⚠️ OverflowManager.forceUnlock()');
+    },
+
+    // Failsafe: auto-unlock après timeout
+    startFailsafe() {
+        this.clearFailsafe();
+        this.failsafeTimeout = setTimeout(() => {
+            if (this.count > 0) {
+                console.warn(`⚠️ OverflowManager: Failsafe triggered after ${this.MAX_LOCK_TIME}ms (count was ${this.count})`);
+                this.forceUnlock();
+            }
+        }, this.MAX_LOCK_TIME);
+    },
+
+    clearFailsafe() {
+        if (this.failsafeTimeout) {
+            clearTimeout(this.failsafeTimeout);
+            this.failsafeTimeout = null;
+        }
+    },
+
+    // Check si le scroll est bloqué
+    isLocked() {
+        return this.count > 0;
     }
 };
 
 // Exposer globalement pour debug
 window.OverflowManager = OverflowManager;
+
+// Failsafe: reset quand on change de section (navigation)
+document.addEventListener('click', (e) => {
+    const navItem = e.target.closest('.bottom-nav-item, .nav-tab');
+    if (navItem && OverflowManager.count > 0) {
+        console.log('🔄 Navigation détectée - reset OverflowManager');
+        OverflowManager.forceUnlock();
+    }
+});
 
 // ==================== SESSION PERSISTENCE ====================
 let fsSessionSaveInterval = null;
