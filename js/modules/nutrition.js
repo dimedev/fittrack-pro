@@ -158,14 +158,17 @@ function openCopyDayModal() {
         return;
     }
 
-    const modal = document.getElementById('copy-day-modal');
+    let modal = document.getElementById('copy-day-modal');
     console.log('📋 Modal existante:', !!modal);
+
     if (!modal) {
         // Créer la modal dynamiquement si elle n'existe pas
         createCopyDayModal(recentDays, currentDate);
     } else {
+        // La modal existe déjà, juste la remplir et l'afficher
         populateCopyDayModal(recentDays, currentDate);
-        modal.style.display = 'flex';
+        modal.classList.add('active');
+        modal.style.cssText = 'display: flex !important; z-index: 9999;';
         document.body.style.overflow = 'hidden';
     }
 }
@@ -174,16 +177,19 @@ function openCopyDayModal() {
  * Crée la modal de copie de jour
  */
 function createCopyDayModal(recentDays, targetDate) {
+    console.log('📋 createCopyDayModal() - Création de la modal...');
+
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active'; // Ajouter 'active' directement
     modal.id = 'copy-day-modal';
+    modal.style.cssText = 'display: flex !important; z-index: 9999;'; // Force l'affichage
     modal.innerHTML = `
-        <div class="modal">
+        <div class="modal" style="max-width: 400px; margin: 20px;">
             <div class="modal-header">
-                <h2>Copier un jour</h2>
+                <h2>📋 Copier un jour</h2>
                 <button class="modal-close" onclick="closeCopyDayModal()">&times;</button>
             </div>
-            <div class="modal-body" id="copy-day-list">
+            <div class="modal-body" id="copy-day-list" style="max-height: 60vh; overflow-y: auto;">
                 <!-- Populated dynamically -->
             </div>
             <div class="modal-actions">
@@ -192,9 +198,12 @@ function createCopyDayModal(recentDays, targetDate) {
         </div>
     `;
     document.body.appendChild(modal);
+    console.log('📋 Modal ajoutée au DOM:', modal);
+
     populateCopyDayModal(recentDays, targetDate);
-    modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+
+    console.log('📋 Modal devrait être visible maintenant');
 }
 
 /**
@@ -288,6 +297,7 @@ async function copyDayTo(sourceDate, targetDate) {
 function closeCopyDayModal() {
     const modal = document.getElementById('copy-day-modal');
     if (modal) {
+        modal.classList.remove('active');
         modal.style.display = 'none';
         document.body.style.overflow = '';
     }
