@@ -7,111 +7,182 @@
     // ==================== SMART WEIGHT SUGGESTIONS ====================
     
     /**
-     * Calcule le poids suggéré pour un exercice basé sur l'historique
+     * Calcule le poids suggéré pour un exercice basé sur la DOUBLE PROGRESSION
+     *
+     * LOGIQUE DOUBLE PROGRESSION:
+     * - Si dernière séance: reps max atteintes (ex: 12/12) → +poids, reset reps à min (8)
+     * - Si dernière séance: reps < min → maintenir ou réduire poids
+     * - Si dernière séance: reps entre min et max → maintenir poids, viser +1 rep
+     *
+     * DÉTECTION STAGNATION:
+     * - Si même poids depuis 3+ séances sans atteindre reps max → stagnation
+     * - Suggérer: variation d'exercice, deload, ou technique intensification
+     *
      * @param {string} exerciseName - Nom de l'exercice
-     * @param {number} targetReps - Reps cibles
-     * @returns {object} - { suggested, lastWeight, progression, confidence }
+     * @param {number} targetReps - Reps cibles (ignoré si on a les reps ranges de la phase)
+     * @returns {object} - { suggested, lastWeight, progression, confidence, action }
      */
     function calculateSuggestedWeight(exerciseName, targetReps = 10) {
         const logs = state.progressLog?.[exerciseName] || [];
-        
+
         if (logs.length === 0) {
             return {
                 suggested: null,
                 lastWeight: null,
                 progression: 0,
                 confidence: 'none',
-                message: 'Première fois - choisissez votre poids'
+                message: 'Première fois - choisissez votre poids',
+                action: 'new'
             };
         }
-        
-        // Récupérer les dernières performances
-        const recentLogs = logs.slice(-5); // 5 dernières séances
+
+        // Récupérer la dernière performance
         const lastLog = logs[logs.length - 1];
         const lastWeight = lastLog.weight || 0;
-        
-        // Calculer le poids moyen récent
-        const avgWeight = recentLogs.reduce((sum, log) => sum + (log.weight || 0), 0) / recentLogs.length;
-        
-        // Analyser la tendance de progression
-        let trend = 0;
-        if (recentLogs.length >= 2) {
-            const first = recentLogs[0].weight || 0;
-            const last = recentLogs[recentLogs.length - 1].weight || 0;
-            trend = last - first;
+
+        // Calculer les reps moyennes de la dernière séance
+        let lastReps = 0;
+        if (lastLog.setsDetail && lastLog.setsDetail.length > 0) {
+            // Moyenne des reps par série
+            lastReps = Math.round(lastLog.setsDetail.reduce((sum, s) => sum + s.reps, 0) / lastLog.setsDetail.length);
+        } else if (lastLog.achievedReps && lastLog.achievedSets) {
+            lastReps = Math.round(lastLog.achievedReps / lastLog.achievedSets);
+        } else {
+            lastReps = targetReps; // Fallback
         }
-        
-        // Calculer la récupération musculaire pour cet exercice
-        const daysSinceLastSession = getDaysSinceLastSession(exerciseName);
-        
-        // Déterminer la progression suggérée
-        let suggestedWeight = lastWeight;
-        let progressionAmount = 0;
-        let confidence = 'medium';
-        let message = '';
-        
-        // NOUVEAU: Utiliser le taux de progression personnalisé
-        const personalRate = getPersonalProgressionRate(exerciseName);
-        
-        // Si bien récupéré et tendance positive → progression
-        if (daysSinceLastSession >= 2 && daysSinceLastSession <= 5) {
-            // Récupération optimale
-            if (trend >= 0) {
-                // Utiliser le taux personnalisé si confiance suffisante
-                if (personalRate.confidence === 'high' && personalRate.ratePerWeek > 0) {
-                    progressionAmount = Math.min(5, Math.max(0.5, personalRate.ratePerWeek));
-                } else {
-                    // Sinon, progression linéaire standard
-                    const isCompound = isCompoundExercise(exerciseName);
-                    progressionAmount = isCompound ? 2.5 : 1.25;
-                }
-                
-                suggestedWeight = Math.round((lastWeight + progressionAmount) * 4) / 4; // Arrondir à 0.25
-                confidence = personalRate.confidence === 'high' ? 'high' : 'medium';
-                message = `+${progressionAmount}kg (${personalRate.confidence === 'high' ? 'progression perso' : 'progression'})`;
-            } else {
-                // Tendance négative - maintenir
-                suggestedWeight = lastWeight;
-                message = 'Maintenir le poids';
-            }
-        } else if (daysSinceLastSession > 5) {
-            // Longue pause - réduire légèrement
-            suggestedWeight = Math.round((lastWeight * 0.95) * 4) / 4;
-            confidence = 'medium';
-            message = 'Reprise après pause';
-        } else if (daysSinceLastSession < 2) {
-            // Peu de repos - réduire
-            suggestedWeight = Math.round((lastWeight * 0.9) * 4) / 4;
-            confidence = 'low';
-            message = 'Repos insuffisant';
-        }
-        
-        // NOUVEAU: Ajuster selon la phase de périodisation
+
+        // Récupérer la phase de périodisation pour les rep ranges
         const phaseAdjustments = window.getPhaseAdjustments
             ? window.getPhaseAdjustments()
-            : { weightMultiplier: 1.0, phase: 'hypertrophy' };
+            : { weightMultiplier: 1.0, phase: 'hypertrophy', repsMin: 8, repsMax: 12 };
 
+        const repsMin = phaseAdjustments.repsMin || 8;
+        const repsMax = phaseAdjustments.repsMax || 12;
         const phaseMultiplier = phaseAdjustments.weightMultiplier || 1.0;
-        const adjustedWeight = Math.round(suggestedWeight * phaseMultiplier * 4) / 4;
 
-        // Ajuster le message si phase modifie le poids
-        let phaseMessage = '';
-        if (phaseMultiplier !== 1.0) {
-            const pct = Math.round((phaseMultiplier - 1) * 100);
-            const sign = pct > 0 ? '+' : '';
-            phaseMessage = ` (${sign}${pct}% phase ${phaseAdjustments.phase})`;
+        // Déterminer l'incrément selon type d'exercice
+        const isCompound = isCompoundExercise(exerciseName);
+        const increment = isCompound ? 2.5 : 1.25;
+
+        // Variables de sortie
+        let suggestedWeight = lastWeight;
+        let progressionAmount = 0;
+        let confidence = 'high';
+        let message = '';
+        let action = 'maintain';
+
+        // ========== LOGIQUE DOUBLE PROGRESSION ==========
+
+        if (lastReps >= repsMax) {
+            // PROGRESSION: Reps max atteintes → augmenter le poids
+            suggestedWeight = lastWeight + increment;
+            progressionAmount = increment;
+            action = 'weight_up';
+            message = `🎯 ${lastReps} reps atteintes → +${increment}kg`;
+            confidence = 'high';
+
+        } else if (lastReps < repsMin) {
+            // TROP LOURD: Reps sous le minimum → réduire légèrement
+            suggestedWeight = Math.max(0, lastWeight - increment);
+            progressionAmount = -increment;
+            action = 'weight_down';
+            message = `⚠️ ${lastReps} reps seulement → -${increment}kg`;
+            confidence = 'medium';
+
+        } else {
+            // ENTRE MIN ET MAX: Maintenir le poids, viser plus de reps
+            suggestedWeight = lastWeight;
+            action = 'reps_up';
+            message = `💪 Viser ${lastReps + 1}-${repsMax} reps`;
+            confidence = 'high';
+        }
+
+        // ========== DÉTECTION DE STAGNATION ==========
+
+        const recentLogs = logs.slice(-4); // 4 dernières séances
+        if (recentLogs.length >= 3) {
+            // Vérifier si même poids depuis 3+ séances
+            const allSameWeight = recentLogs.every(log =>
+                Math.abs((log.weight || 0) - lastWeight) < 0.5
+            );
+
+            // Vérifier si les reps n'augmentent pas
+            let repsNotProgressing = true;
+            if (recentLogs.length >= 2) {
+                const prevLog = recentLogs[recentLogs.length - 2];
+                let prevReps = 0;
+                if (prevLog.setsDetail && prevLog.setsDetail.length > 0) {
+                    prevReps = Math.round(prevLog.setsDetail.reduce((sum, s) => sum + s.reps, 0) / prevLog.setsDetail.length);
+                } else if (prevLog.achievedReps && prevLog.achievedSets) {
+                    prevReps = Math.round(prevLog.achievedReps / prevLog.achievedSets);
+                }
+                repsNotProgressing = lastReps <= prevReps;
+            }
+
+            if (allSameWeight && repsNotProgressing && lastReps < repsMax) {
+                // STAGNATION DÉTECTÉE
+                action = 'plateau';
+                confidence = 'medium';
+                message = `📊 Plateau détecté (${recentLogs.length} séances à ${lastWeight}kg)`;
+
+                // Suggestion: petite réduction pour casser le plateau
+                // Ou suggestion de variation
+            }
+        }
+
+        // ========== GESTION DES LONGUES PAUSES ==========
+
+        const daysSinceLastSession = getDaysSinceLastSession(exerciseName);
+
+        // Seulement réduire si VRAIMENT longue pause (>14 jours)
+        // 5-10 jours est NORMAL pour un split avec rotation
+        if (daysSinceLastSession > 14) {
+            // Pause de 2+ semaines → légère réduction de sécurité
+            const reductionFactor = daysSinceLastSession > 21 ? 0.90 : 0.95;
+            suggestedWeight = Math.round(lastWeight * reductionFactor * 4) / 4;
+            progressionAmount = suggestedWeight - lastWeight;
+            action = 'deload';
+            message = `🔄 Reprise après ${daysSinceLastSession}j → ${Math.round((1 - reductionFactor) * 100)}% plus léger`;
+            confidence = 'medium';
+        }
+
+        // ========== AJUSTEMENT PHASE PÉRIODISATION ==========
+
+        // Note: On n'applique PAS le multiplicateur de phase ici car la double progression
+        // gère déjà la charge. Le multiplicateur de phase est pour l'intensité relative,
+        // pas pour modifier le poids de travail suggéré.
+        // Exception: phase deload
+        if (phaseAdjustments.phase === 'deload' && phaseMultiplier < 1.0) {
+            suggestedWeight = Math.round(suggestedWeight * phaseMultiplier * 4) / 4;
+            message += ` (deload ${Math.round((1 - phaseMultiplier) * 100)}%)`;
+        }
+
+        // Arrondir au 0.25kg près
+        suggestedWeight = Math.round(suggestedWeight * 4) / 4;
+
+        // ========== CALCUL TENDANCE ==========
+
+        let trend = 'stable';
+        if (logs.length >= 2) {
+            const prevWeight = logs[logs.length - 2].weight || 0;
+            if (lastWeight > prevWeight) trend = 'up';
+            else if (lastWeight < prevWeight) trend = 'down';
         }
 
         return {
-            suggested: adjustedWeight,
+            suggested: suggestedWeight,
             lastWeight: lastWeight,
+            lastReps: lastReps,
             progression: progressionAmount,
             confidence: confidence,
-            message: message + phaseMessage,
+            message: message,
+            action: action,
             daysSinceLastSession: daysSinceLastSession,
-            trend: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable',
+            trend: trend,
             phase: phaseAdjustments.phase,
-            phaseMultiplier: phaseMultiplier
+            phaseMultiplier: phaseMultiplier,
+            repsRange: `${repsMin}-${repsMax}`,
+            isStagnating: action === 'plateau'
         };
     }
     

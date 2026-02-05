@@ -1068,36 +1068,37 @@ function generateSessionBrief() {
         // Calculer les sets ajustés selon la phase
         const adjustedSets = Math.max(1, Math.round(ex.sets * phaseAdjustments.setsMultiplier));
 
-        // Utiliser smart-training pour obtenir le poids suggéré
+        // Utiliser smart-training pour obtenir le poids suggéré (DOUBLE PROGRESSION)
         let suggestedWeight = null;
         let progressionInfo = null;
         let lastWeight = null;
+        let progressionAction = 'maintain';
 
         if (window.SmartTraining && typeof window.SmartTraining.calculateSuggestedWeight === 'function') {
             const suggestion = window.SmartTraining.calculateSuggestedWeight(exerciseName, 10);
             suggestedWeight = suggestion.suggested;
             lastWeight = suggestion.lastWeight;
             progressionInfo = suggestion.message;
+            progressionAction = suggestion.action || 'maintain';
+
+            // Log pour debug
+            console.log(`📊 Preview ${exerciseName}:`, {
+                suggested: suggestedWeight,
+                lastWeight,
+                action: progressionAction,
+                lastReps: suggestion.lastReps,
+                message: progressionInfo
+            });
         } else if (state.progressLog && state.progressLog[exerciseName]) {
-            // Fallback: utiliser le dernier log
+            // Fallback: utiliser le dernier log directement (pas de réduction)
             const logs = state.progressLog[exerciseName];
             if (logs.length > 0) {
                 const lastLog = logs[logs.length - 1];
                 lastWeight = lastLog.weight;
-                // Appliquer multiplicateur de phase
-                suggestedWeight = Math.round(lastWeight * phaseAdjustments.weightMultiplier * 4) / 4;
-
-                if (phaseAdjustments.weightMultiplier > 1) {
-                    progressionInfo = `+${Math.round((phaseAdjustments.weightMultiplier - 1) * 100)}% phase`;
-                } else if (phaseAdjustments.weightMultiplier < 1) {
-                    progressionInfo = `${Math.round((phaseAdjustments.weightMultiplier - 1) * 100)}% deload`;
-                } else {
-                    // Suggérer progression standard
-                    const isCompound = isCompoundExercise(exerciseName);
-                    const increment = isCompound ? 2.5 : 1.25;
-                    suggestedWeight = lastWeight + increment;
-                    progressionInfo = `+${increment}kg progression`;
-                }
+                // Par défaut: maintenir le poids de la dernière séance
+                suggestedWeight = lastWeight;
+                progressionInfo = 'Maintenir';
+                progressionAction = 'maintain';
             }
         }
 
@@ -1108,21 +1109,38 @@ function generateSessionBrief() {
         }
         totalSets += adjustedSets;
 
-        // Déterminer l'indicateur de progression
+        // Déterminer l'indicateur de progression basé sur l'ACTION
         let progressionIcon = '➡️';
         let progressionClass = 'maintain';
 
-        if (progressionInfo) {
-            if (progressionInfo.includes('+') && !progressionInfo.includes('deload')) {
+        switch (progressionAction) {
+            case 'weight_up':
+                progressionIcon = '🏋️';
+                progressionClass = 'up';
+                break;
+            case 'reps_up':
                 progressionIcon = '📈';
                 progressionClass = 'up';
-            } else if (progressionInfo.includes('-') || progressionInfo.includes('deload')) {
+                break;
+            case 'weight_down':
                 progressionIcon = '📉';
                 progressionClass = 'down';
-            } else if (progressionInfo.includes('Maintenir') || progressionInfo.includes('stable')) {
+                break;
+            case 'deload':
+                progressionIcon = '🔄';
+                progressionClass = 'down';
+                break;
+            case 'plateau':
+                progressionIcon = '⚠️';
+                progressionClass = 'warning';
+                break;
+            case 'new':
+                progressionIcon = '🆕';
+                progressionClass = 'new';
+                break;
+            default:
                 progressionIcon = '➡️';
                 progressionClass = 'maintain';
-            }
         }
 
         // Générer HTML pour cet exercice (layout 3 lignes - premium)

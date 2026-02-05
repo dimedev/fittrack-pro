@@ -4217,6 +4217,17 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     color: #a855f7;
 }
 
+.brief-exercise-progression.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    animation: pulse-warning 2s infinite;
+}
+
+@keyframes pulse-warning {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
 /* New exercise highlight */
 .brief-exercise-new {
     background: rgba(168, 85, 247, 0.05);
