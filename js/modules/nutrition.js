@@ -134,8 +134,16 @@ async function quickAddRecent(foodId, quantity) {
  * Ouvre la modal pour copier un jour entier
  */
 function openCopyDayModal() {
+    console.log('📋 openCopyDayModal() appelée');
+
     const currentDate = document.getElementById('journal-date')?.value;
-    if (!currentDate) return;
+    console.log('📋 currentDate:', currentDate);
+
+    if (!currentDate) {
+        console.warn('📋 Pas de date sélectionnée');
+        showToast('Sélectionnez d\'abord une date', 'warning');
+        return;
+    }
 
     // Chercher les jours récents avec des entrées
     const recentDays = Object.keys(state.foodJournal || {})
@@ -143,12 +151,15 @@ function openCopyDayModal() {
         .sort((a, b) => b.localeCompare(a))
         .slice(0, 7);
 
+    console.log('📋 recentDays trouvés:', recentDays);
+
     if (recentDays.length === 0) {
         showToast('Aucun jour à copier', 'warning');
         return;
     }
 
     const modal = document.getElementById('copy-day-modal');
+    console.log('📋 Modal existante:', !!modal);
     if (!modal) {
         // Créer la modal dynamiquement si elle n'existe pas
         createCopyDayModal(recentDays, currentDate);
@@ -3807,3 +3818,4 @@ window.updateMacroRings = updateMacroRings;
 window.openCopyDayModal = openCopyDayModal;
 
 console.log('✅ nutrition.js: Fonctions exportées au scope global');
+console.log('📋 openCopyDayModal =', typeof window.openCopyDayModal);
