@@ -1912,22 +1912,31 @@ input[type="date"].form-input {
         font-weight: 600 !important;
     }
     
-    /* Ligne de boutons */
+    /* Ligne de boutons - 6 boutons doivent tenir sur une ligne */
     .nutrition-buttons-row {
         display: flex !important;
         flex-direction: row !important;
-        gap: 8px !important;
+        gap: 6px !important;
         justify-content: center !important;
-        flex-wrap: wrap !important;
+        flex-wrap: nowrap !important;
         width: 100% !important;
+        overflow-x: auto !important;
+        padding: 4px 0 !important;
     }
-    
-    /* Boutons un peu plus petits pour tenir sur une ligne */
+
+    /* Boutons plus compacts pour tenir sur une ligne (6 × 40 + 5 × 6 = 270px) */
     .nutrition-buttons-row .btn-icon {
-        width: 44px !important;
-        height: 44px !important;
-        min-width: 44px !important;
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
         flex-shrink: 0 !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
+    }
+
+    /* SVG plus petits dans les boutons */
+    .nutrition-buttons-row .btn-icon svg {
+        width: 18px !important;
+        height: 18px !important;
     }
 }

@@ -3804,5 +3804,6 @@ window.toggleCustomFoods = toggleCustomFoods;
 window.toggleFoodBrowse = toggleFoodBrowse;
 window.searchUnifiedFoods = searchUnifiedFoods;
 window.updateMacroRings = updateMacroRings;
+window.openCopyDayModal = openCopyDayModal;
 
 console.log('✅ nutrition.js: Fonctions exportées au scope global');

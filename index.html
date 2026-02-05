@@ -2913,12 +2913,17 @@
                     Placez le code-barres dans le cadre
                 </div>
             </div>
-            
+
+            <!-- Bouton pour basculer en saisie manuelle -->
+            <button class="btn-secondary" onclick="showManualBarcodeInput()" style="margin-top: 12px; width: 100%;">
+                ⌨️ Saisie manuelle du code
+            </button>
+
             <div id="barcode-loading" class="barcode-loading" style="display: none;">
                 <div class="spinner"></div>
                 <p>Recherche en cours...</p>
             </div>
-            
+
             <div id="barcode-results" class="barcode-results" style="display: none;">
                 <!-- Rempli dynamiquement -->
             </div>

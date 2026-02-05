@@ -380,5 +380,12 @@ async function addScannedProduct(barcode) {
 // Exporter les fonctions
 window.BarcodeScanner = {
     open: openBarcodeScanner,
-    close: closeBarcodeScanner
+    close: closeBarcodeScanner,
+    showManual: showManualBarcodeInput
 };
+
+// Exports globaux pour les onclick HTML
+window.openBarcodeScanner = openBarcodeScanner;
+window.closeBarcodeScanner = closeBarcodeScanner;
+window.showManualBarcodeInput = showManualBarcodeInput;
+window.searchManualBarcode = searchManualBarcode;
