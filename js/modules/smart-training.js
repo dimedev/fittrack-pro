@@ -23,7 +23,19 @@
      * @returns {object} - { suggested, lastWeight, progression, confidence, action }
      */
     function calculateSuggestedWeight(exerciseName, targetReps = 10) {
-        const logs = state.progressLog?.[exerciseName] || [];
+        // Chercher les logs avec correspondance flexible (gère les variations de noms)
+        let logs = state.progressLog?.[exerciseName] || [];
+
+        // Si pas trouvé, chercher avec nom normalisé
+        if (logs.length === 0) {
+            const normalizedName = normalizeExerciseName(exerciseName);
+            for (const [logName, logData] of Object.entries(state.progressLog || {})) {
+                if (normalizeExerciseName(logName) === normalizedName) {
+                    logs = logData;
+                    break;
+                }
+            }
+        }
 
         if (logs.length === 0) {
             return {
@@ -60,6 +72,39 @@
         const repsMax = phaseAdjustments.repsMax || 12;
         const phaseMultiplier = phaseAdjustments.weightMultiplier || 1.0;
 
+        // ========== ADAPTATION AU CHANGEMENT DE REP RANGE ==========
+        // Si les reps du dernier log sont hors du nouveau range, adapter le poids
+        // Ex: Tu faisais 100kg x 5 reps (strength), tu passes en hypertrophy 8-12 reps
+        // → Suggérer ~85kg pour pouvoir faire 8+ reps (estimation via 1RM)
+
+        let adjustedForRangeChange = false;
+        let suggestedForNewRange = null;
+
+        if (lastReps > 0 && lastWeight > 0) {
+            // Calculer le 1RM estimé de la dernière performance
+            const estimated1RM = lastWeight * (1 + lastReps / 30); // Epley
+
+            // Si les reps du log sont très différentes du nouveau range (±2 reps de tolérance)
+            if (lastReps < repsMin - 2 || lastReps > repsMax + 2) {
+                // Calculer le poids pour le milieu du nouveau range
+                const targetRepsMiddle = (repsMin + repsMax) / 2;
+                // Inverse de Epley: weight = 1RM / (1 + reps/30)
+                suggestedForNewRange = Math.round((estimated1RM / (1 + targetRepsMiddle / 30)) * 4) / 4;
+
+                // Log pour debug
+                console.log(`🔄 Changement de rep range détecté pour ${exerciseName}:`, {
+                    lastReps,
+                    lastWeight,
+                    estimated1RM: Math.round(estimated1RM),
+                    oldRange: `${lastReps} reps`,
+                    newRange: `${repsMin}-${repsMax}`,
+                    suggestedForNewRange
+                });
+
+                adjustedForRangeChange = true;
+            }
+        }
+
         // Déterminer l'incrément selon type d'exercice
         const isCompound = isCompoundExercise(exerciseName);
         const increment = isCompound ? 2.5 : 1.25;
@@ -70,6 +115,43 @@
         let confidence = 'high';
         let message = '';
         let action = 'maintain';
+
+        // ========== CAS SPÉCIAL: CHANGEMENT DE PROGRAMME / REP RANGE ==========
+        // Si on passe d'un programme à un autre avec des rep ranges différents,
+        // adapter le poids via le 1RM estimé au lieu de la double progression classique
+
+        if (adjustedForRangeChange && suggestedForNewRange !== null) {
+            suggestedWeight = suggestedForNewRange;
+            progressionAmount = suggestedWeight - lastWeight;
+            action = 'range_change';
+            confidence = 'medium';
+
+            if (lastReps < repsMin) {
+                // Passait de force (5 reps) à hypertrophy (8-12) → réduire le poids
+                message = `🔄 Nouveau range ${repsMin}-${repsMax} reps → ${suggestedWeight}kg`;
+            } else {
+                // Passait de hypertrophy (12 reps) à force (5 reps) → augmenter le poids
+                message = `🔄 Nouveau range ${repsMin}-${repsMax} reps → ${suggestedWeight}kg`;
+            }
+
+            // Retourner directement car on a déjà calculé via 1RM
+            return {
+                suggested: suggestedWeight,
+                lastWeight: lastWeight,
+                lastReps: lastReps,
+                progression: progressionAmount,
+                confidence: confidence,
+                message: message,
+                action: action,
+                daysSinceLastSession: getDaysSinceLastSession(exerciseName),
+                trend: 'stable',
+                phase: phaseAdjustments.phase,
+                phaseMultiplier: phaseMultiplier,
+                repsRange: `${repsMin}-${repsMax}`,
+                isStagnating: false,
+                adjustedForRangeChange: true
+            };
+        }
 
         // ========== LOGIQUE DOUBLE PROGRESSION ==========
 
@@ -187,6 +269,79 @@
     }
     
     /**
+     * Normalise le nom d'un exercice pour permettre la correspondance flexible
+     * Gère les variations: accents, casse, espaces, noms alternatifs
+     * @param {string} name - Nom de l'exercice
+     * @returns {string} - Nom normalisé
+     */
+    function normalizeExerciseName(name) {
+        if (!name) return '';
+
+        // Lowercase et suppression accents
+        let normalized = name.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Supprime accents
+            .replace(/[^a-z0-9]/g, ' ') // Garde que alphanum
+            .replace(/\s+/g, ' ') // Normalise espaces
+            .trim();
+
+        // Mappings d'équivalence (noms alternatifs courants)
+        const equivalences = {
+            // Chest
+            'developpe couche': 'bench press',
+            'developpe couche barre': 'bench press',
+            'developpe couche halteres': 'dumbbell bench press',
+            'developpe incline': 'incline bench press',
+            'pec deck': 'pec fly',
+            'ecartes': 'fly',
+
+            // Back
+            'tirage vertical': 'lat pulldown',
+            'tirage horizontal': 'seated row',
+            'tirage poitrine': 'lat pulldown',
+            'rowing': 'row',
+            'traction': 'pull up',
+            'tractions': 'pull up',
+
+            // Shoulders
+            'developpe epaules': 'shoulder press',
+            'developpe militaire': 'overhead press',
+            'elevations laterales': 'lateral raise',
+            'elev lat': 'lateral raise',
+            'elevations frontales': 'front raise',
+            'oiseau': 'rear delt fly',
+
+            // Arms
+            'curl biceps': 'bicep curl',
+            'curl barre': 'barbell curl',
+            'curl halteres': 'dumbbell curl',
+            'extension triceps': 'tricep extension',
+            'barre au front': 'skull crusher',
+
+            // Legs
+            'squat barre': 'barbell squat',
+            'squat libre': 'squat',
+            'presse cuisses': 'leg press',
+            'presse a cuisses': 'leg press',
+            'leg extension': 'leg extension',
+            'leg curl': 'leg curl',
+            'souleve de terre': 'deadlift',
+            'soulevé de terre': 'deadlift',
+            'fentes': 'lunge',
+            'hip thrust': 'hip thrust',
+            'mollets': 'calf raise',
+            'extension mollets': 'calf raise'
+        };
+
+        // Vérifier si une équivalence existe
+        if (equivalences[normalized]) {
+            return equivalences[normalized];
+        }
+
+        // Sinon retourner le nom normalisé simple
+        return normalized;
+    }
+
+    /**
      * Détermine si un exercice est composé ou isolation
      */
     function isCompoundExercise(exerciseName) {
@@ -200,11 +355,24 @@
     
     /**
      * Calcule les jours depuis la dernière séance pour un exercice
+     * Utilise la recherche flexible par nom normalisé
      */
     function getDaysSinceLastSession(exerciseName) {
-        const logs = state.progressLog?.[exerciseName] || [];
+        let logs = state.progressLog?.[exerciseName] || [];
+
+        // Si pas trouvé, chercher avec nom normalisé
+        if (logs.length === 0) {
+            const normalizedName = normalizeExerciseName(exerciseName);
+            for (const [logName, logData] of Object.entries(state.progressLog || {})) {
+                if (normalizeExerciseName(logName) === normalizedName) {
+                    logs = logData;
+                    break;
+                }
+            }
+        }
+
         if (logs.length === 0) return Infinity;
-        
+
         const lastDate = new Date(logs[logs.length - 1].date);
         const today = new Date();
         const diffTime = Math.abs(today - lastDate);
@@ -1049,9 +1217,13 @@
         get1RMPercentage,
 
         // Constants
-        MUSCLE_GROUPS
+        MUSCLE_GROUPS,
+
+        // Utilitaires
+        normalizeExerciseName,
+        isCompoundExercise
     };
 
-    console.log('🧠 Smart Training module loaded (v3 - double progression + 1RM)');
+    console.log('🧠 Smart Training module loaded (v4 - double progression + 1RM + flexible matching)');
 
 })();

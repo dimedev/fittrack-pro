@@ -1138,6 +1138,10 @@ function generateSessionBrief() {
                 progressionIcon = '🆕';
                 progressionClass = 'new';
                 break;
+            case 'range_change':
+                progressionIcon = '🔄';
+                progressionClass = 'adapt';
+                break;
             default:
                 progressionIcon = '➡️';
                 progressionClass = 'maintain';

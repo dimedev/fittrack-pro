@@ -4223,9 +4223,20 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     animation: pulse-warning 2s infinite;
 }
 
+.brief-exercise-progression.adapt {
+    background: rgba(99, 102, 241, 0.15);
+    color: #6366f1;
+    animation: pulse-adapt 1.5s ease-in-out 2;
+}
+
 @keyframes pulse-warning {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.1); }
+}
+
+@keyframes pulse-adapt {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
 }
 
 /* New exercise highlight */
