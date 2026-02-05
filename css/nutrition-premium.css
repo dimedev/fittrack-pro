@@ -1091,6 +1091,30 @@ body.modal-open {
     color: #f97316;
 }
 
+/* Preset par défaut - légère mise en évidence */
+.quantity-preset-default {
+    border-color: var(--accent-secondary, #22c55e);
+    position: relative;
+}
+
+.quantity-preset-default::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: var(--accent-secondary, #22c55e);
+    border-radius: 50%;
+}
+
+/* Grille avec plus de presets */
+.quantity-presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
 .quantity-custom {
     display: flex;
     align-items: center;

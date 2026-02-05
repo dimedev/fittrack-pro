@@ -359,11 +359,264 @@ window.addEventListener('beforeunload', () => {
     saveState();
 });
 
-// Service Worker pour PWA (optionnel)
+// ==================== SERVICE WORKER ====================
+
+/**
+ * Enregistrement et gestion du Service Worker pour PWA offline-first
+ */
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // navigator.serviceWorker.register('/sw.js')
-        //     .then(registration => console.log('SW registered'))
-        //     .catch(error => console.log('SW registration failed'));
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+                scope: '/'
+            });
+
+            console.log('✅ Service Worker enregistré:', registration.scope);
+
+            // Gérer les mises à jour du SW
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('🔄 Nouveau Service Worker en installation...');
+
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Nouveau SW prêt, proposer la mise à jour
+                        showUpdateAvailable(registration);
+                    }
+                });
+            });
+
+            // Écouter les messages du SW
+            navigator.serviceWorker.addEventListener('message', handleSWMessage);
+
+            // Vérifier les mises à jour périodiquement (toutes les heures)
+            setInterval(() => {
+                registration.update();
+            }, 60 * 60 * 1000);
+
+        } catch (error) {
+            console.error('❌ Erreur enregistrement Service Worker:', error);
+        }
     });
+}
+
+/**
+ * Gère les messages reçus du Service Worker
+ */
+function handleSWMessage(event) {
+    const { type, payload } = event.data || {};
+
+    switch (type) {
+        case 'SYNC_PENDING_DATA':
+            // Le SW demande de synchroniser les données en attente
+            console.log('📡 Sync demandée par le SW');
+            if (typeof syncPendingData === 'function') {
+                syncPendingData();
+            }
+            break;
+
+        case 'CACHE_STATUS':
+            console.log('📦 Status du cache:', payload);
+            break;
+    }
+}
+
+/**
+ * Affiche une notification pour mettre à jour l'application
+ */
+function showUpdateAvailable(registration) {
+    // Créer un toast persistant pour la mise à jour
+    const updateToast = document.createElement('div');
+    updateToast.className = 'update-toast';
+    updateToast.innerHTML = `
+        <div class="update-toast-content">
+            <span class="update-toast-icon">🚀</span>
+            <div class="update-toast-text">
+                <strong>Mise à jour disponible</strong>
+                <span>Rechargez pour obtenir la dernière version</span>
+            </div>
+            <button class="update-toast-btn" onclick="applyUpdate()">
+                Mettre à jour
+            </button>
+            <button class="update-toast-close" onclick="this.parentElement.parentElement.remove()">
+                ✕
+            </button>
+        </div>
+    `;
+
+    // Ajouter les styles si pas déjà présents
+    if (!document.getElementById('update-toast-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'update-toast-styles';
+        styles.textContent = `
+            .update-toast {
+                position: fixed;
+                bottom: 90px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 10000;
+                animation: slideUp 0.3s ease-out;
+            }
+            .update-toast-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                background: var(--bg-secondary, #1a1a1a);
+                border: 1px solid var(--border-color, #333);
+                border-radius: 12px;
+                padding: 12px 16px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            }
+            .update-toast-icon {
+                font-size: 24px;
+            }
+            .update-toast-text {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .update-toast-text strong {
+                color: var(--text-primary, #fff);
+                font-size: 14px;
+            }
+            .update-toast-text span {
+                color: var(--text-secondary, #888);
+                font-size: 12px;
+            }
+            .update-toast-btn {
+                background: var(--accent-primary, #22c55e);
+                color: #000;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 600;
+                font-size: 13px;
+                cursor: pointer;
+                transition: opacity 0.2s;
+            }
+            .update-toast-btn:hover {
+                opacity: 0.9;
+            }
+            .update-toast-close {
+                background: none;
+                border: none;
+                color: var(--text-secondary, #888);
+                font-size: 16px;
+                cursor: pointer;
+                padding: 4px;
+            }
+            @keyframes slideUp {
+                from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(styles);
+    }
+
+    document.body.appendChild(updateToast);
+
+    // Stocker la registration pour la mise à jour
+    window._swRegistration = registration;
+}
+
+/**
+ * Applique la mise à jour du Service Worker
+ */
+function applyUpdate() {
+    if (window._swRegistration && window._swRegistration.waiting) {
+        // Dire au nouveau SW de prendre le contrôle
+        window._swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+    // Recharger la page
+    window.location.reload();
+}
+
+// Exposer globalement
+window.applyUpdate = applyUpdate;
+
+// ==================== OFFLINE STATUS ====================
+
+/**
+ * Gestion de l'état de connexion
+ */
+let isOnline = navigator.onLine;
+
+window.addEventListener('online', () => {
+    isOnline = true;
+    console.log('🌐 Connexion rétablie');
+    showToast('Connexion rétablie', 'success');
+    updateOfflineIndicator(false);
+
+    // Synchroniser les données en attente
+    if (typeof syncPendingData === 'function') {
+        setTimeout(() => syncPendingData(), 1000);
+    }
+
+    // Demander un sync au SW si disponible
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.sync.register('sync-pending-data');
+        });
+    }
+});
+
+window.addEventListener('offline', () => {
+    isOnline = false;
+    console.log('📴 Mode hors-ligne');
+    showToast('Mode hors-ligne - Vos données sont sauvegardées localement', 'warning');
+    updateOfflineIndicator(true);
+});
+
+/**
+ * Met à jour l'indicateur visuel de mode offline
+ */
+function updateOfflineIndicator(offline) {
+    let indicator = document.getElementById('offline-indicator');
+
+    if (offline) {
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'offline-indicator';
+            indicator.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                    <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+                    <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+                    <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+                    <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                    <line x1="12" y1="20" x2="12.01" y2="20"/>
+                </svg>
+                <span>Hors ligne</span>
+            `;
+            indicator.style.cssText = `
+                position: fixed;
+                top: 60px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--warning, #f59e0b);
+                color: #000;
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                z-index: 9999;
+                animation: slideDown 0.3s ease-out;
+            `;
+            document.body.appendChild(indicator);
+        }
+    } else {
+        if (indicator) {
+            indicator.style.animation = 'slideUp 0.3s ease-out forwards';
+            setTimeout(() => indicator.remove(), 300);
+        }
+    }
+}
+
+// Vérifier l'état initial
+if (!navigator.onLine) {
+    updateOfflineIndicator(true);
 }

@@ -505,6 +505,23 @@ function renderSessionsList(container) {
     const phaseIcons = { hypertrophy: '💪', strength: '🏋️', deload: '🧘', peak: '⚡' };
     const phaseNames = { hypertrophy: 'Hypertrophie', strength: 'Force', deload: 'Deload', peak: 'Peak' };
 
+    // NOUVEAU: Périodisation Adaptative - vérifier si une transition est suggérée
+    let phaseTransitionWidget = '';
+    const lastDismissed = localStorage.getItem('repzy-phase-dismissed');
+    const dismissedRecently = lastDismissed && (new Date() - new Date(lastDismissed)) < 24 * 60 * 60 * 1000; // 24h
+
+    if (!dismissedRecently && window.SmartTraining?.suggestPhaseTransition) {
+        // Incrémenter le compteur de semaines dans la phase actuelle
+        if (window.SmartTraining.incrementWeeksInPhase) {
+            window.SmartTraining.incrementWeeksInPhase();
+        }
+
+        const phaseSuggestion = window.SmartTraining.suggestPhaseTransition();
+        if (phaseSuggestion.shouldTransition && phaseSuggestion.confidence !== 'low') {
+            phaseTransitionWidget = window.SmartTraining.renderPhaseTransitionWidget();
+        }
+    }
+
     container.innerHTML = `
         <div class="training-header">
             <div class="training-header-info">
@@ -515,6 +532,9 @@ function renderSessionsList(container) {
                 ⚙️ Modifier
             </button>
         </div>
+
+        <!-- Adaptive Phase Transition Widget -->
+        ${phaseTransitionWidget}
 
         <!-- Periodization Badge -->
         <div class="training-period-card" onclick="openPeriodizationSheet()">

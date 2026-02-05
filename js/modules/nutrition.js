@@ -447,24 +447,40 @@ function formatQuantityDisplay(food, quantityGrams) {
 // Obtenir les presets de quantité adaptés à l'aliment
 function getQuantityPresets(food) {
     if (!food.unit || food.unit === 'g') {
-        // Presets en grammes
+        // Presets en grammes - plus d'options avec 100g comme défaut suggéré
         return [
-            { value: 50, label: '50g' },
-            { value: 100, label: '100g' },
-            { value: 150, label: '150g' },
-            { value: 200, label: '200g' }
+            { value: 50, label: '50g', isDefault: false },
+            { value: 100, label: '100g', isDefault: true }, // Défaut recommandé
+            { value: 150, label: '150g', isDefault: false },
+            { value: 200, label: '200g', isDefault: false },
+            { value: 250, label: '250g', isDefault: false },
+            { value: 300, label: '300g', isDefault: false }
         ];
     }
-    
+
     // Presets en unités
     const unitWeight = food.unitWeight || 100;
     const unitLabel = food.unitLabel || '';
-    
-    return [
-        { value: unitWeight, label: `1 ${unitLabel}` },
-        { value: unitWeight * 2, label: `2 ${pluralizeFr(unitLabel, 2)}` },
-        { value: unitWeight * 3, label: `3 ${pluralizeFr(unitLabel, 3)}` }
+
+    // Générer des presets intelligents selon le type d'aliment
+    const presets = [
+        { value: unitWeight, label: `1 ${unitLabel}`, isDefault: true },
+        { value: unitWeight * 2, label: `2 ${pluralizeFr(unitLabel, 2)}`, isDefault: false }
     ];
+
+    // Pour les petites unités (œufs, tranches), ajouter plus d'options
+    if (unitWeight < 80) {
+        presets.push(
+            { value: unitWeight * 3, label: `3 ${pluralizeFr(unitLabel, 3)}`, isDefault: false },
+            { value: unitWeight * 4, label: `4 ${pluralizeFr(unitLabel, 4)}`, isDefault: false }
+        );
+    } else {
+        presets.push(
+            { value: unitWeight * 3, label: `3 ${pluralizeFr(unitLabel, 3)}`, isDefault: false }
+        );
+    }
+
+    return presets;
 }
 
 // Vérifier si un aliment utilise des unités naturelles
@@ -893,12 +909,25 @@ function openQuantitySheet(food, initialGrams) {
 function renderQuantityPresets(food) {
     const container = document.getElementById('quantity-presets-container');
     if (!container) return;
-    
+
     const presets = getQuantityPresets(food);
-    
-    container.innerHTML = presets.map(preset => `
-        <button class="quantity-preset" onclick="selectQuantityPresetAdaptive(${preset.value})">${preset.label}</button>
-    `).join('');
+
+    container.innerHTML = presets.map(preset => {
+        const defaultClass = preset.isDefault ? 'quantity-preset-default' : '';
+        return `
+            <button class="quantity-preset ${defaultClass}"
+                    onclick="selectQuantityPresetAdaptive(${preset.value})"
+                    ${preset.isDefault ? 'data-default="true"' : ''}>
+                ${preset.label}
+            </button>
+        `;
+    }).join('');
+
+    // Auto-sélectionner le preset par défaut visuellement
+    const defaultPreset = container.querySelector('.quantity-preset-default');
+    if (defaultPreset) {
+        defaultPreset.classList.add('selected');
+    }
 }
 
 /**
@@ -1556,7 +1585,7 @@ async function addToJournal(foodId) {
     showToast(`${food.name} ajouté au journal`, 'success');
 }
 
-// Ajouter directement au journal (sans UI)
+// Ajouter directement au journal (sans UI) - OPTIMISTIC UPDATE
 async function addToJournalDirect(foodId, quantity) {
     // Validation stricte du foodId
     if (!foodId || typeof foodId !== 'string') {
@@ -1564,7 +1593,7 @@ async function addToJournalDirect(foodId, quantity) {
         showToast('Erreur: aliment non valide', 'error');
         return;
     }
-    
+
     const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
     const food = state.foods.find(f => f.id === foodId);
 
@@ -1573,7 +1602,7 @@ async function addToJournalDirect(foodId, quantity) {
         showToast('Aliment introuvable', 'error');
         return;
     }
-    
+
     // Validation stricte de la quantité
     quantity = Math.max(MIN_QUANTITY, parseInt(quantity) || 100);
     if (quantity > MAX_QUANTITY) {
@@ -1586,38 +1615,94 @@ async function addToJournalDirect(foodId, quantity) {
 
     // Inférer le mealType pour le quick add (basé sur l'heure)
     const mealType = inferMealType(Date.now());
-    
+
+    // Générer un ID temporaire pour l'optimistic update
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     const entry = {
         foodId: food.id,
         quantity: quantity,
         addedAt: Date.now(),
         mealType: mealType,
-        isNew: true // Marquer comme nouvelle pour l'animation
+        isNew: true, // Marquer comme nouvelle pour l'animation
+        _tempId: tempId, // ID temporaire pour rollback si erreur
+        _pending: true // Marquer comme en attente de sync
     };
-    
-    // Sync avec Supabase si connecté
-    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-        const supabaseId = await addJournalEntryToSupabase(date, food.id, quantity, mealType);
-        if (supabaseId) entry.supabaseId = supabaseId;
-    }
-    
+
+    // ========== OPTIMISTIC UPDATE ==========
+    // 1. Ajouter immédiatement au state local
     state.foodJournal[date].push(entry);
 
-    // Ajouter aux aliments récents (favoris)
+    // 2. Ajouter aux aliments récents
     addToRecentFoods(food.id, quantity);
 
+    // 3. Sauvegarder localement
     saveState();
 
+    // 4. Mettre à jour l'UI immédiatement
     renderJournalEntries();
     updateJournalSummary();
     updateMacroRings();
-    
-    // Retirer le flag isNew après l'animation
+
+    // 5. Retirer le flag isNew après l'animation
     setTimeout(() => {
         if (state.foodJournal[date]) {
             state.foodJournal[date].forEach(e => delete e.isNew);
         }
     }, 2000);
+
+    // ========== BACKGROUND SYNC ==========
+    // Sync avec Supabase en arrière-plan (non-bloquant)
+    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+        syncEntryToSupabase(date, entry, tempId).catch(error => {
+            console.warn('Sync failed, entry queued:', error);
+            // L'entrée reste en local avec _pending = true
+            // Elle sera synchronisée plus tard via syncQueue
+        });
+    }
+}
+
+/**
+ * Synchronise une entrée avec Supabase en arrière-plan
+ * Gère les erreurs et le rollback si nécessaire
+ */
+async function syncEntryToSupabase(date, entry, tempId) {
+    try {
+        const supabaseId = await addJournalEntryToSupabase(
+            date,
+            entry.foodId,
+            entry.quantity,
+            entry.mealType
+        );
+
+        if (supabaseId) {
+            // Trouver l'entrée par son tempId et mettre à jour
+            const entries = state.foodJournal[date];
+            if (entries) {
+                const idx = entries.findIndex(e => e._tempId === tempId);
+                if (idx !== -1) {
+                    entries[idx].supabaseId = supabaseId;
+                    delete entries[idx]._tempId;
+                    delete entries[idx]._pending;
+                    saveState();
+                    console.log('✅ Entry synced:', supabaseId);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('❌ Sync entry failed:', error);
+        // Ajouter à la queue de sync pour retry ultérieur
+        if (typeof addToSyncQueue === 'function') {
+            addToSyncQueue('food_journal', 'insert', {
+                date,
+                foodId: entry.foodId,
+                quantity: entry.quantity,
+                mealType: entry.mealType,
+                _tempId: tempId
+            });
+        }
+        throw error; // Re-throw pour que l'appelant sache qu'il y a eu une erreur
+    }
 }
 
 // Afficher les entrées du journal
@@ -3194,50 +3279,51 @@ const originalConfirmAddFood = typeof confirmAddFood === 'function' ? confirmAdd
 // NOTE: Cette fonction est définie plus haut dans le fichier (ligne ~615)
 // avec gestion complète des unités naturelles et mode édition
 
-// Ajouter au journal avec mealType (supporte les unités naturelles)
+// Ajouter au journal avec mealType (supporte les unités naturelles) - OPTIMISTIC UPDATE
 async function addToJournalWithMealType(foodId, quantity, mealType) {
     const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
     const food = state.foods.find(f => f.id === foodId);
-    
+
     if (!food) return;
-    
+
     if (!state.foodJournal) state.foodJournal = {};
     if (!state.foodJournal[date]) state.foodJournal[date] = [];
-    
+
     // Calculer les informations d'unités
     const unitType = food.unit || 'g';
     const unitCount = hasNaturalUnit(food) ? gramsToUnits(food, quantity) : null;
-    
+
+    // Générer un ID temporaire pour l'optimistic update
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     const entry = {
         foodId: food.id,
         quantity: quantity, // Toujours en grammes
         addedAt: Date.now(),
         mealType: mealType,
-        // Nouvelles infos d'unités
         unitType: unitType,
-        unitCount: unitCount
+        unitCount: unitCount,
+        isNew: true, // Pour l'animation
+        _tempId: tempId, // ID temporaire pour rollback
+        _pending: true // Marquer comme en attente de sync
     };
-    
-    // Sync Supabase si connecté (avec infos d'unités et mealType)
-    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-        const supabaseId = await addJournalEntryToSupabase(date, food.id, quantity, mealType, unitType, unitCount);
-        if (supabaseId) entry.supabaseId = supabaseId;
-    }
-    
+
+    // ========== OPTIMISTIC UPDATE ==========
+    // 1. Ajouter immédiatement au state local
     state.foodJournal[date].push(entry);
+
+    // 2. Ajouter aux aliments récents
+    addToRecentFoods(food.id, quantity);
+
+    // 3. Sauvegarder localement
     saveState();
-    
-    // Mettre à jour le badge de sync
-    if (typeof window.updatePendingSyncBadge === 'function') {
-        window.updatePendingSyncBadge();
-    }
-    
-    // Refresh UI
+
+    // 4. Mettre à jour l'UI immédiatement
     renderMealsByType();
     updateJournalSummary();
     updateMacroRings();
-    
-    // Animation sur le dernier item ajouté
+
+    // 5. Animation sur le dernier item ajouté
     setTimeout(() => {
         const items = document.querySelectorAll(`#meal-items-${mealType} .meal-item`);
         const lastItem = items[items.length - 1];
@@ -3246,11 +3332,81 @@ async function addToJournalWithMealType(foodId, quantity, mealType) {
             setTimeout(() => lastItem.classList.remove('just-added'), 600);
         }
     }, 50);
-    
-    // Vérifier si objectif atteint
+
+    // 6. Retirer le flag isNew après l'animation
+    setTimeout(() => {
+        if (state.foodJournal[date]) {
+            const entryIdx = state.foodJournal[date].findIndex(e => e._tempId === tempId);
+            if (entryIdx !== -1) {
+                delete state.foodJournal[date][entryIdx].isNew;
+            }
+        }
+    }, 2000);
+
+    // 7. Vérifier si objectif atteint
     checkGoalReached();
-    
+
+    // 8. Toast immédiat
     showToast(`${food.name} ajouté !`, 'success');
+
+    // ========== BACKGROUND SYNC ==========
+    // Sync avec Supabase en arrière-plan (non-bloquant)
+    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+        syncEntryWithUnitsToSupabase(date, entry, tempId, unitType, unitCount).catch(error => {
+            console.warn('Sync failed, entry queued:', error);
+        });
+    }
+
+    // Mettre à jour le badge de sync
+    if (typeof window.updatePendingSyncBadge === 'function') {
+        window.updatePendingSyncBadge();
+    }
+}
+
+/**
+ * Synchronise une entrée avec unités vers Supabase en arrière-plan
+ */
+async function syncEntryWithUnitsToSupabase(date, entry, tempId, unitType, unitCount) {
+    try {
+        const supabaseId = await addJournalEntryToSupabase(
+            date,
+            entry.foodId,
+            entry.quantity,
+            entry.mealType,
+            unitType,
+            unitCount
+        );
+
+        if (supabaseId) {
+            // Trouver l'entrée par son tempId et mettre à jour
+            const entries = state.foodJournal[date];
+            if (entries) {
+                const idx = entries.findIndex(e => e._tempId === tempId);
+                if (idx !== -1) {
+                    entries[idx].supabaseId = supabaseId;
+                    delete entries[idx]._tempId;
+                    delete entries[idx]._pending;
+                    saveState();
+                    console.log('✅ Entry with units synced:', supabaseId);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('❌ Sync entry with units failed:', error);
+        // Ajouter à la queue de sync pour retry ultérieur
+        if (typeof addToSyncQueue === 'function') {
+            addToSyncQueue('food_journal', 'insert', {
+                date,
+                foodId: entry.foodId,
+                quantity: entry.quantity,
+                mealType: entry.mealType,
+                unitType,
+                unitCount,
+                _tempId: tempId
+            });
+        }
+        throw error;
+    }
 }
 
 // ==================== FEEDBACK VISUEL & CÉLÉBRATION ====================

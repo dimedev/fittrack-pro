@@ -63,6 +63,15 @@
             lastReps = targetReps; // Fallback
         }
 
+        // ========== RÉCUPÉRER RPE POUR AUTOREGULATION ==========
+        let lastRPE = null;
+        if (lastLog.setsDetail && lastLog.setsDetail.length > 0) {
+            const rpeSets = lastLog.setsDetail.filter(s => s.rpe != null && s.rpe > 0);
+            if (rpeSets.length > 0) {
+                lastRPE = Math.round(rpeSets.reduce((sum, s) => sum + s.rpe, 0) / rpeSets.length);
+            }
+        }
+
         // Récupérer la phase de périodisation pour les rep ranges
         const phaseAdjustments = window.getPhaseAdjustments
             ? window.getPhaseAdjustments()
@@ -153,7 +162,86 @@
             };
         }
 
+        // ========== AUTOREGULATION BASÉE SUR RPE ==========
+        // Utilise le RPE pour ajuster les suggestions de poids intelligemment
+
+        if (lastRPE !== null) {
+            // RPE 10 = Échec ou quasi-échec → RÉDUIRE le poids
+            if (lastRPE === 10) {
+                suggestedWeight = Math.max(0, lastWeight - increment);
+                progressionAmount = -increment;
+                action = 'rpe_reduce';
+                message = `⚠️ RPE 10 détecté → -${increment}kg pour récupérer`;
+                confidence = 'high';
+
+                console.log(`🎯 Autoregulation RPE: ${exerciseName} - RPE 10 → réduction`);
+
+                // Return early - pas besoin de double progression
+                return buildRPEResult();
+            }
+
+            // RPE 9 = Très dur → MAINTENIR le poids (ne pas augmenter)
+            if (lastRPE === 9) {
+                suggestedWeight = lastWeight;
+                progressionAmount = 0;
+                action = 'rpe_maintain';
+                message = `🎯 RPE 9 → maintenir ${lastWeight}kg`;
+                confidence = 'high';
+
+                console.log(`🎯 Autoregulation RPE: ${exerciseName} - RPE 9 → maintien`);
+
+                return buildRPEResult();
+            }
+
+            // RPE <= 6 ET reps max atteintes = Trop facile → augmenter PLUS
+            if (lastRPE <= 6 && lastReps >= repsMax) {
+                const boostIncrement = Math.round(increment * 1.5 * 4) / 4; // Arrondi au 0.25
+                suggestedWeight = lastWeight + boostIncrement;
+                progressionAmount = boostIncrement;
+                action = 'rpe_boost';
+                message = `🚀 RPE ${lastRPE} + ${lastReps} reps → +${boostIncrement}kg`;
+                confidence = 'high';
+
+                console.log(`🎯 Autoregulation RPE: ${exerciseName} - RPE ${lastRPE} bas + reps max → boost`);
+
+                return buildRPEResult();
+            }
+
+            // RPE 7 = Zone idéale, progression standard
+            // RPE 8 = Bon effort, vérifier via double progression
+        }
+
+        // Helper function pour construire le résultat avec RPE
+        function buildRPEResult() {
+            const daysSinceLastSession = getDaysSinceLastSession(exerciseName);
+            let trend = 'stable';
+            if (logs.length >= 2) {
+                const prevWeight = logs[logs.length - 2].weight || 0;
+                if (lastWeight > prevWeight) trend = 'up';
+                else if (lastWeight < prevWeight) trend = 'down';
+            }
+
+            return {
+                suggested: suggestedWeight,
+                lastWeight: lastWeight,
+                lastReps: lastReps,
+                lastRPE: lastRPE,
+                progression: progressionAmount,
+                confidence: confidence,
+                message: message,
+                action: action,
+                daysSinceLastSession: daysSinceLastSession,
+                trend: trend,
+                phase: phaseAdjustments.phase,
+                phaseMultiplier: phaseMultiplier,
+                repsRange: `${repsMin}-${repsMax}`,
+                isStagnating: false,
+                rpeAdjusted: true
+            };
+        }
+
         // ========== LOGIQUE DOUBLE PROGRESSION ==========
+        // (Utilisée si RPE non disponible ou dans la zone normale 7-8)
 
         if (lastReps >= repsMax) {
             // PROGRESSION: Reps max atteintes → augmenter le poids
@@ -255,6 +343,7 @@
             suggested: suggestedWeight,
             lastWeight: lastWeight,
             lastReps: lastReps,
+            lastRPE: lastRPE,
             progression: progressionAmount,
             confidence: confidence,
             message: message,
@@ -264,10 +353,11 @@
             phase: phaseAdjustments.phase,
             phaseMultiplier: phaseMultiplier,
             repsRange: `${repsMin}-${repsMax}`,
-            isStagnating: action === 'plateau'
+            isStagnating: action === 'plateau',
+            rpeAdjusted: false
         };
     }
-    
+
     /**
      * Normalise le nom d'un exercice pour permettre la correspondance flexible
      * Gère les variations: accents, casse, espaces, noms alternatifs
@@ -402,15 +492,25 @@
             stable: '➡️'
         };
         
+        // Indicateur RPE si disponible
+        const rpeIndicator = suggestion.lastRPE
+            ? `<span class="suggestion-rpe" style="font-size: 10px; color: var(--text-muted); margin-left: 8px;">RPE ${suggestion.lastRPE}</span>`
+            : '';
+
+        // Badge si ajusté par RPE
+        const rpeBadge = suggestion.rpeAdjusted
+            ? `<span class="rpe-badge" style="background: var(--accent-primary); color: white; font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: 4px;">RPE</span>`
+            : '';
+
         return `
             <div class="weight-suggestion" data-exercise="${exerciseName}" onclick="applySuggestedWeight('${exerciseName}', ${suggestion.suggested})">
                 <div class="suggestion-header">
-                    <span class="suggestion-label">Suggéré</span>
-                    <span class="suggestion-confidence" style="color: ${confidenceColors[suggestion.confidence]}">${suggestion.confidence === 'high' ? '●●●' : suggestion.confidence === 'medium' ? '●●○' : '●○○'}</span>
+                    <span class="suggestion-label">Suggéré${rpeBadge}</span>
+                    <span class="suggestion-confidence" style="color: ${confidenceColors[suggestion.confidence]}">${suggestion.confidence === 'high' ? '●●●' : suggestion.confidence === 'medium' ? '●●○' : '●○○'}${rpeIndicator}</span>
                 </div>
                 <div class="suggestion-value">
                     <span class="suggestion-weight">${suggestion.suggested}kg</span>
-                    ${suggestion.progression > 0 ? `<span class="suggestion-diff">+${suggestion.progression}</span>` : ''}
+                    ${suggestion.progression > 0 ? `<span class="suggestion-diff positive">+${suggestion.progression}</span>` : suggestion.progression < 0 ? `<span class="suggestion-diff negative">${suggestion.progression}</span>` : ''}
                 </div>
                 <div class="suggestion-message">${suggestion.message}</div>
             </div>
@@ -1185,6 +1285,374 @@
         return Math.round((weight / maxData.estimated1RM) * 100);
     }
 
+    // ==================== PÉRIODISATION ADAPTATIVE ====================
+
+    /**
+     * Analyse la tendance de performance sur N semaines
+     * Compte les exercices en progression vs stagnation
+     * @param {number} weeks - Nombre de semaines à analyser (défaut 3)
+     * @returns {object} { trend, progressingCount, stagnatingCount, totalAnalyzed, avgRPE, details }
+     */
+    function analyzePerformanceTrend(weeks = 3) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - (weeks * 7));
+
+        let progressingCount = 0;
+        let stagnatingCount = 0;
+        let rpeValues = [];
+        const details = [];
+
+        // Analyser chaque exercice dans progressLog
+        for (const [exerciseName, logs] of Object.entries(state.progressLog || {})) {
+            if (!logs || logs.length < 2) continue;
+
+            // Filtrer les logs récents
+            const recentLogs = logs.filter(log => new Date(log.date) >= cutoffDate);
+            if (recentLogs.length < 2) continue;
+
+            // Comparer première et dernière performance de la période
+            const firstLog = recentLogs[0];
+            const lastLog = recentLogs[recentLogs.length - 1];
+
+            const firstWeight = firstLog.weight || 0;
+            const lastWeight = lastLog.weight || 0;
+
+            // Calculer les reps moyennes
+            let firstReps = 0, lastReps = 0;
+            if (firstLog.setsDetail?.length > 0) {
+                firstReps = firstLog.setsDetail.reduce((sum, s) => sum + s.reps, 0) / firstLog.setsDetail.length;
+            } else {
+                firstReps = (firstLog.achievedReps || 0) / Math.max(1, firstLog.achievedSets || 1);
+            }
+            if (lastLog.setsDetail?.length > 0) {
+                lastReps = lastLog.setsDetail.reduce((sum, s) => sum + s.reps, 0) / lastLog.setsDetail.length;
+            } else {
+                lastReps = (lastLog.achievedReps || 0) / Math.max(1, lastLog.achievedSets || 1);
+            }
+
+            // Collecter RPE si disponible
+            if (lastLog.setsDetail) {
+                lastLog.setsDetail.forEach(s => {
+                    if (s.rpe > 0) rpeValues.push(s.rpe);
+                });
+            }
+
+            // Calculer 1RM pour comparaison plus précise
+            const first1RM = calculate1RM(firstWeight, Math.round(firstReps));
+            const last1RM = calculate1RM(lastWeight, Math.round(lastReps));
+
+            // Déterminer progression ou stagnation
+            // Progression: +2.5% de 1RM ou +2 reps à même poids
+            const progressionThreshold = 0.025; // 2.5%
+            const isProgressing = (last1RM > first1RM * (1 + progressionThreshold)) ||
+                                  (lastWeight >= firstWeight && lastReps > firstReps + 1);
+
+            // Stagnation: même 1RM ± 2% sur 3+ sessions
+            const isStagnating = recentLogs.length >= 3 &&
+                                 Math.abs(last1RM - first1RM) / Math.max(1, first1RM) < 0.02;
+
+            if (isProgressing) {
+                progressingCount++;
+                details.push({ exercise: exerciseName, status: 'progressing', change: `+${Math.round((last1RM - first1RM) / first1RM * 100)}%` });
+            } else if (isStagnating) {
+                stagnatingCount++;
+                details.push({ exercise: exerciseName, status: 'stagnating', sessions: recentLogs.length });
+            }
+        }
+
+        const totalAnalyzed = progressingCount + stagnatingCount;
+        const avgRPE = rpeValues.length > 0
+            ? Math.round(rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length * 10) / 10
+            : null;
+
+        // Déterminer la tendance globale
+        let trend = 'stable';
+        if (totalAnalyzed > 0) {
+            const progressRatio = progressingCount / totalAnalyzed;
+            if (progressRatio >= 0.7) trend = 'excellent';
+            else if (progressRatio >= 0.5) trend = 'good';
+            else if (progressRatio < 0.3 && stagnatingCount >= 3) trend = 'plateau';
+        }
+
+        return {
+            trend,
+            progressingCount,
+            stagnatingCount,
+            totalAnalyzed,
+            avgRPE,
+            details,
+            period: `${weeks} semaines`
+        };
+    }
+
+    /**
+     * Suggère une transition de phase basée sur la performance
+     * @returns {object} { shouldTransition, suggestedPhase, reason, confidence, currentPhase }
+     */
+    function suggestPhaseTransition() {
+        const currentPhase = state.periodization?.currentPhase || 'hypertrophy';
+        const weeksInPhase = state.periodization?.weeksInCurrentPhase || 0;
+        const trend = analyzePerformanceTrend(3);
+
+        let shouldTransition = false;
+        let suggestedPhase = currentPhase;
+        let reason = '';
+        let confidence = 'low';
+
+        // Règles de transition adaptative
+
+        // 1. STAGNATION → Deload
+        if (trend.trend === 'plateau' && trend.stagnatingCount >= 3) {
+            shouldTransition = true;
+            suggestedPhase = 'deload';
+            reason = `Stagnation détectée sur ${trend.stagnatingCount} exercices`;
+            confidence = 'high';
+        }
+
+        // 2. HYPERTROPHIE trop longue (6+ sem sans stagnation) → Strength
+        else if (currentPhase === 'hypertrophy' && weeksInPhase >= 6 && trend.trend !== 'plateau') {
+            shouldTransition = true;
+            suggestedPhase = 'strength';
+            reason = '6 semaines d\'hypertrophie complétées → phase force';
+            confidence = 'medium';
+        }
+
+        // 3. FORCE trop longue (4+ sem) → Deload ou Hypertrophie
+        else if (currentPhase === 'strength' && weeksInPhase >= 4) {
+            shouldTransition = true;
+            if (trend.avgRPE && trend.avgRPE >= 8.5) {
+                suggestedPhase = 'deload';
+                reason = 'RPE élevé après phase force → deload recommandé';
+            } else {
+                suggestedPhase = 'hypertrophy';
+                reason = 'Phase force complétée → retour hypertrophie';
+            }
+            confidence = 'medium';
+        }
+
+        // 4. DELOAD terminé (1 sem) → Reprendre le cycle
+        else if (currentPhase === 'deload' && weeksInPhase >= 1) {
+            shouldTransition = true;
+            suggestedPhase = 'hypertrophy';
+            reason = 'Deload terminé → reprise en hypertrophie';
+            confidence = 'high';
+        }
+
+        // 5. RPE moyen élevé (>= 9) sans stagnation → anticiper deload
+        else if (trend.avgRPE && trend.avgRPE >= 9 && currentPhase !== 'deload') {
+            shouldTransition = true;
+            suggestedPhase = 'deload';
+            reason = `RPE moyen ${trend.avgRPE} → fatigue élevée, deload préventif`;
+            confidence = 'medium';
+        }
+
+        // 6. Excellente progression en hypertrophy → peut passer en force plus tôt
+        else if (currentPhase === 'hypertrophy' && weeksInPhase >= 4 && trend.trend === 'excellent') {
+            shouldTransition = true;
+            suggestedPhase = 'strength';
+            reason = 'Excellente progression → transition anticipée vers force';
+            confidence = 'low'; // Optionnel, user peut ignorer
+        }
+
+        return {
+            shouldTransition,
+            suggestedPhase,
+            reason,
+            confidence,
+            currentPhase,
+            weeksInPhase,
+            performanceTrend: trend
+        };
+    }
+
+    /**
+     * Génère le widget de suggestion de phase
+     * @returns {string} HTML du widget
+     */
+    function renderPhaseTransitionWidget() {
+        const suggestion = suggestPhaseTransition();
+
+        if (!suggestion.shouldTransition) {
+            // Pas de transition suggérée, afficher statut actuel
+            const phaseNames = {
+                hypertrophy: 'Hypertrophie',
+                strength: 'Force',
+                deload: 'Deload',
+                peak: 'Peak'
+            };
+            const phaseColors = {
+                hypertrophy: 'var(--success)',
+                strength: 'var(--warning)',
+                deload: 'var(--info)',
+                peak: 'var(--danger)'
+            };
+
+            return `
+                <div class="phase-status-widget" style="
+                    background: var(--bg-tertiary);
+                    border-radius: 12px;
+                    padding: 12px 16px;
+                    margin-bottom: 12px;
+                ">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 50%;
+                            background: ${phaseColors[suggestion.currentPhase] || 'var(--text-muted)'};
+                        "></span>
+                        <span style="font-weight: 600; color: var(--text-primary);">
+                            Phase ${phaseNames[suggestion.currentPhase] || suggestion.currentPhase}
+                        </span>
+                        <span style="font-size: 12px; color: var(--text-muted); margin-left: auto;">
+                            Semaine ${suggestion.weeksInPhase + 1}
+                        </span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        ${suggestion.performanceTrend.progressingCount > 0
+                            ? `📈 ${suggestion.performanceTrend.progressingCount} exercice(s) en progression`
+                            : '➡️ Continuez sur cette lancée'}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Transition suggérée
+        const confidenceIcons = {
+            high: '🔴',
+            medium: '🟡',
+            low: '🟢'
+        };
+        const phaseEmojis = {
+            hypertrophy: '💪',
+            strength: '🏋️',
+            deload: '🧘',
+            peak: '🎯'
+        };
+
+        return `
+            <div class="phase-transition-widget" style="
+                background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+                border-radius: 12px;
+                padding: 16px;
+                margin-bottom: 12px;
+                color: white;
+            ">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 20px;">${phaseEmojis[suggestion.suggestedPhase] || '🔄'}</span>
+                    <span style="font-weight: 700; font-size: 14px;">
+                        Transition suggérée
+                    </span>
+                    <span style="font-size: 12px; opacity: 0.8; margin-left: auto;">
+                        ${confidenceIcons[suggestion.confidence]} ${suggestion.confidence === 'high' ? 'Recommandé' : suggestion.confidence === 'medium' ? 'Suggéré' : 'Optionnel'}
+                    </span>
+                </div>
+                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 12px;">
+                    ${suggestion.reason}
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="SmartTraining.applyPhaseTransition('${suggestion.suggestedPhase}')" class="btn btn-sm" style="
+                        background: white;
+                        color: var(--accent-primary);
+                        border: none;
+                        flex: 1;
+                        font-weight: 600;
+                    ">
+                        Passer en ${suggestion.suggestedPhase}
+                    </button>
+                    <button onclick="SmartTraining.dismissPhaseTransition()" class="btn btn-sm" style="
+                        background: rgba(255,255,255,0.2);
+                        color: white;
+                        border: none;
+                    ">
+                        Plus tard
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Applique une transition de phase
+     * @param {string} newPhase - Phase cible
+     */
+    function applyPhaseTransition(newPhase) {
+        if (!state.periodization) {
+            state.periodization = {};
+        }
+
+        const previousPhase = state.periodization.currentPhase || 'hypertrophy';
+        state.periodization.currentPhase = newPhase;
+        state.periodization.weeksInCurrentPhase = 0;
+        state.periodization.lastTransition = new Date().toISOString();
+        state.periodization.transitionHistory = state.periodization.transitionHistory || [];
+        state.periodization.transitionHistory.push({
+            from: previousPhase,
+            to: newPhase,
+            date: new Date().toISOString(),
+            reason: 'adaptive'
+        });
+
+        saveState();
+
+        // Feedback
+        const phaseNames = {
+            hypertrophy: 'Hypertrophie',
+            strength: 'Force',
+            deload: 'Deload'
+        };
+        showToast(`🔄 Phase ${phaseNames[newPhase] || newPhase} activée`, 'success');
+
+        // Rafraîchir l'UI si possible
+        if (typeof renderTrainingHeader === 'function') {
+            renderTrainingHeader();
+        }
+
+        console.log(`📊 Périodisation adaptative: ${previousPhase} → ${newPhase}`);
+    }
+
+    /**
+     * Ignore la suggestion de transition pour cette session
+     */
+    function dismissPhaseTransition() {
+        // Stocker en localStorage pour ne pas re-suggérer immédiatement
+        localStorage.setItem('repzy-phase-dismissed', new Date().toISOString());
+        showToast('Suggestion ignorée pour cette session', 'info');
+
+        // Cacher le widget
+        const widget = document.querySelector('.phase-transition-widget');
+        if (widget) {
+            widget.style.display = 'none';
+        }
+    }
+
+    /**
+     * Incrémente le compteur de semaines dans la phase actuelle
+     * À appeler une fois par semaine (ou à chaque séance en calculant)
+     */
+    function incrementWeeksInPhase() {
+        if (!state.periodization) {
+            state.periodization = { currentPhase: 'hypertrophy', weeksInCurrentPhase: 0 };
+        }
+
+        const lastIncrement = state.periodization.lastWeekIncrement
+            ? new Date(state.periodization.lastWeekIncrement)
+            : null;
+
+        const now = new Date();
+        const oneWeekAgo = new Date(now);
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        // Incrémenter si >= 7 jours depuis le dernier incrément
+        if (!lastIncrement || lastIncrement < oneWeekAgo) {
+            state.periodization.weeksInCurrentPhase = (state.periodization.weeksInCurrentPhase || 0) + 1;
+            state.periodization.lastWeekIncrement = now.toISOString();
+            saveState();
+
+            console.log(`📅 Semaine ${state.periodization.weeksInCurrentPhase} de la phase ${state.periodization.currentPhase}`);
+        }
+    }
+
     // ==================== EXPORT ====================
 
     window.SmartTraining = {
@@ -1216,6 +1684,14 @@
         render1RMWidget,
         get1RMPercentage,
 
+        // NOUVEAU: Périodisation Adaptative
+        analyzePerformanceTrend,
+        suggestPhaseTransition,
+        renderPhaseTransitionWidget,
+        applyPhaseTransition,
+        dismissPhaseTransition,
+        incrementWeeksInPhase,
+
         // Constants
         MUSCLE_GROUPS,
 
@@ -1224,6 +1700,6 @@
         isCompoundExercise
     };
 
-    console.log('🧠 Smart Training module loaded (v4 - double progression + 1RM + flexible matching)');
+    console.log('🧠 Smart Training module loaded (v5 - RPE autoregulation + adaptive periodization)');
 
 })();

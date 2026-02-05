@@ -702,17 +702,102 @@ function detectConflict(serverUpdatedAt) {
     return { hasConflict: false, serverIsNewer: serverTime > localTime };
 }
 
-// Export des données (JSON)
+// ==================== EXPORT AVEC VERSIONING ====================
+
+// Historique des backups (max 10 conservés)
+const MAX_BACKUP_HISTORY = 10;
+const BACKUP_STORAGE_KEY = 'repzy-backup-history';
+
+/**
+ * Génère un hash simple pour identifier les changements de données
+ */
+function generateDataHash(data) {
+    const str = JSON.stringify(data);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+}
+
+/**
+ * Récupère l'historique des backups
+ */
+function getBackupHistory() {
+    try {
+        const history = localStorage.getItem(BACKUP_STORAGE_KEY);
+        return history ? JSON.parse(history) : [];
+    } catch (e) {
+        console.warn('Erreur lecture historique backups:', e);
+        return [];
+    }
+}
+
+/**
+ * Sauvegarde l'historique des backups
+ */
+function saveBackupHistory(history) {
+    try {
+        // Garder seulement les MAX_BACKUP_HISTORY plus récents
+        const trimmed = history.slice(-MAX_BACKUP_HISTORY);
+        localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(trimmed));
+    } catch (e) {
+        console.warn('Erreur sauvegarde historique backups:', e);
+    }
+}
+
+/**
+ * Ajoute un backup à l'historique
+ */
+function addToBackupHistory(metadata) {
+    const history = getBackupHistory();
+    history.push({
+        ...metadata,
+        id: `backup_${Date.now()}`,
+        timestamp: Date.now()
+    });
+    saveBackupHistory(history);
+}
+
+/**
+ * Export des données avec versioning (JSON)
+ */
 function exportData(format = 'json') {
     if (format === 'csv') {
         openExportCSVModal();
         return;
     }
 
+    // Générer un numéro de version incrémental
+    const history = getBackupHistory();
+    const lastVersion = history.length > 0 ?
+        parseInt(history[history.length - 1].backupNumber || '0') : 0;
+    const backupNumber = lastVersion + 1;
+
+    // Générer un hash des données pour détecter les changements
+    const dataHash = generateDataHash({
+        foodJournal: state.foodJournal,
+        sessionHistory: state.sessionHistory,
+        profile: state.profile
+    });
+
+    // Vérifier si les données ont changé depuis le dernier backup
+    const lastHash = history.length > 0 ? history[history.length - 1].dataHash : null;
+    const hasChanges = lastHash !== dataHash;
+
     const exportPayload = {
-        version: '2.0.0',
+        // Métadonnées de versioning
+        version: '2.1.0', // Version du format
+        backupNumber: backupNumber,
+        backupId: `repzy_${Date.now()}_${backupNumber}`,
         exportedAt: new Date().toISOString(),
         app: 'Repzy',
+        dataHash: dataHash,
+        previousBackupId: history.length > 0 ? history[history.length - 1].backupId : null,
+
+        // Données
         data: {
             // Données critiques utilisateur
             profile: state.profile,
@@ -741,6 +826,8 @@ function exportData(format = 'json') {
             // Custom templates (si présent)
             customTemplates: state.customTemplates
         },
+
+        // Métadonnées enrichies
         metadata: {
             totalJournalDays: Object.keys(state.foodJournal || {}).length,
             totalSessions: (state.sessionHistory || []).length,
@@ -748,24 +835,126 @@ function exportData(format = 'json') {
             totalRecipes: Object.keys(state.recipes || {}).length,
             hasProfile: !!state.profile,
             programConfigured: !!state.selectedProgram,
-            exportSize: 0 // Sera calculé après stringify
+            exportSize: 0, // Sera calculé après stringify
+            backupHistory: history.slice(-5).map(h => ({
+                id: h.backupId,
+                date: h.exportedAt,
+                size: h.exportSize
+            }))
         }
     };
 
     const jsonString = JSON.stringify(exportPayload, null, 2);
     exportPayload.metadata.exportSize = Math.round(jsonString.length / 1024); // Ko
 
+    // Ajouter à l'historique
+    addToBackupHistory({
+        backupId: exportPayload.backupId,
+        backupNumber: backupNumber,
+        exportedAt: exportPayload.exportedAt,
+        exportSize: exportPayload.metadata.exportSize,
+        dataHash: dataHash,
+        totalSessions: exportPayload.metadata.totalSessions,
+        totalJournalDays: exportPayload.metadata.totalJournalDays
+    });
+
+    // Télécharger le fichier
     const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `repzy-backup-${new Date().toISOString().split('T')[0]}.json`;
+    const dateStr = new Date().toISOString().split('T')[0];
+    a.download = `repzy-backup-v${backupNumber}-${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
 
-    showToast(`✅ Données exportées (${exportPayload.metadata.exportSize}Ko)`, 'success');
-    console.log('📦 Export complet:', exportPayload.metadata);
+    // Message adapté selon si données ont changé
+    if (hasChanges) {
+        showToast(`✅ Backup #${backupNumber} créé (${exportPayload.metadata.exportSize}Ko)`, 'success');
+    } else {
+        showToast(`📦 Backup #${backupNumber} créé (données identiques au précédent)`, 'info');
+    }
+
+    console.log('📦 Export complet:', {
+        backupNumber,
+        hasChanges,
+        size: exportPayload.metadata.exportSize + 'Ko',
+        hash: dataHash
+    });
 }
+
+/**
+ * Affiche l'historique des backups
+ */
+function showBackupHistory() {
+    const history = getBackupHistory();
+
+    if (history.length === 0) {
+        showToast('Aucun backup dans l\'historique', 'info');
+        return;
+    }
+
+    // Créer une modal simple pour afficher l'historique
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.id = 'backup-history-modal';
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+
+    modal.innerHTML = `
+        <div class="modal" style="max-width: 450px; max-height: 80vh;">
+            <div class="modal-header">
+                <h3>📦 Historique des Backups</h3>
+                <button class="modal-close" onclick="document.getElementById('backup-history-modal').remove()">✕</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; max-height: 60vh;">
+                ${history.reverse().map(backup => `
+                    <div class="backup-history-item" style="
+                        padding: 12px;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary);">
+                                Backup #${backup.backupNumber}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                ${new Date(backup.exportedAt).toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 14px; color: var(--text-primary);">
+                                ${backup.exportSize}Ko
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-muted);">
+                                ${backup.totalSessions || 0} séances · ${backup.totalJournalDays || 0}j nutrition
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="modal-footer" style="padding: 16px; border-top: 1px solid var(--border-color);">
+                <button class="btn btn-primary btn-block" onclick="exportData()">
+                    Créer un nouveau backup
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+// Exposer globalement
+window.showBackupHistory = showBackupHistory;
 
 // Ouvrir modal de choix d'export CSV
 function openExportCSVModal() {
