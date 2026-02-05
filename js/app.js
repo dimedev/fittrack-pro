@@ -257,7 +257,15 @@ function init() {
         if (typeof updateMacroRings === 'function') {
             updateMacroRings();
         }
-        
+
+        // Initialiser le sélecteur de thème
+        if (typeof ThemeManager !== 'undefined') {
+            const themeContainer = document.getElementById('theme-selector-container');
+            if (themeContainer) {
+                themeContainer.innerHTML = ThemeManager.renderThemeSelector();
+            }
+        }
+
         console.log('✅ Repzy - Prêt !');
     }, 400);
 }

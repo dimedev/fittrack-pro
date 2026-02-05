@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="auto">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/theme.css?v=1">
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=45">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/session-manager.css?v=37">
@@ -16,7 +17,14 @@
     <link rel="stylesheet" href="css/journal-macros.css?v=11">
     <link rel="stylesheet" href="css/icons.css?v=1">
 
-
+    <!-- Theme script (loaded early to prevent flash) -->
+    <script>
+        // Apply theme immediately before page renders
+        (function() {
+            const saved = localStorage.getItem('repzy-theme') || 'auto';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
 
     <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
@@ -162,6 +170,17 @@
                     <button class="btn btn-sm btn-outline" id="mobile-logout-btn" onclick="signOut()">
                         Déconnexion
                     </button>
+                </div>
+
+                <!-- Theme Selector -->
+                <div class="card" style="margin-top: 16px; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 1.2rem;">🎨</span>
+                        <span style="font-weight: 600; color: var(--text-primary);">Apparence</span>
+                    </div>
+                    <div id="theme-selector-container">
+                        <!-- Filled by ThemeManager.renderThemeSelector() -->
+                    </div>
                 </div>
 
                 <!-- Readiness Score & Recovery - NEW PREMIUM FEATURES -->
@@ -2963,6 +2982,7 @@
     <script src="js/modules/hydration.js?v=1"></script>
     <script src="js/modules/plate-calculator.js?v=1"></script>
     <script src="js/modules/mobile-gestures.js?v=12"></script>
+    <script src="js/modules/theme.js?v=1"></script>
     <script src="js/app.js?v=32"></script>
 </body>
 </html>
