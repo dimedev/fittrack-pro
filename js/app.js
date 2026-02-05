@@ -538,11 +538,13 @@ window.applyUpdate = applyUpdate;
 
 /**
  * Gestion de l'état de connexion
+ * Note: On utilise une fonction wrapper car isOnline est déjà déclaré dans supabase.js
  */
-let isOnline = navigator.onLine;
+function getConnectionStatus() {
+    return navigator.onLine;
+}
 
 window.addEventListener('online', () => {
-    isOnline = true;
     console.log('🌐 Connexion rétablie');
     showToast('Connexion rétablie', 'success');
     updateOfflineIndicator(false);
@@ -561,7 +563,6 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
-    isOnline = false;
     console.log('📴 Mode hors-ligne');
     showToast('Mode hors-ligne - Vos données sont sauvegardées localement', 'warning');
     updateOfflineIndicator(true);
