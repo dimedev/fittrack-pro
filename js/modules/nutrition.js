@@ -184,16 +184,40 @@ function createCopyDayModal(recentDays, targetDate) {
     modal.id = 'copy-day-modal';
     modal.style.cssText = 'display: flex !important; z-index: 9999;'; // Force l'affichage
     modal.innerHTML = `
-        <div class="modal" style="max-width: 400px; margin: 20px;">
-            <div class="modal-header">
-                <h2>📋 Copier un jour</h2>
-                <button class="modal-close" onclick="closeCopyDayModal()">&times;</button>
+        <div class="modal" style="max-width: 400px; margin: 20px; border-radius: 24px; overflow: hidden;">
+            <div class="modal-header" style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0; font-size: 1.2rem; font-weight: 600;">📋 Copier un jour</h2>
+                <button onclick="closeCopyDayModal()" style="
+                    background: var(--bg-tertiary);
+                    border: none;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    color: var(--text-muted);
+                    font-size: 1.4rem;
+                    transition: all 0.2s;
+                ">&times;</button>
             </div>
-            <div class="modal-body" id="copy-day-list" style="max-height: 60vh; overflow-y: auto;">
+            <div class="modal-body" id="copy-day-list" style="max-height: 55vh; overflow-y: auto; padding: 12px 16px;">
                 <!-- Populated dynamically -->
             </div>
-            <div class="modal-actions">
-                <button class="btn btn-ghost" onclick="closeCopyDayModal()">Annuler</button>
+            <div style="padding: 16px 20px 24px; border-top: 1px solid var(--border-color);">
+                <button onclick="closeCopyDayModal()" style="
+                    width: 100%;
+                    padding: 16px;
+                    border-radius: 14px;
+                    border: none;
+                    background: var(--bg-tertiary);
+                    color: var(--text-secondary);
+                    font-size: 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                ">Annuler</button>
             </div>
         </div>
     `;
