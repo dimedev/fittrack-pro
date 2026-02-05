@@ -3,74 +3,80 @@
 // Stratégie: Cache-first pour assets statiques, Network-first pour API
 // Offline-first avec Background Sync
 
-const CACHE_VERSION = 'repzy-v1.0.0';
+const CACHE_VERSION = 'repzy-v1.0.1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
-// Assets statiques à pré-cacher (App Shell)
-const STATIC_ASSETS = [
-    '/',
-    '/index.html',
-    '/webmanifest',
+// Déterminer le base path (pour GitHub Pages ou localhost)
+const BASE_PATH = self.location.pathname.replace(/sw\.js$/, '');
+
+// Assets statiques à pré-cacher (App Shell) - chemins relatifs
+const STATIC_ASSETS_RELATIVE = [
+    '',
+    'index.html',
+    'webmanifest',
     // CSS
-    '/css/style-nike-shadcn.css',
-    '/css/mobile-premium.css',
-    '/css/session-manager.css',
-    '/css/premium-components.css',
-    '/css/nutrition-premium.css',
-    '/css/mobile-ux-fixes.css',
-    '/css/journal-macros.css',
-    '/css/icons.css',
-    '/css/theme.css',
+    'css/style-nike-shadcn.css',
+    'css/mobile-premium.css',
+    'css/session-manager.css',
+    'css/premium-components.css',
+    'css/nutrition-premium.css',
+    'css/mobile-ux-fixes.css',
+    'css/journal-macros.css',
+    'css/icons.css',
+    'css/theme.css',
     // JS Core
-    '/js/app.js',
-    '/js/modules/state.js',
-    '/js/modules/database.js',
-    '/js/modules/supabase.js',
-    '/js/modules/ui.js',
+    'js/app.js',
+    'js/modules/state.js',
+    'js/modules/database.js',
+    'js/modules/supabase.js',
+    'js/modules/ui.js',
     // JS Training
-    '/js/modules/training.js',
-    '/js/modules/session-manager.js',
-    '/js/modules/session-ui.js',
-    '/js/modules/smart-training.js',
-    '/js/modules/health-integration.js',
-    '/js/modules/timer.js',
+    'js/modules/training.js',
+    'js/modules/session-manager.js',
+    'js/modules/session-ui.js',
+    'js/modules/smart-training.js',
+    'js/modules/health-integration.js',
+    'js/modules/timer.js',
     // JS Nutrition
-    '/js/modules/nutrition.js',
-    '/js/modules/food-api.js',
-    '/js/modules/recipes.js',
-    '/js/modules/meal-templates.js',
-    '/js/modules/meal-history.js',
-    '/js/modules/barcode-scanner.js',
-    '/js/modules/hydration.js',
+    'js/modules/nutrition.js',
+    'js/modules/food-api.js',
+    'js/modules/recipes.js',
+    'js/modules/meal-templates.js',
+    'js/modules/meal-history.js',
+    'js/modules/barcode-scanner.js',
+    'js/modules/hydration.js',
     // JS Other
-    '/js/modules/progress.js',
-    '/js/modules/profile.js',
-    '/js/modules/goals.js',
-    '/js/modules/cardio.js',
-    '/js/modules/photos.js',
-    '/js/modules/achievements.js',
-    '/js/modules/haptic.js',
-    '/js/modules/audio-feedback.js',
-    '/js/modules/premium-ui.js',
-    '/js/modules/mobile-gestures.js',
-    '/js/modules/theme.js',
-    '/js/modules/plate-calculator.js',
-    '/js/modules/nutrition-suggestions.js',
-    '/js/modules/icons.js',
+    'js/modules/progress.js',
+    'js/modules/profile.js',
+    'js/modules/goals.js',
+    'js/modules/cardio.js',
+    'js/modules/photos.js',
+    'js/modules/achievements.js',
+    'js/modules/haptic.js',
+    'js/modules/audio-feedback.js',
+    'js/modules/premium-ui.js',
+    'js/modules/mobile-gestures.js',
+    'js/modules/theme.js',
+    'js/modules/plate-calculator.js',
+    'js/modules/nutrition-suggestions.js',
+    'js/modules/icons.js',
     // JS Data
-    '/js/data/exercises.js',
-    '/js/data/foods.js',
-    '/js/data/programs.js',
+    'js/data/exercises.js',
+    'js/data/foods.js',
+    'js/data/programs.js',
     // Icons
-    '/favicon.ico',
-    '/favicon.svg',
-    '/favicon-96x96.png',
-    '/apple-touch-icon.png',
-    '/web-app-manifest-192x192.png',
-    '/web-app-manifest-512x512.png'
+    'favicon.ico',
+    'favicon.svg',
+    'favicon-96x96.png',
+    'apple-touch-icon.png',
+    'web-app-manifest-192x192.png',
+    'web-app-manifest-512x512.png'
 ];
+
+// Construire les chemins absolus basés sur le BASE_PATH
+const STATIC_ASSETS = STATIC_ASSETS_RELATIVE.map(path => BASE_PATH + path);
 
 // CDNs externes à cacher
 const EXTERNAL_CDNS = [
@@ -297,8 +303,8 @@ function isApiRequest(url) {
 function isStaticAsset(url) {
     const staticExtensions = ['.js', '.css', '.html', '.json', '.woff', '.woff2', '.ttf'];
     return staticExtensions.some(ext => url.pathname.endsWith(ext)) ||
-           url.pathname === '/' ||
-           url.pathname === '/index.html';
+           url.pathname === BASE_PATH ||
+           url.pathname === BASE_PATH + 'index.html';
 }
 
 function isCdnRequest(url) {

@@ -367,8 +367,13 @@ window.addEventListener('beforeunload', () => {
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
         try {
-            const registration = await navigator.serviceWorker.register('/sw.js', {
-                scope: '/'
+            // Déterminer le chemin de base pour GitHub Pages ou localhost
+            const basePath = window.location.pathname.includes('/fittrack-pro')
+                ? '/fittrack-pro/'
+                : '/';
+
+            const registration = await navigator.serviceWorker.register(`${basePath}sw.js`, {
+                scope: basePath
             });
 
             console.log('✅ Service Worker enregistré:', registration.scope);
