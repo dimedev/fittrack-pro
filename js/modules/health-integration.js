@@ -392,23 +392,30 @@
             return true;
         };
 
+        // Récupérer les données via les getters globaux
+        const sessionHistory = window.RepzyState?.getSessionHistory() || [];
+        const foodJournal = window.RepzyState?.getFoodJournal() || {};
+        const foods = window.RepzyState?.getFoods() || [];
+        const bodyWeightLog = window.RepzyState?.getBodyWeightLog() || [];
+        const cardioLog = window.RepzyState?.getCardioLog() || [];
+
         // Exporter les séances d'entraînement
-        if (includeWorkouts && state.sessionHistory) {
-            exportData.data.workouts = state.sessionHistory
+        if (includeWorkouts && sessionHistory.length > 0) {
+            exportData.data.workouts = sessionHistory
                 .filter(s => filterByDate(s.date))
                 .map(s => exportWorkoutToHealth(s))
                 .filter(Boolean);
         }
 
         // Exporter la nutrition
-        if (includeNutrition && state.foodJournal) {
-            Object.entries(state.foodJournal).forEach(([date, entries]) => {
+        if (includeNutrition && Object.keys(foodJournal).length > 0) {
+            Object.entries(foodJournal).forEach(([date, entries]) => {
                 if (!filterByDate(date)) return;
 
                 // Calculer les totaux du jour
                 const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
                 entries.forEach(entry => {
-                    const food = state.foods?.find(f => f.id === entry.foodId);
+                    const food = foods.find(f => f.id === entry.foodId);
                     if (food) {
                         const multiplier = (entry.quantity || 100) / 100;
                         totals.calories += Math.round(food.calories * multiplier);
@@ -426,16 +433,16 @@
         }
 
         // Exporter le poids
-        if (includeWeight && state.bodyWeightLog) {
-            exportData.data.bodyMass = state.bodyWeightLog
+        if (includeWeight && bodyWeightLog.length > 0) {
+            exportData.data.bodyMass = bodyWeightLog
                 .filter(w => filterByDate(w.date))
                 .map(w => exportWeightToHealth(w))
                 .filter(Boolean);
         }
 
         // Exporter le cardio
-        if (includeCardio && state.cardioLog) {
-            exportData.data.cardio = state.cardioLog
+        if (includeCardio && cardioLog.length > 0) {
+            exportData.data.cardio = cardioLog
                 .filter(c => filterByDate(c.date))
                 .map(c => exportCardioToHealth(c))
                 .filter(Boolean);

@@ -1304,6 +1304,19 @@ function mergeImportedData(currentState, importedState, conflicts) {
             merged[field] = importedState[field];
         }
     });
-    
+
     return merged;
 }
+
+// ==================== GETTERS GLOBAUX POUR MODULES EXTERNES ====================
+// Exposer l'accès au state pour les modules isolés (IIFE) comme health-integration.js
+
+window.RepzyState = {
+    getSessionHistory: () => state.sessionHistory || [],
+    getFoodJournal: () => state.foodJournal || {},
+    getBodyWeightLog: () => state.bodyWeightLog || [],
+    getCardioLog: () => state.cardioLog || [],
+    getFoods: () => state.foods || [],
+    getProfile: () => state.profile || null,
+    getAll: () => ({ ...state })
+};
