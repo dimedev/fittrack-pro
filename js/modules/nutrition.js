@@ -3816,6 +3816,7 @@ window.toggleFoodBrowse = toggleFoodBrowse;
 window.searchUnifiedFoods = searchUnifiedFoods;
 window.updateMacroRings = updateMacroRings;
 window.openCopyDayModal = openCopyDayModal;
+window.closeCopyDayModal = closeCopyDayModal;
+window.copyDayTo = copyDayTo;
 
 console.log('✅ nutrition.js: Fonctions exportées au scope global');
-console.log('📋 openCopyDayModal =', typeof window.openCopyDayModal);
