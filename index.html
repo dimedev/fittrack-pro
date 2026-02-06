@@ -38,6 +38,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
+    <!-- QuaggaJS pour barcode scanner universel (iOS/Android/Desktop) -->
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 </head>
 <body>
     <div class="bg-grid"></div>
@@ -2933,7 +2935,7 @@
         </div>
     </div>
 
-    <!-- Barcode Scanner Modal -->
+    <!-- Barcode Scanner Modal (QuaggaJS) -->
     <div id="barcode-scanner-modal" class="barcode-scanner-modal" style="display: none;">
         <div class="scanner-overlay" onclick="closeBarcodeScanner()"></div>
         <div class="scanner-content">
@@ -2946,17 +2948,20 @@
                     </svg>
                 </button>
             </div>
-            
+
+            <!-- Conteneur QuaggaJS pour le scan caméra -->
             <div class="barcode-video-container">
-                <video id="barcode-video" autoplay playsinline></video>
-                <div class="barcode-scan-line"></div>
+                <div id="interactive" class="viewport" style="width: 100%; height: 280px; position: relative; overflow: hidden; border-radius: 12px; background: #1a1a1a;"></div>
+                <div class="scan-overlay">
+                    <div class="scan-line"></div>
+                </div>
                 <div class="barcode-instructions">
                     Placez le code-barres dans le cadre
                 </div>
             </div>
 
             <!-- Bouton pour basculer en saisie manuelle -->
-            <button class="btn-secondary" onclick="showManualBarcodeInput()" style="margin-top: 12px; width: 100%;">
+            <button class="btn btn-secondary btn-block" onclick="showManualBarcodeInput()" style="margin-top: 12px; min-height: 48px;">
                 ⌨️ Saisie manuelle du code
             </button>
 
@@ -2978,7 +2983,7 @@
     <script src="js/modules/database.js?v=1"></script>
     <script src="js/modules/state.js?v=32"></script>
     <script src="js/modules/haptic.js?v=1"></script>
-    <script src="js/modules/barcode-scanner.js?v=2"></script>
+    <script src="js/modules/barcode-scanner.js?v=3"></script>
     <script src="js/modules/meal-history.js?v=3"></script>
     <script src="js/modules/recipes.js?v=4"></script>
     <script src="js/modules/icons.js?v=1"></script>

@@ -3,7 +3,7 @@
 // Stratégie: Cache-first pour assets statiques, Network-first pour API
 // Offline-first avec Background Sync
 
-const CACHE_VERSION = 'repzy-v1.0.1';
+const CACHE_VERSION = 'repzy-v1.0.3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -83,6 +83,7 @@ const EXTERNAL_CDNS = [
     'https://cdn.jsdelivr.net/npm/chart.js',
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
     'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js',
+    'https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap'
 ];
 

@@ -19,7 +19,14 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(du -sh:*)",
       "Bash(~/.nvm/versions/node/v22.14.0/bin/node --check:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(git config:*)",
+      "WebFetch(domain:dimedev.github.io)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix Service Worker path for GitHub Pages deployment\n\n- Detect base path dynamically in app.js for SW registration\n- Use relative paths in sw.js STATIC_ASSETS\n- Construct full URLs based on BASE_PATH at runtime\n- Bump cache version to v1.0.1 to force refresh\n- Update app.js version to v33\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

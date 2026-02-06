@@ -1940,3 +1940,183 @@ input[type="date"].form-input {
         height: 18px !important;
     }
 }
+
+/* ==================== PHASE 3A: TOUCH TARGETS 48px ==================== */
+/* Apple HIG recommande 44px minimum, Google Material 48px */
+/* On applique 48px pour une meilleure accessibilité */
+
+@media (max-width: 768px) {
+    /* Règle globale: tous les éléments interactifs minimum 48px */
+    .btn,
+    .btn-sm,
+    .btn-icon,
+    .tab,
+    .nav-tab,
+    .mobile-nav-item,
+    .food-btn,
+    .timer-preset-btn,
+    .modal-close,
+    .journal-entry-delete,
+    .quantity-btn,
+    .filter-chip,
+    .pose-btn,
+    .meal-item-edit,
+    .meal-item-delete,
+    .suggestion-add-btn,
+    [role="button"],
+    button:not(.btn):not(.nutrition-buttons-row .btn-icon) {
+        min-height: 48px !important;
+    }
+
+    /* Boutons carrés (icons) - 48x48 */
+    .btn-icon:not(.nutrition-buttons-row .btn-icon),
+    .modal-close,
+    .food-btn {
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+    }
+
+    /* Tabs scrollables - hauteur 48px */
+    .tab {
+        min-height: 48px !important;
+        padding: 12px 18px !important;
+    }
+
+    /* Mobile nav items - zone de tap étendue */
+    .mobile-nav-item {
+        min-height: 56px !important;
+        min-width: 56px !important;
+    }
+
+    /* Timer presets */
+    .timer-preset-btn {
+        min-height: 52px !important;
+    }
+}
+
+/* ==================== PHASE 3A: VISUAL PRESS FEEDBACK ==================== */
+/* Complète le haptic feedback avec un retour visuel scale(0.96) */
+
+@media (max-width: 768px) {
+    /* Feedback visuel sur press (complète le haptic) */
+    .btn:active:not(:disabled),
+    .btn-icon:active:not(:disabled),
+    .tab:active,
+    .food-select-item:active,
+    .food-search-item:active,
+    .program-card:active,
+    .mobile-nav-item:active,
+    .timer-preset-btn:active,
+    .filter-chip:active,
+    .pose-btn:active,
+    .quantity-btn:active {
+        transform: scale(0.96) !important;
+        transition: transform 0.1s ease-out !important;
+    }
+
+    /* Boutons primaires: effet plus marqué */
+    .btn-primary:active:not(:disabled) {
+        transform: scale(0.95) !important;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.2) !important;
+    }
+
+    /* Cards cliquables */
+    .card:active,
+    .stat-card:active,
+    .exercise-card-header:active {
+        transform: scale(0.98) !important;
+        transition: transform 0.1s ease-out !important;
+    }
+
+    /* Reset transform au release */
+    .btn,
+    .btn-icon,
+    .tab,
+    .card,
+    .food-select-item,
+    .program-card,
+    .mobile-nav-item {
+        transition: transform 0.15s ease-out;
+    }
+}
+
+/* ==================== PHASE 3A: DRAG HANDLE VISIBLE ==================== */
+/* Affordance visuelle pour les bottom sheets */
+
+@media (max-width: 768px) {
+    /* Handle de drag plus visible - modal */
+    .modal-header::before {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 5px;
+        background: var(--text-muted);
+        border-radius: 3px;
+        opacity: 0.5;
+        transition: all 0.2s ease;
+    }
+
+    /* Handle sur bottom sheets */
+    .bottom-sheet::before,
+    .cardio-sheet::before {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 5px;
+        background: var(--text-muted);
+        border-radius: 3px;
+        opacity: 0.5;
+        z-index: 10;
+    }
+
+    /* Animation au touch - handle s'élargit */
+    .modal:active .modal-header::before,
+    .bottom-sheet:active::before {
+        width: 48px;
+        opacity: 0.8;
+    }
+}
+
+/* ==================== PHASE 3A: FOCUS RINGS ACCESSIBLES ==================== */
+/* WCAG 2.1 AA : focus visible obligatoire pour navigation clavier */
+
+/* Focus visible sur tous les inputs */
+.form-input:focus-visible,
+.form-select:focus-visible,
+.form-textarea:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: none !important;
+    border-color: var(--accent-brand) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Focus visible sur les boutons */
+.btn:focus-visible,
+.btn-icon:focus-visible,
+.tab:focus-visible,
+.mobile-nav-item:focus-visible {
+    outline: 2px solid var(--accent-brand) !important;
+    outline-offset: 2px !important;
+}
+
+/* Focus visible sur les cards interactives */
+.program-card:focus-visible,
+.food-select-item:focus-visible,
+.exercise-card-header:focus-visible {
+    outline: 2px solid var(--accent-brand) !important;
+    outline-offset: 2px !important;
+}
+
+/* Cacher outline pour interactions touch pures (pas de :focus-visible) */
+*:focus:not(:focus-visible) {
+    outline: none !important;
+}

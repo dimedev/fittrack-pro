@@ -1,10 +1,11 @@
 // ==================== BARCODE SCANNER MODULE ====================
-// Intégration avec Open Food Facts API pour scan de codes-barres
+// Scan de codes-barres universel avec QuaggaJS (iOS/Android/Desktop)
+// Intégration avec Open Food Facts API
 
 const OFF_API_URL = 'https://world.openfoodfacts.org/api/v2';
-let barcodeStream = null;
-let barcodeVideo = null;
 let scanningActive = false;
+let lastScannedBarcode = null;
+let scannerInitialized = false;
 
 /**
  * Ouvrir le scanner de codes-barres
@@ -15,17 +16,238 @@ async function openBarcodeScanner() {
         console.error('Modal barcode scanner introuvable');
         return;
     }
-    
+
     scannerModal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
-    
+
     // Haptic feedback
     if (window.HapticFeedback) {
         window.HapticFeedback.tap();
     }
-    
-    // Initialiser la caméra
-    await startCamera();
+
+    // Reset de l'UI
+    resetScannerUI();
+
+    // Initialiser QuaggaJS
+    await initQuaggaScanner();
+}
+
+/**
+ * Reset l'UI du scanner
+ */
+function resetScannerUI() {
+    const resultsDiv = document.getElementById('barcode-results');
+    const loadingDiv = document.getElementById('barcode-loading');
+    const videoContainer = document.querySelector('.barcode-video-container');
+    const scannerContent = document.querySelector('.scanner-content');
+
+    if (resultsDiv) resultsDiv.style.display = 'none';
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    if (videoContainer) videoContainer.style.display = 'block';
+
+    // Restaurer le contenu original si nécessaire
+    if (scannerContent && !document.getElementById('barcode-video')) {
+        scannerContent.innerHTML = `
+            <div class="barcode-video-container">
+                <div id="interactive" class="viewport" style="width: 100%; height: 300px; position: relative; overflow: hidden; border-radius: 12px;"></div>
+                <div class="scan-overlay">
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Initialiser QuaggaJS pour le scan
+ */
+async function initQuaggaScanner() {
+    // Vérifier si Quagga est disponible
+    if (typeof Quagga === 'undefined') {
+        console.error('QuaggaJS non chargé');
+        showManualBarcodeInput();
+        return;
+    }
+
+    const interactive = document.getElementById('interactive');
+    if (!interactive) {
+        console.error('Container viewport non trouvé');
+        showManualBarcodeInput();
+        return;
+    }
+
+    // Configuration QuaggaJS
+    const config = {
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: interactive,
+            constraints: {
+                facingMode: "environment", // Caméra arrière
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 }
+            },
+            area: { // Zone de détection centrale
+                top: "20%",
+                right: "10%",
+                left: "10%",
+                bottom: "20%"
+            }
+        },
+        locator: {
+            patchSize: "medium",
+            halfSample: true
+        },
+        numOfWorkers: navigator.hardwareConcurrency || 2,
+        frequency: 10,
+        decoder: {
+            readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "upc_reader",
+                "upc_e_reader"
+            ]
+        },
+        locate: true
+    };
+
+    try {
+        // Arrêter toute instance précédente
+        if (scannerInitialized) {
+            Quagga.stop();
+            scannerInitialized = false;
+        }
+
+        // Initialiser Quagga
+        await new Promise((resolve, reject) => {
+            Quagga.init(config, (err) => {
+                if (err) {
+                    console.error('Erreur init Quagga:', err);
+                    reject(err);
+                    return;
+                }
+                resolve();
+            });
+        });
+
+        scannerInitialized = true;
+        scanningActive = true;
+        lastScannedBarcode = null;
+
+        // Démarrer le scan
+        Quagga.start();
+
+        // Écouter les détections
+        Quagga.onDetected(onBarcodeDetected);
+
+        // Feedback visuel de détection
+        Quagga.onProcessed(onQuaggaProcessed);
+
+        showToast('📷 Scanner activé - Scannez un code-barres', 'info', 3000);
+
+    } catch (error) {
+        console.error('Erreur initialisation scanner:', error);
+
+        // Afficher message d'erreur selon le type
+        if (error.name === 'NotAllowedError') {
+            showToast('❌ Accès caméra refusé. Autorisez l\'accès dans les paramètres.', 'error', 5000);
+        } else if (error.name === 'NotFoundError') {
+            showToast('❌ Aucune caméra détectée', 'error');
+        } else {
+            showToast('❌ Erreur caméra. Essayez la saisie manuelle.', 'error');
+        }
+
+        if (window.HapticFeedback) {
+            window.HapticFeedback.error();
+        }
+
+        // Fallback sur saisie manuelle
+        showManualBarcodeInput();
+    }
+}
+
+/**
+ * Callback quand un code-barres est détecté
+ */
+function onBarcodeDetected(result) {
+    if (!scanningActive) return;
+
+    const barcode = result.codeResult.code;
+
+    // Éviter les scans multiples du même code
+    if (barcode === lastScannedBarcode) return;
+
+    // Valider le format EAN/UPC (8-13 chiffres)
+    if (!/^\d{8,13}$/.test(barcode)) return;
+
+    lastScannedBarcode = barcode;
+    console.log('📦 Code-barres détecté:', barcode);
+
+    // Haptic feedback
+    if (window.HapticFeedback) {
+        window.HapticFeedback.success();
+    }
+
+    // Arrêter le scan et rechercher le produit
+    stopScanning();
+    fetchProductFromOFF(barcode);
+}
+
+/**
+ * Feedback visuel pendant le traitement
+ */
+function onQuaggaProcessed(result) {
+    const drawingCtx = Quagga.canvas.ctx.overlay;
+    const drawingCanvas = Quagga.canvas.dom.overlay;
+
+    if (!result || !drawingCtx || !drawingCanvas) return;
+
+    // Effacer le canvas
+    drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+
+    // Dessiner les zones de détection si des boxes sont trouvées
+    if (result.boxes) {
+        result.boxes.filter(box => box !== result.box).forEach(box => {
+            Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, {
+                color: 'rgba(0, 200, 0, 0.3)',
+                lineWidth: 2
+            });
+        });
+    }
+
+    // Mettre en évidence la détection confirmée
+    if (result.box) {
+        Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, {
+            color: '#00ff00',
+            lineWidth: 3
+        });
+    }
+
+    // Ligne de code-barres détectée
+    if (result.codeResult && result.codeResult.code) {
+        Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, {
+            color: '#ff0000',
+            lineWidth: 3
+        });
+    }
+}
+
+/**
+ * Arrêter le scan
+ */
+function stopScanning() {
+    scanningActive = false;
+
+    if (scannerInitialized && typeof Quagga !== 'undefined') {
+        try {
+            Quagga.stop();
+            Quagga.offDetected(onBarcodeDetected);
+            Quagga.offProcessed(onQuaggaProcessed);
+        } catch (e) {
+            console.warn('Erreur arrêt Quagga:', e);
+        }
+        scannerInitialized = false;
+    }
 }
 
 /**
@@ -37,151 +259,50 @@ function closeBarcodeScanner() {
         scannerModal.style.display = 'none';
         document.body.style.overflow = '';
     }
-    
-    stopCamera();
-}
 
-/**
- * Démarrer la caméra
- */
-async function startCamera() {
-    barcodeVideo = document.getElementById('barcode-video');
-    if (!barcodeVideo) return;
-    
-    try {
-        // Demander l'accès à la caméra arrière
-        barcodeStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: 'environment', // Caméra arrière
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        });
-        
-        barcodeVideo.srcObject = barcodeStream;
-        await barcodeVideo.play();
-        
-        scanningActive = true;
-        startBarcodeDetection();
-        
-        showToast('📷 Scanner activé - Scannez un code-barres', 'info', 3000);
-        
-    } catch (error) {
-        console.error('Erreur accès caméra:', error);
-        showToast('❌ Impossible d\'accéder à la caméra', 'error');
-        
-        if (window.HapticFeedback) {
-            window.HapticFeedback.error();
-        }
-        
-        closeBarcodeScanner();
-    }
-}
-
-/**
- * Arrêter la caméra
- */
-function stopCamera() {
-    scanningActive = false;
-    
-    if (barcodeStream) {
-        barcodeStream.getTracks().forEach(track => track.stop());
-        barcodeStream = null;
-    }
-    
-    if (barcodeVideo) {
-        barcodeVideo.srcObject = null;
-    }
-}
-
-/**
- * Détecter les codes-barres dans le flux vidéo
- * Utilise l'API BarcodeDetector si disponible, sinon fallback sur saisie manuelle
- */
-async function startBarcodeDetection() {
-    if (!('BarcodeDetector' in window)) {
-        console.warn('BarcodeDetector non disponible, utiliser saisie manuelle');
-        showManualBarcodeInput();
-        return;
-    }
-    
-    try {
-        const barcodeDetector = new BarcodeDetector({
-            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
-        });
-        
-        const detectFrame = async () => {
-            if (!scanningActive || !barcodeVideo) return;
-            
-            try {
-                const barcodes = await barcodeDetector.detect(barcodeVideo);
-                
-                if (barcodes.length > 0) {
-                    const barcode = barcodes[0].rawValue;
-                    console.log('📦 Code-barres détecté:', barcode);
-                    
-                    // Haptic feedback
-                    if (window.HapticFeedback) {
-                        window.HapticFeedback.success();
-                    }
-                    
-                    // Rechercher dans Open Food Facts
-                    await fetchProductFromOFF(barcode);
-                    return;
-                }
-                
-                // Continuer la détection
-                requestAnimationFrame(detectFrame);
-            } catch (err) {
-                console.error('Erreur détection:', err);
-                requestAnimationFrame(detectFrame);
-            }
-        };
-        
-        detectFrame();
-        
-    } catch (error) {
-        console.error('Erreur init BarcodeDetector:', error);
-        showManualBarcodeInput();
-    }
+    stopScanning();
 }
 
 /**
  * Afficher l'input manuel si la détection automatique échoue
  */
 function showManualBarcodeInput() {
+    stopScanning();
+
     const scannerModal = document.getElementById('barcode-scanner-modal');
-    const scannerContent = scannerModal.querySelector('.scanner-content');
-    
+    const scannerContent = scannerModal?.querySelector('.scanner-content');
+
+    if (!scannerContent) return;
+
     scannerContent.innerHTML = `
         <div style="text-align: center; padding: 20px;">
             <div style="font-size: 3rem; margin-bottom: 16px;">📱</div>
             <h3 style="margin-bottom: 12px; font-size: 1.2rem;">Saisie manuelle</h3>
             <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem; line-height: 1.5;">
-                La lecture automatique des codes-barres n'est pas disponible sur Safari.<br>
-                Entrez le code manuellement, c'est tout aussi rapide !
+                Entrez le code-barres manuellement pour rechercher le produit.
             </p>
-            
+
             <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: left;">
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">💡 Astuce</p>
                 <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4;">
                     Le code-barres se trouve généralement au dos du produit, composé de 8 ou 13 chiffres.
                 </p>
             </div>
-            
-            <input 
-                type="text" 
-                id="manual-barcode-input" 
-                placeholder="Ex: 3017620422003" 
+
+            <input
+                type="text"
+                id="manual-barcode-input"
+                placeholder="Ex: 3017620422003"
                 class="form-input"
-                style="margin-bottom: 16px; width: 100%; font-size: 1.1rem; text-align: center; letter-spacing: 1px;"
+                style="margin-bottom: 16px; width: 100%; font-size: 1.1rem; text-align: center; letter-spacing: 1px; min-height: 48px;"
                 inputmode="numeric"
                 pattern="[0-9]*"
+                autocomplete="off"
             >
-            
+
             <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1;">Annuler</button>
-                <button class="btn btn-primary" onclick="searchManualBarcode()" style="flex: 2;">
+                <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1; min-height: 48px;">Annuler</button>
+                <button class="btn btn-primary" onclick="searchManualBarcode()" style="flex: 2; min-height: 48px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
                         <circle cx="11" cy="11" r="8"></circle>
                         <path d="m21 21-4.35-4.35"></path>
@@ -189,26 +310,13 @@ function showManualBarcodeInput() {
                     Rechercher
                 </button>
             </div>
-            
-            <details style="margin-top: 20px; text-align: left;">
-                <summary style="cursor: pointer; color: var(--accent-brand); font-weight: 600; font-size: 0.9rem; list-style: none; display: flex; align-items: center; gap: 6px; justify-content: center;">
-                    <span>ℹ️</span> Pourquoi la caméra ne fonctionne pas ?
-                </summary>
-                <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; margin-top: 12px; font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);">
-                    <p style="margin-bottom: 12px;">
-                        <strong>Safari iOS</strong> ne supporte pas encore l'API de détection de codes-barres (BarcodeDetector).
-                    </p>
-                    <p style="margin-bottom: 12px;">
-                        <strong>Solution :</strong> Utilisez Chrome ou Firefox sur mobile, ou saisissez le code manuellement.
-                    </p>
-                    <p style="margin-bottom: 0;">
-                        Apple travaille sur le support de cette fonctionnalité pour une prochaine version d'iOS.
-                    </p>
-                </div>
-            </details>
+
+            <button class="btn btn-secondary btn-block" onclick="retryScanner()" style="margin-top: 12px; min-height: 48px;">
+                📷 Réessayer le scanner
+            </button>
         </div>
     `;
-    
+
     // Focus sur l'input avec validation
     setTimeout(() => {
         const input = document.getElementById('manual-barcode-input');
@@ -229,21 +337,34 @@ function showManualBarcodeInput() {
 }
 
 /**
+ * Réessayer le scanner après saisie manuelle
+ */
+async function retryScanner() {
+    resetScannerUI();
+    await initQuaggaScanner();
+}
+
+/**
  * Rechercher un code-barres saisi manuellement
  */
 async function searchManualBarcode() {
     const input = document.getElementById('manual-barcode-input');
     const barcode = input?.value?.trim();
-    
+
     if (!barcode) {
         showToast('Entrez un code-barres', 'warning');
         return;
     }
-    
+
+    if (!/^\d{8,13}$/.test(barcode)) {
+        showToast('Code-barres invalide (8-13 chiffres)', 'warning');
+        return;
+    }
+
     if (window.HapticFeedback) {
         window.HapticFeedback.tap();
     }
-    
+
     await fetchProductFromOFF(barcode);
 }
 
@@ -255,14 +376,20 @@ async function fetchProductFromOFF(barcode) {
     if (loadingDiv) {
         loadingDiv.style.display = 'flex';
     }
-    
+
+    // Cacher la vidéo
+    const videoContainer = document.querySelector('.barcode-video-container');
+    if (videoContainer) {
+        videoContainer.style.display = 'none';
+    }
+
     try {
         const response = await fetch(`${OFF_API_URL}/product/${barcode}.json`);
         const data = await response.json();
-        
+
         if (data.status === 1 && data.product) {
             const product = data.product;
-            
+
             // Extraire les macros (pour 100g)
             const nutrients = product.nutriments || {};
             const foodData = {
@@ -273,43 +400,51 @@ async function fetchProductFromOFF(barcode) {
                 protein: Math.round((nutrients['proteins_100g'] || nutrients['proteins'] || 0) * 10) / 10,
                 carbs: Math.round((nutrients['carbohydrates_100g'] || nutrients['carbohydrates'] || 0) * 10) / 10,
                 fat: Math.round((nutrients['fat_100g'] || nutrients['fat'] || 0) * 10) / 10,
+                fiber: Math.round((nutrients['fiber_100g'] || nutrients['fiber'] || 0) * 10) / 10,
                 imageUrl: product.image_url || product.image_front_url || null
             };
-            
+
+            // Stocker temporairement pour l'ajout
+            window._scannedProduct = foodData;
+
             // Afficher les résultats
             displayScannedProduct(foodData);
-            
+
             // Haptic feedback
             if (window.HapticFeedback) {
                 window.HapticFeedback.success();
             }
-            
+
         } else {
             showToast('❌ Produit non trouvé dans la base Open Food Facts', 'error');
-            
+
             if (window.HapticFeedback) {
                 window.HapticFeedback.error();
             }
-            
-            // Proposer saisie manuelle
+
+            // Proposer création manuelle
             setTimeout(() => {
                 if (confirm('Produit introuvable. Voulez-vous le créer manuellement ?')) {
                     closeBarcodeScanner();
                     if (typeof openCustomFoodModal === 'function') {
                         openCustomFoodModal();
                     }
+                } else {
+                    showManualBarcodeInput();
                 }
             }, 500);
         }
-        
+
     } catch (error) {
         console.error('Erreur API Open Food Facts:', error);
         showToast('❌ Erreur lors de la recherche', 'error');
-        
+
         if (window.HapticFeedback) {
             window.HapticFeedback.error();
         }
-        
+
+        showManualBarcodeInput();
+
     } finally {
         if (loadingDiv) {
             loadingDiv.style.display = 'none';
@@ -323,16 +458,16 @@ async function fetchProductFromOFF(barcode) {
 function displayScannedProduct(foodData) {
     const resultsDiv = document.getElementById('barcode-results');
     if (!resultsDiv) return;
-    
+
     const brandText = foodData.brand ? `<div style="color: var(--text-muted); font-size: 0.85rem;">${foodData.brand}</div>` : '';
-    const imageHtml = foodData.imageUrl 
-        ? `<img src="${foodData.imageUrl}" alt="${foodData.name}" style="width: 100%; height: 120px; object-fit: contain; margin-bottom: 12px; border-radius: 8px; background: #f5f5f5;">` 
+    const imageHtml = foodData.imageUrl
+        ? `<img src="${foodData.imageUrl}" alt="${foodData.name}" style="width: 100%; height: 140px; object-fit: contain; margin-bottom: 12px; border-radius: 8px; background: #f5f5f5;">`
         : '';
-    
+
     resultsDiv.innerHTML = `
-        <div class="scanned-product-card">
+        <div class="scanned-product-card" style="padding: 20px;">
             ${imageHtml}
-            <h3 style="margin-bottom: 4px;">${foodData.name}</h3>
+            <h3 style="margin-bottom: 4px; font-size: 1.1rem;">${foodData.name}</h3>
             ${brandText}
             <div class="food-macros" style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Pour 100g :</div>
@@ -343,45 +478,140 @@ function displayScannedProduct(foodData) {
                     <div>L: <strong>${foodData.fat}g</strong></div>
                 </div>
             </div>
-            <div style="display: flex; gap: 12px; margin-top: 16px;">
-                <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1;">Annuler</button>
-                <button class="btn btn-primary" onclick="addScannedProduct('${foodData.barcode}')" style="flex: 1;">Ajouter</button>
+
+            <!-- Quantité -->
+            <div style="margin-top: 16px;">
+                <label style="font-size: 0.9rem; color: var(--text-secondary); display: block; margin-bottom: 8px;">Quantité (g)</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input
+                        type="number"
+                        id="scanned-quantity"
+                        value="100"
+                        min="1"
+                        max="9999"
+                        class="form-input"
+                        style="flex: 1; text-align: center; font-size: 1.1rem; min-height: 48px;"
+                    >
+                    <span style="color: var(--text-muted);">g</span>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="document.getElementById('scanned-quantity').value='50'" style="flex: 1; min-width: 60px;">50g</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('scanned-quantity').value='100'" style="flex: 1; min-width: 60px;">100g</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('scanned-quantity').value='150'" style="flex: 1; min-width: 60px;">150g</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('scanned-quantity').value='200'" style="flex: 1; min-width: 60px;">200g</button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1; min-height: 48px;">Annuler</button>
+                <button class="btn btn-primary" onclick="addScannedProductToJournal()" style="flex: 1; min-height: 48px;">
+                    ✓ Ajouter
+                </button>
             </div>
         </div>
     `;
-    
+
     resultsDiv.style.display = 'block';
-    
-    // Arrêter la caméra
-    stopCamera();
-    
-    // Cacher la vidéo
-    const videoContainer = document.querySelector('.barcode-video-container');
-    if (videoContainer) {
-        videoContainer.style.display = 'none';
-    }
 }
 
 /**
- * Ajouter le produit scanné au journal
+ * Ajouter le produit scanné au journal alimentaire
  */
-async function addScannedProduct(barcode) {
-    // Créer un aliment personnalisé et l'ajouter
-    // TODO: implémenter l'ajout au journal avec quantité
-    
+async function addScannedProductToJournal() {
+    const foodData = window._scannedProduct;
+    if (!foodData) {
+        showToast('❌ Erreur: produit non trouvé', 'error');
+        return;
+    }
+
+    const quantityInput = document.getElementById('scanned-quantity');
+    const quantity = parseInt(quantityInput?.value) || 100;
+
+    // Créer l'aliment personnalisé s'il n'existe pas déjà
+    let foodId = `off-${foodData.barcode}`;
+
+    // Vérifier si l'aliment existe déjà dans state.foods
+    const existingFood = state.foods?.find(f => f.id === foodId);
+
+    if (!existingFood) {
+        // Ajouter l'aliment à la base locale
+        const newFood = {
+            id: foodId,
+            name: foodData.brand ? `${foodData.name} (${foodData.brand})` : foodData.name,
+            category: 'other',
+            calories: foodData.calories,
+            protein: foodData.protein,
+            carbs: foodData.carbs,
+            fat: foodData.fat,
+            fiber: foodData.fiber || 0,
+            unit: 'g',
+            portion: 100,
+            barcode: foodData.barcode,
+            source: 'openfoodfacts'
+        };
+
+        if (!state.foods) state.foods = [];
+        state.foods.push(newFood);
+    }
+
+    // Ajouter au journal
+    const today = new Date().toISOString().split('T')[0];
+    const mealType = getCurrentMealType();
+
+    if (!state.foodJournal) state.foodJournal = {};
+    if (!state.foodJournal[today]) state.foodJournal[today] = [];
+
+    const entry = {
+        foodId: foodId,
+        quantity: quantity,
+        mealType: mealType,
+        timestamp: new Date().toISOString()
+    };
+
+    state.foodJournal[today].push(entry);
+
+    // Sauvegarder
+    if (typeof saveState === 'function') {
+        saveState();
+    }
+
+    // Rafraîchir l'UI nutrition si disponible
+    if (typeof updateNutritionUI === 'function') {
+        updateNutritionUI();
+    }
+    if (typeof renderFoodJournal === 'function') {
+        renderFoodJournal();
+    }
+
     closeBarcodeScanner();
-    showToast('✅ Produit ajouté !', 'success');
-    
+    showToast(`✅ ${foodData.name} ajouté (${quantity}g)`, 'success');
+
     if (window.HapticFeedback) {
         window.HapticFeedback.success();
     }
+
+    // Cleanup
+    delete window._scannedProduct;
+}
+
+/**
+ * Déterminer le type de repas actuel selon l'heure
+ */
+function getCurrentMealType() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 10) return 'breakfast';
+    if (hour >= 10 && hour < 14) return 'lunch';
+    if (hour >= 14 && hour < 17) return 'snack';
+    if (hour >= 17 && hour < 21) return 'dinner';
+    return 'snack';
 }
 
 // Exporter les fonctions
 window.BarcodeScanner = {
     open: openBarcodeScanner,
     close: closeBarcodeScanner,
-    showManual: showManualBarcodeInput
+    showManual: showManualBarcodeInput,
+    retry: retryScanner
 };
 
 // Exports globaux pour les onclick HTML
@@ -389,3 +619,5 @@ window.openBarcodeScanner = openBarcodeScanner;
 window.closeBarcodeScanner = closeBarcodeScanner;
 window.showManualBarcodeInput = showManualBarcodeInput;
 window.searchManualBarcode = searchManualBarcode;
+window.retryScanner = retryScanner;
+window.addScannedProductToJournal = addScannedProductToJournal;
