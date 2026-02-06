@@ -81,7 +81,7 @@ function openMealHistoryModal(targetMealType = null) {
     
     // Afficher la modal avec animation iOS
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    if (window.ModalManager) ModalManager.lock('meal-history-modal');
     
     // Animation slide-up
     const container = modal.querySelector('.meal-history-container');
@@ -226,7 +226,7 @@ function closeMealHistoryModal() {
     // Attendre la fin de l'animation
     setTimeout(() => {
         modal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (window.ModalManager) ModalManager.unlock('meal-history-modal');
         container.classList.remove('slide-down');
     }, 300);
 }

@@ -269,12 +269,12 @@ const CommandPalette = {
         this.input.value = '';
         this.input.focus();
         this.search('');
-        document.body.style.overflow = 'hidden';
+        if (window.ModalManager) ModalManager.lock('premium-search-overlay');
     },
-    
+
     close() {
         this.overlay.classList.remove('active');
-        document.body.style.overflow = '';
+        if (window.ModalManager) ModalManager.unlock('premium-search-overlay');
         this.input.blur();
     },
     

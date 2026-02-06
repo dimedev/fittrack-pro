@@ -961,7 +961,7 @@ function openExportCSVModal() {
     const modal = document.getElementById('export-csv-modal');
     if (modal) {
         modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+        if (window.ModalManager) ModalManager.lock('export-csv-modal');
     } else {
         // Fallback: export nutrition par défaut
         exportToCSV('nutrition');

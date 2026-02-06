@@ -76,6 +76,69 @@ const AutosaveIndicator = {
     }
 };
 
+// ==================== MODAL MANAGER (Unified Scroll Lock) ====================
+
+const ModalManager = {
+    _stack: [],
+    _scrollY: 0,
+    _bodyStyles: null,
+
+    lock(id) {
+        if (this._stack.includes(id)) return;
+
+        if (this._stack.length === 0) {
+            this._scrollY = window.scrollY;
+            this._bodyStyles = {
+                overflow: document.body.style.overflow,
+                position: document.body.style.position,
+                top: document.body.style.top,
+                width: document.body.style.width,
+            };
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${this._scrollY}px`;
+            document.body.style.width = '100%';
+            document.body.classList.add('modal-open');
+        }
+        this._stack.push(id);
+    },
+
+    unlock(id) {
+        const idx = this._stack.indexOf(id);
+        if (idx === -1) return;
+        this._stack.splice(idx, 1);
+
+        if (this._stack.length === 0) {
+            document.body.style.overflow = this._bodyStyles?.overflow || '';
+            document.body.style.position = this._bodyStyles?.position || '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.classList.remove('modal-open');
+            window.scrollTo(0, this._scrollY);
+            this._bodyStyles = null;
+        }
+    },
+
+    forceUnlockAll() {
+        this._stack = [];
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.classList.remove('modal-open');
+    },
+
+    isLocked() {
+        return this._stack.length > 0;
+    },
+
+    get activeModals() {
+        return [...this._stack];
+    }
+};
+
+window.ModalManager = ModalManager;
+
 // ==================== SKELETON LOADERS ====================
 
 function showSkeleton(containerId, type = 'card') {
@@ -284,8 +347,8 @@ function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        
+        ModalManager.lock(modalId);
+
         // Setup swipe to close on mobile
         if (window.innerWidth <= 768) {
             setupModalSwipe(modal);
@@ -304,14 +367,14 @@ function closeModal(modalId) {
                 setTimeout(() => {
                     modal.classList.remove('active');
                     modalContent.style.transform = '';
-                    document.body.style.overflow = '';
+                    ModalManager.unlock(modalId);
                 }, 300);
                 return;
             }
         }
-        
+
         modal.classList.remove('active');
-        document.body.style.overflow = '';
+        ModalManager.unlock(modalId);
     }
 }
 
@@ -377,18 +440,18 @@ function setupModals() {
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.classList.remove('active');
-                document.body.style.overflow = '';
+                ModalManager.unlock(overlay.id);
             }
         });
     });
-    
+
     // Fermer avec Escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             document.querySelectorAll('.modal-overlay.active').forEach(modal => {
                 modal.classList.remove('active');
+                ModalManager.unlock(modal.id);
             });
-            document.body.style.overflow = '';
         }
     });
     
@@ -735,7 +798,7 @@ function showConfirmModal(config) {
         `;
 
         document.body.appendChild(overlay);
-        document.body.style.overflow = 'hidden';
+        ModalManager.lock('confirm-modal');
 
         // Animer l'entrée
         requestAnimationFrame(() => {
@@ -747,7 +810,7 @@ function showConfirmModal(config) {
             overlay.classList.remove('active');
             setTimeout(() => {
                 overlay.remove();
-                document.body.style.overflow = '';
+                ModalManager.unlock('confirm-modal');
             }, 200);
             resolve(result);
         };

@@ -169,7 +169,7 @@ function openCopyDayModal() {
         populateCopyDayModal(recentDays, currentDate);
         modal.classList.add('active');
         modal.style.cssText = 'display: flex !important; z-index: 9999;';
-        document.body.style.overflow = 'hidden';
+        if (window.ModalManager) ModalManager.lock('copy-day-modal');
     }
 }
 
@@ -225,7 +225,7 @@ function createCopyDayModal(recentDays, targetDate) {
     console.log('📋 Modal ajoutée au DOM:', modal);
 
     populateCopyDayModal(recentDays, targetDate);
-    document.body.style.overflow = 'hidden';
+    if (window.ModalManager) ModalManager.lock('copy-day-modal');
 
     console.log('📋 Modal devrait être visible maintenant');
 }
@@ -323,7 +323,7 @@ function closeCopyDayModal() {
     if (modal) {
         modal.classList.remove('active');
         modal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (window.ModalManager) ModalManager.unlock('copy-day-modal');
     }
 }
 
@@ -899,7 +899,7 @@ function openQuantitySheet(food, initialGrams) {
         sheet.style.display = 'flex';
         sheet.offsetHeight;
         sheet.classList.add('animate-in');
-        document.body.style.overflow = 'hidden';
+        if (window.ModalManager) ModalManager.lock('food-quantity-sheet');
     }
 }
 
@@ -1113,8 +1113,7 @@ function closeFoodQuantitySheet() {
     const sheet = document.getElementById('food-quantity-sheet');
     if (sheet) {
         sheet.style.display = 'none';
-        document.body.style.overflow = '';
-        document.body.classList.remove('modal-open');
+        if (window.ModalManager) ModalManager.unlock('food-quantity-sheet');
     }
     selectedFoodForQuantity = null;
 }
@@ -2310,9 +2309,8 @@ function openMealSheet(mealType) {
     }
     
     // CRITIQUE : Bloquer le scroll de la page derrière la modal
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('modal-open');
-    
+    if (window.ModalManager) ModalManager.lock('meal-add-sheet');
+
     sheet.style.display = 'flex';
     setTimeout(() => sheet.classList.add('active'), 10);
 }
@@ -2321,12 +2319,11 @@ function openMealSheet(mealType) {
 function closeMealSheet() {
     const sheet = document.getElementById('meal-add-sheet');
     if (!sheet) return;
-    
+
     sheet.classList.remove('active');
-    
+
     // CRITIQUE : Réactiver le scroll de la page
-    document.body.style.overflow = '';
-    document.body.classList.remove('modal-open');
+    if (window.ModalManager) ModalManager.unlock('meal-add-sheet');
     
     // Reset du padding clavier
     resetKeyboardPaddingFix();
@@ -2561,9 +2558,8 @@ function openFoodQuantitySheetForMeal(food, mealType) {
     if (confirmBtn) confirmBtn.textContent = 'Ajouter au repas';
     
     // Bloquer le scroll de la page
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('modal-open');
-    
+    if (window.ModalManager) ModalManager.lock('food-quantity-sheet');
+
     sheet.style.display = 'flex';
     setTimeout(() => sheet.classList.add('active'), 10);
 }
@@ -3026,9 +3022,8 @@ function openCardioSheet() {
     }
     
     // CRITIQUE : Bloquer le scroll de la page derrière la modal
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('modal-open');
-    
+    if (window.ModalManager) ModalManager.lock('cardio-add-sheet');
+
     // Reset état
     cardioState = { type: 'running', duration: 30, intensity: 'moderate' };
     
@@ -3065,9 +3060,8 @@ function closeCardioSheet() {
     sheet.classList.remove('active');
     
     // CRITIQUE : Réactiver le scroll de la page
-    document.body.style.overflow = '';
-    document.body.classList.remove('modal-open');
-    
+    if (window.ModalManager) ModalManager.unlock('cardio-add-sheet');
+
     // Reset propre des styles transform/transition
     const innerSheet = sheet.querySelector('.bottom-sheet');
     if (innerSheet) {

@@ -1175,7 +1175,7 @@ function openSessionDetail(sessionIndex) {
     `;
 
     overlay.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    if (window.ModalManager) ModalManager.lock('session-detail-overlay');
 }
 
 function renderSessionExercises(session) {
@@ -1230,7 +1230,7 @@ function closeSessionDetail() {
     if (overlay) {
         overlay.style.display = 'none';
     }
-    document.body.style.overflow = '';
+    if (window.ModalManager) ModalManager.unlock('session-detail-overlay');
     currentDetailSessionIndex = null;
 }
 

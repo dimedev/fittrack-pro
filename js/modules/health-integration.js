@@ -161,19 +161,23 @@
             `;
 
             document.body.appendChild(modal);
+            if (window.ModalManager) ModalManager.lock('health-consent-modal');
 
             document.getElementById('health-consent-accept').onclick = () => {
+                if (window.ModalManager) ModalManager.unlock('health-consent-modal');
                 modal.remove();
                 resolve(true);
             };
 
             document.getElementById('health-consent-decline').onclick = () => {
+                if (window.ModalManager) ModalManager.unlock('health-consent-modal');
                 modal.remove();
                 resolve(false);
             };
 
             modal.onclick = (e) => {
                 if (e.target === modal) {
+                    if (window.ModalManager) ModalManager.unlock('health-consent-modal');
                     modal.remove();
                     resolve(false);
                 }

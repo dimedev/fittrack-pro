@@ -11,6 +11,10 @@ let scannerInitialized = false;
  * Ouvrir le scanner de codes-barres
  */
 async function openBarcodeScanner() {
+    // Barcode scanner désactivé - feature non prête
+    if (window.showToast) showToast('Scanner indisponible pour le moment', 'info');
+    return;
+
     const scannerModal = document.getElementById('barcode-scanner-modal');
     if (!scannerModal) {
         console.error('Modal barcode scanner introuvable');

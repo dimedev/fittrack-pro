@@ -120,88 +120,22 @@ let fsSession = {
  * Gestionnaire centralisé pour le blocage du scroll
  * Évite les conflits quand plusieurs modales/fullscreen s'ouvrent/ferment
  */
+// OverflowManager: thin wrapper delegating to unified ModalManager (defined in ui.js)
 const OverflowManager = {
-    count: 0,
-    originalOverflow: '',
-    originalPosition: '',
-    scrollY: 0,
-    failsafeTimeout: null,
-    MAX_LOCK_TIME: 30000, // 30 secondes max de lock
-
-    lock() {
-        if (this.count === 0) {
-            this.scrollY = window.scrollY;
-            this.originalOverflow = document.body.style.overflow;
-            this.originalPosition = document.body.style.position;
-            document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${this.scrollY}px`;
-            document.body.style.width = '100%';
-
-            // Failsafe: auto-unlock après 30s
-            this.startFailsafe();
-        }
-        this.count++;
-        console.log(`🔒 OverflowManager.lock() - count: ${this.count}`);
-    },
-
-    unlock() {
-        this.count = Math.max(0, this.count - 1);
-        console.log(`🔓 OverflowManager.unlock() - count: ${this.count}`);
-        if (this.count === 0) {
-            document.body.style.overflow = this.originalOverflow;
-            document.body.style.position = this.originalPosition;
-            document.body.style.top = '';
-            document.body.style.width = '';
-            window.scrollTo(0, this.scrollY);
-            this.clearFailsafe();
-        }
-    },
-
-    // Forcer le déverrouillage (en cas de bug)
-    forceUnlock() {
-        this.count = 0;
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        this.clearFailsafe();
-        console.log('⚠️ OverflowManager.forceUnlock()');
-    },
-
-    // Failsafe: auto-unlock après timeout
-    startFailsafe() {
-        this.clearFailsafe();
-        this.failsafeTimeout = setTimeout(() => {
-            if (this.count > 0) {
-                console.warn(`⚠️ OverflowManager: Failsafe triggered after ${this.MAX_LOCK_TIME}ms (count was ${this.count})`);
-                this.forceUnlock();
-            }
-        }, this.MAX_LOCK_TIME);
-    },
-
-    clearFailsafe() {
-        if (this.failsafeTimeout) {
-            clearTimeout(this.failsafeTimeout);
-            this.failsafeTimeout = null;
-        }
-    },
-
-    // Check si le scroll est bloqué
-    isLocked() {
-        return this.count > 0;
-    }
+    lock() { if (window.ModalManager) ModalManager.lock('training-overflow'); },
+    unlock() { if (window.ModalManager) ModalManager.unlock('training-overflow'); },
+    forceUnlock() { if (window.ModalManager) ModalManager.forceUnlockAll(); },
+    isLocked() { return window.ModalManager ? ModalManager.isLocked() : false; }
 };
 
-// Exposer globalement pour debug
 window.OverflowManager = OverflowManager;
 
 // Failsafe: reset quand on change de section (navigation)
 document.addEventListener('click', (e) => {
     const navItem = e.target.closest('.bottom-nav-item, .nav-tab');
-    if (navItem && OverflowManager.count > 0) {
-        console.log('🔄 Navigation détectée - reset OverflowManager');
-        OverflowManager.forceUnlock();
+    if (navItem && window.ModalManager && ModalManager.isLocked()) {
+        console.log('🔄 Navigation détectée - reset ModalManager');
+        ModalManager.forceUnlockAll();
     }
 });
 
@@ -1514,6 +1448,7 @@ function clearSwapSearch() {
  * Ferme le bottom sheet
  */
 function closeBottomSheet() {
+    if (window.ModalManager) ModalManager.unlock('swap-bottom-sheet');
     document.getElementById('swap-bottom-sheet').style.display = 'none';
 }
 
@@ -3753,9 +3688,11 @@ function openSessionSettings() {
     sheet.classList.remove('animate-in');
     void sheet.offsetWidth;
     sheet.classList.add('animate-in');
+    if (window.ModalManager) ModalManager.lock('settings-sheet');
 }
 
 function closeSettingsSheet() {
+    if (window.ModalManager) ModalManager.unlock('settings-sheet');
     document.getElementById('settings-sheet').style.display = 'none';
 }
 
@@ -4682,6 +4619,7 @@ function openPeriodizationSheet() {
     requestAnimationFrame(() => {
         sheet.classList.add('active');
     });
+    if (window.ModalManager) ModalManager.lock('periodization-sheet');
 }
 
 /**
@@ -4692,6 +4630,7 @@ function closePeriodizationSheet() {
     if (!sheet) return;
 
     sheet.classList.remove('active');
+    if (window.ModalManager) ModalManager.unlock('periodization-sheet');
     setTimeout(() => {
         sheet.style.display = 'none';
     }, 300);

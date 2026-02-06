@@ -271,17 +271,12 @@
 }
 
 /* ==================== BODY SCROLL LOCK (MODALS) ==================== */
+/* Scroll lock is handled by ModalManager (position:fixed approach in JS).
+   body.modal-open is a CSS fallback only. touch-action: none REMOVED
+   because it blocks ALL touch events including scroll inside modals. */
 
-/* Quand une modal est active, bloquer le scroll du body */
-body:has(.bottom-sheet-overlay.active) {
-    overflow: hidden !important;
-    touch-action: none;
-}
-
-/* Alternative pour navigateurs sans :has() */
 body.modal-open {
     overflow: hidden !important;
-    touch-action: none;
 }
 
 /* ==================== MEALS CONTAINER ==================== */
@@ -354,8 +349,10 @@ body.modal-open {
 }
 
 .meal-add-btn {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 50%;
     border: none;
     background: rgba(249, 115, 22, 0.1);
@@ -367,6 +364,7 @@ body.modal-open {
     align-items: center;
     justify-content: center;
     transition: all 0.15s ease;
+    flex-shrink: 0;
 }
 
 .meal-add-btn:hover {
@@ -399,13 +397,14 @@ body.modal-open {
     justify-content: space-between;
     align-items: center;
     padding: 10px 12px;
-    background: var(--bg-tertiary);
-    border-radius: 8px;
-    margin-bottom: 6px;
+    background: transparent;
+    border-radius: 0;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .meal-item:last-child {
-    margin-bottom: 0;
+    border-bottom: none;
 }
 
 .meal-item-info {
@@ -1278,11 +1277,7 @@ body.modal-open {
         font-size: 0.95rem;
     }
     
-    .meal-add-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 1rem;
-    }
+    /* meal-add-btn: 44px minimum touch target maintained at all sizes */
     
     /* Augmenter zone de touch pour les boutons */
     .meal-item-delete,

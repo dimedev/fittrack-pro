@@ -28,8 +28,8 @@ function openRecipeModal(recipeId = null) {
     }
     
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    
+    if (window.ModalManager) ModalManager.lock('recipe-modal');
+
     // Animation slide-up iOS
     const container = modal.querySelector('.recipe-container');
     if (container) {
@@ -103,7 +103,7 @@ function closeRecipeModal() {
     // Attendre la fin de l'animation
     setTimeout(() => {
         modal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (window.ModalManager) ModalManager.unlock('recipe-modal');
         container.classList.remove('slide-down');
     }, 300);
 }
@@ -160,7 +160,7 @@ function openRecipeIngredientSelector() {
     renderRecipeFoodsList();
     
     sheet.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    if (window.ModalManager) ModalManager.lock('recipe-ingredient-sheet');
 }
 
 /**
@@ -170,7 +170,7 @@ function closeRecipeIngredientSelector() {
     const sheet = document.getElementById('recipe-ingredient-sheet');
     if (sheet) {
         sheet.style.display = 'none';
-        document.body.style.overflow = '';
+        if (window.ModalManager) ModalManager.unlock('recipe-ingredient-sheet');
     }
 }
 
