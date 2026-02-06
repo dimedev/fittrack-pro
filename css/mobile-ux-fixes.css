@@ -1952,15 +1952,15 @@ input[type="date"].form-input {
 
 @media (max-width: 768px) {
     /* Règle globale: tous les éléments interactifs minimum 48px */
+    /* NOTE: .modal-close exclu - géré séparément pour rester rond (36px) */
     .btn,
     .btn-sm,
-    .btn-icon,
+    .btn-icon:not(.modal-close),
     .tab,
     .nav-tab,
     .mobile-nav-item,
     .food-btn,
     .timer-preset-btn,
-    .modal-close,
     .journal-entry-delete,
     .quantity-btn,
     .filter-chip,
@@ -1969,13 +1969,13 @@ input[type="date"].form-input {
     .meal-item-delete,
     .suggestion-add-btn,
     [role="button"],
-    button:not(.btn):not(.nutrition-buttons-row .btn-icon) {
+    button:not(.btn):not(.nutrition-buttons-row .btn-icon):not(.modal-close) {
         min-height: 48px !important;
     }
 
     /* Boutons carrés (icons) - 48x48 */
-    .btn-icon:not(.nutrition-buttons-row .btn-icon),
-    .modal-close,
+    /* NOTE: .modal-close exclu - reste 36px rond */
+    .btn-icon:not(.nutrition-buttons-row .btn-icon):not(.modal-close),
     .food-btn {
         width: 48px !important;
         height: 48px !important;
@@ -2208,6 +2208,14 @@ textarea:focus-visible {
     border-color: var(--danger) !important;
     color: white !important;
     transform: scale(0.95) !important;
+}
+
+/* ==================== EXCEPTION: fs-close-btn dans fs-header ==================== */
+/* Le header fullscreen utilise flexbox - le bouton doit rester dans le flux */
+.fs-header .fs-close-btn {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
 }
 
 /* ==================== MODAL OVERLAY UNIFIÉ ==================== */
