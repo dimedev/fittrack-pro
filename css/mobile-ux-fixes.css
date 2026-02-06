@@ -955,30 +955,8 @@ html, body, main {
         border-radius: 3px;
     }
 
-    /* Bouton close accessible */
-    .modal-close {
-        position: absolute !important;
-        top: 20px !important;
-        right: 16px !important;
-        width: 44px !important;
-        height: 44px !important;
-        min-width: 44px;
-        min-height: 44px;
-        border-radius: 12px !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border-color);
-        color: var(--text-secondary);
-    }
-
-    .modal-close:active {
-        background: var(--danger);
-        color: white;
-        transform: scale(0.95);
-    }
+    /* Bouton close accessible - SUPPRIMÉ, géré par Phase 4 unified modal system */
+    /* Voir section "BOUTON CLOSE UNIFIÉ - ROND STYLE iOS" plus bas */
 
     /* Modal title */
     .modal-title {
@@ -1952,10 +1930,10 @@ input[type="date"].form-input {
 
 @media (max-width: 768px) {
     /* Règle globale: tous les éléments interactifs minimum 48px */
-    /* NOTE: .modal-close exclu - géré séparément pour rester rond (36px) */
-    .btn,
-    .btn-sm,
-    .btn-icon:not(.modal-close),
+    /* NOTE: boutons close exclus - gérés séparément pour rester ronds (36px) */
+    .btn:not(.modal-close):not(.btn-close):not(.fs-close-btn):not(.fs-minimize-btn),
+    .btn-sm:not(.modal-close):not(.btn-close),
+    .btn-icon:not(.modal-close):not(.fs-close-btn):not(.fs-minimize-btn),
     .tab,
     .nav-tab,
     .mobile-nav-item,
@@ -1968,14 +1946,14 @@ input[type="date"].form-input {
     .meal-item-edit,
     .meal-item-delete,
     .suggestion-add-btn,
-    [role="button"],
-    button:not(.btn):not(.nutrition-buttons-row .btn-icon):not(.modal-close) {
+    [role="button"]:not(.modal-close):not(.fs-close-btn):not(.fs-minimize-btn),
+    button:not(.btn):not(.nutrition-buttons-row .btn-icon):not(.modal-close):not(.btn-close):not(.fs-close-btn):not(.fs-minimize-btn) {
         min-height: 48px !important;
     }
 
     /* Boutons carrés (icons) - 48x48 */
-    /* NOTE: .modal-close exclu - reste 36px rond */
-    .btn-icon:not(.nutrition-buttons-row .btn-icon):not(.modal-close),
+    /* NOTE: boutons close exclus - restent 36px ronds */
+    .btn-icon:not(.nutrition-buttons-row .btn-icon):not(.modal-close):not(.fs-close-btn):not(.fs-minimize-btn),
     .food-btn {
         width: 48px !important;
         height: 48px !important;
