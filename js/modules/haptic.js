@@ -4,6 +4,10 @@
 /**
  * Patterns de vibration prédéfinis
  */
+// Gate: vibrate() requires prior user gesture (Chrome intervention fix)
+let _hapticUserInteracted = false;
+document.addEventListener('pointerdown', () => { _hapticUserInteracted = true; }, { once: true, passive: true });
+
 const HapticPatterns = {
     // Actions légères
     light: [10],
@@ -37,7 +41,7 @@ const HapticPatterns = {
  * Jouer un pattern de vibration
  */
 function playHaptic(pattern) {
-    if (!navigator.vibrate) return;
+    if (!_hapticUserInteracted || !navigator.vibrate) return;
     
     try {
         const vibrationPattern = HapticPatterns[pattern] || HapticPatterns.tap;

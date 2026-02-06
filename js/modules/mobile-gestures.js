@@ -5,13 +5,17 @@
     'use strict';
 
     // ==================== HAPTIC FEEDBACK ====================
+    // Gate: vibrate() requires prior user gesture (Chrome intervention fix)
+    let _userActive = false;
+    document.addEventListener('pointerdown', () => { _userActive = true; }, { once: true, passive: true });
+
     const Haptics = {
-        light: () => { try { navigator.vibrate?.(10); } catch(e) {} },
-        medium: () => { try { navigator.vibrate?.(20); } catch(e) {} },
-        heavy: () => { try { navigator.vibrate?.(30); } catch(e) {} },
-        success: () => { try { navigator.vibrate?.([10, 50, 20]); } catch(e) {} },
-        warning: () => { try { navigator.vibrate?.([30, 50, 30]); } catch(e) {} },
-        error: () => { try { navigator.vibrate?.([50, 100, 50]); } catch(e) {} }
+        light: () => { if (!_userActive) return; try { navigator.vibrate?.(10); } catch(e) {} },
+        medium: () => { if (!_userActive) return; try { navigator.vibrate?.(20); } catch(e) {} },
+        heavy: () => { if (!_userActive) return; try { navigator.vibrate?.(30); } catch(e) {} },
+        success: () => { if (!_userActive) return; try { navigator.vibrate?.([10, 50, 20]); } catch(e) {} },
+        warning: () => { if (!_userActive) return; try { navigator.vibrate?.([30, 50, 30]); } catch(e) {} },
+        error: () => { if (!_userActive) return; try { navigator.vibrate?.([50, 100, 50]); } catch(e) {} }
     };
 
     // ==================== SWIPE TO DELETE ====================
