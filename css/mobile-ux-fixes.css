@@ -2120,3 +2120,243 @@ textarea:focus-visible {
 *:focus:not(:focus-visible) {
     outline: none !important;
 }
+
+/* ==================== PHASE 4: UNIFIED PREMIUM MODAL SYSTEM ==================== */
+/* Toutes les modales identiques, premium, style iOS bottom sheet */
+
+/* Variables CSS unifiées pour toutes les modales */
+.modal,
+.bottom-sheet,
+.cardio-sheet,
+.recipe-modal,
+.meal-history-modal,
+.barcode-scanner-modal {
+    --modal-radius: 20px;
+    --modal-drag-handle-width: 36px;
+    --modal-drag-handle-height: 5px;
+    --modal-close-size: 44px;
+    --modal-close-radius: 50%;
+    --modal-animation-duration: 300ms;
+    --modal-animation-easing: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ==================== BOUTON CLOSE UNIFIÉ - ROND STYLE iOS ==================== */
+
+.modal-close,
+.btn-close,
+.fs-close-btn {
+    position: absolute !important;
+    top: 16px !important;
+    right: 16px !important;
+    width: var(--modal-close-size, 44px) !important;
+    height: var(--modal-close-size, 44px) !important;
+    min-width: var(--modal-close-size, 44px) !important;
+    min-height: var(--modal-close-size, 44px) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+
+    /* Style rond iOS */
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--modal-close-radius, 50%) !important;
+    color: var(--text-secondary) !important;
+
+    /* Centrage du X */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.4rem !important;
+    font-weight: 300 !important;
+    line-height: 1 !important;
+
+    /* Transitions */
+    transition: all 150ms ease-out !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+}
+
+/* SVG dans bouton close */
+.modal-close svg,
+.btn-close svg,
+.fs-close-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+}
+
+/* Hover state */
+.modal-close:hover,
+.btn-close:hover,
+.fs-close-btn:hover {
+    background: var(--bg-hover) !important;
+    border-color: var(--border-hover) !important;
+    color: var(--text-primary) !important;
+    transform: scale(1.05) !important;
+}
+
+/* Active/Press state - devient rouge */
+.modal-close:active,
+.btn-close:active,
+.fs-close-btn:active {
+    background: var(--danger) !important;
+    border-color: var(--danger) !important;
+    color: white !important;
+    transform: scale(0.95) !important;
+}
+
+/* ==================== MODAL OVERLAY UNIFIÉ ==================== */
+
+.modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    z-index: 200 !important;
+    display: none;
+    transition: background-color 0.3s ease !important;
+}
+
+.modal-overlay.active {
+    display: flex !important;
+}
+
+/* ==================== MODAL BOTTOM SHEET MOBILE ==================== */
+
+@media (max-width: 768px) {
+    /* Overlay aligné en bas */
+    .modal-overlay {
+        align-items: flex-end !important;
+        padding: 0 !important;
+    }
+
+    /* Modal devient bottom sheet */
+    .modal,
+    .recipe-modal,
+    .meal-history-modal,
+    .barcode-scanner-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: calc(100vh - 60px) !important;
+        max-height: calc(100dvh - 60px) !important;
+        margin: 0 !important;
+        border-radius: var(--modal-radius, 20px) var(--modal-radius, 20px) 0 0 !important;
+        animation: modalSlideUp var(--modal-animation-duration, 300ms) var(--modal-animation-easing, cubic-bezier(0.32, 0.72, 0, 1)) !important;
+        overflow: hidden !important;
+        position: relative !important;
+    }
+
+    /* Animation fermeture */
+    .modal.closing {
+        animation: modalSlideDown var(--modal-animation-duration, 300ms) var(--modal-animation-easing) forwards !important;
+    }
+
+    /* Animations */
+    @keyframes modalSlideUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0.8;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes modalSlideDown {
+        from {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+    }
+}
+
+/* ==================== DRAG HANDLE PREMIUM ==================== */
+
+@media (max-width: 768px) {
+    /* Handle de drag visible en haut de toutes les modales */
+    .modal::before,
+    .recipe-modal::before,
+    .meal-history-modal::before,
+    .barcode-scanner-modal::before,
+    .bottom-sheet::before,
+    .cardio-sheet::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 8px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: var(--modal-drag-handle-width, 36px) !important;
+        height: var(--modal-drag-handle-height, 5px) !important;
+        background: var(--text-muted) !important;
+        border-radius: 3px !important;
+        opacity: 0.5 !important;
+        transition: all 150ms ease !important;
+        z-index: 5 !important;
+        pointer-events: none !important;
+    }
+
+    /* Handle s'élargit quand on drag */
+    .modal.dragging::before,
+    .modal:active::before {
+        width: 48px !important;
+        opacity: 0.8 !important;
+        background: var(--accent-brand) !important;
+    }
+}
+
+/* ==================== MODAL HEADER UNIFIÉ ==================== */
+
+@media (max-width: 768px) {
+    .modal-header {
+        position: relative !important;
+        padding: 28px 20px 16px !important;
+        min-height: 60px !important;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+
+    .modal-title {
+        padding-right: 56px !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+    }
+}
+
+/* ==================== MODAL BODY SCROLLABLE ==================== */
+
+@media (max-width: 768px) {
+    .modal-body {
+        padding: 20px !important;
+        max-height: calc(100vh - 200px) !important;
+        max-height: calc(100dvh - 200px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
+    }
+}
+
+/* ==================== MODAL FOOTER STICKY ==================== */
+
+@media (max-width: 768px) {
+    .modal-footer {
+        position: sticky !important;
+        bottom: 0 !important;
+        padding: 16px 20px !important;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+        background: var(--bg-card) !important;
+        border-top: 1px solid var(--border-color) !important;
+        display: flex !important;
+        gap: 12px !important;
+    }
+
+    .modal-footer .btn {
+        flex: 1 !important;
+        min-height: 48px !important;
+        justify-content: center !important;
+    }
+}

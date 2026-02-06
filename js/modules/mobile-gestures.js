@@ -357,6 +357,206 @@
         }
     }
 
+    // ==================== SWIPE TO DISMISS MODAL ====================
+    class SwipeToDismiss {
+        constructor(modalOverlay, options = {}) {
+            this.modalOverlay = modalOverlay;
+            this.modal = modalOverlay.querySelector('.modal, .recipe-modal, .meal-history-modal, .barcode-scanner-modal');
+            this.threshold = options.threshold || 100;
+            this.onDismiss = options.onDismiss || (() => {});
+
+            this.startY = 0;
+            this.currentY = 0;
+            this.isDragging = false;
+            this.dragStarted = false;
+            this.hasVibrated = false;
+
+            if (this.isTouchDevice() && window.innerWidth <= 768 && this.modal) {
+                this.init();
+            }
+        }
+
+        isTouchDevice() {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
+
+        init() {
+            // Only allow swipe on the header area (top 100px of modal)
+            const header = this.modal.querySelector('.modal-header');
+            const dragTarget = header || this.modal;
+
+            // Make header indicate it's draggable
+            dragTarget.style.touchAction = 'pan-x';
+            dragTarget.style.cursor = 'grab';
+
+            dragTarget.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+            this.modal.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+            this.modal.addEventListener('touchend', this.handleTouchEnd.bind(this));
+            this.modal.addEventListener('touchcancel', this.handleTouchEnd.bind(this));
+        }
+
+        handleTouchStart(e) {
+            // Only start on header area
+            this.startY = e.touches[0].clientY;
+            this.isDragging = true;
+            this.dragStarted = false;
+            this.modal.style.transition = 'none';
+            this.modalOverlay.style.transition = 'none';
+        }
+
+        handleTouchMove(e) {
+            if (!this.isDragging) return;
+
+            this.currentY = e.touches[0].clientY;
+            const diffY = this.currentY - this.startY;
+
+            // Only allow downward swipe (positive diffY)
+            if (diffY > 10) {
+                e.preventDefault();
+                this.dragStarted = true;
+
+                // Add resistance as user drags further
+                const resistance = 0.6;
+                const translateY = Math.min(diffY * resistance, 350);
+
+                this.modal.style.transform = `translateY(${translateY}px)`;
+                this.modal.classList.add('dragging');
+
+                // Fade overlay proportionally
+                const progress = Math.min(translateY / this.threshold, 1);
+                const opacity = 0.6 * (1 - progress * 0.5);
+                this.modalOverlay.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+
+                // Haptic feedback at threshold
+                if (translateY >= this.threshold && !this.hasVibrated) {
+                    Haptics.medium();
+                    this.hasVibrated = true;
+                } else if (translateY < this.threshold) {
+                    this.hasVibrated = false;
+                }
+            }
+        }
+
+        handleTouchEnd() {
+            if (!this.isDragging) return;
+            this.isDragging = false;
+
+            const diffY = this.currentY - this.startY;
+            const resistance = 0.6;
+            const translateY = diffY * resistance;
+
+            // Restore transitions
+            this.modal.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+            this.modalOverlay.style.transition = 'background-color 0.3s ease';
+
+            if (this.dragStarted && translateY > this.threshold) {
+                // Dismiss the modal
+                this.dismiss();
+            } else {
+                // Snap back
+                this.modal.style.transform = 'translateY(0)';
+                this.modalOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+                this.modal.classList.remove('dragging');
+            }
+
+            this.hasVibrated = false;
+        }
+
+        dismiss() {
+            Haptics.success();
+
+            this.modal.classList.add('closing');
+            this.modal.style.transform = 'translateY(100%)';
+            this.modalOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+
+            setTimeout(() => {
+                this.onDismiss();
+                // Reset styles
+                this.modal.classList.remove('closing', 'dragging');
+                this.modal.style.transform = '';
+                this.modal.style.transition = '';
+                this.modalOverlay.style.transition = '';
+                this.modalOverlay.style.backgroundColor = '';
+            }, 300);
+        }
+    }
+
+    // ==================== SWIPE TO DISMISS INITIALIZATION ====================
+    function initSwipeToDismissModals() {
+        // Get all modal overlays
+        const modals = document.querySelectorAll('.modal-overlay');
+
+        modals.forEach(modalOverlay => {
+            // Skip if already initialized
+            if (modalOverlay.dataset.swipeInitialized) return;
+            modalOverlay.dataset.swipeInitialized = 'true';
+
+            new SwipeToDismiss(modalOverlay, {
+                threshold: 100,
+                onDismiss: () => {
+                    // Close modal using existing closeModal function
+                    const modalId = modalOverlay.id;
+                    if (modalId && typeof closeModal === 'function') {
+                        closeModal(modalId);
+                    } else {
+                        // Fallback
+                        modalOverlay.style.display = 'none';
+                        modalOverlay.classList.remove('active');
+                    }
+                }
+            });
+        });
+
+        // Observer for dynamically added/shown modals
+        const modalObserver = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                // Check for new modals
+                mutation.addedNodes.forEach(node => {
+                    if (node.classList?.contains('modal-overlay')) {
+                        if (!node.dataset.swipeInitialized) {
+                            node.dataset.swipeInitialized = 'true';
+                            new SwipeToDismiss(node, {
+                                threshold: 100,
+                                onDismiss: () => {
+                                    const modalId = node.id;
+                                    if (modalId && typeof closeModal === 'function') {
+                                        closeModal(modalId);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+
+                // Check for modals becoming visible
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const target = mutation.target;
+                    if (target.classList?.contains('modal-overlay') && !target.dataset.swipeInitialized) {
+                        target.dataset.swipeInitialized = 'true';
+                        new SwipeToDismiss(target, {
+                            threshold: 100,
+                            onDismiss: () => {
+                                const modalId = target.id;
+                                if (modalId && typeof closeModal === 'function') {
+                                    closeModal(modalId);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        });
+
+        modalObserver.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class']
+        });
+
+        console.log('📱 Swipe-to-dismiss initialized for modals');
+    }
+
     // ==================== INITIALISATION ====================
     function initMobileGestures() {
         // Ne s'exécute que sur mobile
@@ -403,6 +603,9 @@
         
         // Initialiser Pull-to-Refresh sur les sections principales
         initPullToRefresh();
+
+        // Initialiser Swipe-to-Dismiss pour les modales
+        initSwipeToDismissModals();
 
         console.log('📱 Mobile gestures initialized');
     }
@@ -588,9 +791,11 @@
     // ==================== EXPORT ====================
     window.MobileGestures = {
         SwipeToDelete,
+        SwipeToDismiss,
         PullToRefresh,
         Haptics,
-        init: initMobileGestures
+        init: initMobileGestures,
+        initSwipeToDismissModals
     };
 
     // Auto-init au chargement
