@@ -139,6 +139,36 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// ==================== BODYWEIGHT UTILITIES ====================
+
+/**
+ * Trouve un exercice dans state.exercises par son nom
+ */
+function findExerciseByName(name) {
+    if (!state.exercises || !name) return null;
+    return state.exercises.find(ex => ex.name === name || ex.id === name) || null;
+}
+
+/**
+ * Retourne le poids effectif pour le calcul de volume.
+ * Pour les exercices bodyweight : poids du corps + lest (si > 0) ou poids du corps - assistance (si < 0)
+ */
+function getEffectiveWeight(exerciseName, inputWeight) {
+    const exercise = findExerciseByName(exerciseName);
+    if (!exercise || exercise.equipment !== 'bodyweight') {
+        return inputWeight;
+    }
+    const bodyWeight = state.profile?.weight || 70;
+    if (inputWeight === 0) {
+        return bodyWeight;
+    }
+    if (inputWeight > 0) {
+        return bodyWeight + inputWeight; // Lesté
+    }
+    // inputWeight < 0 = assistance (ex: tractions assistées)
+    return Math.max(0, bodyWeight + inputWeight);
+}
+
 // ==================== SESSION PERSISTENCE ====================
 let fsSessionSaveInterval = null;
 
@@ -1250,6 +1280,12 @@ function openExerciseSwapSheet(exerciseIndex) {
     const exercise = previewSession.exercises[exerciseIndex];
     if (!exercise) return;
 
+    _fsSwapMode = false;
+
+    // Cacher la section variante (pas en FS mode)
+    const variantSection = document.getElementById('swap-variant-section');
+    if (variantSection) variantSection.style.display = 'none';
+
     // Stocker l'index et l'exercice ID pour le swap
     previewSession.currentSwapIndex = exerciseIndex;
     const originalExerciseId = getExerciseIdByName(exercise.originalName, exercise.muscle);
@@ -1461,7 +1497,16 @@ let pendingSwap = null;
  */
 function swapExerciseInPreview(exerciseId) {
     const exercise = state.exercises.find(e => e.id === exerciseId);
-    if (!exercise || previewSession.currentSwapIndex === null) return;
+    if (!exercise) return;
+
+    // Si on est en mode full-screen swap, déléguer
+    if (_fsSwapMode) {
+        _fsSwapMode = false;
+        applyFsExerciseSwap(exerciseId, exercise.name);
+        return;
+    }
+
+    if (previewSession.currentSwapIndex === null) return;
 
     const idx = previewSession.currentSwapIndex;
     const currentExercise = previewSession.exercises[idx];
@@ -1531,6 +1576,123 @@ function executeSwapWithParams(exerciseId, exerciseName, idx, newSets, newRepsMi
     // Re-render UI + Brief (pour mettre à jour les suggestions)
     renderSessionPreviewUI();
     generateSessionBrief();
+}
+
+// ==================== FS EXERCISE SWAP (DURING SESSION) ====================
+
+/** Flag pour savoir si le swap est en mode full-screen */
+let _fsSwapMode = false;
+
+/**
+ * Ouvre le swap bottom sheet pour l'exercice en cours dans le full-screen session.
+ * Réutilise le même bottom sheet que le preview, avec un flag pour le callback.
+ */
+function openFsExerciseSwap() {
+    if (!fsSession.active) return;
+
+    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    if (!exercise) return;
+
+    _fsSwapMode = true;
+
+    // Construire un faux previewSession context pour réutiliser le swap sheet
+    const originalExerciseId = getExerciseIdByName(exercise.effectiveName, exercise.muscle);
+    previewSession.currentSwapIndex = fsSession.currentExerciseIndex;
+    previewSession.currentSwapExerciseId = originalExerciseId;
+
+    // Nom actuel
+    const nameEl = document.getElementById('swap-current-name');
+    if (nameEl) nameEl.textContent = exercise.effectiveName;
+
+    // Réinitialiser la recherche
+    const searchInput = document.getElementById('swap-search-input');
+    if (searchInput) searchInput.value = '';
+
+    // Afficher la section variante (FS mode only)
+    const variantSection = document.getElementById('swap-variant-section');
+    if (variantSection) variantSection.style.display = 'block';
+    const variantInput = document.getElementById('swap-variant-input');
+    if (variantInput) variantInput.value = '';
+
+    // Obtenir les exercices équivalents
+    const favoriteExercises = state.wizardResults?.favoriteExercises || [];
+    const exerciseData = getEquivalentExercises(originalExerciseId, favoriteExercises);
+    previewSession.swapExerciseData = exerciseData;
+
+    renderSwapSections(exerciseData.equivalents, exerciseData.sameMuscle, []);
+
+    // Ouvrir le sheet
+    const sheet = document.getElementById('swap-bottom-sheet');
+    if (sheet) {
+        sheet.style.display = 'flex';
+        sheet.offsetHeight;
+        sheet.classList.remove('animate-in');
+        void sheet.offsetWidth;
+        sheet.classList.add('animate-in');
+        initSwapSheetSwipe();
+    }
+}
+
+/**
+ * Crée une variante d'exercice (ex: "Chest Press Machine - Convergente Bas")
+ */
+function createExerciseVariant() {
+    const input = document.getElementById('swap-variant-input');
+    if (!input || !input.value.trim()) {
+        showToast('Entre un nom de variante', 'error');
+        return;
+    }
+
+    const suffix = input.value.trim();
+    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    if (!exercise) return;
+
+    // Nom de base (sans variante existante)
+    const baseName = exercise.originalName || exercise.effectiveName;
+    const variantName = `${baseName} - ${suffix}`;
+
+    // Sauvegarder la variante dans state
+    if (!state.customExerciseVariants[baseName]) {
+        state.customExerciseVariants[baseName] = [];
+    }
+    if (!state.customExerciseVariants[baseName].includes(suffix)) {
+        state.customExerciseVariants[baseName].push(suffix);
+        saveState();
+    }
+
+    // Appliquer comme un swap avec le nom de variante
+    _fsSwapMode = false;
+    fsSession.exercises[fsSession.currentExerciseIndex] = {
+        ...exercise,
+        effectiveName: variantName,
+        originalName: baseName,
+        swapped: true
+    };
+
+    closeBottomSheet();
+    renderCurrentExercise();
+    showToast(`Variante créée : ${variantName}`, 'success');
+}
+
+/**
+ * Applique un swap d'exercice en cours de session full-screen.
+ * Remplace le nom de l'exercice, conserve les séries déjà faites.
+ */
+function applyFsExerciseSwap(exerciseId, exerciseName) {
+    const idx = fsSession.currentExerciseIndex;
+    const old = fsSession.exercises[idx];
+
+    fsSession.exercises[idx] = {
+        ...old,
+        effectiveName: exerciseName,
+        effectiveId: exerciseId,
+        originalName: old.originalName || old.effectiveName,
+        swapped: true
+    };
+
+    closeBottomSheet();
+    renderCurrentExercise();
+    showToast(`Exercice changé : ${exerciseName}`, 'success');
 }
 
 /**
@@ -1938,12 +2100,18 @@ function updateSessionIndicator() {
     subtitle.textContent = `${fsSession.splitName} - Série ${currentSet}/${totalSets}`;
 }
 
-function closeFullScreenSession() {
+async function closeFullScreenSession() {
     // Confirm if sets were logged
     if (fsSession.completedSets.length > 0) {
-        if (!confirm('Tu as des séries non sauvegardées. Quitter quand même ?')) {
-            return;
-        }
+        const confirmed = await showConfirmModal({
+            title: 'Quitter la séance ?',
+            message: `Tu as ${fsSession.completedSets.length} série${fsSession.completedSets.length > 1 ? 's' : ''} enregistrée${fsSession.completedSets.length > 1 ? 's' : ''}. Elles seront perdues si tu quittes.`,
+            icon: '⚠️',
+            confirmLabel: 'Quitter',
+            cancelLabel: 'Continuer',
+            confirmType: 'danger'
+        });
+        if (!confirmed) return;
     }
 
     // Masquer l'indicateur
@@ -1952,7 +2120,7 @@ function closeFullScreenSession() {
 
     // Arrêter la sauvegarde automatique
     stopAutoSaveFsSession();
-    
+
     // Supprimer la session sauvegardée
     clearFsSessionFromStorage();
 
@@ -2018,6 +2186,9 @@ function renderCurrentExercise() {
     let hasPreviousData = false;
     let dataSource = 'none';
 
+    // Référence au label (pour le mettre à jour dynamiquement)
+    const previousLabelEl = previousEl?.querySelector('.fs-previous-label');
+
     // 0. D'abord vérifier si on a déjà des sets complétés pour cet exercice DANS cette session
     const currentSessionSets = fsSession.completedSets?.filter(
         s => s.exerciseIndex === fsSession.currentExerciseIndex
@@ -2027,7 +2198,8 @@ function renderCurrentExercise() {
         // Utiliser le dernier set de cette session comme référence
         const lastSessionSet = currentSessionSets[currentSessionSets.length - 1];
         if (lastSessionSet.weight > 0) {
-            previousValueEl.textContent = `Cette session: ${lastSessionSet.weight}kg × ${lastSessionSet.reps}`;
+            if (previousLabelEl) previousLabelEl.textContent = 'Cette session :';
+            previousValueEl.textContent = `${lastSessionSet.weight}kg × ${lastSessionSet.reps}`;
             previousEl.style.display = 'flex';
             suggestedWeight = lastSessionSet.weight;
             hasPreviousData = true;
@@ -2038,6 +2210,7 @@ function renderCurrentExercise() {
     // 1. Sinon essayer avec setsDetail (données précises par série de la dernière session)
     if (!hasPreviousData && lastLog && lastLog.setsDetail && lastLog.setsDetail.length > 0) {
         const lastSet = lastLog.setsDetail[Math.min(fsSession.currentSetIndex, lastLog.setsDetail.length - 1)];
+        if (previousLabelEl) previousLabelEl.textContent = 'Dernière fois :';
         previousValueEl.textContent = `${lastSet.weight}kg × ${lastSet.reps}`;
         previousEl.style.display = 'flex';
         suggestedWeight = lastSet.weight || 0;
@@ -2055,6 +2228,7 @@ function renderCurrentExercise() {
         } else if (lastLog.reps) {
             displayReps = lastLog.reps;
         }
+        if (previousLabelEl) previousLabelEl.textContent = 'Dernière fois :';
         previousValueEl.textContent = `${lastLog.weight}kg × ${displayReps}`;
         previousEl.style.display = 'flex';
         suggestedWeight = lastLog.weight;
@@ -2066,7 +2240,8 @@ function renderCurrentExercise() {
         const smartSuggestion = window.SmartTraining.calculateSuggestedWeight(exercise.effectiveName);
         if (smartSuggestion && smartSuggestion.suggested > 0) {
             suggestedWeight = smartSuggestion.suggested;
-            previousValueEl.textContent = `Suggéré: ${suggestedWeight}kg`;
+            if (previousLabelEl) previousLabelEl.textContent = 'Suggéré :';
+            previousValueEl.textContent = `${suggestedWeight}kg`;
             previousEl.style.display = 'flex';
             hasPreviousData = true;
             dataSource = 'smart-training';
@@ -2086,6 +2261,19 @@ function renderCurrentExercise() {
     document.getElementById('fs-reps-input').value = suggestedReps;
     document.getElementById('fs-reps-input').placeholder = repsPlaceholder;
 
+    // Afficher hint bodyweight si applicable
+    const bwHint = document.getElementById('fs-bodyweight-hint');
+    if (bwHint) {
+        const exData = findExerciseByName(exercise.effectiveName);
+        if (exData && exData.equipment === 'bodyweight') {
+            const bw = state.profile?.weight || 70;
+            bwHint.textContent = `Poids du corps : ${bw}kg`;
+            bwHint.style.display = '';
+        } else {
+            bwHint.style.display = 'none';
+        }
+    }
+
     // Masquer le "précédent" si pas de données
     if (!hasPreviousData) {
         previousEl.style.display = 'none';
@@ -2103,6 +2291,9 @@ function renderCurrentExercise() {
 
     // Render completed sets for this exercise
     renderCompletedSets();
+
+    // Update contextual action button label
+    updateActionButton();
 }
 
 function renderCompletedSets() {
@@ -2333,9 +2524,10 @@ function validateCurrentSet() {
             startRestTimer();
         }
     } else if (isLastSet && !isLastExercise) {
-        // Exercice terminé, mais pas le dernier - afficher bouton transition
-        fsSession.exerciseCompleted = true;
-        renderExerciseCompleteState();
+        // Exercice terminé, mais pas le dernier — auto-avance après timer repos
+        showToast('Exercice terminé ! Suivant...', 'info');
+        startRestTimer();
+        goToNextExercise();
     } else {
         // Dernière série du dernier exercice - séance terminée
         showToast('Séance terminée ! 🎉', 'success');
@@ -2428,9 +2620,10 @@ function renderSessionCompleteState() {
     const totalSets = fsSession.completedSets.length;
     const totalExercises = new Set(fsSession.completedSets.map(s => s.exerciseIndex)).size;
     
-    // Calculer le volume total (kg soulevés)
+    // Calculer le volume total (kg soulevés) — poids effectif pour bodyweight
     const totalVolume = fsSession.completedSets.reduce((sum, set) => {
-        return sum + (set.weight * set.reps);
+        const exName = fsSession.exercises[set.exerciseIndex]?.effectiveName || '';
+        return sum + (getEffectiveWeight(exName, set.weight) * set.reps);
     }, 0);
     const volumeTonnes = (totalVolume / 1000).toFixed(1);
     
@@ -2877,10 +3070,11 @@ function updatePeriodization() {
     // Initialiser si nécessaire
     initPeriodization();
 
-    // Calculer le volume de cette session
+    // Calculer le volume de cette session — poids effectif pour bodyweight
     let sessionVolume = 0;
     fsSession.completedSets.forEach(set => {
-        sessionVolume += set.weight * set.reps;
+        const exName = fsSession.exercises[set.exerciseIndex]?.effectiveName || '';
+        sessionVolume += getEffectiveWeight(exName, set.weight) * set.reps;
     });
 
     // Ajouter au volume de la semaine
@@ -3352,25 +3546,102 @@ function toggleAutoregulation() {
     }
 }
 
+// ==================== MERGE SESSIONS ====================
+
+/**
+ * Fusionne les exercices d'une ancienne session dans fsSession.completedSets.
+ * Les exercices déjà présents dans la nouvelle session sont ignorés.
+ * Les exercices uniquement dans l'ancienne session sont ajoutés.
+ */
+function mergeSessions(oldSession) {
+    if (!oldSession.exercises || oldSession.exercises.length === 0) return;
+
+    // Exercices déjà dans la session courante
+    const currentExerciseNames = new Set();
+    fsSession.completedSets.forEach(set => {
+        const ex = fsSession.exercises[set.exerciseIndex];
+        if (ex) currentExerciseNames.add(ex.effectiveName);
+    });
+
+    // Ajouter les exercices de l'ancienne session qui ne sont pas dans la nouvelle
+    oldSession.exercises.forEach(oldEx => {
+        if (currentExerciseNames.has(oldEx.exercise)) return; // Déjà présent
+
+        // Ajouter cet exercice à fsSession.exercises
+        const newIdx = fsSession.exercises.length;
+        fsSession.exercises.push({
+            effectiveName: oldEx.exercise,
+            originalName: oldEx.exercise,
+            sets: oldEx.sets?.length || 0,
+            muscle: '',
+            merged: true
+        });
+
+        // Ajouter ses séries à completedSets
+        (oldEx.sets || []).forEach((s, si) => {
+            fsSession.completedSets.push({
+                exerciseIndex: newIdx,
+                setIndex: si,
+                weight: s.weight,
+                reps: s.reps,
+                timestamp: Date.now(),
+                merged: true
+            });
+        });
+    });
+
+    console.log(`✅ Fusion: ${oldSession.exercises.length} exercices de l'ancienne session traités`);
+}
+
 // ==================== FINISH SESSION ====================
 
-function finishSession() {
+async function finishSession() {
     // Protection contre double exécution
     if (fsSession.sessionSaved) {
         console.warn('⚠️ Session déjà sauvegardée, ignore finishSession()');
         return;
     }
-    
+
     // Progression de la périodisation
     updatePeriodization();
-    
+
     if (fsSession.completedSets.length === 0) {
-        if (confirm('Aucune série enregistrée. Quitter quand même ?')) {
-            closeFullScreenSession();
-        }
+        const confirmed = await showConfirmModal({
+            title: 'Aucune série',
+            message: 'Aucune série enregistrée. Quitter quand même ?',
+            icon: '🏋️',
+            confirmLabel: 'Quitter',
+            cancelLabel: 'Annuler',
+            confirmType: 'danger'
+        });
+        if (confirmed) closeFullScreenSession();
         return;
     }
-    
+
+    // Détecter les doublons avant de sauvegarder
+    const today = new Date().toISOString().split('T')[0];
+    const existingSession = state.sessionHistory.find(s =>
+        s.date === today &&
+        s.program === state.wizardResults.selectedProgram &&
+        s.day === fsSession.splitName &&
+        s.sessionId !== fsSession.sessionId
+    );
+
+    if (existingSession) {
+        const choice = await showDuplicateSessionModal(existingSession);
+        if (choice === 'cancel') return;
+        if (choice === 'replace') {
+            // Supprimer l'ancienne
+            state.sessionHistory = state.sessionHistory.filter(s => s !== existingSession);
+        }
+        if (choice === 'merge') {
+            // Fusionner : ajouter les exercices de l'ancienne session qu'on n'a pas dans la nouvelle
+            mergeSessions(existingSession);
+            state.sessionHistory = state.sessionHistory.filter(s => s !== existingSession);
+        }
+        // 'keep-both' : continue normalement
+    }
+
     // Marquer immédiatement pour éviter double clic
     fsSession.sessionSaved = true;
     
@@ -3452,9 +3723,10 @@ function finishSession() {
         });
     });
 
-    // Calculer le volume total et les calories brûlées
+    // Calculer le volume total et les calories brûlées — poids effectif pour bodyweight
     const totalVolume = fsSession.completedSets.reduce((sum, set) => {
-        return sum + (set.weight * set.reps);
+        const exName = fsSession.exercises[set.exerciseIndex]?.effectiveName || '';
+        return sum + (getEffectiveWeight(exName, set.weight) * set.reps);
     }, 0);
     
     const durationMinutes = Math.round((Date.now() - fsSession.startTime) / 1000 / 60);
@@ -4265,86 +4537,104 @@ async function deduplicateSessions() {
         console.log('Aucune session à dédupliquer');
         return { removed: 0, kept: state.sessionHistory.length };
     }
-    
-    console.log('🔍 Démarrage déduplication...', state.sessionHistory.length, 'sessions');
-    
-    // Grouper par date + program + day
-    const groups = {};
-    state.sessionHistory.forEach((session, index) => {
-        const key = `${session.date}|${session.program}|${session.day}`;
-        if (!groups[key]) {
-            groups[key] = [];
-        }
-        groups[key].push({ session, originalIndex: index });
-    });
-    
-    // Identifier les doublons
-    const duplicateGroups = Object.entries(groups).filter(([key, sessions]) => sessions.length > 1);
-    
-    if (duplicateGroups.length === 0) {
-        console.log('✅ Aucun doublon détecté');
-        return { removed: 0, kept: state.sessionHistory.length };
-    }
-    
-    console.log(`⚠️ ${duplicateGroups.length} groupes de doublons détectés`);
-    
-    const sessionsToKeep = [];
-    const sessionsToRemove = [];
-    
-    duplicateGroups.forEach(([key, duplicates]) => {
-        console.log(`  Groupe "${key}": ${duplicates.length} doublons`);
-        
-        // Trier par nombre d'exercices/séries (décroissant) puis par timestamp (croissant)
-        const sorted = duplicates.sort((a, b) => {
-            const aExerciseCount = a.session.exercises?.length || 0;
-            const bExerciseCount = b.session.exercises?.length || 0;
-            
-            if (aExerciseCount !== bExerciseCount) {
-                return bExerciseCount - aExerciseCount; // Plus d'exercices = priorité
-            }
-            
-            return a.session.timestamp - b.session.timestamp; // Plus ancien = priorité
-        });
-        
-        // Garder la première (meilleure)
-        sessionsToKeep.push(sorted[0].session);
-        
-        // Marquer les autres pour suppression
-        sorted.slice(1).forEach(dup => {
-            sessionsToRemove.push(dup.session);
-            console.log(`    ❌ Supprimer: ${dup.session.timestamp}, exercices: ${dup.session.exercises?.length || 0}`);
-        });
-        
-        console.log(`    ✅ Garder: ${sorted[0].session.timestamp}, exercices: ${sorted[0].session.exercises?.length || 0}`);
-    });
-    
-    // Ajouter les sessions uniques (non dupliquées)
-    Object.entries(groups)
-        .filter(([key, sessions]) => sessions.length === 1)
-        .forEach(([key, sessions]) => {
-            sessionsToKeep.push(sessions[0].session);
-        });
-    
-    // Remplacer state.sessionHistory
+
     const originalLength = state.sessionHistory.length;
-    state.sessionHistory = sessionsToKeep.sort((a, b) => b.timestamp - a.timestamp);
-    
+    console.log('🔍 Démarrage déduplication...', originalLength, 'sessions');
+
+    // ÉTAPE 1 : Dédupliquer par sessionId exact (vrais doublons)
+    const seenIds = new Map();
+    const afterIdDedup = [];
+    let removedById = 0;
+
+    state.sessionHistory.forEach(session => {
+        const id = session.sessionId || session.id;
+        if (id && seenIds.has(id)) {
+            // Doublon exact par sessionId — garder celui avec le plus d'exercices
+            const existing = seenIds.get(id);
+            const existingCount = existing.exercises?.length || 0;
+            const currentCount = session.exercises?.length || 0;
+            if (currentCount > existingCount) {
+                // Remplacer dans afterIdDedup
+                const idx = afterIdDedup.indexOf(existing);
+                if (idx !== -1) afterIdDedup[idx] = session;
+                seenIds.set(id, session);
+                console.log(`    🔄 Remplacement doublon sessionId ${id}: ${existingCount} → ${currentCount} exercices`);
+            } else {
+                console.log(`    ❌ Doublon sessionId ${id} ignoré (${currentCount} exercices vs ${existingCount})`);
+            }
+            removedById++;
+        } else {
+            if (id) seenIds.set(id, session);
+            afterIdDedup.push(session);
+        }
+    });
+
+    if (removedById > 0) {
+        console.log(`  Étape 1: ${removedById} doublons supprimés par sessionId`);
+    }
+
+    // ÉTAPE 2 : Pour les sessions SANS sessionId (legacy), dédupliquer par date+program+day+timestamp proche
+    const final = [];
+    const legacy = [];
+    const withId = [];
+
+    afterIdDedup.forEach(s => {
+        if (s.sessionId || s.id) {
+            withId.push(s);
+        } else {
+            legacy.push(s);
+        }
+    });
+
+    // Les sessions avec ID sont toutes gardées (déjà dédupliquées à l'étape 1)
+    final.push(...withId);
+
+    // Pour les legacy, grouper par date+program+day
+    let removedByLegacy = 0;
+    if (legacy.length > 0) {
+        const legacyGroups = {};
+        legacy.forEach(session => {
+            const key = `${session.date}|${session.program}|${session.day}`;
+            if (!legacyGroups[key]) legacyGroups[key] = [];
+            legacyGroups[key].push(session);
+        });
+
+        Object.entries(legacyGroups).forEach(([key, sessions]) => {
+            if (sessions.length === 1) {
+                final.push(sessions[0]);
+                return;
+            }
+            // Garder la session avec le plus d'exercices
+            sessions.sort((a, b) => (b.exercises?.length || 0) - (a.exercises?.length || 0));
+            final.push(sessions[0]);
+            removedByLegacy += sessions.length - 1;
+            console.log(`  Legacy doublon "${key}": gardé ${sessions[0].exercises?.length || 0} exos, supprimé ${sessions.length - 1}`);
+        });
+    }
+
+    const totalRemoved = removedById + removedByLegacy;
+
+    // Remplacer state.sessionHistory
+    state.sessionHistory = final.sort((a, b) => b.timestamp - a.timestamp);
+
     // Sauvegarder
-    saveState();
-    
+    if (totalRemoved > 0) {
+        saveState();
+    }
+
     const result = {
-        removed: sessionsToRemove.length,
-        kept: sessionsToKeep.length,
+        removed: totalRemoved,
+        kept: final.length,
         total: originalLength
     };
-    
+
     console.log(`✅ Déduplication terminée: ${result.removed} supprimées, ${result.kept} conservées`);
-    
+
     // Afficher un toast
     if (result.removed > 0) {
         showToast(`${result.removed} séances dupliquées supprimées`, 'success');
     }
-    
+
     return result;
 }
 
@@ -4862,6 +5152,88 @@ function toggleFsGifVisibility() {
     }
 }
 
+// ==================== FS SETTINGS PANEL ====================
+
+function toggleFsSettings() {
+    const sheet = document.getElementById('fs-settings-sheet');
+    if (!sheet) return;
+
+    const isOpen = sheet.style.display !== 'none';
+    sheet.style.display = isOpen ? 'none' : 'flex';
+
+    // Sync toggle states with current visibility
+    if (!isOpen) {
+        const gifEl = document.getElementById('fs-gif-container');
+        const phaseEl = document.getElementById('fs-phase-indicator');
+        const advancedEl = document.getElementById('fs-advanced-btns');
+        const autoEl = document.getElementById('fs-autoregulation-section');
+
+        const gifToggle = document.getElementById('fs-setting-gif');
+        const phaseToggle = document.getElementById('fs-setting-phase');
+        const advancedToggle = document.getElementById('fs-setting-advanced');
+        const autoToggle = document.getElementById('fs-setting-autoregulation');
+
+        if (gifToggle) gifToggle.checked = gifEl && gifEl.style.display !== 'none';
+        if (phaseToggle) phaseToggle.checked = phaseEl && phaseEl.style.display !== 'none';
+        if (advancedToggle) advancedToggle.checked = advancedEl && advancedEl.style.display !== 'none';
+        if (autoToggle) autoToggle.checked = autoEl && autoEl.style.display !== 'none';
+    }
+}
+
+function toggleFsSetting(setting) {
+    const map = {
+        'gif': 'fs-gif-container',
+        'phase': 'fs-phase-indicator',
+        'advanced': 'fs-advanced-btns',
+        'autoregulation': 'fs-autoregulation-section'
+    };
+    const elId = map[setting];
+    if (!elId) return;
+
+    const el = document.getElementById(elId);
+    const toggle = document.getElementById(`fs-setting-${setting}`);
+    if (!el || !toggle) return;
+
+    el.style.display = toggle.checked ? '' : 'none';
+
+    // Persist preference
+    localStorage.setItem(`fittrack-fs-${setting}`, toggle.checked ? '1' : '0');
+}
+
+// ==================== CONTEXTUAL ACTION BUTTON ====================
+
+/**
+ * Met à jour le bouton d'action principal en fonction du contexte :
+ * - "Valider série" par défaut
+ * - "Exercice suivant →" à la dernière série de l'exercice
+ * - "Terminer la séance 🎉" à la dernière série du dernier exercice
+ */
+function updateActionButton() {
+    const btn = document.getElementById('fs-validate-btn');
+    if (!btn) return;
+
+    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    if (!exercise) return;
+
+    const totalSets = exercise.sets || 0;
+    const completedForExercise = (fsSession.completedSets || []).filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex
+    ).length;
+    const isLastSet = completedForExercise + 1 >= totalSets;
+    const isLastExercise = fsSession.currentExerciseIndex + 1 >= fsSession.exercises.length;
+
+    const label = btn.querySelector('span');
+    if (!label) return;
+
+    if (isLastSet && isLastExercise) {
+        label.textContent = 'Terminer la séance';
+    } else if (isLastSet) {
+        label.textContent = 'Exercice suivant';
+    } else {
+        label.textContent = 'Valider la série';
+    }
+}
+
 /**
  * Preload le GIF du prochain exercice
  */
@@ -4936,5 +5308,11 @@ function toggleGifPlayback(event) {
 window.loadFsExerciseGif = loadFsExerciseGif;
 window.toggleFsGifVisibility = toggleFsGifVisibility;
 window.toggleGifPlayback = toggleGifPlayback;
+
+// Exports FS settings & swap
+window.toggleFsSettings = toggleFsSettings;
+window.toggleFsSetting = toggleFsSetting;
+window.openFsExerciseSwap = openFsExerciseSwap;
+window.createExerciseVariant = createExerciseVariant;
 
 console.log('✅ training.js: Fonctions exportées au scope global');

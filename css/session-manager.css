@@ -1040,10 +1040,10 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 .fs-content {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
 }
 
 .fs-exercise-header {
@@ -1122,17 +1122,19 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 
 .fs-input-section {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    gap: 20px;
-    padding: 20px 0;
+    gap: 12px;
+    padding: 16px 0;
 }
 
 .fs-input-group {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    width: 100%;
+    max-width: 340px;
 }
 
 .fs-input-label {
@@ -1149,6 +1151,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     background: var(--bg-tertiary);
     border-radius: var(--radius-md, 12px);
     overflow: hidden;
+    width: 100%;
 }
 
 .fs-input-btn {
@@ -1173,7 +1176,8 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .fs-input {
-    width: 80px;
+    flex: 1;
+    min-width: 0;
     height: 60px;
     border: none;
     background: transparent;
@@ -1204,16 +1208,14 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .fs-input-separator {
-    font-size: 2rem;
-    font-weight: 300;
-    color: var(--text-muted);
+    display: none;
 }
 
 .fs-validate-btn {
     width: 100%;
-    max-width: 300px;
+    max-width: 340px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 18px;
     background: var(--accent-primary);
     border: none;
     border-radius: var(--radius-lg, 16px);
@@ -2598,24 +2600,25 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     
     .fs-input-section {
         flex-direction: column;
-        gap: 20px;
-        padding: 30px 0;
+        gap: 12px;
+        padding: 12px 0;
     }
-    
+
     .fs-input-group {
         width: 100%;
-        max-width: 280px;
+        max-width: 340px;
     }
-    
+
     .fs-input-btn {
         width: 50px;
-        height: 60px;
+        height: 56px;
         font-size: 1.3rem;
     }
-    
+
     .fs-input {
-        width: 100px;
-        height: 60px;
+        flex: 1;
+        min-width: 0;
+        height: 56px;
         font-size: 1.8rem;
     }
     
@@ -2836,6 +2839,137 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 
 .settings-action-btn.danger:hover {
     background: rgba(239, 68, 68, 0.1);
+}
+
+/* ==================== FS SETTINGS PANEL ==================== */
+
+.fs-settings-sheet {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    align-items: flex-end;
+}
+
+.fs-settings-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.fs-settings-content {
+    position: relative;
+    width: 100%;
+    background: var(--bg-card);
+    border-radius: 16px 16px 0 0;
+    padding: 16px 20px 32px;
+    z-index: 1;
+}
+
+.fs-settings-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+}
+
+.fs-setting-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.fs-setting-toggle:last-child {
+    border-bottom: none;
+}
+
+.fs-setting-toggle input[type="checkbox"] {
+    width: 44px;
+    height: 24px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.fs-setting-toggle input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.fs-setting-toggle input[type="checkbox"]:checked {
+    background: var(--accent-primary);
+}
+
+.fs-setting-toggle input[type="checkbox"]:checked::after {
+    transform: translateX(20px);
+}
+
+/* Exercise name row with swap button */
+.fs-exercise-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.fs-exercise-name-row .fs-swap-btn {
+    flex-shrink: 0;
+    padding: 4px 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.fs-exercise-name-row .fs-swap-btn:active {
+    color: var(--accent-primary);
+}
+
+/* ==================== VARIANT INPUT ==================== */
+
+.swap-variant-section {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.swap-variant-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.swap-variant-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.swap-variant-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
 }
 
 /* ==================== DURATION PICKER ==================== */

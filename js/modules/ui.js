@@ -846,6 +846,70 @@ function showConfirmModal(config) {
     });
 }
 
+// ==================== MODAL DOUBLON SESSION ====================
+
+/**
+ * Affiche une modal quand une séance du même jour/programme/split existe déjà.
+ * Retourne: 'replace' | 'merge' | 'keep-both' | 'cancel'
+ */
+function showDuplicateSessionModal(existingSession) {
+    return new Promise((resolve) => {
+        const exCount = existingSession.exercises?.length || 0;
+        const exDuration = existingSession.duration || 0;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-modal-overlay';
+        overlay.id = 'duplicate-session-modal';
+
+        overlay.innerHTML = `
+            <div class="confirm-modal" style="max-width: 340px;">
+                <div class="confirm-modal-icon">⚠️</div>
+                <h3 class="confirm-modal-title">Séance existante</h3>
+                <p class="confirm-modal-message">
+                    Une séance <strong>${existingSession.day || ''}</strong> existe déjà aujourd'hui
+                    (${exCount} exercice${exCount > 1 ? 's' : ''}, ${exDuration} min).
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+                    <button class="btn btn-danger dup-btn" data-choice="replace">Remplacer l'ancienne</button>
+                    <button class="btn btn-primary dup-btn" data-choice="merge">Fusionner les séries</button>
+                    <button class="btn btn-secondary dup-btn" data-choice="keep-both">Garder les deux</button>
+                    <button class="btn btn-ghost dup-btn" data-choice="cancel">Annuler</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        ModalManager.lock('duplicate-session-modal');
+
+        requestAnimationFrame(() => overlay.classList.add('active'));
+
+        const closeModal = (choice) => {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.remove();
+                ModalManager.unlock('duplicate-session-modal');
+            }, 200);
+            resolve(choice);
+        };
+
+        overlay.querySelectorAll('.dup-btn').forEach(btn => {
+            btn.addEventListener('click', () => closeModal(btn.dataset.choice));
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal('cancel');
+        });
+
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal('cancel');
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    });
+}
+
 // ==================== EXPORTS GLOBAUX ====================
 window.openModal = openModal;
 window.closeModal = closeModal;
@@ -857,6 +921,7 @@ window.getRelativeDate = getRelativeDate;
 window.initUniversalSwipeToClose = initUniversalSwipeToClose;
 window.UndoManager = UndoManager;
 window.showConfirmModal = showConfirmModal;
+window.showDuplicateSessionModal = showDuplicateSessionModal;
 window.AutosaveIndicator = AutosaveIndicator;
 
-console.log('✅ ui.js: Fonctions exportées au scope global (+ UndoManager, showConfirmModal, AutosaveIndicator)');
+console.log('✅ ui.js: Fonctions exportées au scope global (+ UndoManager, showConfirmModal, showDuplicateSessionModal, AutosaveIndicator)');

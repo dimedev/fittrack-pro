@@ -1630,11 +1630,17 @@ async function loadAllDataFromSupabase(silent = false) {
             
             // Identifier les sessions locales non présentes dans Supabase
             const localOnlySessions = localSessions.filter(localSession => {
-                // Une session est considérée identique si même date + même timestamp (à 5 secondes près)
-                return !supabaseSessions.some(sSession => 
-                    sSession.date === localSession.date &&
-                    Math.abs(sSession.timestamp - localSession.timestamp) < 5000
-                );
+                const localId = localSession.sessionId || localSession.id;
+                return !supabaseSessions.some(sSession => {
+                    // 1. Comparaison par sessionId (fiable)
+                    if (localId && sSession.sessionId && (sSession.sessionId === localId)) return true;
+                    // 2. Fallback timestamp pour les sessions legacy sans sessionId
+                    if (!localId) {
+                        return sSession.date === localSession.date &&
+                            Math.abs(sSession.timestamp - localSession.timestamp) < 5000;
+                    }
+                    return false;
+                });
             });
             
             // Merger : Supabase + sessions locales non sync

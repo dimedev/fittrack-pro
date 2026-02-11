@@ -231,6 +231,7 @@ let state = {
     foods: [...defaultFoods],
     exercises: enrichExercisesWithTags([...defaultExercises]), // Exercices avec tags auto-générés
     exerciseSwaps: {}, // Exercices remplacés par l'utilisateur { "Développé Couché": "chest-press-machine" }
+    customExerciseVariants: {}, // { "Chest Press Machine": ["Convergente Bas", "Convergente Milieu"] }
     foodJournal: {}, // Journal alimentaire par date { "2025-01-21": [{ foodId, quantity, mealType }] }
     
     // Cardio tracking
