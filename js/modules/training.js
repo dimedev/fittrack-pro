@@ -3655,7 +3655,7 @@ async function finishSession() {
     }
 
     // Build session data grouped by exercise
-    const today = new Date().toISOString().split('T')[0];
+    // today déjà déclaré plus haut (détection doublons)
     const sessionData = [];
     const newPRs = [];
 
