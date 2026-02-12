@@ -682,6 +682,10 @@ async function replaySyncQueue() {
                     await deleteCardioSessionFromSupabase(item.data.id);
                 } else if (item.type === 'exercise_swap') {
                     await deleteExerciseSwapFromSupabase(item.data.originalExercise);
+                } else if (item.type === 'workout_session') {
+                    await deleteWorkoutSessionFromSupabase(item.data.sessionId);
+                } else if (item.type === 'progress_log') {
+                    await deleteProgressLogForSession(item.data.sessionId, item.data.sessionDate, item.data.exerciseNames);
                 } else if (item.type === 'meal_combo') {
                     if (typeof deleteMealComboFromSupabase === 'function') {
                         await deleteMealComboFromSupabase(item.data.id);
@@ -1646,11 +1650,17 @@ async function loadAllDataFromSupabase(silent = false) {
             // Merger : Supabase + sessions locales non sync
             state.sessionHistory = [...supabaseSessions];
             
-            // Ajouter et sync les sessions locales manquantes
+            // Ajouter et sync les sessions locales manquantes (exclure soft-deleted)
             localOnlySessions.forEach(localSession => {
+                if (localSession.deletedAt) {
+                    // Session supprimée localement — la supprimer aussi de Supabase si elle existe
+                    const sid = localSession.sessionId || localSession.id;
+                    if (sid) deleteWorkoutSessionFromSupabase(sid).catch(() => {});
+                    return;
+                }
                 if (!localSession.synced) {
                     state.sessionHistory.push(localSession);
-                    
+
                     // Tenter de sync cette session manquante
                     saveWorkoutSessionToSupabase({
                         sessionId: localSession.sessionId || ('local-' + Date.now()),
@@ -2285,7 +2295,7 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
     
     try {
         await withRetry(async () => {
-            const dataToInsert = {
+            const dataToUpsert = {
                 user_id: currentUser.id,
                 exercise_name: exerciseName,
                 date: logData.date,
@@ -2295,17 +2305,45 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
                 achieved_reps: logData.achievedReps,
                 achieved_sets: logData.achievedSets
             };
-            
+
+            // Ajouter session_id si disponible (pour dedup et delete)
+            if (logData.sessionId) {
+                dataToUpsert.session_id = logData.sessionId;
+            }
+
             // Ajouter setsDetail si disponible (sérialiser en JSON)
             if (logData.setsDetail && Array.isArray(logData.setsDetail) && logData.setsDetail.length > 0) {
-                dataToInsert.sets_detail = logData.setsDetail;
+                dataToUpsert.sets_detail = logData.setsDetail;
             }
-            
-            const { error } = await supabaseClient
-                .from('progress_log')
-                .insert(dataToInsert);
-            
-            if (error) throw error;
+
+            // Upsert pour idempotence (évite les doublons)
+            // Si la contrainte unique (user_id, session_id, exercise_name) existe, utilise upsert
+            // Sinon, fallback sur insert (les anciennes entrées sans session_id restent en insert)
+            if (logData.sessionId) {
+                const { error } = await supabaseClient
+                    .from('progress_log')
+                    .upsert(dataToUpsert, {
+                        onConflict: 'user_id,session_id,exercise_name',
+                        ignoreDuplicates: false
+                    });
+                if (error) {
+                    // Si la contrainte unique n'existe pas encore, fallback insert
+                    if (error.code === '42P10' || error.message?.includes('constraint')) {
+                        const { error: insertError } = await supabaseClient
+                            .from('progress_log')
+                            .insert(dataToUpsert);
+                        if (insertError) throw insertError;
+                    } else {
+                        throw error;
+                    }
+                }
+            } else {
+                const { error } = await supabaseClient
+                    .from('progress_log')
+                    .insert(dataToUpsert);
+                if (error) throw error;
+            }
+
             console.log('✅ Progression sauvegardée');
         }, { maxRetries: 3, critical: true });
         return true;
@@ -2367,6 +2405,88 @@ async function saveWorkoutSessionToSupabase(sessionData) {
     } catch (error) {
         console.error('Erreur sauvegarde séance:', error);
         showToast('Erreur sync séance - sauvegardé localement', 'warning');
+        return false;
+    }
+}
+
+// ==================== DELETE OPERATIONS ====================
+
+/**
+ * Supprime une séance de Supabase par sessionId.
+ */
+async function deleteWorkoutSessionFromSupabase(sessionId) {
+    if (!currentUser || !isOnline) {
+        addToSyncQueue('workout_session', 'delete', { sessionId });
+        return false;
+    }
+
+    try {
+        await withRetry(async () => {
+            const { error } = await supabaseClient
+                .from('workout_sessions')
+                .delete()
+                .eq('session_id', sessionId)
+                .eq('user_id', currentUser.id);
+
+            if (error) throw error;
+            console.log('✅ Séance supprimée Supabase:', sessionId);
+        }, { maxRetries: 3, critical: true });
+        return true;
+    } catch (error) {
+        console.error('❌ Erreur suppression séance Supabase:', error);
+        addToSyncQueue('workout_session', 'delete', { sessionId });
+        return false;
+    }
+}
+
+/**
+ * Supprime les entrées progress_log liées à une session.
+ * Utilise la correspondance session_id si la colonne existe,
+ * sinon fallback par exercise_name + date.
+ */
+async function deleteProgressLogForSession(sessionId, sessionDate, exerciseNames) {
+    if (!currentUser || !isOnline) {
+        addToSyncQueue('progress_log', 'delete', { sessionId, sessionDate, exerciseNames });
+        return false;
+    }
+
+    try {
+        await withRetry(async () => {
+            // Tenter par session_id d'abord
+            const { data: bySessionId, error: checkError } = await supabaseClient
+                .from('progress_log')
+                .select('id')
+                .eq('user_id', currentUser.id)
+                .eq('session_id', sessionId)
+                .limit(1);
+
+            if (!checkError && bySessionId && bySessionId.length > 0) {
+                // La colonne session_id existe et a des données
+                const { error } = await supabaseClient
+                    .from('progress_log')
+                    .delete()
+                    .eq('session_id', sessionId)
+                    .eq('user_id', currentUser.id);
+                if (error) throw error;
+            } else if (sessionDate && exerciseNames && exerciseNames.length > 0) {
+                // Fallback: supprimer par date + exercise_name
+                for (const name of exerciseNames) {
+                    const { error } = await supabaseClient
+                        .from('progress_log')
+                        .delete()
+                        .eq('user_id', currentUser.id)
+                        .eq('exercise_name', name)
+                        .eq('date', sessionDate);
+                    if (error) throw error;
+                }
+            }
+
+            console.log('✅ Progress log supprimé Supabase pour session:', sessionId);
+        }, { maxRetries: 3, critical: true });
+        return true;
+    } catch (error) {
+        console.error('❌ Erreur suppression progress_log Supabase:', error);
+        addToSyncQueue('progress_log', 'delete', { sessionId, sessionDate, exerciseNames });
         return false;
     }
 }
@@ -2552,5 +2672,7 @@ window.isLoggedIn = isLoggedIn;
 window.getCurrentUser = getCurrentUser;
 window.loadAllDataFromSupabase = loadAllDataFromSupabase;
 window.saveHydrationToSupabase = saveHydrationToSupabase;
+window.deleteWorkoutSessionFromSupabase = deleteWorkoutSessionFromSupabase;
+window.deleteProgressLogForSession = deleteProgressLogForSession;
 
 console.log('✅ supabase.js: Fonctions exportées au scope global');

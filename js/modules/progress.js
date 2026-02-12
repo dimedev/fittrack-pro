@@ -14,7 +14,8 @@ let monthlyComparisonChart = null;
  * @returns {number|null} - Pourcentage de progression ou null si pas assez de données
  */
 function calculateMonthlyProgression() {
-    if (!state.sessionHistory || state.sessionHistory.length === 0) return null;
+    const activeSessions = (state.sessionHistory || []).filter(s => !s.deletedAt);
+    if (activeSessions.length === 0) return null;
 
     const now = new Date();
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -24,7 +25,7 @@ function calculateMonthlyProgression() {
     let currentMonthVolume = 0;
     let previousMonthVolume = 0;
 
-    state.sessionHistory.forEach(session => {
+    activeSessions.forEach(session => {
         const sessionDate = new Date(session.date);
         let sessionVolume = 0;
 
@@ -179,9 +180,9 @@ function generateProgressFeed() {
         });
     }
     
-    // Séances récentes
+    // Séances récentes (exclure les soft-deleted)
     if (state.sessionHistory) {
-        state.sessionHistory.slice(0, 5).forEach(s => {
+        state.sessionHistory.filter(s => !s.deletedAt).slice(0, 5).forEach(s => {
             feed.push({
                 type: 'session',
                 icon: '✅',
@@ -960,6 +961,7 @@ function renderTrainingWeekSummary() {
     startOfWeek.setHours(0, 0, 0, 0);
 
     const weekSessions = (state.sessionHistory || []).filter(s => {
+        if (s.deletedAt) return false;
         const sessionDate = new Date(s.date);
         return sessionDate >= startOfWeek;
     });
@@ -973,8 +975,8 @@ function renderTrainingWeekSummary() {
     const progressPercent = Math.min((completedSessions / targetSessions) * 100, 100);
     document.getElementById('week-progress-fill').style.width = `${progressPercent}%`;
 
-    // Update last session
-    const lastSession = state.sessionHistory?.[0];
+    // Update last session (exclure soft-deleted)
+    const lastSession = (state.sessionHistory || []).find(s => !s.deletedAt);
     const emptyEl = document.getElementById('last-session-empty');
     const contentEl = document.getElementById('last-session-content');
 
@@ -1048,9 +1050,11 @@ function countSessionPRs(session) {
 }
 
 function openLastSessionDetail() {
-    const lastSession = state.sessionHistory?.[0];
+    // Trouver la première session non-supprimée
+    const lastSession = (state.sessionHistory || []).find(s => !s.deletedAt);
     if (lastSession) {
-        openSessionDetail(0);
+        const realIndex = state.sessionHistory.indexOf(lastSession);
+        openSessionDetail(realIndex);
     }
 }
 
@@ -1060,7 +1064,10 @@ function updateSessionHistory() {
     const container = document.getElementById('session-history');
     if (!container) return;
 
-    if (!state.sessionHistory || state.sessionHistory.length === 0) {
+    // Filtrer les sessions soft-deleted
+    const activeSessions = state.sessionHistory.filter(s => !s.deletedAt);
+
+    if (activeSessions.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📅</div>
@@ -1074,7 +1081,9 @@ function updateSessionHistory() {
     // Render all sessions as clean cards
     container.innerHTML = `
         <div class="sessions-list-container">
-            ${state.sessionHistory.map((session, index) => {
+            ${activeSessions.map((session, _filteredIdx) => {
+                // Trouver l'index réel dans sessionHistory (pour deleteSession/openSessionDetail)
+                const index = state.sessionHistory.indexOf(session);
                 const sessionDate = new Date(session.date);
                 const day = sessionDate.getDate();
                 const month = sessionDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
@@ -1087,7 +1096,7 @@ function updateSessionHistory() {
                 const prsCount = countSessionPRs(session);
 
                 return `
-                    <div class="session-history-item" onclick="openSessionDetail(${index})">
+                    <div class="session-history-item" data-session-index="${index}" onclick="openSessionDetail(${index})">
                         <div class="session-history-date">
                             <div class="session-history-day">${day}</div>
                             <div class="session-history-month">${month}</div>
@@ -1107,6 +1116,19 @@ function updateSessionHistory() {
             }).join('')}
         </div>
     `;
+
+    // Attacher swipe-to-delete sur chaque session
+    if (window.SwipeToDelete) {
+        container.querySelectorAll('.session-history-item').forEach(item => {
+            const idx = parseInt(item.dataset.sessionIndex);
+            if (!isNaN(idx)) {
+                new SwipeToDelete(item, {
+                    onDelete: () => deleteSession(idx),
+                    thresholdRatio: 0.35
+                });
+            }
+        });
+    }
 }
 
 // ==================== SESSION DETAIL VIEW ====================
@@ -1152,6 +1174,9 @@ function openSessionDetail(sessionIndex) {
                 <h2>${session.day || 'Séance'}</h2>
                 <span>${formattedDate}</span>
             </div>
+            <button class="session-detail-edit-btn" id="session-detail-edit-btn" onclick="toggleSessionEditMode(${sessionIndex})">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
         </div>
         <div class="session-detail-content">
             <div class="session-detail-summary">
@@ -1168,8 +1193,14 @@ function openSessionDetail(sessionIndex) {
                     <div class="session-summary-label">Minutes</div>
                 </div>
             </div>
-            <div class="session-detail-exercises">
+            <div class="session-detail-exercises" id="session-detail-exercises">
                 ${renderSessionExercises(session)}
+            </div>
+            <div class="session-detail-actions">
+                <button class="session-delete-btn" onclick="deleteSession(${sessionIndex})">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Supprimer cette séance
+                </button>
             </div>
         </div>
     `;
@@ -1234,6 +1265,289 @@ function closeSessionDetail() {
     currentDetailSessionIndex = null;
 }
 
+/**
+ * Bascule le mode édition dans le détail de session.
+ * En mode édition, chaque série devient un formulaire inline (poids + reps).
+ */
+function toggleSessionEditMode(sessionIndex) {
+    const session = state.sessionHistory[sessionIndex];
+    if (!session) return;
+
+    const container = document.getElementById('session-detail-exercises');
+    const editBtn = document.getElementById('session-detail-edit-btn');
+    if (!container || !editBtn) return;
+
+    const isEditing = container.classList.toggle('editing');
+
+    if (isEditing) {
+        // Passer en mode édition
+        editBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        container.innerHTML = renderSessionExercisesEditable(session);
+    } else {
+        // Sauvegarder les modifications
+        const newExercises = collectEditedExercises(session);
+        if (newExercises) {
+            updateSession(sessionIndex, newExercises);
+            showToast('Séance modifiée', 'success');
+        }
+        // Repasser en lecture
+        editBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+        container.innerHTML = renderSessionExercises(session);
+    }
+}
+
+/**
+ * Render des exercices en mode éditable (inputs inline).
+ */
+function renderSessionExercisesEditable(session) {
+    const exercises = session.exercises || [];
+
+    return exercises.map((ex, exIdx) => {
+        const exerciseName = ex.exercise || ex.name || 'Exercice';
+        const sets = Array.isArray(ex.sets) ? ex.sets : [];
+
+        return `
+            <div class="session-exercise-card">
+                <div class="session-exercise-header">
+                    <span class="session-exercise-name">${exerciseName}</span>
+                </div>
+                <div class="session-exercise-sets">
+                    ${sets.map((set, setIdx) => `
+                        <div class="session-set-row session-set-editable" data-ex="${exIdx}" data-set="${setIdx}">
+                            <span class="session-set-num">S${setIdx + 1}</span>
+                            <input type="number" class="session-edit-input" data-field="weight" value="${set.weight || 0}" step="0.5" min="0">
+                            <span class="session-edit-sep">kg ×</span>
+                            <input type="number" class="session-edit-input" data-field="reps" value="${set.reps || 0}" min="0">
+                            <span class="session-edit-sep">reps</span>
+                            <button class="session-set-delete-btn" onclick="deleteSetFromSession(${exIdx}, ${setIdx})">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Collecte les valeurs éditées depuis les inputs inline.
+ */
+function collectEditedExercises(session) {
+    const exercises = JSON.parse(JSON.stringify(session.exercises || []));
+    const rows = document.querySelectorAll('.session-set-editable');
+
+    // Collecter les sets supprimés
+    const deletedSets = new Set();
+    rows.forEach(row => {
+        if (row.dataset.deleted === 'true') {
+            deletedSets.add(`${row.dataset.ex}-${row.dataset.set}`);
+        }
+    });
+
+    rows.forEach(row => {
+        if (row.dataset.deleted === 'true') return; // Skip deleted
+        const exIdx = parseInt(row.dataset.ex);
+        const setIdx = parseInt(row.dataset.set);
+        const weightInput = row.querySelector('[data-field="weight"]');
+        const repsInput = row.querySelector('[data-field="reps"]');
+
+        if (exercises[exIdx] && exercises[exIdx].sets && exercises[exIdx].sets[setIdx]) {
+            exercises[exIdx].sets[setIdx].weight = parseFloat(weightInput?.value) || 0;
+            exercises[exIdx].sets[setIdx].reps = parseInt(repsInput?.value) || 0;
+        }
+    });
+
+    // Retirer les sets marqués comme supprimés (du dernier au premier pour ne pas décaler les index)
+    const deletedArr = Array.from(deletedSets).map(k => {
+        const [ex, set] = k.split('-').map(Number);
+        return { ex, set };
+    }).sort((a, b) => b.set - a.set || b.ex - a.ex);
+
+    deletedArr.forEach(({ ex, set }) => {
+        if (exercises[ex] && exercises[ex].sets) {
+            exercises[ex].sets.splice(set, 1);
+        }
+    });
+
+    // Retirer les exercices sans sets restants
+    return exercises.filter(ex => ex.sets && ex.sets.length > 0);
+}
+
+/**
+ * Supprime un set d'une séance en mode édition.
+ */
+function deleteSetFromSession(exIdx, setIdx) {
+    const row = document.querySelector(`.session-set-editable[data-ex="${exIdx}"][data-set="${setIdx}"]`);
+    if (row) {
+        row.dataset.deleted = 'true';
+    }
+}
+
+// ==================== SESSION CRUD OPERATIONS ====================
+
+/**
+ * Reconstruit les entrées progressLog pour une session donnée.
+ * Utilisé après modification ou suppression de session pour maintenir la cohérence.
+ */
+function rebuildProgressLogForSession(session) {
+    const sessionId = session.sessionId || session.id;
+    if (!sessionId) return;
+
+    (session.exercises || []).forEach(ex => {
+        const name = ex.exercise;
+        if (!state.progressLog[name]) state.progressLog[name] = [];
+
+        // Retirer l'ancienne entrée pour cette session
+        state.progressLog[name] = state.progressLog[name].filter(l => l.sessionId !== sessionId);
+
+        // Reconstruire depuis les sets
+        const sets = Array.isArray(ex.sets) ? ex.sets : [];
+        if (sets.length === 0) return;
+
+        const avgWeight = sets.reduce((s, set) => s + (set.weight || 0), 0) / sets.length;
+        const totalReps = sets.reduce((s, set) => s + (set.reps || 0), 0);
+
+        state.progressLog[name].push({
+            date: session.date,
+            sessionId: sessionId,
+            sets: sets.length,
+            weight: Math.round(avgWeight * 10) / 10,
+            achievedReps: totalReps,
+            achievedSets: sets.filter(s => s.completed !== false).length,
+            setsDetail: sets
+        });
+
+        state.progressLog[name].sort((a, b) => new Date(a.date) - new Date(b.date));
+    });
+}
+
+/**
+ * Supprime une séance avec soft-delete, nettoyage progressLog, undo 5s, et sync Supabase.
+ */
+async function deleteSession(sessionIndex) {
+    const session = state.sessionHistory[sessionIndex];
+    if (!session) return;
+
+    const confirmed = await showConfirmModal({
+        title: 'Supprimer cette séance ?',
+        message: `${session.day || 'Séance'} du ${new Date(session.date).toLocaleDateString('fr-FR')}`,
+        icon: '🗑️',
+        confirmLabel: 'Supprimer',
+        cancelLabel: 'Annuler',
+        confirmType: 'danger'
+    });
+    if (!confirmed) return;
+
+    const sid = session.sessionId || session.id;
+
+    // Snapshot pour undo
+    const snapshot = {
+        session: JSON.parse(JSON.stringify(session)),
+        index: sessionIndex,
+        progressEntries: {}
+    };
+    (session.exercises || []).forEach(ex => {
+        const name = ex.exercise;
+        snapshot.progressEntries[name] = (state.progressLog[name] || [])
+            .filter(l => l.sessionId === sid);
+    });
+
+    // Soft delete + nettoyage progressLog
+    session.deletedAt = new Date().toISOString();
+    (session.exercises || []).forEach(ex => {
+        const name = ex.exercise;
+        if (state.progressLog[name]) {
+            state.progressLog[name] = state.progressLog[name].filter(l => l.sessionId !== sid);
+        }
+    });
+
+    saveState();
+    updateSessionHistory();
+    closeSessionDetail();
+
+    // Undo 5s
+    if (window.UndoManager) {
+        UndoManager.push('delete-session', snapshot, (data) => {
+            // Restaurer la session
+            data.session.deletedAt = null;
+            const idx = state.sessionHistory.findIndex(s => (s.sessionId || s.id) === (data.session.sessionId || data.session.id));
+            if (idx !== -1) {
+                state.sessionHistory[idx] = data.session;
+            }
+            // Restaurer les entrées progressLog
+            Object.entries(data.progressEntries).forEach(([name, entries]) => {
+                if (!state.progressLog[name]) state.progressLog[name] = [];
+                state.progressLog[name].push(...entries);
+                state.progressLog[name].sort((a, b) => new Date(a.date) - new Date(b.date));
+            });
+            saveState();
+            updateSessionHistory();
+        }, 'Séance supprimée');
+    }
+
+    // Collecter les noms d'exercice pour le fallback Supabase
+    const exerciseNames = (session.exercises || []).map(ex => ex.exercise).filter(Boolean);
+
+    // Hard delete après expiration undo (6s pour laisser le temps de l'undo 5s)
+    setTimeout(() => {
+        const still = state.sessionHistory.find(s => (s.sessionId || s.id) === sid);
+        if (still && still.deletedAt) {
+            state.sessionHistory = state.sessionHistory.filter(s => (s.sessionId || s.id) !== sid);
+            saveState();
+            // Sync Supabase — avec fallback exerciseNames + date
+            if (typeof deleteWorkoutSessionFromSupabase === 'function') {
+                deleteWorkoutSessionFromSupabase(sid);
+            } else if (typeof addToSyncQueue === 'function') {
+                addToSyncQueue('workout_session', 'delete', { sessionId: sid });
+            }
+            if (typeof deleteProgressLogForSession === 'function') {
+                deleteProgressLogForSession(sid, session.date, exerciseNames);
+            } else if (typeof addToSyncQueue === 'function') {
+                addToSyncQueue('progress_log', 'delete', { sessionId: sid, sessionDate: session.date, exerciseNames });
+            }
+        }
+    }, 6000);
+}
+
+/**
+ * Met à jour une séance passée avec de nouvelles données d'exercices.
+ * Recalcule le volume, reconstruit le progressLog, et queue la sync.
+ */
+function updateSession(sessionIndex, newExercises) {
+    const session = state.sessionHistory[sessionIndex];
+    if (!session) return;
+
+    const snapshot = JSON.parse(JSON.stringify(session));
+
+    session.exercises = newExercises;
+    session.updatedAt = new Date().toISOString();
+
+    // Recalculer totalVolume
+    session.totalVolume = newExercises.reduce((sum, ex) =>
+        sum + (ex.sets || []).reduce((s, set) => s + (set.weight || 0) * (set.reps || 0), 0), 0
+    );
+
+    // Reconstruire progressLog pour cette session
+    rebuildProgressLogForSession(session);
+    saveState();
+
+    // Sync
+    if (typeof addToSyncQueue === 'function') {
+        addToSyncQueue('workout_session', 'upsert', session);
+    }
+
+    // Undo
+    if (window.UndoManager) {
+        UndoManager.push('edit-session', snapshot, (old) => {
+            state.sessionHistory[sessionIndex] = old;
+            rebuildProgressLogForSession(old);
+            saveState();
+            openSessionDetail(sessionIndex);
+        }, 'Séance modifiée');
+    }
+}
+
 // ==================== PROGRESS TOAST NOTIFICATION ====================
 
 function showProgressToast(icon, message, duration = 3000) {
@@ -1282,9 +1596,9 @@ function renderWeeklyVolumeChart() {
         weekEnd.setDate(weekEnd.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
         
-        // Calculer volume de la semaine
+        // Calculer volume de la semaine (exclure soft-deleted)
         let weekVolume = 0;
-        (state.sessionHistory || []).forEach(session => {
+        (state.sessionHistory || []).filter(s => !s.deletedAt).forEach(session => {
             const sessionDate = new Date(session.date);
             if (sessionDate >= weekStart && sessionDate <= weekEnd) {
                 session.exercises?.forEach(ex => {
@@ -1395,9 +1709,9 @@ function renderMuscleVolumeChart() {
         muscleVolumeChart = null;
     }
     
-    // Calculer le volume par muscle depuis sessionHistory
+    // Calculer le volume par muscle depuis sessionHistory (exclure soft-deleted)
     const volumeByMuscle = {};
-    (state.sessionHistory || []).forEach(session => {
+    (state.sessionHistory || []).filter(s => !s.deletedAt).forEach(session => {
         session.exercises?.forEach(ex => {
             // Trouver le muscle de l'exercice (fallback pour plusieurs formats)
             const exerciseName = ex.exercise || ex.name || ex.effectiveName || '';
@@ -1504,9 +1818,9 @@ function renderFrequencyChart() {
         frequencyChart = null;
     }
     
-    // Compter les séances par jour de la semaine
+    // Compter les séances par jour de la semaine (exclure soft-deleted)
     const dayCount = [0, 0, 0, 0, 0, 0, 0]; // Lun-Dim
-    (state.sessionHistory || []).forEach(session => {
+    (state.sessionHistory || []).filter(s => !s.deletedAt).forEach(session => {
         const day = new Date(session.date).getDay();
         const adjustedDay = day === 0 ? 6 : day - 1; // Lun=0, Dim=6
         dayCount[adjustedDay]++;
@@ -1605,11 +1919,11 @@ function renderMonthlyComparisonChart() {
         previousMonthData.push(0);
     }
     
-    (state.sessionHistory || []).forEach(session => {
+    (state.sessionHistory || []).filter(s => !s.deletedAt).forEach(session => {
         const sessionDate = new Date(session.date);
         const sessionMonth = sessionDate.getMonth();
         const sessionYear = sessionDate.getFullYear();
-        
+
         // Calculer le volume de la séance
         let sessionVolume = 0;
         session.exercises?.forEach(ex => {
@@ -1947,5 +2261,10 @@ window.renderFrequencyChart = renderFrequencyChart;
 window.renderMonthlyComparisonChart = renderMonthlyComparisonChart;
 window.checkForNewPR = checkForNewPR;
 window.getAllPRs = getAllPRs;
+window.rebuildProgressLogForSession = rebuildProgressLogForSession;
+window.deleteSession = deleteSession;
+window.updateSession = updateSession;
+window.toggleSessionEditMode = toggleSessionEditMode;
+window.deleteSetFromSession = deleteSetFromSession;
 
 console.log('✅ progress.js: Fonctions exportées au scope global');

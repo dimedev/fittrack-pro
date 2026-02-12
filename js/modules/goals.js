@@ -221,13 +221,14 @@ function getGoalProgress() {
 // ==================== STREAKS ====================
 
 function updateStreak() {
-    if (!state.sessionHistory || state.sessionHistory.length === 0) {
+    const activeSessions = (state.sessionHistory || []).filter(s => !s.deletedAt);
+    if (activeSessions.length === 0) {
         state.goals.currentStreak = 0;
         return;
     }
-    
+
     // Grouper les séances par date
-    const sessionDates = [...new Set(state.sessionHistory.map(s => s.date))].sort().reverse();
+    const sessionDates = [...new Set(activeSessions.map(s => s.date))].sort().reverse();
     
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date();
@@ -1068,7 +1069,7 @@ function generateWeeklyInsights() {
  * FIX: Utilise semaine calendaire (lundi-dimanche) au lieu de fenêtre glissante
  */
 function getVolumeInsight() {
-    if (!state.sessionHistory || state.sessionHistory.length === 0) return null;
+    if (!state.sessionHistory || state.sessionHistory.filter(s => !s.deletedAt).length === 0) return null;
 
     // FIX: Calculer le lundi de la semaine actuelle (semaine calendaire)
     const today = new Date();
@@ -1090,8 +1091,8 @@ function getVolumeInsight() {
     let lastWeekSessions = 0;
     let lastWeekVolume = 0;
     
-    // OPTIMISATION: Ne traiter que les 50 dernières sessions
-    const recentSessions = state.sessionHistory.slice(-50);
+    // OPTIMISATION: Ne traiter que les 50 dernières sessions actives
+    const recentSessions = (state.sessionHistory || []).filter(s => !s.deletedAt).slice(-50);
 
     for (const session of recentSessions) {
         const sessionDate = new Date(session.date);

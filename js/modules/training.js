@@ -297,42 +297,49 @@ function stopAutoSaveFsSession() {
 /**
  * Restaure une session en cours après crash/refresh
  */
-function tryRestorePendingSession() {
+async function tryRestorePendingSession() {
     const savedSession = loadFsSessionFromStorage();
     if (!savedSession) return;
-    
+
     // Proposer à l'utilisateur de restaurer
     const elapsedMinutes = Math.floor((Date.now() - savedSession.startTime) / 60000);
-    const message = `Tu as une séance "${savedSession.splitName}" en cours (${elapsedMinutes} min). Reprendre ?`;
-    
-    if (confirm(message)) {
+
+    const confirmed = await showConfirmModal({
+        title: 'Séance en cours',
+        message: `Tu as une séance "${savedSession.splitName}" en cours (${elapsedMinutes} min). Reprendre ?`,
+        icon: '🔄',
+        confirmLabel: 'Reprendre',
+        cancelLabel: 'Supprimer'
+    });
+
+    if (confirmed) {
         // Restaurer la session
         fsSession = savedSession;
-        
+
         // Migration : initialiser les champs manquants (sessions pré-v30)
         if (!fsSession.supersets) fsSession.supersets = [];
         if (!fsSession.currentSuperset) fsSession.currentSuperset = null;
         if (!fsSession.supersetPhase) fsSession.supersetPhase = null;
         if (!fsSession.isDropMode) fsSession.isDropMode = false;
-        
+
         // Afficher l'UI
         const fsElement = document.getElementById('fullscreen-session');
         if (fsElement) {
             fsElement.style.display = 'flex';
             OverflowManager.lock();
-            
+
             // Masquer la nav
             const nav = document.querySelector('.nav');
             const mobileNav = document.querySelector('.mobile-nav');
             if (nav) nav.style.display = 'none';
             if (mobileNav) mobileNav.style.display = 'none';
-            
+
             // Rendre l'exercice courant
             renderCurrentExercise();
-            
+
             // Reprendre la sauvegarde auto
             startAutoSaveFsSession();
-            
+
             console.log('✅ Séance restaurée');
         }
     } else {
@@ -953,11 +960,17 @@ function showSessionPreview(splitIndex) {
 /**
  * Ferme l'écran d'aperçu
  */
-function closeSessionPreview() {
+async function closeSessionPreview() {
     if (previewSession.hasChanges) {
-        if (!confirm('Tu as modifié des exercices. Quitter sans sauvegarder ?')) {
-            return;
-        }
+        const confirmed = await showConfirmModal({
+            title: 'Quitter l\'aperçu ?',
+            message: 'Tu as modifié des exercices. Quitter sans sauvegarder ?',
+            icon: '⚠️',
+            confirmLabel: 'Quitter',
+            cancelLabel: 'Rester',
+            confirmType: 'danger'
+        });
+        if (!confirmed) return;
     }
 
     document.getElementById('session-preview').style.display = 'none';
@@ -1976,20 +1989,28 @@ function startFullScreenSession(splitIndex) {
 /**
  * Machine occupée : reporter l'exercice
  */
-function machineOccupied() {
+async function machineOccupied() {
     if (!fsSession.active) return;
-    
+
     const currentExercise = fsSession.exercises[fsSession.currentExerciseIndex];
     if (!currentExercise) return;
-    
-    if (confirm('Machine occupée ? Passer à l\'exercice suivant ?')) {
+
+    const confirmed = await showConfirmModal({
+        title: 'Machine occupée',
+        message: `Reporter "${currentExercise.effectiveName}" et passer au suivant ?`,
+        icon: '⏳',
+        confirmLabel: 'Reporter',
+        cancelLabel: 'Annuler'
+    });
+
+    if (confirmed) {
         currentExercise.postponeReason = 'Machine occupée';
-        postponeCurrentExercise();
-        
+        await postponeCurrentExercise(true); // skipConfirm — déjà confirmé
+
         if (window.HapticFeedback) {
             window.HapticFeedback.warning();
         }
-        
+
         showToast('⏳ Machine occupée - Exercice reporté', 'info', 3000);
     }
 }
@@ -1997,41 +2018,47 @@ function machineOccupied() {
 /**
  * Reporte l'exercice courant à la fin
  */
-function postponeCurrentExercise() {
+async function postponeCurrentExercise(skipConfirm = false) {
     if (!fsSession.active) return;
     if (fsSession.exercises.length <= 1) {
         showToast('Impossible de reporter le dernier exercice', 'warning');
         return;
     }
-    
+
     const currentExercise = fsSession.exercises[fsSession.currentExerciseIndex];
-    
-    // Confirmation
-    if (!confirm(`Reporter "${currentExercise.effectiveName}" à la fin ?`)) {
-        return;
+
+    if (!skipConfirm) {
+        const confirmed = await showConfirmModal({
+            title: 'Reporter cet exercice ?',
+            message: `"${currentExercise.effectiveName}" sera déplacé à la fin de la séance.`,
+            icon: '🔄',
+            confirmLabel: 'Reporter',
+            cancelLabel: 'Annuler'
+        });
+        if (!confirmed) return;
     }
-    
+
     // Retirer l'exercice de sa position actuelle
     const [postponedExercise] = fsSession.exercises.splice(fsSession.currentExerciseIndex, 1);
-    
+
     // Marquer comme reporté
     postponedExercise.postponed = true;
-    
+
     // Ajouter à la fin
     fsSession.exercises.push(postponedExercise);
-    
+
     // Réinitialiser l'index de série
     fsSession.currentSetIndex = 0;
-    
+
     // Sauvegarder immédiatement
     saveFsSessionToStorage();
-    
+
     // Afficher l'exercice suivant (qui prend la place actuelle)
     renderCurrentExercise();
-    
+
     // Démarrer le timer de repos
     startRestTimer();
-    
+
     showToast(`${currentExercise.effectiveName} reporté`, 'info');
 }
 
@@ -2324,13 +2351,28 @@ function renderCompletedSets() {
         }
 
         return `
-            <div class="fs-completed-set${extraClass}">
+            <div class="fs-completed-set${extraClass}" data-exercise-index="${set.exerciseIndex}" data-set-index="${set.setIndex}">
                 <span class="fs-completed-set-num">${labelPrefix}</span>
                 <span class="fs-completed-set-value">${set.weight}kg × ${set.reps}</span>
                 <button class="fs-completed-set-edit" onclick="editCompletedSet(${set.setIndex})">✎</button>
+                <button class="fs-completed-set-delete" onclick="deleteCompletedSet(${set.exerciseIndex}, ${set.setIndex})">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
             </div>
         `;
     }).join('');
+
+    // Attacher SwipeToDelete sur chaque série complétée
+    if (window.SwipeToDelete) {
+        container.querySelectorAll('.fs-completed-set').forEach(el => {
+            const exIdx = parseInt(el.dataset.exerciseIndex);
+            const setIdx = parseInt(el.dataset.setIndex);
+            new SwipeToDelete(el, {
+                onDelete: () => deleteCompletedSet(exIdx, setIdx),
+                threshold: 0.4
+            });
+        });
+    }
 }
 
 // Constantes de validation
@@ -2541,25 +2583,89 @@ function validateCurrentSet() {
     }
 }
 
+/**
+ * Restaure un set en cours d'édition si l'utilisateur quitte sans valider.
+ * Empêche la perte de données quand on change d'exercice ou qu'on quitte.
+ */
+function restoreEditingSetIfNeeded() {
+    if (fsSession._editingSet) {
+        // Vérifier que le set n'a pas été re-validé entre-temps
+        const alreadyBack = fsSession.completedSets.some(
+            s => s.exerciseIndex === fsSession._editingSet.exerciseIndex &&
+                 s.setIndex === fsSession._editingSet.setIndex
+        );
+        if (!alreadyBack) {
+            fsSession.completedSets.push(fsSession._editingSet);
+            fsSession.completedSets.sort((a, b) => {
+                if (a.exerciseIndex !== b.exerciseIndex) return a.exerciseIndex - b.exerciseIndex;
+                return a.setIndex - b.setIndex;
+            });
+        }
+        fsSession._editingSet = null;
+        saveFsSessionToStorage();
+    }
+}
+
 function editCompletedSet(setIndex) {
-    // Find and update the set
+    // Restaurer un éventuel set déjà en édition avant d'en éditer un nouveau
+    restoreEditingSetIfNeeded();
+
     const setData = fsSession.completedSets.find(
         s => s.exerciseIndex === fsSession.currentExerciseIndex && s.setIndex === setIndex
     );
-    
+
     if (setData) {
-        // Pre-fill with existing values
+        // Sauvegarder pour rollback si l'utilisateur quitte sans valider
+        fsSession._editingSet = { ...setData };
+
+        // Pré-remplir avec les valeurs existantes
         document.getElementById('fs-weight-input').value = setData.weight;
         document.getElementById('fs-reps-input').value = setData.reps;
-        
-        // Remove from completed (will be re-added on validate)
+
+        // Retirer temporairement (sera re-ajouté à la validation)
         fsSession.completedSets = fsSession.completedSets.filter(
             s => !(s.exerciseIndex === fsSession.currentExerciseIndex && s.setIndex === setIndex)
         );
-        
-        // Go back to that set
+
+        // Revenir à cette série
         fsSession.currentSetIndex = setIndex;
+        saveFsSessionToStorage();
         renderCurrentExercise();
+    }
+}
+
+/**
+ * Supprime un set complété en full-screen avec undo.
+ */
+function deleteCompletedSet(exerciseIdx, setIdx) {
+    const set = fsSession.completedSets.find(
+        s => s.exerciseIndex === exerciseIdx && s.setIndex === setIdx
+    );
+    if (!set) return;
+
+    // Retirer le set
+    fsSession.completedSets = fsSession.completedSets.filter(s => s !== set);
+    saveFsSessionToStorage();
+    renderCompletedSets();
+    if (typeof updateActionButton === 'function') updateActionButton();
+
+    // Haptic feedback
+    if (window.HapticFeedback) HapticFeedback.light();
+
+    // Undo via UndoManager
+    if (window.UndoManager) {
+        UndoManager.push('delete-set', set, (s) => {
+            fsSession.completedSets.push(s);
+            fsSession.completedSets.sort((a, b) => {
+                if (a.exerciseIndex !== b.exerciseIndex) return a.exerciseIndex - b.exerciseIndex;
+                return a.setIndex - b.setIndex;
+            });
+            saveFsSessionToStorage();
+            renderCompletedSets();
+            if (typeof updateActionButton === 'function') updateActionButton();
+        }, 'Série supprimée');
+    } else {
+        showToast('Série supprimée', 'info');
     }
 }
 
@@ -2586,6 +2692,9 @@ function renderExerciseCompleteState() {
 }
 
 function goToNextExercise() {
+    // Restaurer un set en cours d'édition non validé
+    restoreEditingSetIfNeeded();
+
     fsSession.exerciseCompleted = false;
     fsSession.currentExerciseIndex++;
     fsSession.currentSetIndex = 0;
@@ -3132,6 +3241,7 @@ function updatePeriodization() {
 function countSessionsThisWeek() {
     if (!state.sessionHistory) return 0;
     return state.sessionHistory.filter(s => {
+        if (s.deletedAt) return false;
         const daysDiff = Math.floor((Date.now() - new Date(s.date).getTime()) / (1000 * 60 * 60 * 24));
         return daysDiff < 7;
     }).length;
@@ -3602,6 +3712,9 @@ async function finishSession() {
         return;
     }
 
+    // Restaurer un set en cours d'édition non validé
+    restoreEditingSetIfNeeded();
+
     // Progression de la périodisation
     updatePeriodization();
 
@@ -3621,6 +3734,7 @@ async function finishSession() {
     // Détecter les doublons avant de sauvegarder
     const today = new Date().toISOString().split('T')[0];
     const existingSession = state.sessionHistory.find(s =>
+        !s.deletedAt &&
         s.date === today &&
         s.program === state.wizardResults.selectedProgram &&
         s.day === fsSession.splitName &&
@@ -3710,6 +3824,7 @@ async function finishSession() {
 
         state.progressLog[exerciseName].push({
             date: today,
+            sessionId: fsSession.sessionId,
             sets: setsData.length,
             weight: Math.round(avgWeight * 10) / 10,
             achievedReps: totalReps,
@@ -3974,19 +4089,34 @@ function adjustRestTime(seconds) {
     showToast(`Repos ajusté à ${seconds}s`, 'success');
 }
 
-function returnToPreview() {
-    if (confirm('Retourner à l\'aperçu de séance ? Les séries validées seront conservées.')) {
+async function returnToPreview() {
+    closeSettingsSheet();
+    const confirmed = await showConfirmModal({
+        title: 'Retour à l\'aperçu',
+        message: 'Retourner à l\'aperçu de séance ? Les séries validées seront conservées.',
+        icon: '↩️',
+        confirmLabel: 'Retourner',
+        cancelLabel: 'Continuer'
+    });
+    if (confirmed) {
         closeFullScreenSession();
         showSessionPreview(fsSession.splitIndex);
     }
-    closeSettingsSheet();
 }
 
-function quitSession() {
-    if (confirm('Quitter la séance ? Les séries non sauvegardées seront perdues.')) {
-        closeFullScreenSession();
-    }
+async function quitSession() {
     closeSettingsSheet();
+    const confirmed = await showConfirmModal({
+        title: 'Quitter la séance ?',
+        message: 'Les séries non sauvegardées seront perdues.',
+        icon: '🚪',
+        confirmLabel: 'Quitter',
+        cancelLabel: 'Continuer',
+        confirmType: 'danger'
+    });
+    if (confirmed) {
+        await closeFullScreenSession();
+    }
 }
 
 // ==================== PR DETECTION EN TEMPS RÉEL ====================
@@ -4772,25 +4902,31 @@ function updateTemplate(templateId, updates) {
  * Supprimer un template
  * @param {string} templateId - ID du template
  */
-function deleteTemplate(templateId) {
+async function deleteTemplate(templateId) {
     if (!state.customTemplates) return false;
-    
+
     const index = state.customTemplates.findIndex(t => t.id === templateId);
     if (index === -1) {
         showToast('Template introuvable', 'error');
         return false;
     }
-    
+
     const template = state.customTemplates[index];
-    
-    if (!confirm(`Supprimer le template "${template.name}" ?`)) {
-        return false;
-    }
-    
+
+    const confirmed = await showConfirmModal({
+        title: 'Supprimer ce modèle ?',
+        message: `"${template.name}" sera supprimé définitivement.`,
+        icon: '🗑️',
+        confirmLabel: 'Supprimer',
+        cancelLabel: 'Annuler',
+        confirmType: 'danger'
+    });
+    if (!confirmed) return false;
+
     state.customTemplates.splice(index, 1);
     saveState();
-    
-    showToast(`✅ "${template.name}" supprimé`, 'success');
+
+    showToast(`"${template.name}" supprimé`, 'success');
     return true;
 }
 
@@ -4847,6 +4983,7 @@ window.resetFsTimer = resetFsTimer;
 window.adjustFsTimer = adjustFsTimer;
 window.goToNextExercise = goToNextExercise;
 window.editCompletedSet = editCompletedSet;
+window.deleteCompletedSet = deleteCompletedSet;
 window.skipSet = typeof skipSet === 'function' ? skipSet : function() {};
 
 // Fonctions de paramètres
@@ -4994,7 +5131,7 @@ function updatePeriodizationSheetUI() {
 /**
  * Sélectionne un nouveau type de cycle
  */
-function selectPeriodizationCycle(cycleType) {
+async function selectPeriodizationCycle(cycleType) {
     if (!CYCLE_PRESETS[cycleType]) return;
 
     const preset = CYCLE_PRESETS[cycleType];
@@ -5002,9 +5139,14 @@ function selectPeriodizationCycle(cycleType) {
 
     // Si on change de type, demander confirmation
     if (previousType !== cycleType && state.periodization?.currentWeek > 1) {
-        if (!confirm(`Changer de cycle va recommencer à la semaine 1. Continuer ?`)) {
-            return;
-        }
+        const confirmed = await showConfirmModal({
+            title: 'Changer de cycle ?',
+            message: 'Changer de cycle va recommencer à la semaine 1. Continuer ?',
+            icon: '🔄',
+            confirmLabel: 'Changer',
+            cancelLabel: 'Annuler'
+        });
+        if (!confirmed) return;
     }
 
     // Appliquer le nouveau preset
@@ -5033,10 +5175,16 @@ function selectPeriodizationCycle(cycleType) {
 /**
  * Recommence le cycle à zéro
  */
-function resetPeriodizationCycle() {
-    if (!confirm('Recommencer le cycle ? Ta progression de semaines sera réinitialisée.')) {
-        return;
-    }
+async function resetPeriodizationCycle() {
+    const confirmed = await showConfirmModal({
+        title: 'Recommencer le cycle ?',
+        message: 'Ta progression de semaines sera réinitialisée.',
+        icon: '🔄',
+        confirmLabel: 'Recommencer',
+        cancelLabel: 'Annuler',
+        confirmType: 'danger'
+    });
+    if (!confirmed) return;
 
     state.periodization = {
         ...state.periodization,

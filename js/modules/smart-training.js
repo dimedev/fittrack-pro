@@ -580,15 +580,15 @@
         if (!state.sessionHistory || state.sessionHistory.length === 0) {
             return { fatigue: 0, volume: 0, avgVolume: 0, trend: 'stable' };
         }
-        
+
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - days);
-        
+
         let totalVolume = 0;
         let sessionCount = 0;
-        
-        // OPTIMISATION: Limiter aux N dernières sessions et utiliser slice
-        const recentSessions = state.sessionHistory.slice(-MAX_SESSIONS_TO_PROCESS);
+
+        // OPTIMISATION: Limiter aux N dernières sessions actives
+        const recentSessions = (state.sessionHistory || []).filter(s => !s.deletedAt).slice(-MAX_SESSIONS_TO_PROCESS);
         
         // Analyser les séances des N derniers jours
         for (const session of recentSessions) {
@@ -635,15 +635,15 @@
      * OPTIMISÉ: Limite le traitement aux dernières sessions
      */
     function getUserAverageVolume(muscle) {
-        if (!state.sessionHistory || state.sessionHistory.length === 0) {
+        if (!state.sessionHistory || state.sessionHistory.filter(s => !s.deletedAt).length === 0) {
             return MUSCLE_GROUPS[muscle]?.baseVolume * 100 || 1000; // Volume par défaut
         }
-        
+
         const fourWeeksAgo = new Date();
         fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
-        
-        // OPTIMISATION: Ne traiter que les sessions récentes
-        const recentSessions = state.sessionHistory.slice(-MAX_SESSIONS_TO_PROCESS);
+
+        // OPTIMISATION: Ne traiter que les sessions récentes actives
+        const recentSessions = (state.sessionHistory || []).filter(s => !s.deletedAt).slice(-MAX_SESSIONS_TO_PROCESS);
         
         // Grouper par semaine
         const weekVolumes = {};
@@ -699,8 +699,8 @@
         let currentWeekVolume = 0;
         let lastWeekVolume = 0;
         
-        // OPTIMISATION: Ne traiter que les 50 dernières sessions
-        const recentSessions = (state.sessionHistory || []).slice(-50);
+        // OPTIMISATION: Ne traiter que les 50 dernières sessions actives
+        const recentSessions = (state.sessionHistory || []).filter(s => !s.deletedAt).slice(-50);
         
         for (const session of recentSessions) {
             const sessionDate = new Date(session.date);
@@ -866,15 +866,15 @@
         });
         
         // Analyser l'historique des séances
-        if (!state.sessionHistory || state.sessionHistory.length === 0) {
+        if (!state.sessionHistory || state.sessionHistory.filter(s => !s.deletedAt).length === 0) {
             return recovery;
         }
-        
-        // Parcourir les séances récentes (7 derniers jours)
+
+        // Parcourir les séances récentes actives (7 derniers jours)
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
-        
-        state.sessionHistory.forEach(session => {
+
+        state.sessionHistory.filter(s => !s.deletedAt).forEach(session => {
             const sessionDate = new Date(session.date);
             if (sessionDate < weekAgo) return;
             

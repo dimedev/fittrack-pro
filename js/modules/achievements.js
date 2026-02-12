@@ -164,9 +164,10 @@
             photoSpanMonths: 0
         };
 
-        // Sessions
+        // Sessions (exclure soft-deleted)
         if (state.sessionHistory) {
-            data.totalSessions = state.sessionHistory.length;
+            const activeSessions = state.sessionHistory.filter(s => !s.deletedAt);
+            data.totalSessions = activeSessions.length;
 
             // Sessions cette semaine
             const now = new Date();
@@ -174,14 +175,14 @@
             startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Lundi
             startOfWeek.setHours(0, 0, 0, 0);
 
-            data.sessionsThisWeek = state.sessionHistory.filter(s => {
+            data.sessionsThisWeek = activeSessions.filter(s => {
                 const sessionDate = new Date(s.date);
                 return sessionDate >= startOfWeek;
             }).length;
 
             // Sessions ce mois
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            data.sessionsThisMonth = state.sessionHistory.filter(s => {
+            data.sessionsThisMonth = activeSessions.filter(s => {
                 const sessionDate = new Date(s.date);
                 return sessionDate >= startOfMonth;
             }).length;

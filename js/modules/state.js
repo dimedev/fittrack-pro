@@ -392,6 +392,25 @@ function loadState() {
     }
 }
 
+// Migration: lier chaque entrée progressLog à sa session source via sessionId
+function migrateProgressLogSessionIds() {
+    if (state._progressLogMigrated) return;
+    (state.sessionHistory || []).forEach(session => {
+        const sid = session.sessionId || session.id;
+        if (!sid) return;
+        (session.exercises || []).forEach(ex => {
+            const name = ex.exercise;
+            const logs = state.progressLog[name] || [];
+            logs.forEach(log => {
+                if (!log.sessionId && log.date === session.date) {
+                    log.sessionId = sid;
+                }
+            });
+        });
+    });
+    state._progressLogMigrated = true;
+}
+
 // Applique un state parsé (utilisé par loadState et loadStateAsync)
 function applyParsedState(parsed) {
     try {
@@ -439,6 +458,15 @@ function applyParsedState(parsed) {
 
         // Migration: ajouter mealType aux entrées existantes
         migrateFoodJournalToMeals();
+
+        // Migration: ajouter updatedAt/deletedAt aux sessions
+        (state.sessionHistory || []).forEach(session => {
+            if (session.updatedAt === undefined) session.updatedAt = null;
+            if (session.deletedAt === undefined) session.deletedAt = null;
+        });
+
+        // Migration: lier progressLog aux sessions via sessionId
+        migrateProgressLogSessionIds();
 
         // Nouveaux champs pour la refonte Training
         if (!state.wizardResults) state.wizardResults = null;
@@ -1313,7 +1341,7 @@ function mergeImportedData(currentState, importedState, conflicts) {
 // Exposer l'accès au state pour les modules isolés (IIFE) comme health-integration.js
 
 window.RepzyState = {
-    getSessionHistory: () => state.sessionHistory || [],
+    getSessionHistory: () => (state.sessionHistory || []).filter(s => !s.deletedAt),
     getFoodJournal: () => state.foodJournal || {},
     getBodyWeightLog: () => state.bodyWeightLog || [],
     getCardioLog: () => state.cardioLog || [],
