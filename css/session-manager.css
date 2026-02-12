@@ -2974,6 +2974,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 .fs-settings-content {
     position: relative;
     z-index: 2;
+    isolation: isolate;
     width: 100%;
     background: var(--bg-hover);
     border-radius: 16px 16px 0 0;
@@ -3005,6 +3006,11 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 
 .fs-setting-toggle:last-child {
     border-bottom: none;
+}
+
+/* Masquer le toggle-slider hérité de premium-components — le checkbox gère déjà le visuel */
+.fs-setting-toggle .toggle-slider {
+    display: none;
 }
 
 .fs-setting-toggle input[type="checkbox"] {
