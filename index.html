@@ -2611,8 +2611,13 @@
             </button>
         </div>
 
-        <!-- Timer Repos Prominent (en haut) -->
+        <!-- Timer Repos Prominent (plein écran par défaut, minimisable) -->
         <div class="fs-rest-timer-prominent" id="fs-rest-timer-prominent" style="display: none;">
+            <!-- Bouton minimiser (visible seulement en fullscreen) -->
+            <button class="fs-rest-minimize-btn" id="fs-rest-minimize-btn" onclick="toggleRestTimerFullscreen()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+
             <div class="rest-timer-circle-container" id="rest-timer-circle-container">
                 <svg class="rest-timer-circle" viewBox="0 0 120 120">
                     <circle class="rest-timer-track" cx="60" cy="60" r="54" />
@@ -2622,6 +2627,13 @@
                     <div class="rest-timer-label">Repos</div>
                     <div class="rest-timer-time" id="rest-timer-time">00:00</div>
                 </div>
+            </div>
+
+            <!-- Contrôles timer (visible seulement en fullscreen) -->
+            <div class="fs-rest-controls" id="fs-rest-controls">
+                <button class="fs-rest-control-btn" onclick="adjustFsTimer(-15)">-15s</button>
+                <button class="fs-rest-control-btn" onclick="resetFsTimer()">↺</button>
+                <button class="fs-rest-control-btn" onclick="adjustFsTimer(15)">+15s</button>
             </div>
         </div>
 

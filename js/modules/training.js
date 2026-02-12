@@ -2813,6 +2813,17 @@ function getSmartRestTime(exerciseName, goal) {
     return REST_TIMES[goal]?.default || 90;
 }
 
+// ==================== FULLSCREEN REST TIMER ====================
+
+let fsRestTimerFullscreen = true;
+
+function toggleRestTimerFullscreen() {
+    const timer = document.getElementById('fs-rest-timer-prominent');
+    if (!timer) return;
+    fsRestTimerFullscreen = !fsRestTimerFullscreen;
+    timer.classList.toggle('fs-rest-fullscreen', fsRestTimerFullscreen);
+}
+
 function startRestTimer() {
     // Get exercise name and goal
     const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
@@ -2833,10 +2844,12 @@ function startRestTimer() {
         clearInterval(fsTimerInterval);
     }
 
-    // Afficher le timer prominent
+    // Afficher le timer prominent en mode plein écran
     const prominentTimer = document.getElementById('fs-rest-timer-prominent');
     if (prominentTimer) {
         prominentTimer.style.display = 'flex';
+        fsRestTimerFullscreen = true;
+        prominentTimer.classList.add('fs-rest-fullscreen');
     }
 
     // Calculer l'heure de fin basée sur Date.now() pour précision
@@ -2966,10 +2979,11 @@ function resetFsTimer() {
     updateFsTimerDisplay();
     document.getElementById('fs-timer').classList.remove('active', 'overtime');
     
-    // Masquer le timer prominent
+    // Masquer le timer prominent et retirer le mode plein écran
     const prominentTimer = document.getElementById('fs-rest-timer-prominent');
     if (prominentTimer) {
         prominentTimer.style.display = 'none';
+        prominentTimer.classList.remove('fs-rest-fullscreen');
     }
 }
 
@@ -5463,8 +5477,9 @@ window.loadFsExerciseGif = loadFsExerciseGif;
 window.toggleFsGifVisibility = toggleFsGifVisibility;
 window.toggleGifPlayback = toggleGifPlayback;
 
-// Exports FS settings & swap
+// Exports FS settings, swap & timer fullscreen
 window.toggleFsSettings = toggleFsSettings;
+window.toggleRestTimerFullscreen = toggleRestTimerFullscreen;
 window.toggleFsSetting = toggleFsSetting;
 window.openFsExerciseSwap = openFsExerciseSwap;
 window.createExerciseVariant = createExerciseVariant;
