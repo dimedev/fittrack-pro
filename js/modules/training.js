@@ -2414,7 +2414,13 @@ function adjustReps(delta) {
 function validateCurrentSet() {
     const weight = parseFloat(document.getElementById('fs-weight-input').value) || 0;
     const repsInput = document.getElementById('fs-reps-input');
-    const reps = parseInt(repsInput.value) || parseInt(repsInput.placeholder) || 0;
+    const repsRaw = repsInput.value.trim();
+    if (!repsRaw) {
+        showToast('Entre le nombre de répétitions', 'error');
+        repsInput.focus();
+        return;
+    }
+    const reps = parseInt(repsRaw) || 0;
 
     // Validation stricte : reps obligatoires, poids optionnel (poids de corps)
     if (reps <= 0) {

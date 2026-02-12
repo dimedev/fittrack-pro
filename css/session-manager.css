@@ -2873,15 +2873,17 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
+    z-index: 0;
 }
 
 .fs-settings-content {
     position: relative;
     width: 100%;
-    background: var(--bg-card);
+    background: var(--bg-tertiary);
     border-radius: 16px 16px 0 0;
     padding: 16px 20px 32px;
     z-index: 1;
+    color: var(--text-primary);
 }
 
 .fs-settings-handle {
