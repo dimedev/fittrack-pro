@@ -2969,16 +2969,15 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 0;
 }
 
 .fs-settings-content {
     position: relative;
+    z-index: 2;
     width: 100%;
     background: var(--bg-hover);
     border-radius: 16px 16px 0 0;
     padding: 16px 20px 32px;
-    z-index: 1;
     color: var(--text-primary);
     border-top: 1px solid var(--border-hover);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
@@ -2993,6 +2992,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .fs-setting-toggle {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
