@@ -2040,24 +2040,27 @@ async function postponeCurrentExercise(skipConfirm = false) {
     }
 
     // Retirer l'exercice de sa position actuelle
-    const [postponedExercise] = fsSession.exercises.splice(fsSession.currentExerciseIndex, 1);
+    const removedIndex = fsSession.currentExerciseIndex;
+    const [postponedExercise] = fsSession.exercises.splice(removedIndex, 1);
 
     // Marquer comme reporté
     postponedExercise.postponed = true;
 
     // Ajouter à la fin
     fsSession.exercises.push(postponedExercise);
+    const newIndex = fsSession.exercises.length - 1;
 
-    // Réinitialiser l'index de série
-    fsSession.currentSetIndex = 0;
+    // CRITICAL: Reindexer completedSets et supersets après le splice
+    reindexAfterSplice(removedIndex, newIndex);
+
+    // Reprendre au bon set pour le nouvel exercice courant
+    fsSession.currentSetIndex = getCompletedSetsForExercise(fsSession.currentExerciseIndex);
 
     // Sauvegarder immédiatement
     saveFsSessionToStorage();
 
     // Afficher l'exercice suivant (qui prend la place actuelle)
     renderCurrentExercise();
-
-    // Timer supprimé ici — pas de timer avant la 1ère série du nouvel exercice
 
     showToast(`${currentExercise.effectiveName} reporté`, 'info');
 }
@@ -2203,9 +2206,11 @@ function renderCurrentExercise() {
     // Load GIF for fullscreen session
     loadFsExerciseGif(exercise);
 
-    // Update progress bar
-    const progress = ((fsSession.currentExerciseIndex * totalSets) + fsSession.currentSetIndex) / (totalExercises * totalSets) * 100;
-    document.getElementById('fs-progress-fill').style.width = `${progress}%`;
+    // Update progress bar — basé sur les sets réels complétés (indépendant de l'ordre)
+    const totalRequiredSets = fsSession.exercises.reduce((sum, ex) => sum + (ex.sets || 0), 0);
+    const totalCompletedSets = fsSession.completedSets.length;
+    const progress = totalRequiredSets > 0 ? (totalCompletedSets / totalRequiredSets) * 100 : 0;
+    document.getElementById('fs-progress-fill').style.width = `${Math.min(progress, 100)}%`;
 
     // Get last log for this exercise
     const lastLog = getLastLog(exercise.effectiveName);
@@ -2520,29 +2525,28 @@ function validateCurrentSet() {
     // Move to next set or exercise
     const totalSets = exercise.sets;
 
-    // Vérifier si c'est la dernière série
-    const isLastSet = fsSession.currentSetIndex + 1 >= totalSets;
-    const isLastExercise = fsSession.currentExerciseIndex + 1 >= fsSession.exercises.length;
+    // Vérifier si cet exercice est maintenant complet (le set vient d'être pushé)
+    const exerciseNowComplete = isExerciseComplete(fsSession.currentExerciseIndex);
 
     // Vérifier si on est en superset
     const inSuperset = handleSupersetProgression();
     if (inSuperset) {
         return; // Gestion spéciale superset
     }
-    
-    // Afficher les boutons techniques avancées si c'est la dernière série
-    const dropsForThisExercise = fsSession.completedSets.filter(
+
+    // Afficher les boutons techniques avancées si l'exercice est complété
+    const dropsForThisExercise = (fsSession.completedSets || []).filter(
         s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isDrop
     ).length;
-    const restPausesForThisExercise = fsSession.completedSets.filter(
+    const restPausesForThisExercise = (fsSession.completedSets || []).filter(
         s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isRestPause
     ).length;
 
-    // Conditions: dernière série, poids > 5kg, pas trop de techniques déjà utilisées
+    // Conditions: exercice complété, poids > 5kg, pas trop de techniques déjà utilisées
     const canDrop = dropsForThisExercise < 2 && weight > 5;
     const canRestPause = restPausesForThisExercise < 3 && weight > 0;
 
-    if (isLastSet && (canDrop || canRestPause)) {
+    if (exerciseNowComplete && (canDrop || canRestPause)) {
         // Afficher le container des techniques avancées
         const advancedBtns = document.getElementById('fs-advanced-btns');
         const dropBtn = document.getElementById('fs-drop-btn');
@@ -2555,8 +2559,7 @@ function validateCurrentSet() {
             if (dropBtn) dropBtn.style.display = canDrop ? 'flex' : 'none';
             if (restPauseBtn) restPauseBtn.style.display = canRestPause ? 'flex' : 'none';
 
-            // Masquer après 20 secondes (au lieu de 8) - plus de temps pour réagir
-            // Annuler le timeout précédent s'il existe
+            // Masquer après 20 secondes — plus de temps pour réagir
             if (window._advancedBtnsTimeout) {
                 clearTimeout(window._advancedBtnsTimeout);
             }
@@ -2564,7 +2567,7 @@ function validateCurrentSet() {
                 if (advancedBtns) advancedBtns.style.display = 'none';
             }, 20000);
 
-            // Masquer si l'utilisateur interagit avec les inputs (il a choisi de ne pas faire de technique avancée)
+            // Masquer si l'utilisateur interagit avec les inputs
             const weightInput = document.getElementById('fs-weight-input');
             if (weightInput) {
                 weightInput.addEventListener('focus', () => {
@@ -2576,36 +2579,39 @@ function validateCurrentSet() {
             }
         }
     }
-    
-    if (!isLastSet) {
-        // Next set
+
+    if (!exerciseNowComplete) {
+        // Set suivant du même exercice
         fsSession.currentSetIndex++;
         renderCurrentExercise();
-        
+
         // Start rest timer (après la première série de CET exercice)
-        // On compte combien de séries ont été complétées pour cet exercice
-        const completedSetsForThisExercise = fsSession.completedSets.filter(
-            s => s.exerciseIndex === fsSession.currentExerciseIndex
-        ).length;
-        
-        if (completedSetsForThisExercise >= 1) {
+        if (getCompletedSetsForExercise(fsSession.currentExerciseIndex) >= 1) {
             startRestTimer();
         }
-    } else if (isLastSet && !isLastExercise) {
-        // Exercice terminé, mais pas le dernier — auto-avance après timer repos
-        showToast('Exercice terminé ! Suivant...', 'info');
-        startRestTimer();
-        goToNextExercise();
-    } else {
-        // Dernière série du dernier exercice - séance terminée
+    } else if (areAllExercisesComplete()) {
+        // TOUS les exercices terminés → fin de séance
         showToast('Séance terminée ! 🎉', 'success');
-        
-        // Haptic feedback achievement sur fin de séance
+
         if (window.HapticFeedback) {
             window.HapticFeedback.achievement();
         }
-        
+
         renderSessionCompleteState();
+    } else {
+        // Cet exercice est fini, mais d'autres restent → routage intelligent
+        const nextIdx = findNextIncompleteExercise(fsSession.currentExerciseIndex);
+        if (nextIdx !== null) {
+            showToast('Exercice terminé ! Suivant...', 'info');
+            startRestTimer();
+            fsSession.currentExerciseIndex = nextIdx;
+            fsSession.currentSetIndex = getCompletedSetsForExercise(nextIdx);
+            fsSession.exerciseCompleted = false;
+            renderCurrentExercise();
+        } else {
+            // Fallback sécurité (ne devrait pas arriver)
+            renderSessionCompleteState();
+        }
     }
 }
 
@@ -2695,6 +2701,84 @@ function deleteCompletedSet(exerciseIdx, setIdx) {
     }
 }
 
+// ==================== SESSION STATE HELPERS (centralisés) ====================
+
+/**
+ * Nombre de séries complétées pour un exercice donné.
+ * Source unique — remplace tous les .filter().length inline.
+ */
+function getCompletedSetsForExercise(exerciseIndex) {
+    return (fsSession.completedSets || []).filter(s => s.exerciseIndex === exerciseIndex).length;
+}
+
+/**
+ * Vérifie si un exercice spécifique est entièrement complété.
+ */
+function isExerciseComplete(exerciseIndex) {
+    const exercise = fsSession.exercises[exerciseIndex];
+    if (!exercise) return false;
+    const totalSets = exercise.sets || 0;
+    if (totalSets === 0) return true;
+    return getCompletedSetsForExercise(exerciseIndex) >= totalSets;
+}
+
+/**
+ * Vérifie si TOUS les exercices de la séance sont terminés.
+ * Seul critère pour la complétion automatique de la séance.
+ */
+function areAllExercisesComplete() {
+    return fsSession.exercises.every((_, idx) => isExerciseComplete(idx));
+}
+
+/**
+ * Prédit si la validation du set en cours terminera la séance entière.
+ * Utilisé par updateActionButton() pour déterminer le texte du CTA.
+ */
+function willCompleteSession() {
+    return fsSession.exercises.every((ex, idx) => {
+        if (idx === fsSession.currentExerciseIndex) {
+            return (getCompletedSetsForExercise(idx) + 1) >= (ex.sets || 0);
+        }
+        return isExerciseComplete(idx);
+    });
+}
+
+/**
+ * Trouve le prochain exercice incomplet après l'index donné (scan circulaire).
+ * @returns {number|null} Index du prochain exercice incomplet, ou null si tous complets
+ */
+function findNextIncompleteExercise(afterIndex) {
+    const len = fsSession.exercises.length;
+    for (let i = 1; i < len; i++) {
+        const idx = (afterIndex + i) % len;
+        if (!isExerciseComplete(idx)) return idx;
+    }
+    return null;
+}
+
+/**
+ * Corrige les indices dans completedSets et supersets après un splice+push.
+ * Appelé par postponeCurrentExercise() pour éviter la corruption des données.
+ */
+function reindexAfterSplice(removedIndex, newIndex) {
+    fsSession.completedSets.forEach(set => {
+        if (set.exerciseIndex === removedIndex) {
+            set.exerciseIndex = newIndex;
+        } else if (set.exerciseIndex > removedIndex) {
+            set.exerciseIndex--;
+        }
+    });
+    (fsSession.supersets || []).forEach(ss => {
+        ['exercise1Index', 'exercise2Index'].forEach(key => {
+            if (ss[key] === removedIndex) {
+                ss[key] = newIndex;
+            } else if (ss[key] > removedIndex) {
+                ss[key]--;
+            }
+        });
+    });
+}
+
 // ==================== EXERCICE & SESSION COMPLETE STATES ====================
 
 function renderExerciseCompleteState() {
@@ -2722,19 +2806,25 @@ function goToNextExercise() {
     restoreEditingSetIfNeeded();
 
     fsSession.exerciseCompleted = false;
-    fsSession.currentExerciseIndex++;
-    fsSession.currentSetIndex = 0;
-    
+
+    // Routage intelligent : trouver le prochain exercice incomplet
+    const nextIdx = findNextIncompleteExercise(fsSession.currentExerciseIndex);
+    if (nextIdx === null) {
+        // Tous les exercices sont complets → fin de séance
+        renderSessionCompleteState();
+        return;
+    }
+    fsSession.currentExerciseIndex = nextIdx;
+    fsSession.currentSetIndex = getCompletedSetsForExercise(nextIdx);
+
     // Rétablir l'affichage normal
     const content = document.getElementById('fs-content');
     const completeSection = document.getElementById('fs-exercise-complete');
-    
+
     if (content) content.style.display = 'block';
     if (completeSection) completeSection.style.display = 'none';
-    
+
     renderCurrentExercise();
-    // Timer supprimé ici — ne démarre que depuis validateCurrentSet()
-    // pour éviter le double démarrage et le timer avant la 1ère série
 }
 
 function renderSessionCompleteState() {
@@ -3679,33 +3769,31 @@ function getCurrentSuperset() {
 function handleSupersetProgression() {
     const superset = getCurrentSuperset();
     if (!superset) return false; // Pas en superset
-    
-    const currentEx = fsSession.exercises[fsSession.currentExerciseIndex];
-    const currentSetCompleted = fsSession.completedSets.filter(
-        s => s.exerciseIndex === fsSession.currentExerciseIndex
-    ).length;
-    
-    const isLastSet = currentSetCompleted >= currentEx.sets;
-    
-    if (superset.phase === 'A' && !isLastSet) {
+
+    // Le set vient d'être pushé → utiliser le helper centralisé
+    const exerciseDone = isExerciseComplete(fsSession.currentExerciseIndex);
+
+    if (superset.phase === 'A' && !exerciseDone) {
         // Passer à l'exercice B du superset
-        fsSession.currentExerciseIndex = superset.partner;
-        fsSession.currentSetIndex = currentSetCompleted; // Même numéro de série
+        const partnerIdx = superset.partner;
+        fsSession.currentExerciseIndex = partnerIdx;
+        fsSession.currentSetIndex = getCompletedSetsForExercise(partnerIdx);
         renderCurrentExercise();
-        
+
         showToast('⚡ Superset - Exercice 2', 'info', 1500);
         return true;
-    } else if (superset.phase === 'B' && !isLastSet) {
+    } else if (superset.phase === 'B' && !exerciseDone) {
         // Retourner à l'exercice A pour la série suivante
-        fsSession.currentExerciseIndex = fsSession.supersets[superset.index].exercise1Index;
-        fsSession.currentSetIndex++;
+        const exercise1Idx = fsSession.supersets[superset.index].exercise1Index;
+        fsSession.currentExerciseIndex = exercise1Idx;
+        fsSession.currentSetIndex = getCompletedSetsForExercise(exercise1Idx);
         renderCurrentExercise();
-        
+
         // Démarrer le timer de repos après la paire
         startRestTimer();
         return true;
     }
-    
+
     // Tous les sets du superset sont terminés
     return false;
 }
@@ -3807,6 +3895,19 @@ async function finishSession() {
         });
         if (confirmed) closeFullScreenSession();
         return;
+    }
+
+    // Vérifier si des exercices sont incomplets
+    const incompleteCount = fsSession.exercises.filter((_, idx) => !isExerciseComplete(idx)).length;
+    if (incompleteCount > 0) {
+        const confirmed = await showConfirmModal({
+            title: 'Terminer la séance ?',
+            message: `${incompleteCount} exercice${incompleteCount > 1 ? 's' : ''} non terminé${incompleteCount > 1 ? 's' : ''}. Sauvegarder quand même ?`,
+            icon: '🏁',
+            confirmLabel: 'Sauvegarder',
+            cancelLabel: 'Continuer'
+        });
+        if (!confirmed) return;
     }
 
     // Détecter les doublons avant de sauvegarder
@@ -5156,7 +5257,6 @@ window.startDropSet = startDropSet;
 window.startRestPause = startRestPause;
 window.createSuperset = createSuperset;
 window.removeSuperset = removeSuperset;
-window.machineOccupied = machineOccupied;
 window.postponeCurrentExercise = postponeCurrentExercise;
 
 // Navigation libre exercices
@@ -5519,11 +5619,12 @@ function updateActionButton() {
     if (!exercise) return;
 
     const totalSets = exercise.sets || 0;
-    const completedForExercise = (fsSession.completedSets || []).filter(
-        s => s.exerciseIndex === fsSession.currentExerciseIndex
-    ).length;
-    const isLastSet = completedForExercise + 1 >= totalSets;
-    const isLastExercise = fsSession.currentExerciseIndex + 1 >= fsSession.exercises.length;
+    const completedForExercise = getCompletedSetsForExercise(fsSession.currentExerciseIndex);
+
+    // Ce set va-t-il compléter cet exercice ?
+    const willFinishExercise = (completedForExercise + 1) >= totalSets;
+    // Ce set va-t-il compléter TOUTE la séance ? (tous les autres exercices déjà faits)
+    const willFinishSession = willCompleteSession();
 
     const label = btn.querySelector('span');
     if (!label) return;
@@ -5531,10 +5632,10 @@ function updateActionButton() {
     // Reset des classes d'état
     btn.classList.remove('btn-next-exercise', 'btn-finish-session');
 
-    if (isLastSet && isLastExercise) {
+    if (willFinishSession) {
         label.textContent = 'Terminer la séance 🎉';
         btn.classList.add('btn-finish-session');
-    } else if (isLastSet) {
+    } else if (willFinishExercise) {
         label.textContent = 'Exercice suivant →';
         btn.classList.add('btn-next-exercise');
     } else {
@@ -5606,9 +5707,9 @@ function renderExerciseNavigator() {
     // Compter les exercices terminés
     let completedCount = 0;
     const exerciseStatuses = exercises.map((ex, idx) => {
-        const setsCompleted = (fsSession.completedSets || []).filter(s => s.exerciseIndex === idx).length;
+        const setsCompleted = getCompletedSetsForExercise(idx);
         const totalSets = ex.sets || 0;
-        const isCompleted = setsCompleted >= totalSets && totalSets > 0;
+        const isCompleted = isExerciseComplete(idx);
         if (isCompleted) completedCount++;
         return { setsCompleted, totalSets, isCompleted };
     });
@@ -5671,18 +5772,16 @@ async function navigateToExercise(targetIndex) {
     if (!targetExercise) return;
 
     // Vérifier si l'exercice cible est déjà terminé
-    const targetSetsCompleted = (fsSession.completedSets || []).filter(s => s.exerciseIndex === targetIndex).length;
+    const targetSetsCompleted = getCompletedSetsForExercise(targetIndex);
     const targetTotalSets = targetExercise.sets || 0;
-    if (targetSetsCompleted >= targetTotalSets && targetTotalSets > 0) {
+    if (isExerciseComplete(targetIndex)) {
         showToast('Cet exercice est déjà terminé', 'warning');
         return;
     }
 
     // Confirmation si l'exercice en cours a des séries partielles
     const currentExercise = fsSession.exercises[fsSession.currentExerciseIndex];
-    const currentSetsCompleted = (fsSession.completedSets || []).filter(
-        s => s.exerciseIndex === fsSession.currentExerciseIndex
-    ).length;
+    const currentSetsCompleted = getCompletedSetsForExercise(fsSession.currentExerciseIndex);
     const currentTotalSets = currentExercise?.sets || 0;
 
     if (currentSetsCompleted > 0 && currentSetsCompleted < currentTotalSets) {

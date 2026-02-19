@@ -2708,13 +2708,12 @@
             <!-- Main Input -->
             <div class="fs-input-section">
                 <div class="fs-input-group">
-                    <label class="fs-input-label">Poids <button class="fs-plate-calc-btn" onclick="window.PlateCalculator.show(parseFloat(document.getElementById('fs-weight-input').value))" title="Calculateur de disques">🏋️</button></label>
+                    <label class="fs-input-label">Poids (kg) <button class="fs-plate-calc-btn" onclick="window.PlateCalculator.show(parseFloat(document.getElementById('fs-weight-input').value))" title="Calculateur de disques">🏋️</button></label>
                     <div class="fs-input-wrapper">
                         <button class="fs-input-btn minus" onclick="adjustWeight(-2.5)">−</button>
                         <input type="number" class="fs-input" id="fs-weight-input" value="80" step="2.5">
                         <button class="fs-input-btn plus" onclick="adjustWeight(2.5)">+</button>
                     </div>
-                    <span class="fs-input-unit">kg</span>
                     <span class="fs-bodyweight-hint" id="fs-bodyweight-hint" style="display: none; font-size: 11px; color: var(--text-tertiary); margin-top: 2px;"></span>
                 </div>
                 <div class="fs-input-separator">×</div>
@@ -2725,7 +2724,6 @@
                         <input type="number" class="fs-input" id="fs-reps-input" value="10">
                         <button class="fs-input-btn plus" onclick="adjustReps(1)">+</button>
                     </div>
-                    <span class="fs-input-unit">reps</span>
                 </div>
             </div>
 
@@ -2786,16 +2784,6 @@
                     <span>Rest-Pause (10s repos)</span>
                 </button>
             </div>
-
-            <!-- Machine Occupée Button -->
-            <button class="fs-machine-occupied-btn" onclick="machineOccupied()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <span>Machine occupée</span>
-            </button>
 
             <!-- Completed Sets -->
             <div class="fs-completed-sets" id="fs-completed-sets">
