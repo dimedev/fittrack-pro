@@ -3183,7 +3183,7 @@ function updateCurrentPhase() {
 
             // Haptic feedback
             if (window.HapticFeedback) {
-                window.HapticFeedback.notification('warning');
+                window.HapticFeedback.warning();
             }
         }
 
