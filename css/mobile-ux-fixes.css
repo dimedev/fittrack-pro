@@ -1947,7 +1947,7 @@ input[type="date"].form-input {
     .meal-item-delete,
     .suggestion-add-btn,
     [role="button"]:not(.modal-close):not(.fs-close-btn):not(.fs-minimize-btn),
-    button:not(.btn):not(.nutrition-buttons-row .btn-icon):not(.modal-close):not(.btn-close):not(.fs-close-btn):not(.fs-minimize-btn) {
+    button:not(.btn):not(.nutrition-buttons-row .btn-icon):not(.modal-close):not(.btn-close):not(.fs-close-btn):not(.fs-minimize-btn):not(.exercise-info-btn):not(.fs-swap-btn) {
         min-height: 48px !important;
     }
 
