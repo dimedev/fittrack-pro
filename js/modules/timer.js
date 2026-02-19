@@ -395,6 +395,12 @@ document.addEventListener('keydown', (e) => {
     // Raccourcis uniquement disponibles en session full-screen
     if (!isInFullscreen) return;
 
+    // Ne pas intercepter les raccourcis quand un champ de saisie est focus
+    const activeTag = document.activeElement?.tagName;
+    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable) {
+        return;
+    }
+
     switch (e.code) {
         case 'Space':
             e.preventDefault();

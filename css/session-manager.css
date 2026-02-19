@@ -1054,7 +1054,71 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     font-size: 1.5rem;
     font-weight: 800;
     color: var(--text-primary);
-    margin: 0 0 8px 0;
+    margin: 0 0 6px 0;
+    text-align: center;
+    width: 100%;
+    line-height: 1.3;
+}
+
+.fs-exercise-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.fs-exercise-actions .exercise-info-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+
+.fs-exercise-actions .exercise-info-btn:active {
+    background: var(--bg-hover, rgba(255,255,255,0.08));
+}
+
+.fs-exercise-actions .fs-swap-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.fs-exercise-actions .fs-swap-btn:active {
+    background: var(--bg-hover, rgba(255,255,255,0.08));
+}
+
+/* Objectif exercice (compact, sous les actions) */
+.fs-exercise-objective {
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.fs-objective-text {
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
 .fs-exercise-meta {
@@ -1240,6 +1304,26 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 
 .fs-validate-btn:active {
     transform: translateY(0);
+}
+
+/* CTA "Exercice suivant" — fond rouge, action de transition */
+.fs-validate-btn.btn-next-exercise {
+    background: var(--danger, #ef4444);
+    color: white;
+}
+
+.fs-validate-btn.btn-next-exercise:hover {
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.35);
+}
+
+/* CTA "Terminer la séance" — gradient gold→rouge */
+.fs-validate-btn.btn-finish-session {
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: white;
+}
+
+.fs-validate-btn.btn-finish-session:hover {
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
 }
 
 /* ==================== DROP SET & REST-PAUSE BUTTONS ==================== */
@@ -1535,6 +1619,14 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 @keyframes restTimerExpand {
     from { opacity: 0.8; transform: scale(0.9); }
     to { opacity: 1; transform: scale(1); }
+}
+
+/* Animation de collapse automatique du timer */
+.fs-rest-timer-prominent.fs-rest-collapsing {
+    transition: opacity 0.4s ease-in, transform 0.4s ease-in;
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
 }
 
 /* Cercle agrandi en fullscreen */
@@ -2438,6 +2530,138 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     color: var(--accent-primary);
 }
 
+/* ==================== EXERCISE HISTORY IN TIPS SHEET ==================== */
+
+.info-history-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    margin-top: 8px;
+}
+
+.info-history-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.info-history-chevron {
+    transition: transform 0.25s ease;
+    color: var(--text-muted);
+}
+
+.info-history-content {
+    padding-top: 12px;
+}
+
+/* PRs Grid */
+.info-pr-grid {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.info-pr-item {
+    flex: 1;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm, 8px);
+    padding: 10px 6px;
+    text-align: center;
+}
+
+.info-pr-label {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-pr-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+/* Mini Chart */
+.info-mini-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 10px;
+    height: 80px;
+    margin-bottom: 16px;
+    padding: 0 4px;
+}
+
+.info-chart-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    height: 100%;
+    justify-content: flex-end;
+}
+
+.info-chart-bar {
+    width: 100%;
+    max-width: 36px;
+    background: var(--accent-primary);
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    min-height: 6px;
+    transition: height 0.3s ease;
+}
+
+.info-chart-val {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.info-chart-date {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* History List */
+.info-history-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.8rem;
+}
+
+.info-history-row:last-child {
+    border-bottom: none;
+}
+
+.info-history-date {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    min-width: 55px;
+    font-weight: 500;
+}
+
+.info-history-detail {
+    color: var(--text-secondary);
+    text-align: right;
+    flex: 1;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+}
+
 /* ==================== FOOD QUANTITY BOTTOM SHEET ==================== */
 
 .quantity-macros-info {
@@ -3047,25 +3271,147 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     transform: translateX(20px);
 }
 
-/* Exercise name row with swap button */
-.fs-exercise-name-row {
+/* (ancien .fs-exercise-name-row supprimé — remplacé par .fs-exercise-actions) */
+
+/* ==================== EXERCISE NAVIGATOR ==================== */
+
+.fs-nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    border-radius: var(--radius-sm, 6px);
+    transition: background 0.15s;
 }
 
-.fs-exercise-name-row .fs-swap-btn {
-    flex-shrink: 0;
-    padding: 4px 8px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
+.fs-nav-btn:active {
+    background: var(--bg-hover, rgba(255,255,255,0.08));
+}
+
+.exercise-navigator {
+    max-height: 70vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px 12px;
+}
+
+.nav-sheet-header h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.nav-exercise-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.nav-exercise-list {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 55vh;
+}
+
+.nav-exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
     cursor: pointer;
+    transition: background 0.15s;
 }
 
-.fs-exercise-name-row .fs-swap-btn:active {
-    color: var(--accent-primary);
+.nav-exercise-item:last-child {
+    border-bottom: none;
+}
+
+.nav-exercise-item:active {
+    background: var(--bg-hover, rgba(255,255,255,0.05));
+}
+
+.nav-exercise-item.nav-active {
+    background: rgba(59, 130, 246, 0.08);
+    border-left: 3px solid var(--accent-primary);
+    padding-left: 17px;
+}
+
+.nav-exercise-item.nav-completed {
+    opacity: 0.45;
+}
+
+.nav-exercise-status {
+    flex-shrink: 0;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: block;
+}
+
+.nav-dot-current {
+    background: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.nav-dot-partial {
+    background: var(--warning, #f59e0b);
+}
+
+.nav-dot-pending {
+    background: var(--bg-tertiary, #374151);
+    border: 1.5px solid var(--border-color);
+}
+
+.nav-exercise-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.nav-exercise-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav-exercise-sets {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.nav-exercise-go {
+    color: var(--text-muted);
+    font-size: 1.3rem;
+    font-weight: 300;
+    flex-shrink: 0;
 }
 
 /* ==================== VARIANT INPUT ==================== */

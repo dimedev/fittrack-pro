@@ -2050,6 +2050,19 @@
                     <h4 class="info-section-title">Conseils</h4>
                     <p class="info-tips-text" id="info-tips-text"></p>
                 </div>
+
+                <!-- Historique performances -->
+                <div class="info-section info-history-section" id="info-history-section" style="display: none;">
+                    <div class="info-history-toggle" onclick="toggleExerciseHistory()">
+                        <h4 class="info-section-title" style="margin: 0;">📊 Historique</h4>
+                        <svg class="info-history-chevron" id="info-history-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="info-history-content" id="info-history-content" style="display: none;">
+                        <div class="info-prs" id="info-exercise-prs"></div>
+                        <div class="info-history-chart" id="info-history-chart"></div>
+                        <div class="info-history-list" id="info-history-list"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -2599,6 +2612,9 @@
             <button class="fs-minimize-btn" onclick="minimizeSession()" title="Minimiser">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
+            <button class="fs-nav-btn" onclick="openExerciseNavigator()" title="Liste des exercices">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg>
+            </button>
             <div class="fs-header-info">
                 <span class="fs-session-title" id="fs-session-title">Push</span>
                 <span class="fs-session-progress" id="fs-session-progress">Jour 1/3</span>
@@ -2649,11 +2665,17 @@
 
             <!-- Exercise Header -->
             <div class="fs-exercise-header">
-                <div class="fs-exercise-name-row">
-                    <h2 class="fs-exercise-name" id="fs-exercise-name">Développé Couché Barre</h2>
-                    <button class="fs-swap-btn" onclick="openFsExerciseSwap()" title="Changer d'exercice">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+                <h2 class="fs-exercise-name" id="fs-exercise-name">Développé Couché Barre</h2>
+                <div class="fs-exercise-actions" id="fs-exercise-actions">
+                    <button class="exercise-info-btn" id="fs-info-btn" title="Informations">
+                        ⓘ
                     </button>
+                    <button class="fs-swap-btn" id="fs-swap-btn" onclick="openFsExerciseSwap()" title="Changer d'exercice">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+                    </button>
+                </div>
+                <div class="fs-exercise-objective" id="fs-exercise-objective" style="display: none;">
+                    <span class="fs-objective-text" id="fs-objective-text"></span>
                 </div>
                 <div class="fs-exercise-meta">
                     <span class="fs-set-indicator" id="fs-set-indicator">Série 1 / 4</span>
@@ -2849,6 +2871,20 @@
                     <input type="checkbox" id="fs-setting-autoregulation" onchange="toggleFsSetting('autoregulation')">
                     <span class="toggle-slider"></span>
                 </label>
+            </div>
+        </div>
+
+        <!-- Exercise Navigator Bottom Sheet -->
+        <div class="bottom-sheet-overlay" id="exercise-navigator-sheet" style="display: none;" onclick="closeExerciseNavigator()">
+            <div class="bottom-sheet exercise-navigator" onclick="event.stopPropagation()">
+                <div class="bottom-sheet-handle"></div>
+                <div class="nav-sheet-header">
+                    <h3>Exercices</h3>
+                    <span class="nav-exercise-count" id="nav-exercise-count">0/0</span>
+                </div>
+                <div class="nav-exercise-list" id="exercise-navigator-list">
+                    <!-- Rempli dynamiquement -->
+                </div>
             </div>
         </div>
     </div>

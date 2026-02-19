@@ -1637,6 +1637,7 @@ function openFsExerciseSwap() {
     // Ouvrir le sheet
     const sheet = document.getElementById('swap-bottom-sheet');
     if (sheet) {
+        if (window.ModalManager) ModalManager.lock('swap-bottom-sheet');
         sheet.style.display = 'flex';
         sheet.offsetHeight;
         sheet.classList.remove('animate-in');
@@ -2056,8 +2057,7 @@ async function postponeCurrentExercise(skipConfirm = false) {
     // Afficher l'exercice suivant (qui prend la place actuelle)
     renderCurrentExercise();
 
-    // Démarrer le timer de repos
-    startRestTimer();
+    // Timer supprimé ici — pas de timer avant la 1ère série du nouvel exercice
 
     showToast(`${currentExercise.effectiveName} reporté`, 'info');
 }
@@ -2181,15 +2181,23 @@ function renderCurrentExercise() {
     document.getElementById('fs-session-title').textContent = fsSession.splitName;
     document.getElementById('fs-session-progress').textContent = splits ? `Jour ${fsSession.splitIndex + 1}/${splits.length}` : 'Jour 1';
 
-    // Update exercise info
+    // Update exercise info — nom centré seul, boutons séparés en dessous
     const exerciseNameEl = document.getElementById('fs-exercise-name');
-    exerciseNameEl.innerHTML = `
-        ${exercise.effectiveName}${exercise.postponed ? ' <span style="color: var(--warning); font-size: 0.8rem;">⏭️</span>' : ''}
-        ${supersetLabel ? `<span class="superset-badge">⚡ ${supersetLabel}</span>` : ''}
-        <button class="exercise-info-btn" onclick="openExerciseTips('${exercise.effectiveName.replace(/'/g, "\\'")}')" title="Informations" style="margin-left: 8px;">
-            ⓘ
-        </button>
-    `;
+    let nameHTML = exercise.effectiveName;
+    if (exercise.postponed) {
+        nameHTML += ' <span style="color: var(--warning); font-size: 0.8rem;">⏭️</span>';
+    }
+    if (supersetLabel) {
+        nameHTML += `<span class="superset-badge">⚡ ${supersetLabel}</span>`;
+    }
+    exerciseNameEl.innerHTML = nameHTML;
+
+    // Mettre à jour le bouton info séparément
+    const infoBtn = document.getElementById('fs-info-btn');
+    if (infoBtn) {
+        infoBtn.onclick = () => openExerciseTips(exercise.effectiveName);
+    }
+
     document.getElementById('fs-set-indicator').textContent = `Série ${currentSet} / ${totalSets}`;
 
     // Load GIF for fullscreen session
@@ -2315,6 +2323,18 @@ function renderCurrentExercise() {
         lastLog,
         progressLogKeys: Object.keys(state.progressLog || {})
     });
+
+    // Afficher l'objectif de l'exercice
+    const objectiveEl = document.getElementById('fs-exercise-objective');
+    const objectiveTextEl = document.getElementById('fs-objective-text');
+    if (objectiveEl && objectiveTextEl) {
+        const phaseAdj = getPhaseAdjustments();
+        const adjSets = Math.max(1, Math.round((exercise.sets || 4) * phaseAdj.setsMultiplier));
+        const repRange = exercise.targetReps || phaseAdj.repsRange || exercise.reps || '8-12';
+        const weightStr = suggestedWeight > 0 ? ` @ ${suggestedWeight}kg` : '';
+        objectiveTextEl.textContent = `Objectif : ${adjSets}×${repRange}${weightStr}`;
+        objectiveEl.style.display = '';
+    }
 
     // Render completed sets for this exercise
     renderCompletedSets();
@@ -2713,7 +2733,8 @@ function goToNextExercise() {
     if (completeSection) completeSection.style.display = 'none';
     
     renderCurrentExercise();
-    startRestTimer();
+    // Timer supprimé ici — ne démarre que depuis validateCurrentSet()
+    // pour éviter le double démarrage et le timer avant la 1ère série
 }
 
 function renderSessionCompleteState() {
@@ -2844,10 +2865,18 @@ function startRestTimer() {
         clearInterval(fsTimerInterval);
     }
 
+    // Reset auto-collapse flag et annuler timeout en cours
+    window._timerAutoCollapseScheduled = false;
+    if (window._timerAutoCollapseTimeout) {
+        clearTimeout(window._timerAutoCollapseTimeout);
+        window._timerAutoCollapseTimeout = null;
+    }
+
     // Afficher le timer prominent en mode plein écran
     const prominentTimer = document.getElementById('fs-rest-timer-prominent');
     if (prominentTimer) {
         prominentTimer.style.display = 'flex';
+        prominentTimer.classList.remove('fs-rest-collapsing');
         fsRestTimerFullscreen = true;
         prominentTimer.classList.add('fs-rest-fullscreen');
     }
@@ -2903,6 +2932,26 @@ function startRestTimer() {
                 if (circleContainer) {
                     circleContainer.classList.add('timer-overtime');
                 }
+
+                // Auto-collapse après 8 secondes d'overtime
+                if (!window._timerAutoCollapseScheduled) {
+                    window._timerAutoCollapseScheduled = true;
+                    // Stocker l'ID pour pouvoir l'annuler si un nouveau timer démarre
+                    window._timerAutoCollapseTimeout = setTimeout(() => {
+                        const pt = document.getElementById('fs-rest-timer-prominent');
+                        if (pt && pt.classList.contains('fs-rest-fullscreen')) {
+                            // Animation de collapse
+                            pt.classList.add('fs-rest-collapsing');
+                            setTimeout(() => {
+                                fsRestTimerFullscreen = false;
+                                pt.classList.remove('fs-rest-fullscreen', 'fs-rest-collapsing');
+                                // Cacher complètement le timer prominent après collapse
+                                pt.style.display = 'none';
+                            }, 400);
+                        }
+                        window._timerAutoCollapseTimeout = null;
+                    }, 8000);
+                }
             }
 
             // Vibrations périodiques en overtime (toutes les 10s)
@@ -2917,6 +2966,7 @@ function startRestTimer() {
                 clearInterval(fsTimerInterval);
                 fsTimerInterval = null;
                 window._timerEndedNotified = false;
+                window._timerAutoCollapseScheduled = false;
             }
         }
     }, 1000);
@@ -2979,11 +3029,19 @@ function resetFsTimer() {
     updateFsTimerDisplay();
     document.getElementById('fs-timer').classList.remove('active', 'overtime');
     
+    // Reset flags et annuler le timeout d'auto-collapse
+    window._timerEndedNotified = false;
+    window._timerAutoCollapseScheduled = false;
+    if (window._timerAutoCollapseTimeout) {
+        clearTimeout(window._timerAutoCollapseTimeout);
+        window._timerAutoCollapseTimeout = null;
+    }
+
     // Masquer le timer prominent et retirer le mode plein écran
     const prominentTimer = document.getElementById('fs-rest-timer-prominent');
     if (prominentTimer) {
         prominentTimer.style.display = 'none';
-        prominentTimer.classList.remove('fs-rest-fullscreen');
+        prominentTimer.classList.remove('fs-rest-fullscreen', 'fs-rest-collapsing');
     }
 }
 
@@ -4497,6 +4555,67 @@ function openExerciseTips(exerciseName) {
         tipsSection.style.display = (exercise.execution || exercise.cues) ? 'none' : 'block';
     }
     
+    // === HISTORIQUE PERFORMANCES ===
+    const historySection = document.getElementById('info-history-section');
+    const historyContent = document.getElementById('info-history-content');
+    const historyPrs = document.getElementById('info-exercise-prs');
+    const historyChart = document.getElementById('info-history-chart');
+    const historyList = document.getElementById('info-history-list');
+
+    if (historySection && historyContent) {
+        // Reset état plié
+        historyContent.style.display = 'none';
+        const chevron = document.getElementById('info-history-chevron');
+        if (chevron) chevron.style.transform = '';
+
+        const logs = state.progressLog?.[exerciseName] || [];
+
+        if (logs.length > 0) {
+            historySection.style.display = 'block';
+
+            // PRs
+            if (historyPrs && typeof getExercisePRs === 'function') {
+                const prs = getExercisePRs(exerciseName);
+                if (prs) {
+                    let prHTML = '';
+                    if (prs.maxWeight > 0) prHTML += `<div class="info-pr-item"><span class="info-pr-label">Poids max</span><span class="info-pr-value">${prs.maxWeight}kg</span></div>`;
+                    if (prs.max1RM > 0) prHTML += `<div class="info-pr-item"><span class="info-pr-label">1RM est.</span><span class="info-pr-value">${Math.round(prs.max1RM)}kg</span></div>`;
+                    if (prs.maxVolume > 0) prHTML += `<div class="info-pr-item"><span class="info-pr-label">Vol. max</span><span class="info-pr-value">${Math.round(prs.maxVolume)}kg</span></div>`;
+                    historyPrs.innerHTML = prHTML ? `<div class="info-pr-grid">${prHTML}</div>` : '';
+                }
+            }
+
+            // Mini chart CSS (5 dernières sessions)
+            const last5 = logs.slice(-5);
+            const maxW = Math.max(...last5.map(l => l.weight || 0));
+            if (historyChart && maxW > 0) {
+                historyChart.innerHTML = `<div class="info-mini-chart">${last5.map(log => {
+                    const h = Math.max(8, Math.round(((log.weight || 0) / maxW) * 100));
+                    const d = new Date(log.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                    return `<div class="info-chart-col"><div class="info-chart-bar" style="height: ${h}%"><span class="info-chart-val">${log.weight || 0}</span></div><span class="info-chart-date">${d}</span></div>`;
+                }).join('')}</div>`;
+            } else if (historyChart) {
+                historyChart.innerHTML = '';
+            }
+
+            // Liste des 5 dernières séances (ordre inverse)
+            if (historyList) {
+                historyList.innerHTML = [...last5].reverse().map(log => {
+                    const d = new Date(log.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                    let detail;
+                    if (log.setsDetail && log.setsDetail.length > 0) {
+                        detail = log.setsDetail.map(s => `${s.weight}×${s.reps}`).join(' · ');
+                    } else {
+                        detail = `${log.weight}kg × ${log.achievedReps || '?'} reps`;
+                    }
+                    return `<div class="info-history-row"><span class="info-history-date">${d}</span><span class="info-history-detail">${detail}</span></div>`;
+                }).join('');
+            }
+        } else {
+            historySection.style.display = 'none';
+        }
+    }
+
     // Afficher le bottom sheet avec animation iOS-like
     const sheet = document.getElementById('exercise-info-sheet');
     if (sheet) {
@@ -4506,15 +4625,25 @@ function openExerciseTips(exerciseName) {
         void sheet.offsetWidth;
         sheet.classList.add('animate-in');
         OverflowManager.lock();
-        
+
         // Initialiser le swipe to dismiss (une seule fois)
         initExerciseSheetSwipe();
     }
 }
 
 /**
- * Initialiser le swipe to dismiss pour la bottom sheet exercice
+ * Toggle la section historique dans la fiche exercice
  */
+function toggleExerciseHistory() {
+    const content = document.getElementById('info-history-content');
+    const chevron = document.getElementById('info-history-chevron');
+    if (content) {
+        const isHidden = content.style.display === 'none';
+        content.style.display = isHidden ? 'block' : 'none';
+        if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
+    }
+}
+
 let exerciseSheetSwipeInitialized = false;
 let swipeStartY = 0;
 let swipeCurrentY = 0;
@@ -4987,6 +5116,7 @@ window.toggleWizardSensitivity = toggleWizardSensitivity;
 // Fonctions d'exercices
 window.openExerciseSwapSheet = openExerciseSwapSheet;
 window.openExerciseTips = openExerciseTips;
+window.toggleExerciseHistory = toggleExerciseHistory;
 window.closeExerciseInfo = closeExerciseInfo;
 window.closeBottomSheet = closeBottomSheet;
 window.swapExerciseInPreview = swapExerciseInPreview;
@@ -5028,6 +5158,11 @@ window.createSuperset = createSuperset;
 window.removeSuperset = removeSuperset;
 window.machineOccupied = machineOccupied;
 window.postponeCurrentExercise = postponeCurrentExercise;
+
+// Navigation libre exercices
+window.openExerciseNavigator = openExerciseNavigator;
+window.closeExerciseNavigator = closeExerciseNavigator;
+window.navigateToExercise = navigateToExercise;
 
 // Fonctions périodisation
 window.getCurrentPhase = getCurrentPhase;
@@ -5393,10 +5528,15 @@ function updateActionButton() {
     const label = btn.querySelector('span');
     if (!label) return;
 
+    // Reset des classes d'état
+    btn.classList.remove('btn-next-exercise', 'btn-finish-session');
+
     if (isLastSet && isLastExercise) {
-        label.textContent = 'Terminer la séance';
+        label.textContent = 'Terminer la séance 🎉';
+        btn.classList.add('btn-finish-session');
     } else if (isLastSet) {
-        label.textContent = 'Exercice suivant';
+        label.textContent = 'Exercice suivant →';
+        btn.classList.add('btn-next-exercise');
     } else {
         label.textContent = 'Valider la série';
     }
@@ -5419,6 +5559,170 @@ function preloadNextExerciseGif() {
             preloadImg.src = url;
         }
     }
+}
+
+// ==================== EXERCISE NAVIGATOR ====================
+
+/**
+ * Ouvre le panneau de navigation entre exercices
+ */
+function openExerciseNavigator() {
+    if (!fsSession.active) return;
+    renderExerciseNavigator();
+    const sheet = document.getElementById('exercise-navigator-sheet');
+    if (sheet) {
+        if (window.ModalManager) ModalManager.lock('exercise-navigator');
+        sheet.style.display = 'flex';
+        // Remove-reflow-add pour re-trigger l'animation à chaque ouverture
+        sheet.classList.remove('animate-in');
+        void sheet.offsetWidth;
+        sheet.classList.add('animate-in');
+    }
+}
+
+/**
+ * Ferme le panneau de navigation
+ */
+function closeExerciseNavigator() {
+    if (window.ModalManager) ModalManager.unlock('exercise-navigator');
+    const sheet = document.getElementById('exercise-navigator-sheet');
+    if (sheet) {
+        sheet.style.display = 'none';
+        sheet.classList.remove('animate-in');
+    }
+}
+
+/**
+ * Rend la liste des exercices avec leurs statuts
+ */
+function renderExerciseNavigator() {
+    const listEl = document.getElementById('exercise-navigator-list');
+    const countEl = document.getElementById('nav-exercise-count');
+    if (!listEl) return;
+
+    const exercises = fsSession.exercises;
+    const currentIdx = fsSession.currentExerciseIndex;
+
+    // Compter les exercices terminés
+    let completedCount = 0;
+    const exerciseStatuses = exercises.map((ex, idx) => {
+        const setsCompleted = (fsSession.completedSets || []).filter(s => s.exerciseIndex === idx).length;
+        const totalSets = ex.sets || 0;
+        const isCompleted = setsCompleted >= totalSets && totalSets > 0;
+        if (isCompleted) completedCount++;
+        return { setsCompleted, totalSets, isCompleted };
+    });
+
+    if (countEl) {
+        countEl.textContent = `${completedCount}/${exercises.length}`;
+    }
+
+    listEl.innerHTML = exercises.map((ex, idx) => {
+        const { setsCompleted, totalSets, isCompleted } = exerciseStatuses[idx];
+        const isCurrent = idx === currentIdx;
+        const isPostponed = ex.postponed;
+
+        let statusIcon, statusClass;
+        if (isCompleted) {
+            statusIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+            statusClass = 'nav-completed';
+        } else if (isCurrent) {
+            statusIcon = '<span class="nav-dot nav-dot-current"></span>';
+            statusClass = 'nav-current';
+        } else if (isPostponed) {
+            statusIcon = '⏭️';
+            statusClass = 'nav-postponed';
+        } else if (setsCompleted > 0) {
+            statusIcon = '<span class="nav-dot nav-dot-partial"></span>';
+            statusClass = 'nav-partial';
+        } else {
+            statusIcon = '<span class="nav-dot nav-dot-pending"></span>';
+            statusClass = 'nav-pending';
+        }
+
+        const setsText = setsCompleted > 0 ? `${setsCompleted}/${totalSets} séries` : `0/${totalSets} séries`;
+        const canNavigate = !isCompleted;
+
+        return `
+            <div class="nav-exercise-item ${statusClass} ${isCurrent ? 'nav-active' : ''}"
+                 ${canNavigate ? `onclick="navigateToExercise(${idx})"` : ''}
+                 ${!canNavigate ? 'style="pointer-events: none;"' : ''}>
+                <span class="nav-exercise-status">${statusIcon}</span>
+                <div class="nav-exercise-info">
+                    <span class="nav-exercise-name">${ex.effectiveName}</span>
+                    <span class="nav-exercise-sets">${setsText}</span>
+                </div>
+                ${canNavigate && !isCurrent ? '<span class="nav-exercise-go">›</span>' : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Navigue vers un exercice spécifique
+ */
+async function navigateToExercise(targetIndex) {
+    if (targetIndex === fsSession.currentExerciseIndex) {
+        closeExerciseNavigator();
+        return;
+    }
+
+    const targetExercise = fsSession.exercises[targetIndex];
+    if (!targetExercise) return;
+
+    // Vérifier si l'exercice cible est déjà terminé
+    const targetSetsCompleted = (fsSession.completedSets || []).filter(s => s.exerciseIndex === targetIndex).length;
+    const targetTotalSets = targetExercise.sets || 0;
+    if (targetSetsCompleted >= targetTotalSets && targetTotalSets > 0) {
+        showToast('Cet exercice est déjà terminé', 'warning');
+        return;
+    }
+
+    // Confirmation si l'exercice en cours a des séries partielles
+    const currentExercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    const currentSetsCompleted = (fsSession.completedSets || []).filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex
+    ).length;
+    const currentTotalSets = currentExercise?.sets || 0;
+
+    if (currentSetsCompleted > 0 && currentSetsCompleted < currentTotalSets) {
+        const confirmed = await showConfirmModal({
+            title: 'Changer d\'exercice ?',
+            message: `${currentSetsCompleted}/${currentTotalSets} séries faites sur "${currentExercise.effectiveName}". Tu pourras y revenir.`,
+            icon: '🔄',
+            confirmLabel: 'Changer',
+            cancelLabel: 'Annuler'
+        });
+        if (!confirmed) return;
+    }
+
+    // Restaurer tout set en édition
+    if (typeof restoreEditingSetIfNeeded === 'function') {
+        restoreEditingSetIfNeeded();
+    }
+
+    // Naviguer
+    fsSession.currentExerciseIndex = targetIndex;
+    fsSession.currentSetIndex = targetSetsCompleted; // Reprendre là où on s'est arrêté
+    fsSession.exerciseCompleted = false;
+
+    // Reset le timer
+    resetFsTimer();
+
+    // Rétablir l'affichage normal
+    const content = document.getElementById('fs-content');
+    const completeSection = document.getElementById('fs-exercise-complete');
+    if (content) content.style.display = 'block';
+    if (completeSection) completeSection.style.display = 'none';
+
+    // Fermer le navigator et afficher
+    closeExerciseNavigator();
+    renderCurrentExercise();
+
+    // Sauvegarder
+    saveFsSessionToStorage();
+
+    showToast(`→ ${targetExercise.effectiveName}`, 'info');
 }
 
 // État pour le toggle pause/play du GIF
