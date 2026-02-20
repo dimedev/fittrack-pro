@@ -3029,6 +3029,31 @@ function collapseRestTimer() {
     if (window.MobileGestures?.Haptics) MobileGestures.Haptics.light();
 }
 
+/**
+ * Ré-ouvre le timer en fullscreen (tap sur le timer footer).
+ * Ne fait rien si le timer ne tourne pas.
+ */
+function expandRestTimer() {
+    if (!fsTimerInterval) return; // timer pas actif
+
+    const pt = document.getElementById('fs-rest-timer-prominent');
+    if (!pt) return;
+
+    // Annuler un éventuel auto-collapse en cours
+    if (window._timerAutoCollapseTimeout) {
+        clearTimeout(window._timerAutoCollapseTimeout);
+        window._timerAutoCollapseTimeout = null;
+        window._timerAutoCollapseScheduled = false;
+    }
+
+    pt.style.display = 'flex';
+    pt.classList.remove('fs-rest-collapsing');
+    fsRestTimerFullscreen = true;
+    pt.classList.add('fs-rest-fullscreen');
+
+    if (window.MobileGestures?.Haptics) MobileGestures.Haptics.light();
+}
+
 function startRestTimer() {
     // Get exercise name and goal
     const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
@@ -5334,6 +5359,7 @@ window.toggleAutoregulation = toggleAutoregulation;
 window.resetFsTimer = resetFsTimer;
 window.adjustFsTimer = adjustFsTimer;
 window.collapseRestTimer = collapseRestTimer;
+window.expandRestTimer = expandRestTimer;
 window.goToNextExercise = goToNextExercise;
 window.editCompletedSet = editCompletedSet;
 window.deleteCompletedSet = deleteCompletedSet;
