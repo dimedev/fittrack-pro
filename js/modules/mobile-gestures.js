@@ -525,8 +525,8 @@
             // Bloqué si : input/textarea focus, timer fullscreen actif, bottom sheet ouvert, animation en cours
             const focused = document.activeElement;
             if (focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA' || focused.tagName === 'SELECT')) return true;
-            const timerOverlay = document.getElementById('fs-rest-timer-overlay');
-            if (timerOverlay && timerOverlay.style.display !== 'none') return true;
+            const timerProminent = document.getElementById('fs-rest-timer-prominent');
+            if (timerProminent && timerProminent.classList.contains('fs-rest-fullscreen')) return true;
             const navigatorSheet = document.getElementById('exercise-navigator-sheet');
             if (navigatorSheet && navigatorSheet.style.display !== 'none') return true;
             const swapSheet = document.getElementById('exercise-swap-sheet');

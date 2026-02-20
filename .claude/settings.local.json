@@ -28,7 +28,8 @@
       "Bash(curl:*)",
       "Bash(git commit:*)",
       "Bash(sed:*)",
-      "Bash(/c/Windows/System32/wsl.exe bash:*)"
+      "Bash(/c/Windows/System32/wsl.exe bash:*)",
+      "Bash(echo:*)"
     ]
   }
 }

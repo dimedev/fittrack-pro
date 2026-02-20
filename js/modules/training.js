@@ -2995,8 +2995,38 @@ let fsRestTimerFullscreen = true;
 function toggleRestTimerFullscreen() {
     const timer = document.getElementById('fs-rest-timer-prominent');
     if (!timer) return;
-    fsRestTimerFullscreen = !fsRestTimerFullscreen;
-    timer.classList.toggle('fs-rest-fullscreen', fsRestTimerFullscreen);
+    // La croix ferme complètement le timer (pas de mode intermédiaire sticky)
+    if (fsRestTimerFullscreen) {
+        collapseRestTimer();
+    } else {
+        fsRestTimerFullscreen = true;
+        timer.classList.add('fs-rest-fullscreen');
+    }
+}
+
+/**
+ * Collapse le timer fullscreen → caché complètement.
+ * Appelé par : auto-collapse (3s après 0), tap-to-dismiss, croix minimize.
+ */
+function collapseRestTimer() {
+    const pt = document.getElementById('fs-rest-timer-prominent');
+    if (!pt) return;
+
+    if (pt.classList.contains('fs-rest-fullscreen')) {
+        // Animation collapse depuis fullscreen
+        pt.classList.add('fs-rest-collapsing');
+        setTimeout(() => {
+            fsRestTimerFullscreen = false;
+            pt.classList.remove('fs-rest-fullscreen', 'fs-rest-collapsing');
+            pt.style.display = 'none';
+        }, 400);
+    } else {
+        // Déjà en mode inline/sticky — cacher directement
+        pt.style.display = 'none';
+    }
+
+    // Haptic léger
+    if (window.MobileGestures?.Haptics) MobileGestures.Haptics.light();
 }
 
 function startRestTimer() {
@@ -3026,6 +3056,11 @@ function startRestTimer() {
         window._timerAutoCollapseTimeout = null;
     }
 
+    // Reset overtime class du cycle précédent
+    const circleContainer = document.getElementById('rest-timer-circle-container');
+    if (circleContainer) circleContainer.classList.remove('timer-overtime');
+    window._timerEndedNotified = false;
+
     // Afficher le timer prominent en mode plein écran
     const prominentTimer = document.getElementById('fs-rest-timer-prominent');
     if (prominentTimer) {
@@ -3033,6 +3068,19 @@ function startRestTimer() {
         prominentTimer.classList.remove('fs-rest-collapsing');
         fsRestTimerFullscreen = true;
         prominentTimer.classList.add('fs-rest-fullscreen');
+
+        // Tap-to-dismiss : un tap en dehors des contrôles ferme le fullscreen
+        if (!prominentTimer._tapToDismissInit) {
+            prominentTimer._tapToDismissInit = true;
+            prominentTimer.addEventListener('click', (e) => {
+                // Ignorer si tap sur les boutons de contrôle
+                if (e.target.closest('.fs-rest-control-btn, .fs-rest-minimize-btn')) return;
+                // Ne collapse que si en mode fullscreen
+                if (prominentTimer.classList.contains('fs-rest-fullscreen')) {
+                    collapseRestTimer();
+                }
+            });
+        }
     }
 
     // Calculer l'heure de fin basée sur Date.now() pour précision
@@ -3087,24 +3135,13 @@ function startRestTimer() {
                     circleContainer.classList.add('timer-overtime');
                 }
 
-                // Auto-collapse après 8 secondes d'overtime
+                // Auto-collapse après 3 secondes d'overtime
                 if (!window._timerAutoCollapseScheduled) {
                     window._timerAutoCollapseScheduled = true;
-                    // Stocker l'ID pour pouvoir l'annuler si un nouveau timer démarre
                     window._timerAutoCollapseTimeout = setTimeout(() => {
-                        const pt = document.getElementById('fs-rest-timer-prominent');
-                        if (pt && pt.classList.contains('fs-rest-fullscreen')) {
-                            // Animation de collapse
-                            pt.classList.add('fs-rest-collapsing');
-                            setTimeout(() => {
-                                fsRestTimerFullscreen = false;
-                                pt.classList.remove('fs-rest-fullscreen', 'fs-rest-collapsing');
-                                // Cacher complètement le timer prominent après collapse
-                                pt.style.display = 'none';
-                            }, 400);
-                        }
+                        collapseRestTimer();
                         window._timerAutoCollapseTimeout = null;
-                    }, 8000);
+                    }, 3000);
                 }
             }
 
@@ -5296,6 +5333,7 @@ window.validateCurrentSet = validateCurrentSet;
 window.toggleAutoregulation = toggleAutoregulation;
 window.resetFsTimer = resetFsTimer;
 window.adjustFsTimer = adjustFsTimer;
+window.collapseRestTimer = collapseRestTimer;
 window.goToNextExercise = goToNextExercise;
 window.editCompletedSet = editCompletedSet;
 window.deleteCompletedSet = deleteCompletedSet;
