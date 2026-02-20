@@ -146,7 +146,17 @@ document.addEventListener('click', (e) => {
  */
 function findExerciseByName(name) {
     if (!state.exercises || !name) return null;
-    return state.exercises.find(ex => ex.name === name || ex.id === name) || null;
+    // Exact match
+    let found = state.exercises.find(ex => ex.name === name || ex.id === name);
+    if (found) return found;
+    // Fallback: si c'est une variante "Exercice - Variante", chercher le nom de base
+    const dashIdx = name.lastIndexOf(' - ');
+    if (dashIdx > 0) {
+        const baseName = name.substring(0, dashIdx);
+        found = state.exercises.find(ex => ex.name === baseName || ex.id === baseName);
+        if (found) return found;
+    }
+    return null;
 }
 
 /**
@@ -4201,6 +4211,22 @@ async function finishSession() {
     // Keep only last 100 sessions
     state.sessionHistory = state.sessionHistory.slice(0, 100);
 
+    // Sauvegarder le template si des swaps/variantes ont été faits pendant la séance
+    const hasSwaps = fsSession.exercises.some(ex => ex.swapped);
+    if (hasSwaps) {
+        const templateKey = `${state.wizardResults.selectedProgram}-${fsSession.splitIndex}`;
+        state.sessionTemplates[templateKey] = {
+            splitIndex: fsSession.splitIndex,
+            splitName: fsSession.splitName,
+            exercises: fsSession.exercises.map(ex => ({
+                originalName: ex.originalName || ex.name,
+                swappedId: ex.effectiveId || null,
+                swappedName: ex.effectiveName !== (ex.originalName || ex.name) ? ex.effectiveName : null
+            })),
+            savedAt: new Date().toISOString()
+        };
+    }
+
     // Update training progress
     const program = trainingPrograms[state.wizardResults.selectedProgram];
     const splits = program.splits[state.wizardResults.frequency];
@@ -4344,54 +4370,16 @@ function getEffectiveExerciseName(originalName, muscle) {
 }
 
 function getLastLog(exerciseName) {
-    if (!state.progressLog) {
-        console.log(`📊 getLastLog("${exerciseName}"): progressLog est vide/null`);
-        return null;
-    }
+    if (!state.progressLog) return null;
 
-    // DEBUG: Afficher toutes les clés disponibles
-    const allKeys = Object.keys(state.progressLog);
-    console.log(`📊 getLastLog("${exerciseName}"): Clés disponibles:`, allKeys);
+    // Utiliser le helper centralisé (avec fallback nom de base / variante)
+    const logs = typeof findProgressLogs === 'function'
+        ? findProgressLogs(exerciseName)
+        : (state.progressLog[exerciseName] || []);
 
-    // Essayer d'abord avec le nom exact
-    let logs = state.progressLog[exerciseName];
+    if (!logs || logs.length === 0) return null;
 
-    // Si pas trouvé, essayer avec des variantes du nom (normalisation)
-    if (!logs || logs.length === 0) {
-        const normalizedName = exerciseName.toLowerCase().trim();
-
-        // Chercher une correspondance exacte (insensible à la casse)
-        for (const [logName, logData] of Object.entries(state.progressLog)) {
-            if (logName.toLowerCase().trim() === normalizedName) {
-                console.log(`📊 getLastLog: Trouvé via normalisation: "${logName}"`);
-                logs = logData;
-                break;
-            }
-        }
-
-        // Si toujours pas trouvé, chercher une correspondance partielle
-        if (!logs || logs.length === 0) {
-            for (const [logName, logData] of Object.entries(state.progressLog)) {
-                // Chercher si le nom contient ou est contenu
-                if (logName.toLowerCase().includes(normalizedName) ||
-                    normalizedName.includes(logName.toLowerCase())) {
-                    console.log(`📊 getLastLog: Trouvé via correspondance partielle: "${logName}"`);
-                    logs = logData;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (!logs || logs.length === 0) {
-        console.log(`📊 getLastLog("${exerciseName}"): Aucune donnée trouvée`);
-        return null;
-    }
-
-    const lastLog = logs[logs.length - 1];
-    console.log(`📊 getLastLog("${exerciseName}"): Trouvé!`, lastLog);
-
-    return lastLog;
+    return logs[logs.length - 1];
 }
 
 function openSessionSettings() {
@@ -4454,7 +4442,9 @@ async function quitSession() {
 function checkForRealtimePR(exerciseName, weight, reps) {
     if (!state.progressLog || weight <= 0 || reps <= 0) return;
 
-    const logs = state.progressLog[exerciseName];
+    const logs = typeof findProgressLogs === 'function'
+        ? findProgressLogs(exerciseName)
+        : (state.progressLog[exerciseName] || []);
     if (!logs || logs.length === 0) {
         // Premier log = toujours un PR implicite mais pas de notif
         return;

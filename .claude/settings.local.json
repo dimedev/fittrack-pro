@@ -29,7 +29,8 @@
       "Bash(git commit:*)",
       "Bash(sed:*)",
       "Bash(/c/Windows/System32/wsl.exe bash:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "mcp__jetbrains__get_file_problems"
     ]
   }
 }

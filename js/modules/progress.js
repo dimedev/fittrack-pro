@@ -10,6 +10,50 @@ let monthlyComparisonChart = null;
 // ==================== HELPER FUNCTIONS ====================
 
 /**
+ * Cherche les logs dans progressLog avec fallback : nom exact → nom de base (sans variante)
+ * Ex: "Tirage Verticale Poulie Basse - Prise Large" → fallback vers "Tirage Verticale Poulie Basse"
+ * @param {string} exerciseName - Nom de l'exercice (peut être une variante)
+ * @returns {Array} - Logs trouvés (peut être vide)
+ */
+function findProgressLogs(exerciseName) {
+    if (!state.progressLog) return [];
+
+    // 1. Nom exact
+    let logs = state.progressLog[exerciseName];
+    if (logs && logs.length > 0) return logs;
+
+    // 2. Nom de base (enlever le suffixe " - variante")
+    const dashIdx = exerciseName.lastIndexOf(' - ');
+    if (dashIdx > 0) {
+        const baseName = exerciseName.substring(0, dashIdx);
+        logs = state.progressLog[baseName];
+        if (logs && logs.length > 0) return logs;
+    }
+
+    // 3. Case-insensitive
+    const normalizedName = exerciseName.toLowerCase().trim();
+    for (const [logName, logData] of Object.entries(state.progressLog)) {
+        if (logName.toLowerCase().trim() === normalizedName) {
+            return logData;
+        }
+    }
+
+    // 4. Le nom de base est contenu dans une clé existante
+    if (dashIdx > 0) {
+        const baseName = exerciseName.substring(0, dashIdx).toLowerCase().trim();
+        for (const [logName, logData] of Object.entries(state.progressLog)) {
+            if (logName.toLowerCase().trim() === baseName) {
+                return logData;
+            }
+        }
+    }
+
+    return [];
+}
+
+window.findProgressLogs = findProgressLogs;
+
+/**
  * Calcule la progression de volume entre ce mois et le mois précédent
  * @returns {number|null} - Pourcentage de progression ou null si pas assez de données
  */
@@ -274,7 +318,7 @@ function renderAchievements() {
  * @returns {object|null} - Les différents PRs ou null si pas de données
  */
 function getExercisePRs(exerciseName) {
-    const logs = state.progressLog[exerciseName];
+    const logs = findProgressLogs(exerciseName);
     if (!logs || logs.length === 0) return null;
 
     let maxWeight = 0;

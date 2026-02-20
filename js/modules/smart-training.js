@@ -23,10 +23,12 @@
      * @returns {object} - { suggested, lastWeight, progression, confidence, action }
      */
     function calculateSuggestedWeight(exerciseName, targetReps = 10) {
-        // Chercher les logs avec correspondance flexible (gère les variations de noms)
-        let logs = state.progressLog?.[exerciseName] || [];
+        // Utiliser le helper centralisé (fallback variante → nom de base)
+        let logs = typeof findProgressLogs === 'function'
+            ? findProgressLogs(exerciseName)
+            : (state.progressLog?.[exerciseName] || []);
 
-        // Si pas trouvé, chercher avec nom normalisé
+        // Si toujours pas trouvé, chercher avec nom normalisé
         if (logs.length === 0) {
             const normalizedName = normalizeExerciseName(exerciseName);
             for (const [logName, logData] of Object.entries(state.progressLog || {})) {
