@@ -485,6 +485,223 @@
         }
     }
 
+    // ==================== EXERCISE SWIPE NAVIGATOR ====================
+    /**
+     * Swipe gauche/droite entre exercices dans la séance fullscreen.
+     * Gère la discrimination horizontal/vertical, les animations slide, et les edge cases.
+     */
+    class ExerciseSwipeNavigator {
+        constructor(fsContentElement) {
+            this.el = fsContentElement;
+            this.startX = 0;
+            this.startY = 0;
+            this.currentX = 0;
+            this.directionLocked = false;
+            this.isHorizontal = false;
+            this.startTime = 0;
+            this._onTouchStart = this.onTouchStart.bind(this);
+            this._onTouchMove = this.onTouchMove.bind(this);
+            this._onTouchEnd = this.onTouchEnd.bind(this);
+            this._animating = false;
+        }
+
+        init() {
+            if (!this.el) return;
+            this.el.addEventListener('touchstart', this._onTouchStart, { passive: true });
+            this.el.addEventListener('touchmove', this._onTouchMove, { passive: false });
+            this.el.addEventListener('touchend', this._onTouchEnd, { passive: true });
+            this.el.addEventListener('touchcancel', this._onTouchEnd, { passive: true });
+        }
+
+        destroy() {
+            if (!this.el) return;
+            this.el.removeEventListener('touchstart', this._onTouchStart);
+            this.el.removeEventListener('touchmove', this._onTouchMove);
+            this.el.removeEventListener('touchend', this._onTouchEnd);
+            this.el.removeEventListener('touchcancel', this._onTouchEnd);
+        }
+
+        _isBlocked() {
+            // Bloqué si : input/textarea focus, timer fullscreen actif, bottom sheet ouvert, animation en cours
+            const focused = document.activeElement;
+            if (focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA' || focused.tagName === 'SELECT')) return true;
+            const timerOverlay = document.getElementById('fs-rest-timer-overlay');
+            if (timerOverlay && timerOverlay.style.display !== 'none') return true;
+            const navigatorSheet = document.getElementById('exercise-navigator-sheet');
+            if (navigatorSheet && navigatorSheet.style.display !== 'none') return true;
+            const swapSheet = document.getElementById('exercise-swap-sheet');
+            if (swapSheet && swapSheet.style.display !== 'none') return true;
+            if (this._animating) return true;
+            return false;
+        }
+
+        onTouchStart(e) {
+            if (this._isBlocked()) return;
+            this.startX = e.touches[0].clientX;
+            this.startY = e.touches[0].clientY;
+            this.currentX = this.startX;
+            this.directionLocked = false;
+            this.isHorizontal = false;
+            this.startTime = Date.now();
+        }
+
+        onTouchMove(e) {
+            if (this._isBlocked() || !this.startX) return;
+
+            this.currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+            const diffX = this.currentX - this.startX;
+            const diffY = currentY - this.startY;
+
+            // Discrimination direction (une seule fois)
+            if (!this.directionLocked && (Math.abs(diffX) > 15 || Math.abs(diffY) > 15)) {
+                this.directionLocked = true;
+                this.isHorizontal = Math.abs(diffX) > Math.abs(diffY) * 1.5;
+            }
+
+            if (!this.directionLocked || !this.isHorizontal) return;
+
+            e.preventDefault();
+            this.el.classList.add('swiping');
+
+            // Obtenir les infos de navigation pour rubber-band
+            const canGoLeft = this._canNavigate('left'); // swipe gauche = exercice suivant
+            const canGoRight = this._canNavigate('right'); // swipe droite = exercice précédent
+
+            let translateX = diffX;
+            // Rubber-band si on ne peut pas naviguer dans cette direction
+            if ((diffX < 0 && !canGoLeft) || (diffX > 0 && !canGoRight)) {
+                translateX = diffX * 0.2; // forte résistance
+            }
+
+            this.el.style.transform = `translateX(${translateX}px)`;
+            this.el.style.opacity = `${1 - Math.abs(translateX) / (this.el.offsetWidth * 1.5)}`;
+        }
+
+        onTouchEnd() {
+            if (!this.directionLocked || !this.isHorizontal || this._isBlocked()) {
+                this._reset();
+                return;
+            }
+
+            const diffX = this.currentX - this.startX;
+            const elapsed = Date.now() - this.startTime;
+            const velocity = Math.abs(diffX) / elapsed; // px/ms
+            const threshold = 80;
+
+            const shouldNavigate = Math.abs(diffX) > threshold || velocity > 0.5;
+
+            if (!shouldNavigate) {
+                this._snapBack();
+                return;
+            }
+
+            const direction = diffX < 0 ? 'left' : 'right';
+            if (!this._canNavigate(direction)) {
+                this._snapBack();
+                return;
+            }
+
+            // Naviguer !
+            this._animateNavigation(direction);
+        }
+
+        _canNavigate(direction) {
+            // left = exercice suivant incomplet, right = exercice précédent incomplet
+            if (direction === 'left') {
+                return typeof window.findNextIncompleteExercise === 'function' &&
+                       window.findNextIncompleteExercise(window.fsSession?.currentExerciseIndex) !== null;
+            } else {
+                return typeof window.findPreviousIncompleteExercise === 'function' &&
+                       window.findPreviousIncompleteExercise(window.fsSession?.currentExerciseIndex) !== null;
+            }
+        }
+
+        _snapBack() {
+            this.el.classList.remove('swiping');
+            this.el.style.transition = 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease';
+            this.el.style.transform = 'translateX(0)';
+            this.el.style.opacity = '1';
+            setTimeout(() => {
+                this.el.style.transition = '';
+                this.el.style.transform = '';
+                this.el.style.opacity = '';
+            }, 260);
+            this.startX = 0;
+        }
+
+        _reset() {
+            this.el.classList.remove('swiping');
+            this.el.style.transform = '';
+            this.el.style.opacity = '';
+            this.el.style.transition = '';
+            this.startX = 0;
+        }
+
+        async _animateNavigation(direction) {
+            this._animating = true;
+
+            // Haptic
+            if (window.MobileGestures?.Haptics) MobileGestures.Haptics.light();
+
+            const width = this.el.offsetWidth;
+            const exitX = direction === 'left' ? -width : width;
+            const enterX = direction === 'left' ? width * 0.3 : -width * 0.3;
+
+            // Phase 1 : Slide-out
+            this.el.classList.remove('swiping');
+            this.el.classList.add('swipe-exit');
+            this.el.style.transform = `translateX(${exitX}px)`;
+            this.el.style.opacity = '0.3';
+
+            await this._wait(280);
+
+            // Phase 2 : Callback navigation (changer d'exercice)
+            this.el.classList.remove('swipe-exit');
+            this.el.style.transition = 'none';
+            this.el.style.transform = `translateX(${enterX}px)`;
+            this.el.style.opacity = '0';
+
+            if (direction === 'left') {
+                const nextIdx = window.findNextIncompleteExercise(window.fsSession.currentExerciseIndex);
+                if (nextIdx !== null) {
+                    window.fsSession.currentExerciseIndex = nextIdx;
+                    window.fsSession.currentSetIndex = window.getCompletedSetsForExercise(nextIdx);
+                    if (typeof window.renderCurrentExercise === 'function') window.renderCurrentExercise();
+                }
+            } else {
+                const prevIdx = window.findPreviousIncompleteExercise(window.fsSession.currentExerciseIndex);
+                if (prevIdx !== null) {
+                    window.fsSession.currentExerciseIndex = prevIdx;
+                    window.fsSession.currentSetIndex = window.getCompletedSetsForExercise(prevIdx);
+                    if (typeof window.renderCurrentExercise === 'function') window.renderCurrentExercise();
+                }
+            }
+
+            // Force reflow avant animation entrée
+            void this.el.offsetWidth;
+
+            // Phase 3 : Slide-in
+            this.el.classList.add('swipe-enter');
+            this.el.style.transform = 'translateX(0)';
+            this.el.style.opacity = '1';
+
+            await this._wait(260);
+
+            // Cleanup
+            this.el.classList.remove('swipe-enter');
+            this.el.style.transition = '';
+            this.el.style.transform = '';
+            this.el.style.opacity = '';
+            this.startX = 0;
+            this._animating = false;
+        }
+
+        _wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    }
+
     // ==================== SWIPE TO DISMISS INITIALIZATION ====================
     function initSwipeToDismissModals() {
         // Get all modal overlays
@@ -797,6 +1014,7 @@
         SwipeToDelete,
         SwipeToDismiss,
         PullToRefresh,
+        ExerciseSwipeNavigator,
         Haptics,
         init: initMobileGestures,
         initSwipeToDismissModals

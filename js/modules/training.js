@@ -1977,6 +1977,15 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
 
     // Render first exercise
     renderCurrentExercise();
+
+    // Initialiser le swipe gauche/droite entre exercices
+    if (window.MobileGestures?.ExerciseSwipeNavigator && window.innerWidth <= 768) {
+        const fsContent = document.querySelector('.fs-content');
+        if (fsContent) {
+            window._exerciseSwipeNav = new MobileGestures.ExerciseSwipeNavigator(fsContent);
+            window._exerciseSwipeNav.init();
+        }
+    }
 }
 
 /**
@@ -2163,6 +2172,12 @@ async function closeFullScreenSession() {
     if (nav) nav.style.display = '';
     if (mobileNav) mobileNav.style.display = '';
 
+    // Détruire le swipe navigator
+    if (window._exerciseSwipeNav) {
+        window._exerciseSwipeNav.destroy();
+        window._exerciseSwipeNav = null;
+    }
+
     fsSession.active = false;
 }
 
@@ -2210,7 +2225,14 @@ function renderCurrentExercise() {
     const totalRequiredSets = fsSession.exercises.reduce((sum, ex) => sum + (ex.sets || 0), 0);
     const totalCompletedSets = fsSession.completedSets.length;
     const progress = totalRequiredSets > 0 ? (totalCompletedSets / totalRequiredSets) * 100 : 0;
-    document.getElementById('fs-progress-fill').style.width = `${Math.min(progress, 100)}%`;
+    const progressFill = document.getElementById('fs-progress-fill');
+    if (progressFill) {
+        progressFill.style.width = `${Math.min(progress, 100)}%`;
+        progressFill.classList.remove('progress-updated');
+        void progressFill.offsetWidth;
+        progressFill.classList.add('progress-updated');
+        setTimeout(() => progressFill.classList.remove('progress-updated'), 700);
+    }
 
     // Get last log for this exercise
     const lastLog = getLastLog(exercise.effectiveName);
@@ -2757,6 +2779,19 @@ function findNextIncompleteExercise(afterIndex) {
 }
 
 /**
+ * Trouve l'exercice incomplet précédent avant l'index donné (scan circulaire inverse).
+ * @returns {number|null} Index de l'exercice incomplet précédent, ou null si tous complets
+ */
+function findPreviousIncompleteExercise(beforeIndex) {
+    const len = fsSession.exercises.length;
+    for (let i = 1; i < len; i++) {
+        const idx = (beforeIndex - i + len) % len;
+        if (!isExerciseComplete(idx)) return idx;
+    }
+    return null;
+}
+
+/**
  * Corrige les indices dans completedSets et supersets après un splice+push.
  * Appelé par postponeCurrentExercise() pour éviter la corruption des données.
  */
@@ -2777,6 +2812,35 @@ function reindexAfterSplice(removedIndex, newIndex) {
             }
         });
     });
+}
+
+/**
+ * Corrige les indices dans completedSets et supersets après un drag-reorder.
+ * Différent de reindexAfterSplice : ici on déplace un élément d'une position à une autre.
+ */
+function reindexAfterReorder(oldIndex, newIndex) {
+    const len = fsSession.exercises.length;
+    // Construire le mapping : pour chaque ancien index, quel est le nouvel index ?
+    const mapping = new Array(len);
+    for (let i = 0; i < len; i++) {
+        if (i === oldIndex) {
+            mapping[i] = newIndex;
+        } else if (oldIndex < newIndex && i > oldIndex && i <= newIndex) {
+            mapping[i] = i - 1;
+        } else if (oldIndex > newIndex && i >= newIndex && i < oldIndex) {
+            mapping[i] = i + 1;
+        } else {
+            mapping[i] = i;
+        }
+    }
+    fsSession.completedSets.forEach(s => {
+        s.exerciseIndex = mapping[s.exerciseIndex];
+    });
+    (fsSession.supersets || []).forEach(ss => {
+        ss.exercise1Index = mapping[ss.exercise1Index];
+        ss.exercise2Index = mapping[ss.exercise2Index];
+    });
+    fsSession.currentExerciseIndex = mapping[fsSession.currentExerciseIndex];
 }
 
 // ==================== EXERCICE & SESSION COMPLETE STATES ====================
@@ -3881,9 +3945,6 @@ async function finishSession() {
     // Restaurer un set en cours d'édition non validé
     restoreEditingSetIfNeeded();
 
-    // Progression de la périodisation
-    updatePeriodization();
-
     if (fsSession.completedSets.length === 0) {
         const confirmed = await showConfirmModal({
             title: 'Aucune série',
@@ -3909,6 +3970,9 @@ async function finishSession() {
         });
         if (!confirmed) return;
     }
+
+    // Progression de la périodisation (après confirmations, avant sauvegarde)
+    updatePeriodization();
 
     // Détecter les doublons avant de sauvegarder
     const today = new Date().toISOString().split('T')[0];
@@ -5264,6 +5328,14 @@ window.openExerciseNavigator = openExerciseNavigator;
 window.closeExerciseNavigator = closeExerciseNavigator;
 window.navigateToExercise = navigateToExercise;
 
+// Helpers pour swipe entre exercices (utilisés par ExerciseSwipeNavigator)
+window.findNextIncompleteExercise = findNextIncompleteExercise;
+window.findPreviousIncompleteExercise = findPreviousIncompleteExercise;
+window.getCompletedSetsForExercise = getCompletedSetsForExercise;
+window.renderCurrentExercise = renderCurrentExercise;
+// fsSession est réassigné à chaque démarrage → getter dynamique
+Object.defineProperty(window, 'fsSession', { get: () => fsSession, configurable: true });
+
 // Fonctions périodisation
 window.getCurrentPhase = getCurrentPhase;
 window.getPhaseAdjustments = getPhaseAdjustments;
@@ -5635,9 +5707,13 @@ function updateActionButton() {
     if (willFinishSession) {
         label.textContent = 'Terminer la séance 🎉';
         btn.classList.add('btn-finish-session');
+        void btn.offsetWidth; // Retrigger animation pulse
+        if (window.HapticFeedback) HapticFeedback.warning();
     } else if (willFinishExercise) {
         label.textContent = 'Exercice suivant →';
         btn.classList.add('btn-next-exercise');
+        void btn.offsetWidth; // Retrigger animation pulse
+        if (window.HapticFeedback) HapticFeedback.warning();
     } else {
         label.textContent = 'Valider la série';
     }
@@ -5667,6 +5743,200 @@ function preloadNextExerciseGif() {
 /**
  * Ouvre le panneau de navigation entre exercices
  */
+// ==================== NAVIGATOR SWIPE-TO-DISMISS ====================
+
+let _navigatorSwipeInit = false;
+
+function initNavigatorSheetSwipe() {
+    if (_navigatorSwipeInit) return;
+    const sheet = document.querySelector('#exercise-navigator-sheet .bottom-sheet');
+    const list = document.getElementById('exercise-navigator-list');
+    if (!sheet || !list) return;
+
+    let startY = 0, currentY = 0, isDragging = false;
+
+    sheet.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        const inHeader = e.target.closest('.bottom-sheet-handle, .nav-sheet-header');
+        isDragging = inHeader || list.scrollTop <= 5;
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+        if (deltaY > 10) {
+            e.preventDefault();
+            sheet.style.transition = 'none';
+            sheet.style.transform = `translateY(${deltaY * 0.6}px)`;
+        }
+    }, { passive: false });
+
+    sheet.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        const deltaY = currentY - startY;
+        sheet.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 100) {
+            sheet.style.transform = 'translateY(100%)';
+            if (window.MobileGestures?.Haptics) MobileGestures.Haptics.light();
+            setTimeout(() => {
+                closeExerciseNavigator();
+                sheet.style.transform = '';
+                sheet.style.transition = '';
+            }, 300);
+        } else {
+            sheet.style.transform = 'translateY(0)';
+        }
+        isDragging = false;
+    });
+
+    _navigatorSwipeInit = true;
+}
+
+// ==================== NAVIGATOR DRAG-TO-REORDER ====================
+
+function initNavigatorDragReorder() {
+    const list = document.getElementById('exercise-navigator-list');
+    if (!list) return;
+
+    let dragState = null; // { sourceIndex, sourceItem, clone, startY, currentY, items[], itemRects[], lastTargetIndex }
+
+    // Long-press sur un item non-complété pour démarrer le drag
+    list.addEventListener('pointerdown', (e) => {
+        const handle = e.target.closest('.nav-drag-handle');
+        if (!handle) return;
+        const item = handle.closest('.nav-exercise-item');
+        if (!item || item.classList.contains('nav-completed')) return;
+
+        const idx = parseInt(item.dataset.exerciseIndex, 10);
+        if (isNaN(idx)) return;
+
+        // Empêcher le scroll pendant le drag
+        e.preventDefault();
+
+        const rect = item.getBoundingClientRect();
+        const items = Array.from(list.querySelectorAll('.nav-exercise-item'));
+        const itemRects = items.map(el => el.getBoundingClientRect());
+
+        // Créer le clone flottant
+        const clone = item.cloneNode(true);
+        clone.classList.add('drag-floating-clone');
+        clone.style.width = `${rect.width}px`;
+        clone.style.top = `${rect.top}px`;
+        clone.style.left = `${rect.left}px`;
+        document.body.appendChild(clone);
+
+        // Marquer l'item source comme placeholder
+        item.classList.add('drag-placeholder');
+
+        // Haptic feedback
+        if (window.MobileGestures?.Haptics) MobileGestures.Haptics.medium();
+
+        dragState = {
+            sourceIndex: idx,
+            sourceItem: item,
+            clone,
+            startY: e.clientY,
+            currentY: e.clientY,
+            offsetY: e.clientY - rect.top,
+            items,
+            itemRects,
+            lastTargetIndex: idx
+        };
+
+        // Capturer les événements pointer sur le document
+        document.addEventListener('pointermove', onDragMove);
+        document.addEventListener('pointerup', onDragEnd);
+        document.addEventListener('pointercancel', onDragEnd);
+    });
+
+    function onDragMove(e) {
+        if (!dragState) return;
+        e.preventDefault();
+
+        dragState.currentY = e.clientY;
+        // Déplacer le clone
+        dragState.clone.style.top = `${e.clientY - dragState.offsetY}px`;
+
+        // Déterminer la cible en fonction de la position Y du centre du clone
+        const cloneCenterY = e.clientY;
+        let targetIndex = dragState.sourceIndex;
+
+        for (let i = 0; i < dragState.itemRects.length; i++) {
+            const r = dragState.itemRects[i];
+            const midY = r.top + r.height / 2;
+            if (cloneCenterY > midY) {
+                targetIndex = i;
+            }
+        }
+
+        // Ne pas permettre de dropper sur un exercice complété
+        if (isExerciseComplete(targetIndex)) {
+            return;
+        }
+
+        if (targetIndex !== dragState.lastTargetIndex) {
+            // Haptic tick
+            if (window.MobileGestures?.Haptics) MobileGestures.Haptics.light();
+            dragState.lastTargetIndex = targetIndex;
+
+            // Shift les items visuellement
+            const src = dragState.sourceIndex;
+            dragState.items.forEach((el, i) => {
+                if (i === src) return; // placeholder, ne bouge pas
+                el.classList.add('drag-shifting');
+                const itemHeight = dragState.itemRects[i].height;
+                if (src < targetIndex && i > src && i <= targetIndex) {
+                    el.style.transform = `translateY(${-itemHeight}px)`;
+                } else if (src > targetIndex && i >= targetIndex && i < src) {
+                    el.style.transform = `translateY(${itemHeight}px)`;
+                } else {
+                    el.style.transform = 'translateY(0)';
+                }
+            });
+        }
+    }
+
+    function onDragEnd() {
+        if (!dragState) return;
+
+        document.removeEventListener('pointermove', onDragMove);
+        document.removeEventListener('pointerup', onDragEnd);
+        document.removeEventListener('pointercancel', onDragEnd);
+
+        const oldIndex = dragState.sourceIndex;
+        const newIndex = dragState.lastTargetIndex;
+
+        // Cleanup clone
+        dragState.clone.remove();
+
+        // Cleanup classes et transforms
+        dragState.sourceItem.classList.remove('drag-placeholder');
+        dragState.items.forEach(el => {
+            el.classList.remove('drag-shifting');
+            el.style.transform = '';
+        });
+
+        if (oldIndex !== newIndex) {
+            // Appliquer le reorder dans le modèle
+            const [movedExercise] = fsSession.exercises.splice(oldIndex, 1);
+            fsSession.exercises.splice(newIndex, 0, movedExercise);
+            reindexAfterReorder(oldIndex, newIndex);
+
+            // Haptic success
+            if (window.MobileGestures?.Haptics) MobileGestures.Haptics.success();
+
+            // Re-render le navigator
+            renderExerciseNavigator();
+            // Re-init le drag reorder sur les nouveaux éléments
+            initNavigatorDragReorder();
+        }
+
+        dragState = null;
+    }
+}
+
 function openExerciseNavigator() {
     if (!fsSession.active) return;
     renderExerciseNavigator();
@@ -5679,6 +5949,8 @@ function openExerciseNavigator() {
         void sheet.offsetWidth;
         sheet.classList.add('animate-in');
     }
+    initNavigatorSheetSwipe();
+    initNavigatorDragReorder();
 }
 
 /**
@@ -5746,6 +6018,7 @@ function renderExerciseNavigator() {
 
         return `
             <div class="nav-exercise-item ${statusClass} ${isCurrent ? 'nav-active' : ''}"
+                 data-exercise-index="${idx}"
                  ${canNavigate ? `onclick="navigateToExercise(${idx})"` : ''}
                  ${!canNavigate ? 'style="pointer-events: none;"' : ''}>
                 <span class="nav-exercise-status">${statusIcon}</span>
@@ -5754,6 +6027,7 @@ function renderExerciseNavigator() {
                     <span class="nav-exercise-sets">${setsText}</span>
                 </div>
                 ${canNavigate && !isCurrent ? '<span class="nav-exercise-go">›</span>' : ''}
+                ${canNavigate ? '<span class="nav-drag-handle">⠿</span>' : ''}
             </div>
         `;
     }).join('');

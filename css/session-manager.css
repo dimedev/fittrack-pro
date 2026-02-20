@@ -1044,6 +1044,23 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    touch-action: pan-y pinch-zoom;
+}
+
+/* Swipe entre exercices */
+.fs-content.swiping {
+    transition: none !important;
+    will-change: transform, opacity;
+    overflow: hidden;
+}
+
+.fs-content.swipe-exit {
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.fs-content.swipe-enter {
+    transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
 }
 
 .fs-exercise-header {
@@ -1150,7 +1167,24 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 .fs-progress-fill {
     height: 100%;
     background: var(--accent-primary);
-    transition: width 0.3s ease;
+    transition: width 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes progressShimmer {
+    0% { opacity: 1; left: -30px; }
+    100% { opacity: 0; left: 100%; }
+}
+
+.fs-progress-fill.progress-updated::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: progressShimmer 0.6s ease-out forwards;
 }
 
 .fs-previous {
@@ -1315,6 +1349,22 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 .fs-validate-btn.btn-finish-session:hover {
     box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
 }
+
+/* Pulse animations CTA dernière série */
+@keyframes ctaPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes ctaPulseGold {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+    50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.fs-validate-btn.btn-next-exercise { animation: ctaPulse 0.6s ease-out 1; }
+.fs-validate-btn.btn-finish-session { animation: ctaPulseGold 0.6s ease-out 1; }
 
 /* ==================== DROP SET & REST-PAUSE BUTTONS ==================== */
 
@@ -3371,6 +3421,46 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     font-size: 1.3rem;
     font-weight: 300;
     flex-shrink: 0;
+}
+
+/* Drag-to-reorder */
+.nav-drag-handle {
+    opacity: 0.3;
+    margin-left: auto;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    padding: 4px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.nav-exercise-item.nav-completed .nav-drag-handle {
+    display: none;
+}
+
+.nav-exercise-item.drag-placeholder {
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+.nav-exercise-item.drag-shifting {
+    transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.drag-floating-clone {
+    position: fixed;
+    z-index: 10002;
+    pointer-events: none;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    border-radius: 12px;
+    background: var(--bg-card);
+    transform: scale(1.03);
+    opacity: 0.95;
+    will-change: transform;
+    left: 0;
+    right: 0;
 }
 
 /* ==================== VARIANT INPUT ==================== */
