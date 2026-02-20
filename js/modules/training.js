@@ -2564,52 +2564,6 @@ function validateCurrentSet() {
         return; // Gestion spéciale superset
     }
 
-    // Afficher les boutons techniques avancées si l'exercice est complété
-    const dropsForThisExercise = (fsSession.completedSets || []).filter(
-        s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isDrop
-    ).length;
-    const restPausesForThisExercise = (fsSession.completedSets || []).filter(
-        s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isRestPause
-    ).length;
-
-    // Conditions: exercice complété, poids > 5kg, pas trop de techniques déjà utilisées
-    const canDrop = dropsForThisExercise < 2 && weight > 5;
-    const canRestPause = restPausesForThisExercise < 3 && weight > 0;
-
-    if (exerciseNowComplete && (canDrop || canRestPause)) {
-        // Afficher le container des techniques avancées
-        const advancedBtns = document.getElementById('fs-advanced-btns');
-        const dropBtn = document.getElementById('fs-drop-btn');
-        const restPauseBtn = document.getElementById('fs-restpause-btn');
-
-        if (advancedBtns) {
-            advancedBtns.style.display = 'flex';
-
-            // Afficher/masquer les boutons selon les conditions
-            if (dropBtn) dropBtn.style.display = canDrop ? 'flex' : 'none';
-            if (restPauseBtn) restPauseBtn.style.display = canRestPause ? 'flex' : 'none';
-
-            // Masquer après 20 secondes — plus de temps pour réagir
-            if (window._advancedBtnsTimeout) {
-                clearTimeout(window._advancedBtnsTimeout);
-            }
-            window._advancedBtnsTimeout = setTimeout(() => {
-                if (advancedBtns) advancedBtns.style.display = 'none';
-            }, 20000);
-
-            // Masquer si l'utilisateur interagit avec les inputs
-            const weightInput = document.getElementById('fs-weight-input');
-            if (weightInput) {
-                weightInput.addEventListener('focus', () => {
-                    if (window._advancedBtnsTimeout) {
-                        clearTimeout(window._advancedBtnsTimeout);
-                    }
-                    if (advancedBtns) advancedBtns.style.display = 'none';
-                }, { once: true });
-            }
-        }
-    }
-
     if (!exerciseNowComplete) {
         // Set suivant du même exercice
         fsSession.currentSetIndex++;
@@ -2629,20 +2583,9 @@ function validateCurrentSet() {
 
         renderSessionCompleteState();
     } else {
-        // Cet exercice est fini, mais d'autres restent → routage intelligent
-        const nextIdx = findNextIncompleteExercise(fsSession.currentExerciseIndex);
-        if (nextIdx !== null) {
-            showToast('Exercice terminé ! Suivant...', 'info');
-            // PAS de startRestTimer() ici — le timer se lance entre séries d'un MÊME exercice,
-            // pas au changement d'exercice (l'utilisateur n'a pas encore fait de série sur le nouveau)
-            fsSession.currentExerciseIndex = nextIdx;
-            fsSession.currentSetIndex = getCompletedSetsForExercise(nextIdx);
-            fsSession.exerciseCompleted = false;
-            renderCurrentExercise();
-        } else {
-            // Fallback sécurité (ne devrait pas arriver)
-            renderSessionCompleteState();
-        }
+        // Exercice terminé, mais d'autres restent → écran intermédiaire
+        // avec boutons techniques avancées (drop set / rest-pause)
+        renderExerciseCompleteState();
     }
 }
 
@@ -2858,20 +2801,89 @@ function renderExerciseCompleteState() {
     // Masquer le contenu normal
     const content = document.getElementById('fs-content');
     if (content) content.style.display = 'none';
-    
+
     // Afficher l'état "exercice terminé"
     const completeSection = document.getElementById('fs-exercise-complete');
     if (!completeSection) return;
-    
+
     completeSection.style.display = 'flex';
-    
-    // Nom du prochain exercice
-    const nextExercise = fsSession.exercises[fsSession.currentExerciseIndex + 1];
+
+    // Nom du prochain exercice (utiliser findNextIncompleteExercise, pas +1)
+    const nextIdx = findNextIncompleteExercise(fsSession.currentExerciseIndex);
+    const nextExercise = nextIdx !== null ? fsSession.exercises[nextIdx] : null;
     const nameEl = document.getElementById('fs-next-exercise-name');
     if (nameEl && nextExercise) nameEl.textContent = nextExercise.effectiveName;
-    
+
+    // Sous-titre dynamique
+    const subtitle = document.getElementById('fs-exercise-complete-subtitle');
+    const currentEx = fsSession.exercises[fsSession.currentExerciseIndex];
+    const completedSetsCount = getCompletedSetsForExercise(fsSession.currentExerciseIndex);
+    if (subtitle) {
+        subtitle.textContent = `${completedSetsCount} séries validées`;
+    }
+
+    // Techniques avancées : drop set / rest-pause
+    const advancedSection = document.getElementById('fs-complete-advanced');
+    const dropBtn = document.getElementById('fs-complete-drop-btn');
+    const rpBtn = document.getElementById('fs-complete-rp-btn');
+
+    if (advancedSection) {
+        const lastSet = fsSession.completedSets[fsSession.completedSets.length - 1];
+        const lastWeight = lastSet?.weight || 0;
+
+        const dropsCount = fsSession.completedSets.filter(
+            s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isDrop
+        ).length;
+        const rpCount = fsSession.completedSets.filter(
+            s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isRestPause
+        ).length;
+
+        const canDrop = dropsCount < 2 && lastWeight > 5;
+        const canRestPause = rpCount < 3 && lastWeight > 0;
+
+        if (canDrop || canRestPause) {
+            advancedSection.style.display = 'block';
+            if (dropBtn) dropBtn.style.display = canDrop ? 'inline-flex' : 'none';
+            if (rpBtn) rpBtn.style.display = canRestPause ? 'inline-flex' : 'none';
+        } else {
+            advancedSection.style.display = 'none';
+        }
+    }
+
     // Arrêter le timer
     resetFsTimer();
+}
+
+/**
+ * Revient sur l'exercice courant pour faire un drop set depuis l'écran "Exercice terminé".
+ */
+function goBackForDropSet() {
+    // Fermer l'écran intermédiaire
+    const content = document.getElementById('fs-content');
+    const completeSection = document.getElementById('fs-exercise-complete');
+    if (content) content.style.display = 'block';
+    if (completeSection) completeSection.style.display = 'none';
+
+    // L'exercice est "complet" côté sets normaux mais on reste dessus pour le drop
+    renderCurrentExercise();
+    // Lancer le drop set
+    startDropSet();
+}
+
+/**
+ * Revient sur l'exercice courant pour faire un rest-pause depuis l'écran "Exercice terminé".
+ */
+function goBackForRestPause() {
+    // Fermer l'écran intermédiaire
+    const content = document.getElementById('fs-content');
+    const completeSection = document.getElementById('fs-exercise-complete');
+    if (content) content.style.display = 'block';
+    if (completeSection) completeSection.style.display = 'none';
+
+    // L'exercice est "complet" côté sets normaux mais on reste dessus pour le rest-pause
+    renderCurrentExercise();
+    // Lancer le rest-pause
+    startRestPause();
 }
 
 function goToNextExercise() {
@@ -5392,6 +5404,8 @@ window.applySwapKeepParams = applySwapKeepParams;
 // Fonctions avancées
 window.startDropSet = startDropSet;
 window.startRestPause = startRestPause;
+window.goBackForDropSet = goBackForDropSet;
+window.goBackForRestPause = goBackForRestPause;
 window.createSuperset = createSuperset;
 window.removeSuperset = removeSuperset;
 window.postponeCurrentExercise = postponeCurrentExercise;
@@ -5778,16 +5792,14 @@ function updateActionButton() {
     btn.classList.remove('btn-next-exercise', 'btn-finish-session');
 
     if (willFinishSession) {
+        // Dernière série de TOUTE la séance → CTA spécial
         label.textContent = 'Terminer la séance 🎉';
         btn.classList.add('btn-finish-session');
-        void btn.offsetWidth; // Retrigger animation pulse
-        if (window.HapticFeedback) HapticFeedback.warning();
-    } else if (willFinishExercise) {
-        label.textContent = 'Exercice suivant →';
-        btn.classList.add('btn-next-exercise');
-        void btn.offsetWidth; // Retrigger animation pulse
+        void btn.offsetWidth;
         if (window.HapticFeedback) HapticFeedback.warning();
     } else {
+        // Toujours "Valider la série" — même sur la dernière série d'un exercice.
+        // L'écran intermédiaire "Exercice terminé" s'affichera après la validation.
         label.textContent = 'Valider la série';
     }
 }

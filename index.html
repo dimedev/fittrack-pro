@@ -2811,7 +2811,19 @@
             <div class="fs-complete-content">
                 <div class="fs-complete-icon">✓</div>
                 <h2 class="fs-complete-title">Exercice terminé !</h2>
-                <p class="fs-complete-subtitle">Prêt pour le suivant ?</p>
+                <p class="fs-complete-subtitle" id="fs-exercise-complete-subtitle">Prêt pour le suivant ?</p>
+                <!-- Techniques avancées (drop set / rest-pause) -->
+                <div class="fs-complete-advanced" id="fs-complete-advanced" style="display: none;">
+                    <p class="fs-complete-advanced-label">Ajouter une technique ?</p>
+                    <div class="fs-complete-advanced-btns">
+                        <button class="btn btn-outline fs-complete-drop-btn" id="fs-complete-drop-btn" onclick="goBackForDropSet()">
+                            💧 Drop Set
+                        </button>
+                        <button class="btn btn-outline fs-complete-rp-btn" id="fs-complete-rp-btn" onclick="goBackForRestPause()">
+                            ⏸️ Rest-Pause
+                        </button>
+                    </div>
+                </div>
                 <button class="btn btn-primary btn-lg" onclick="goToNextExercise()">
                     Exercice suivant : <strong id="fs-next-exercise-name">Rowing Barre</strong>
                 </button>
