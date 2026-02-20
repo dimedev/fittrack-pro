@@ -2187,7 +2187,15 @@ function renderCurrentExercise() {
 
     const totalSets = exercise.sets;
     const currentSet = fsSession.currentSetIndex + 1;
-    
+
+    // Reset boutons techniques avancées (drop set / rest-pause)
+    const advancedBtns = document.getElementById('fs-advanced-btns');
+    if (advancedBtns) advancedBtns.style.display = 'none';
+    if (window._advancedBtnsTimeout) {
+        clearTimeout(window._advancedBtnsTimeout);
+        window._advancedBtnsTimeout = null;
+    }
+
     // Vérifier si on est en superset
     const superset = getCurrentSuperset();
     const supersetLabel = superset ? 
@@ -2625,7 +2633,8 @@ function validateCurrentSet() {
         const nextIdx = findNextIncompleteExercise(fsSession.currentExerciseIndex);
         if (nextIdx !== null) {
             showToast('Exercice terminé ! Suivant...', 'info');
-            startRestTimer();
+            // PAS de startRestTimer() ici — le timer se lance entre séries d'un MÊME exercice,
+            // pas au changement d'exercice (l'utilisateur n'a pas encore fait de série sur le nouveau)
             fsSession.currentExerciseIndex = nextIdx;
             fsSession.currentSetIndex = getCompletedSetsForExercise(nextIdx);
             fsSession.exerciseCompleted = false;
