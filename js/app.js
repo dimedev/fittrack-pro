@@ -1,6 +1,46 @@
 // ==================== MAIN APP ====================
 // Version MVP - Simplifié
 
+// ==================== SENTRY — ERROR MONITORING ====================
+// Initialisation Sentry (SDK chargé via CDN dans index.html)
+// Pour activer : créer un projet sur sentry.io, remplacer YOUR_DSN ci-dessous
+// et remplacer YOUR_SENTRY_DSN_LOADER dans index.html par le loader Sentry
+(function initSentry() {
+    const SENTRY_DSN = (window.REPZY_CONFIG && window.REPZY_CONFIG.sentryDsn) || 'YOUR_SENTRY_DSN';
+    if (typeof Sentry === 'undefined' || !SENTRY_DSN || SENTRY_DSN === 'YOUR_SENTRY_DSN') return;
+
+    try {
+        Sentry.init({
+            dsn: SENTRY_DSN,
+            environment: window.location.hostname === 'localhost' ? 'development' : 'production',
+            release: 'fittrack-pro@1.0.0',
+            tracesSampleRate: 0.1, // 10% des transactions tracées (performance)
+            beforeSend(event) {
+                // Ne pas envoyer les erreurs de dev ou les erreurs réseau bénignes
+                if (event.exception) {
+                    const msg = event.exception.values?.[0]?.value || '';
+                    if (msg.includes('ResizeObserver') || msg.includes('Non-Error promise')) return null;
+                }
+                return event;
+            },
+            integrations: [
+                new Sentry.BrowserTracing(),
+            ],
+        });
+
+        // Enrichir le contexte avec l'utilisateur connecté (après auth)
+        window._setSentryUser = (userId, email) => {
+            Sentry.setUser({ id: userId, email });
+        };
+
+        // Tag métier pour filtrer dans le dashboard
+        Sentry.setTag('app', 'fittrack-pro');
+        console.log('✅ Sentry initialisé');
+    } catch (e) {
+        console.warn('Sentry init failed:', e);
+    }
+})();
+
 // ==================== GESTION D'ERREURS GLOBALE ====================
 
 // Gestionnaire d'erreurs JavaScript globales
@@ -12,7 +52,14 @@ window.addEventListener('error', (e) => {
         colno: e.colno,
         error: e.error
     });
-    
+
+    // Reporter à Sentry si dispo
+    if (typeof Sentry !== 'undefined') {
+        Sentry.captureException(e.error || new Error(e.message), {
+            extra: { filename: e.filename, lineno: e.lineno, colno: e.colno }
+        });
+    }
+
     // Afficher un toast pour informer l'utilisateur des erreurs critiques
     if (typeof showToast === 'function') {
         showToast('Une erreur est survenue', 'error');
@@ -25,7 +72,18 @@ window.addEventListener('unhandledrejection', (e) => {
         reason: e.reason,
         promise: e.promise
     });
-    
+
+    // Reporter à Sentry (sauf erreurs réseau offline attendues)
+    if (typeof Sentry !== 'undefined') {
+        const msg = String(e.reason?.message || e.reason || '');
+        const isOfflineError = msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch');
+        if (!isOfflineError) {
+            Sentry.captureException(e.reason instanceof Error ? e.reason : new Error(msg), {
+                extra: { type: 'unhandledrejection' }
+            });
+        }
+    }
+
     // Afficher un toast pour les erreurs de synchronisation
     if (typeof showToast === 'function' && e.reason?.message?.includes('sync')) {
         showToast('Erreur de synchronisation', 'warning');
@@ -209,7 +267,14 @@ function init() {
             tryRestorePendingSession();
         }
     }, 500);
-    
+
+    // Au chargement : sync des données en attente si en ligne (queue persistante + state)
+    setTimeout(() => {
+        if (navigator.onLine && typeof syncPendingData === 'function') {
+            syncPendingData();
+        }
+    }, 2000);
+
     // Lancer la déduplication automatique (périodique)
     setTimeout(() => {
         if (typeof autoDeduplicatePeriodic === 'function') {
@@ -230,9 +295,18 @@ function init() {
         if (typeof populateSessionDaySelect === 'function') populateSessionDaySelect();
         if (typeof updateSessionHistory === 'function') updateSessionHistory();
         
-        // Initialiser la section Progression
-        if (typeof initProgressSection === 'function') {
-            initProgressSection();
+        // Charger Chart.js en idle puis initialiser la section Progression
+        const initProgress = () => {
+            if (typeof initProgressSection === 'function') initProgressSection();
+        };
+        if (typeof Chart !== 'undefined') {
+            initProgress();
+        } else if (window._loadChartJS) {
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(() => window._loadChartJS().then(initProgress));
+            } else {
+                setTimeout(() => window._loadChartJS().then(initProgress), 800);
+            }
         }
         
         // Initialiser Smart Training (Recovery Widget)
@@ -341,6 +415,10 @@ function continueOffline() {
     offlineMode = true;
     closeModal('auth-modal');
     showToast('Mode hors-ligne activé. Vos données sont stockées localement.', 'success');
+    // Montrer l'onboarding si premier lancement
+    setTimeout(() => {
+        if (typeof Onboarding !== 'undefined') Onboarding.show();
+    }, 500);
 }
 
 // ==================== EXPORTS GLOBAUX ====================
@@ -626,3 +704,42 @@ function updateOfflineIndicator(offline) {
 if (!navigator.onLine) {
     updateOfflineIndicator(true);
 }
+
+// ==================== CORE WEB VITALS ====================
+(function initWebVitals() {
+    function reportMetric(name, value) {
+        console.log(`📊 ${name}: ${Math.round(value)}ms`);
+        window.track?.('web_vital', { metric: name, value: Math.round(value) });
+        if (typeof Sentry !== 'undefined' && Sentry.setMeasurement) {
+            Sentry.setMeasurement(name, value, 'millisecond');
+        }
+    }
+
+    if ('PerformanceObserver' in window) {
+        try {
+            new PerformanceObserver(function(list) {
+                list.getEntries().forEach(function(entry) {
+                    reportMetric('LCP', entry.startTime);
+                });
+            }).observe({ type: 'largest-contentful-paint', buffered: true });
+        } catch (e) {}
+
+        try {
+            new PerformanceObserver(function(list) {
+                list.getEntries().forEach(function(entry) {
+                    if (!entry.hadRecentInput) {
+                        reportMetric('CLS', entry.value * 1000);
+                    }
+                });
+            }).observe({ type: 'layout-shift', buffered: true });
+        } catch (e) {}
+
+        try {
+            new PerformanceObserver(function(list) {
+                list.getEntries().forEach(function(entry) {
+                    reportMetric('FID', entry.processingStart - entry.startTime);
+                });
+            }).observe({ type: 'first-input', buffered: true });
+        } catch (e) {}
+    }
+})();

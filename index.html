@@ -7,14 +7,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Critical: design system + mobile base (render-blocking) -->
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=45">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/session-manager.css?v=37">
-    <link rel="stylesheet" href="css/premium-components.css?v=23">
-    <link rel="stylesheet" href="css/nutrition-premium.css?v=5">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=42">
-    <link rel="stylesheet" href="css/journal-macros.css?v=11">
-    <link rel="stylesheet" href="css/icons.css?v=1">
+    <!-- Deferred: loaded async, applied when ready -->
+    <link rel="stylesheet" href="css/session-manager.css?v=37" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/premium-components.css?v=23" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/nutrition-premium.css?v=5" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
     <!-- Theme CSS must be LAST to override other styles -->
     <link rel="stylesheet" href="css/theme.css?v=2">
 
@@ -27,6 +29,14 @@
         })();
     </script>
 
+    <!-- Config Sentry + PostHog : remplacer les clés ici pour activer -->
+    <script>
+        window.REPZY_CONFIG = window.REPZY_CONFIG || {
+            sentryDsn: 'YOUR_SENTRY_DSN',
+            posthogKey: 'YOUR_POSTHOG_KEY'
+        };
+    </script>
+
     <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="shortcut icon" href="favicon.ico" />
@@ -35,11 +45,64 @@
     <link rel="manifest" href="webmanifest" />
 
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PostHog — Product analytics (remplacer YOUR_POSTHOG_KEY par ta clé) -->
+    <script>
+        !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var u=t.createElement("script");u.type="text/javascript",u.async=!0,u.src=s.api_host+"/static/array.js";var l=t.getElementsByTagName("script")[0];l.parentNode.insertBefore(u,l);var n=e;for(void 0!==a?n=e[a]=[]:a="posthog",n.people=n.people||[],n.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},n.people.toString=function(){return n.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep onSessionId".split(" "),p=0;p<o.length;p++)g(n,o[p]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+        posthog.init((window.REPZY_CONFIG && window.REPZY_CONFIG.posthogKey) ? window.REPZY_CONFIG.posthogKey : 'YOUR_POSTHOG_KEY', {
+            api_host: 'https://eu.i.posthog.com',
+            person_profiles: 'identified_only',
+            autocapture: false,          // On contrôle les events manuellement
+            capture_pageview: true,
+            disable_session_recording: true,
+            loaded: function(ph) {
+                // Identifier l'utilisateur si connecté
+                if (typeof state !== 'undefined' && state?.profile?.email) {
+                    ph.identify(state.profile.email);
+                }
+            }
+        });
+        // Helper global pour tracking sans crasher si Posthog n'est pas configuré
+        window.track = function(event, props) {
+            try {
+                if (window.posthog && window.posthog.__loaded && (window.REPZY_CONFIG?.posthogKey && window.REPZY_CONFIG.posthogKey !== 'YOUR_POSTHOG_KEY')) {
+                    posthog.capture(event, props || {});
+                }
+            } catch(e) {}
+        };
+    </script>
+
+    <!-- Sentry — Error monitoring (remplacer YOUR_SENTRY_DSN_LOADER par ta clé projet Sentry dans l’URL) -->
+    <script
+      src="https://js.sentry-cdn.com/YOUR_SENTRY_DSN_LOADER.min.js"
+      crossorigin="anonymous"
+      data-lazy="no"
+    ></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
-    <!-- QuaggaJS pour barcode scanner universel (iOS/Android/Desktop) -->
-    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <!-- Chart.js et Quagga chargés à la demande (lazy) pour réduire le first load -->
+    <script>
+    window._loadChartJS = function() {
+        return new Promise(function(resolve) {
+            if (typeof Chart !== 'undefined') return resolve();
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            s.onload = resolve;
+            s.onerror = function() { console.warn('Chart.js load failed'); resolve(); };
+            document.head.appendChild(s);
+        });
+    };
+    window._loadQuagga = function() {
+        return new Promise(function(resolve) {
+            if (typeof Quagga !== 'undefined') return resolve();
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js';
+            s.onload = resolve;
+            s.onerror = function() { console.warn('Quagga load failed'); resolve(); };
+            document.head.appendChild(s);
+        });
+    };
+    </script>
 </head>
 <body>
     <div class="bg-grid"></div>
@@ -765,6 +828,12 @@
                     </div>
                 </div>
 
+                <!-- Insights proactifs — masqué si vide -->
+                <div id="proactive-insights-section" style="display:none; margin-top:16px;"></div>
+
+                <!-- IA Insights hebdomadaires -->
+                <div id="ai-insights-container" style="margin-top:16px;"></div>
+
                 <!-- Fil de Progression Quotidien -->
                 <div class="card" style="margin-top: 16px;">
                     <div class="card-header">
@@ -798,6 +867,29 @@
                     </div>
                 </div>
 
+                <!-- Heatmap d'activité annuelle -->
+                <div class="card heatmap-card" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">🗓️</span>
+                            Activité annuelle
+                        </div>
+                        <span id="heatmap-stats" class="heatmap-header-stats"></span>
+                    </div>
+                    <div class="heatmap-legend-row">
+                        <span class="heatmap-legend-label">Moins</span>
+                        <span class="heatmap-cell i0"></span>
+                        <span class="heatmap-cell i1"></span>
+                        <span class="heatmap-cell i2"></span>
+                        <span class="heatmap-cell i3"></span>
+                        <span class="heatmap-legend-label">Plus</span>
+                    </div>
+                    <div class="heatmap-wrap">
+                        <div id="activity-heatmap" class="heatmap-grid"></div>
+                    </div>
+                    <div class="heatmap-months" id="heatmap-months-labels"></div>
+                </div>
+
                 <!-- Tabs Navigation -->
                 <div class="tabs" style="margin-top: 16px;">
                     <button class="tab active" data-tab="prs" onclick="switchProgressTab('prs')">Records</button>
@@ -805,6 +897,7 @@
                     <button class="tab" data-tab="history" onclick="switchProgressTab('history')">Séances</button>
                     <button class="tab" data-tab="stats" onclick="switchProgressTab('stats')">Stats</button>
                     <button class="tab" data-tab="photos" onclick="switchProgressTab('photos')">Photos</button>
+                    <button class="tab" data-tab="cardio" onclick="switchProgressTab('cardio')">Cardio</button>
                 </div>
 
                 <!-- Tab PRs -->
@@ -908,10 +1001,103 @@
                     </div>
                 </div>
 
+                <!-- Tab Cardio Analytics -->
+                <div id="tab-cardio" class="tab-content" style="display: none;">
+
+                    <!-- Résumé global -->
+                    <div class="card cardio-analytics-summary">
+                        <div class="cardio-kpi-grid">
+                            <div class="cardio-kpi">
+                                <span class="cardio-kpi-value" id="ca-total-sessions">—</span>
+                                <span class="cardio-kpi-label">Séances</span>
+                            </div>
+                            <div class="cardio-kpi">
+                                <span class="cardio-kpi-value" id="ca-total-duration">—</span>
+                                <span class="cardio-kpi-label">Minutes</span>
+                            </div>
+                            <div class="cardio-kpi">
+                                <span class="cardio-kpi-value" id="ca-total-calories">—</span>
+                                <span class="cardio-kpi-label">Calories</span>
+                            </div>
+                            <div class="cardio-kpi">
+                                <span class="cardio-kpi-value" id="ca-total-distance">—</span>
+                                <span class="cardio-kpi-label">km</span>
+                            </div>
+                            <div class="cardio-kpi">
+                                <span class="cardio-kpi-value" id="ca-avg-duration">—</span>
+                                <span class="cardio-kpi-label">Moy. min</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Répartition par type -->
+                    <div class="card" style="margin-top: 14px;">
+                        <div class="card-header">
+                            <div class="card-title"><span class="icon">🏃</span> Par activité</div>
+                        </div>
+                        <div id="ca-by-type" class="ca-by-type-list"></div>
+                    </div>
+
+                    <!-- Distance cumulée -->
+                    <div class="card" style="margin-top: 14px;">
+                        <div class="card-header">
+                            <div class="card-title"><span class="icon">📏</span> Distance cumulée</div>
+                            <div class="ca-period-switcher">
+                                <span class="ca-total-distance-label" id="ca-total-distance-label">— km</span>
+                            </div>
+                        </div>
+                        <div id="ca-distance-by-type" class="ca-by-type-list"></div>
+                    </div>
+
+                    <!-- Zones FC (fréquence cardiaque) -->
+                    <div class="card" style="margin-top: 14px;">
+                        <div class="card-header">
+                            <div class="card-title"><span class="icon">❤️</span> Zones FC</div>
+                        </div>
+                        <div id="ca-hr-zones-container">
+                            <div class="empty-state" style="padding:16px;">
+                                <div class="empty-state-icon">❤️</div>
+                                <div>Enregistrez la fréquence cardiaque (FC moyenne) dans vos séances pour voir la répartition par zones.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Évolution calories (chart) -->
+                    <div class="card" style="margin-top: 14px;">
+                        <div class="card-header">
+                            <div class="card-title"><span class="icon">🔥</span> Calories brûlées</div>
+                            <div class="ca-period-switcher">
+                                <button class="btn btn-sm ca-period-btn active" data-period="30" onclick="switchCardioPeriod(30)">30j</button>
+                                <button class="btn btn-sm ca-period-btn" data-period="90" onclick="switchCardioPeriod(90)">90j</button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height:180px;">
+                            <canvas id="cardio-calories-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Historique sessions -->
+                    <div class="card" style="margin-top: 14px;">
+                        <div class="card-header">
+                            <div class="card-title"><span class="icon">📋</span> Historique</div>
+                        </div>
+                        <div id="ca-history-list" class="ca-history-list"></div>
+                    </div>
+
+                </div>
+
                 <!-- Tab Stats -->
                 <div id="tab-stats" class="tab-content" style="display: none;">
                     <!-- Volume par groupe musculaire -->
-                    <div class="card">
+                    <!-- Muscle Group Weekly Heatmap -->
+                    <div class="card" id="muscle-heatmap-card">
+                        <div class="card-header">
+                            <div class="card-title"><span class="icon">🔥</span> Muscles cette semaine</div>
+                        </div>
+                        <div id="muscle-heatmap-grid" class="muscle-heatmap-grid"></div>
+                    </div>
+
+                    <div class="card" style="margin-top: 16px;">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="icon">🎯</span>
@@ -1952,7 +2138,7 @@
                     <span class="tile-title">Cardio</span>
                     <span class="tile-desc">Course, vélo, natation</span>
                 </button>
-                <button class="session-type-tile tile-quick" onclick="closeNewSessionSheet(); showToast('Quick log — bientôt disponible', 'info')">
+                <button class="session-type-tile tile-quick" onclick="closeNewSessionSheet(); openQuickLogSheet()">
                     <span class="tile-icon">⚡</span>
                     <span class="tile-title">Log rapide</span>
                     <span class="tile-desc">1 exercice, 30 sec</span>
@@ -2189,6 +2375,51 @@
                 <button class="btn btn-primary cardio-save-btn" onclick="saveCardioSessionFromLive()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
                     Enregistrer la séance
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- QUICK LOG — Log rapide 1 exercice                    -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="bottom-sheet-overlay" id="quick-log-sheet" style="display:none;" onclick="closeQuickLogSheet()">
+        <div class="bottom-sheet quick-log-inner" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Log rapide</h3>
+                <button class="sheet-dismiss-btn" onclick="closeQuickLogSheet()" aria-label="Fermer">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="quick-log-body">
+                <!-- Sélection exercice -->
+                <div class="quick-log-exercise-picker" id="quick-log-exercise-btn"
+                     onclick="openExercisePickerForQuickLog()">
+                    <div class="quick-log-exercise-icon" id="quick-log-exercise-icon">🏋️</div>
+                    <div class="quick-log-exercise-text">
+                        <div class="quick-log-exercise-name" id="quick-log-exercise-name">Choisir un exercice</div>
+                        <div class="quick-log-exercise-hint" id="quick-log-exercise-hint">Appuyer pour sélectionner</div>
+                    </div>
+                    <svg class="quick-log-exercise-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg>
+                </div>
+
+                <!-- Séries -->
+                <div id="quick-log-sets-section" style="display:none;">
+                    <div class="quick-log-sets-label">Séries</div>
+                    <div class="quick-log-sets-list" id="quick-log-sets-list"></div>
+                    <button class="quick-log-add-set-btn" id="quick-log-add-set-btn"
+                            onclick="addSetToQuickLog()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                        Ajouter une série
+                    </button>
+                </div>
+            </div>
+            <div class="quick-log-footer">
+                <button class="btn btn-primary quick-log-save-btn" id="quick-log-save-btn"
+                        onclick="saveQuickLogSession()" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                    Enregistrer
                 </button>
             </div>
         </div>
@@ -3338,6 +3569,167 @@
         </div>
     </div>
 
+    <!-- ==================== ONBOARDING OVERLAY ==================== -->
+    <div id="onboarding-overlay" class="ob-overlay">
+        <div class="ob-container">
+
+            <!-- Progress header -->
+            <div class="ob-header">
+                <div class="ob-progress-track">
+                    <div class="ob-progress-bar" id="ob-progress" style="width:0%"></div>
+                </div>
+                <div class="ob-dots">
+                    <div class="ob-dot current"></div>
+                    <div class="ob-dot"></div>
+                    <div class="ob-dot"></div>
+                    <div class="ob-dot"></div>
+                    <div class="ob-dot"></div>
+                </div>
+            </div>
+
+            <!-- Step 1 — Welcome -->
+            <div id="ob-step-1" class="ob-step" style="display:flex">
+                <div class="ob-step-content ob-welcome">
+                    <div class="ob-welcome-icon">🔥</div>
+                    <h1 class="ob-title">Bienvenue sur<br><span class="ob-brand">FitTrack Pro</span></h1>
+                    <p class="ob-subtitle">En 4 questions, génère ton programme d'entraînement personnalisé</p>
+                    <button class="btn btn-primary btn-lg ob-start-btn" onclick="Onboarding.next()">Commencer →</button>
+                    <button class="ob-skip-btn" onclick="Onboarding.hide()">Passer pour l'instant</button>
+                </div>
+            </div>
+
+            <!-- Step 2 — Objectif -->
+            <div id="ob-step-2" class="ob-step" style="display:none">
+                <div class="ob-step-content">
+                    <p class="ob-step-num">Question 1 / 4</p>
+                    <h2 class="ob-question">Quel est ton objectif ?</h2>
+                    <div class="ob-options-grid">
+                        <button class="ob-option" data-value="muscle" onclick="Onboarding.selectOption('goal','muscle')">
+                            <span class="ob-opt-icon">💪</span>
+                            <span class="ob-opt-label">Prise de masse</span>
+                        </button>
+                        <button class="ob-option" data-value="strength" onclick="Onboarding.selectOption('goal','strength')">
+                            <span class="ob-opt-icon">🏋️</span>
+                            <span class="ob-opt-label">Force</span>
+                        </button>
+                        <button class="ob-option" data-value="weight-loss" onclick="Onboarding.selectOption('goal','weight-loss')">
+                            <span class="ob-opt-icon">🔥</span>
+                            <span class="ob-opt-label">Perte de poids</span>
+                        </button>
+                        <button class="ob-option" data-value="endurance" onclick="Onboarding.selectOption('goal','endurance')">
+                            <span class="ob-opt-icon">⚡</span>
+                            <span class="ob-opt-label">Endurance</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 — Niveau -->
+            <div id="ob-step-3" class="ob-step" style="display:none">
+                <div class="ob-step-content">
+                    <p class="ob-step-num">Question 2 / 4</p>
+                    <h2 class="ob-question">Ton niveau actuel ?</h2>
+                    <div class="ob-options-list">
+                        <button class="ob-option ob-option-wide" data-value="beginner" onclick="Onboarding.selectOption('experience','beginner')">
+                            <span class="ob-opt-icon">🌱</span>
+                            <div>
+                                <div class="ob-opt-label">Débutant</div>
+                                <div class="ob-opt-desc">Moins de 1 an de pratique</div>
+                            </div>
+                        </button>
+                        <button class="ob-option ob-option-wide" data-value="intermediate" onclick="Onboarding.selectOption('experience','intermediate')">
+                            <span class="ob-opt-icon">⚡</span>
+                            <div>
+                                <div class="ob-opt-label">Intermédiaire</div>
+                                <div class="ob-opt-desc">1 à 3 ans de pratique</div>
+                            </div>
+                        </button>
+                        <button class="ob-option ob-option-wide" data-value="advanced" onclick="Onboarding.selectOption('experience','advanced')">
+                            <span class="ob-opt-icon">🏆</span>
+                            <div>
+                                <div class="ob-opt-label">Avancé</div>
+                                <div class="ob-opt-desc">Plus de 3 ans de pratique</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4 — Fréquence -->
+            <div id="ob-step-4" class="ob-step" style="display:none">
+                <div class="ob-step-content">
+                    <p class="ob-step-num">Question 3 / 4</p>
+                    <h2 class="ob-question">Séances par semaine ?</h2>
+                    <div class="ob-freq-grid">
+                        <button class="ob-option ob-option-freq" data-value="2" onclick="Onboarding.selectOption('frequency',2)">
+                            <span class="ob-freq-num">2×</span>
+                            <span class="ob-freq-label">par semaine</span>
+                        </button>
+                        <button class="ob-option ob-option-freq" data-value="3" onclick="Onboarding.selectOption('frequency',3)">
+                            <span class="ob-freq-num">3×</span>
+                            <span class="ob-freq-label">par semaine</span>
+                        </button>
+                        <button class="ob-option ob-option-freq" data-value="4" onclick="Onboarding.selectOption('frequency',4)">
+                            <span class="ob-freq-num">4×</span>
+                            <span class="ob-freq-label">par semaine</span>
+                        </button>
+                        <button class="ob-option ob-option-freq" data-value="5" onclick="Onboarding.selectOption('frequency',5)">
+                            <span class="ob-freq-num">5×</span>
+                            <span class="ob-freq-label">par semaine</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5 — Équipement + Programme suggéré -->
+            <div id="ob-step-5" class="ob-step" style="display:none">
+                <div class="ob-step-content">
+                    <p class="ob-step-num">Question 4 / 4</p>
+                    <h2 class="ob-question">Ton équipement ?</h2>
+                    <div class="ob-options-list">
+                        <button class="ob-option ob-option-wide" data-value="full-gym" onclick="Onboarding.selectOption('equipment','full-gym')">
+                            <span class="ob-opt-icon">🏋️</span>
+                            <div>
+                                <div class="ob-opt-label">Salle complète</div>
+                                <div class="ob-opt-desc">Machines, barres, haltères</div>
+                            </div>
+                        </button>
+                        <button class="ob-option ob-option-wide" data-value="home-gym" onclick="Onboarding.selectOption('equipment','home-gym')">
+                            <span class="ob-opt-icon">🏠</span>
+                            <div>
+                                <div class="ob-opt-label">Home gym</div>
+                                <div class="ob-opt-desc">Barre, haltères, rack</div>
+                            </div>
+                        </button>
+                        <button class="ob-option ob-option-wide" data-value="dumbbells-only" onclick="Onboarding.selectOption('equipment','dumbbells-only')">
+                            <span class="ob-opt-icon">🏃</span>
+                            <div>
+                                <div class="ob-opt-label">Haltères seulement</div>
+                                <div class="ob-opt-desc">Haltères et élastiques</div>
+                            </div>
+                        </button>
+                        <button class="ob-option ob-option-wide" data-value="bodyweight" onclick="Onboarding.selectOption('equipment','bodyweight')">
+                            <span class="ob-opt-icon">⚡</span>
+                            <div>
+                                <div class="ob-opt-label">Poids du corps</div>
+                                <div class="ob-opt-desc">Sans équipement</div>
+                            </div>
+                        </button>
+                    </div>
+                    <div id="ob-program-suggestion" class="ob-program-suggestion"></div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="ob-nav">
+                <button id="ob-back-btn" class="btn btn-ghost" style="display:none" onclick="Onboarding.back()">← Retour</button>
+                <button id="ob-next-btn" class="btn btn-primary" style="display:none" disabled onclick="Onboarding.next()">Suivant →</button>
+                <button id="ob-complete-btn" class="btn btn-primary" style="display:none" disabled onclick="Onboarding.complete()">Commencer 🚀</button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/data/foods.js?v=5"></script>
     <script src="js/data/exercises.js?v=11"></script>
@@ -3373,6 +3765,8 @@
     <script src="js/modules/plate-calculator.js?v=1"></script>
     <script src="js/modules/mobile-gestures.js?v=12"></script>
     <script src="js/modules/theme.js?v=1"></script>
+    <script src="js/modules/onboarding.js?v=1"></script>
+    <script src="js/modules/ai-insights.js?v=1"></script>
     <script src="js/app.js?v=33"></script>
 </body>
 </html>

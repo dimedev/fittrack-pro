@@ -88,24 +88,64 @@ function saveConflictBackup(entity, localData) {
 
 // Résolution automatique selon préférence
 async function resolveConflictAutomatically(conflictData, strategy) {
-    // Sauvegarder un backup des données locales avant écrasement
     saveConflictBackup(conflictData.entity, state);
-    
-    if (strategy === 'local') {
-        // Forcer l'envoi des données locales vers le serveur
+
+    if (strategy === 'merge' || strategy === 'server') {
+        if (conflictData.serverData && strategy !== 'local') {
+            mergeFieldLevel(conflictData.serverData);
+            console.log('📤📥 Résolution auto (merge field-level): champs les plus récents conservés');
+            await saveTrainingSettingsToSupabase();
+            showToast('Données fusionnées intelligemment', 'success');
+        } else {
+            console.log('📥 Résolution auto (server): données serveur chargées');
+            showToast('Données synchronisées (backup local sauvegardé)', 'info');
+        }
+    } else if (strategy === 'local') {
         console.log('📤 Résolution auto (local): envoi vers serveur');
         await saveTrainingSettingsToSupabase();
         showToast('Vos données locales ont été sauvegardées (backup créé)', 'success');
-    } else {
-        // 'server' : Les données serveur sont déjà chargées
-        console.log('📥 Résolution auto (server): données serveur chargées');
-        showToast('Données synchronisées (backup local sauvegardé)', 'info');
     }
-    
-    // Marquer la sync comme complète
+
     if (typeof markSyncComplete === 'function') {
         markSyncComplete();
     }
+}
+
+function mergeFieldLevel(serverData) {
+    const serverTime = serverData.updated_at ? new Date(serverData.updated_at).getTime() : 0;
+    const localTime = state._lastSaveTimestamp || 0;
+
+    const fieldsMap = {
+        wizard_results: 'wizardResults',
+        training_progress: 'trainingProgress',
+        session_templates: 'sessionTemplates',
+        goals: 'goals',
+        body_weight_log: 'bodyWeightLog',
+        unlocked_achievements: 'unlockedAchievements'
+    };
+
+    for (const [serverKey, localKey] of Object.entries(fieldsMap)) {
+        const serverVal = serverData[serverKey];
+        const localVal = state[localKey];
+        if (!serverVal) continue;
+
+        if (!localVal || (typeof localVal === 'object' && Object.keys(localVal).length === 0)) {
+            state[localKey] = serverVal;
+        } else if (serverTime > localTime) {
+            if (localKey === 'bodyWeightLog' && Array.isArray(serverVal) && Array.isArray(localVal)) {
+                const merged = [...serverVal];
+                localVal.forEach(entry => {
+                    if (!merged.some(s => s.date === entry.date)) merged.push(entry);
+                });
+                state[localKey] = merged.sort((a, b) => new Date(a.date) - new Date(b.date));
+            } else if (localKey === 'unlockedAchievements' && Array.isArray(serverVal)) {
+                state[localKey] = [...new Set([...(localVal || []), ...serverVal])];
+            } else {
+                state[localKey] = serverVal;
+            }
+        }
+    }
+    console.log('🔀 Merge field-level terminé');
 }
 
 // Fonctions de résolution de conflits
@@ -352,8 +392,9 @@ async function withRetry(fn, options = {}) {
             lastError = error;
             
             if (attempt < maxRetries - 1) {
-                // Calcul du délai avec backoff exponentiel
-                const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+                const expDelay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+                const jitter = Math.random() * expDelay * 0.3;
+                const delay = Math.round(expDelay + jitter);
                 console.warn(`Retry ${attempt + 1}/${maxRetries} après ${delay}ms:`, error.message);
                 
                 if (onRetry) onRetry(attempt + 1, delay);
@@ -574,9 +615,11 @@ async function safeSave(type, action, data, saveFn) {
         return { success: false, reason: 'validation_failed' };
     }
     
-    // 3. Save avec retry
+    // 3. Save avec retry + backoff
     try {
-        const result = await saveFn(sanitized);
+        const result = await withRetry(() => saveFn(sanitized), {
+            maxRetries: 3, baseDelay: 1000, maxDelay: 15000, critical: false
+        });
         syncLog.add({ event: 'save_success', type, action });
         return { success: true, data: result };
     } catch (error) {
@@ -775,11 +818,40 @@ async function checkExistingEntry(date, foodId, quantity) {
 
 async function syncPendingData() {
     if (!currentUser || !isOnline) return;
-    
+
     console.log('🔄 Synchronisation des données en attente...');
     updateSyncIndicator(SyncStatus.SYNCING);
-    
+
     try {
+        // 0. Traiter la queue persistante (IndexedDB) — séances/cardio enregistrés hors ligne
+        if (window.RepzyDB && typeof window.RepzyDB.getPendingSyncOps === 'function') {
+            const pending = await window.RepzyDB.getPendingSyncOps();
+            for (const op of pending) {
+                try {
+                    const { type, action, data, id } = op;
+                    const sessionPayload = data?.session || (type === 'workout_session' ? data : null);
+                    if ((type === 'session' || type === 'workout_session') && (action === 'add' || action === 'insert') && sessionPayload) {
+                        await saveWorkoutSessionToSupabase(sessionPayload);
+                        if (sessionPayload) sessionPayload.synced = true;
+                        if (state.sessionHistory) {
+                            const idx = state.sessionHistory.findIndex(s => (s.sessionId && s.sessionId === sessionPayload.sessionId) || (s.date === sessionPayload.date && s.addedAt === sessionPayload.addedAt));
+                            if (idx >= 0) state.sessionHistory[idx].synced = true;
+                        }
+                    } else if (type === 'foodJournal' && action === 'add' && data?.date && data?.entry) {
+                        const entryId = await addJournalEntryToSupabase(data.date, data.entry.foodId, data.entry.quantity, data.entry.mealType || 'lunch', data.entry.unitType, data.entry.unitCount);
+                        if (entryId && state.foodJournal?.[data.date]) {
+                            const entry = state.foodJournal[data.date].find(e => e.addedAt === data.entry.addedAt);
+                            if (entry) entry.supabaseId = entryId;
+                        }
+                    }
+                    await window.RepzyDB.markSynced(op.id);
+                } catch (err) {
+                    console.warn('Erreur sync queue item:', op?.type, err);
+                }
+            }
+            if (pending.length > 0) saveState();
+        }
+
         // 1. Re-sauvegarder les paramètres d'entraînement
         await saveTrainingSettingsToSupabase();
         
@@ -1100,10 +1172,21 @@ async function onUserLoggedIn() {
     console.log('👤 Utilisateur connecté:', currentUser.email);
     closeModal('auth-modal');
     updateAuthUI();
-    
+
+    // Analytics — identifier l'utilisateur
+    if (window.posthog && window.posthog.__loaded) {
+        posthog.identify(currentUser.id, { email: currentUser.email });
+    }
+    window.track?.('user_login', { method: 'email' });
+
     // Charger les données depuis Supabase
     await loadAllDataFromSupabase();
-    
+
+    // Montrer l'onboarding si premier lancement (après chargement des données)
+    setTimeout(() => {
+        if (typeof Onboarding !== 'undefined') Onboarding.show();
+    }, 600);
+
     // Démarrer le polling automatique
     startAutoSync();
 }
@@ -1288,11 +1371,12 @@ async function loadAllDataFromSupabase(silent = false) {
                         entity: 'training_settings',
                         localTime: conflict.localTime,
                         serverTime: conflict.serverTime,
-                        serverIsNewer: conflict.serverIsNewer
+                        serverIsNewer: conflict.serverIsNewer,
+                        serverData: trainingSettings
                     };
                     
                     // Récupérer la préférence utilisateur
-                    const strategy = state.preferences?.conflictResolution || 'server';
+                    const strategy = state.preferences?.conflictResolution || 'merge';
                     
                     if (strategy === 'ask') {
                         // Afficher la modal pour demander à l'utilisateur

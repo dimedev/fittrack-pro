@@ -275,6 +275,19 @@ function navigateToSection(sectionId) {
     // Mettre à jour la section actuelle
     currentSection = sectionId;
 
+    // Lazy-load Chart.js pour les sections qui en ont besoin
+    if (['nutrition', 'progress', 'progression', 'dashboard'].includes(sectionId) && typeof Chart === 'undefined' && window._loadChartJS) {
+        window._loadChartJS().then(() => {
+            if (sectionId === 'nutrition' && typeof window.updateMacroRings === 'function') {
+                window.updateMacroRings();
+            }
+            if ((sectionId === 'progress' || sectionId === 'progression') && typeof initProgressSection === 'function') {
+                initProgressSection();
+            }
+        });
+        return;
+    }
+
     // Rafraîchir les données spécifiques à la section
     if (sectionId === 'nutrition' && typeof window.updateMacroRings === 'function') {
         window.updateMacroRings();

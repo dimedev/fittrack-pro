@@ -707,6 +707,65 @@ function normalizeForSearch(str) {
         .replace(/æ/g, 'ae');            // Ligature æ → ae
 }
 
+const FOOD_SEARCH_ROW_HEIGHT = 56;
+const VIRTUAL_LIST_FOODS_THRESHOLD = 200;
+
+function renderVirtualFoodSearchList(container, results) {
+    const totalHeight = results.length * FOOD_SEARCH_ROW_HEIGHT;
+    const viewportHeight = Math.min(350, totalHeight);
+    let lastStart = -1;
+    let lastEnd = -1;
+
+    container.innerHTML = `
+        <div class="virtual-list-scroll search-results-virtual" style="max-height:${viewportHeight}px; overflow-y: auto;">
+            <div class="virtual-list-spacer" style="height:${totalHeight}px; position:relative;">
+                <div class="virtual-list-viewport" style="position:absolute; top:0; left:0; right:0; height:${totalHeight}px; pointer-events:none;"></div>
+            </div>
+        </div>
+    `;
+
+    const scrollEl = container.querySelector('.search-results-virtual');
+    const viewportEl = container.querySelector('.virtual-list-viewport');
+
+    function renderFoodRow(food) {
+        const macroText = `P: ${food.protein}g · G: ${food.carbs}g · L: ${food.fat}g`;
+        const hasUnit = hasNaturalUnit(food);
+        const quickAddLabel = hasUnit ? `1 ${food.unitLabel}` : '100g';
+        return `
+            <div class="search-result-item" id="search-item-${food.id}" style="padding: 12px; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <div onclick="quickAddFromSearch('${food.id}')" style="flex: 1; cursor: pointer;">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${food.name}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">${macroText}</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+                        <button class="btn btn-sm btn-primary" onclick="quickAdd100g('${food.id}', event)" style="font-size: 0.75rem; padding: 4px 12px; white-space: nowrap;">+ ${quickAddLabel}</button>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${food.calories} kcal</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function updateVisible() {
+        const scrollTop = scrollEl.scrollTop;
+        const start = Math.max(0, Math.floor(scrollTop / FOOD_SEARCH_ROW_HEIGHT) - 2);
+        const visibleCount = Math.ceil(viewportHeight / FOOD_SEARCH_ROW_HEIGHT) + 4;
+        const end = Math.min(results.length, start + visibleCount);
+        if (start === lastStart && end === lastEnd) return;
+        lastStart = start;
+        lastEnd = end;
+        const slice = results.slice(start, end);
+        viewportEl.innerHTML = slice.map((food, i) => {
+            const rowTop = (start + i) * FOOD_SEARCH_ROW_HEIGHT;
+            return `<div style="position:absolute;top:${rowTop}px;left:0;right:0;height:${FOOD_SEARCH_ROW_HEIGHT - 1}px;pointer-events:auto;box-sizing:border-box;">${renderFoodRow(food)}</div>`;
+        }).join('');
+    }
+
+    scrollEl.addEventListener('scroll', updateVisible, { passive: true });
+    updateVisible();
+}
+
 function searchUnifiedFoods() {
     const searchTerm = document.getElementById('unified-food-search').value;
     const container = document.getElementById('search-results-list');
@@ -720,13 +779,20 @@ function searchUnifiedFoods() {
     // Normaliser la requête (boeuf = bœuf, oeuf = œuf)
     const normalizedQuery = normalizeForSearch(searchTerm);
     
-    const results = state.foods.filter(f => {
+    const allMatches = state.foods.filter(f => {
         const normalizedName = normalizeForSearch(f.name);
         return normalizedName.includes(normalizedQuery);
-    }).slice(0, 12);
+    });
+    const results = allMatches.slice(0, 500);
 
     if (results.length === 0) {
         container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Aucun résultat</p>';
+        resultsContainer.style.display = 'block';
+        return;
+    }
+
+    if (results.length > 200) {
+        renderVirtualFoodSearchList(container, results);
         resultsContainer.style.display = 'block';
         return;
     }
@@ -1631,6 +1697,13 @@ async function addToJournalDirect(foodId, quantity) {
     // ========== OPTIMISTIC UPDATE ==========
     // 1. Ajouter immédiatement au state local
     state.foodJournal[date].push(entry);
+
+    // Analytics
+    window.track?.('food_logged', {
+        meal_type: mealType,
+        calories: Math.round((food.calories || 0) * quantity / 100),
+        source: 'quick_add'
+    });
 
     // 2. Ajouter aux aliments récents
     addToRecentFoods(food.id, quantity);
@@ -3305,6 +3378,13 @@ async function addToJournalWithMealType(foodId, quantity, mealType) {
     // ========== OPTIMISTIC UPDATE ==========
     // 1. Ajouter immédiatement au state local
     state.foodJournal[date].push(entry);
+
+    // Analytics
+    window.track?.('food_logged', {
+        meal_type: mealType,
+        calories: Math.round((food.calories || 0) * quantity / 100),
+        source: 'journal'
+    });
 
     // 2. Ajouter aux aliments récents
     addToRecentFoods(food.id, quantity);

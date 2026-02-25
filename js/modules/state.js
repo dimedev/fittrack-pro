@@ -372,6 +372,34 @@ async function loadStateAsync() {
         }
     }
 
+    // Si on a chargé depuis localStorage (fallback), les grandes collections
+    // (progressLog, sessionHistory) sont absentes du slim state → on les
+    // recharge depuis les tables IDB dédiées.
+    if (parsed && source === 'localStorage' && window.RepzyDB && window.RepzyDB.isReady()) {
+        try {
+            const idbDb = window.RepzyDB.getDB();
+            if (idbDb) {
+                // sessionHistory
+                const sessions = await idbDb.sessionHistory.toArray();
+                if (sessions && sessions.length > 0) {
+                    parsed.sessionHistory = sessions.map(({ id, _stateSync, ...s }) => s);
+                }
+
+                // progressLog : désaplatir { exerciseName: [entries] }
+                const plRows = await idbDb.progressLog.toArray();
+                if (plRows && plRows.length > 0) {
+                    parsed.progressLog = {};
+                    plRows.forEach(({ id, _stateSync, exerciseName, ...entry }) => {
+                        if (!parsed.progressLog[exerciseName]) parsed.progressLog[exerciseName] = [];
+                        parsed.progressLog[exerciseName].push(entry);
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('Rehydratation IDB tables échouée (données manquantes dans le fallback):', e);
+        }
+    }
+
     if (parsed) {
         applyParsedState(parsed);
     }
@@ -558,15 +586,20 @@ function saveState() {
             }
         }
 
-        // 1. Sauvegarder dans localStorage (synchrone, fallback)
-        localStorage.setItem('fittrack-state', dataString);
-
-        // 2. Sauvegarder dans IndexedDB (asynchrone, principal)
+        // 1. Sauvegarder dans IndexedDB (asynchrone, principal — données complètes)
         if (window.RepzyDB && window.RepzyDB.isReady()) {
             window.RepzyDB.saveState(cleanState).catch(err => {
                 console.warn('Erreur sauvegarde IndexedDB:', err);
             });
         }
+
+        // 2. Sauvegarder dans localStorage (synchrone, fallback)
+        // ── Slim state : on exclut progressLog et sessionHistory qui peuvent
+        //    dépasser plusieurs MB après des mois d'utilisation.
+        //    Ces collections sont stockées exclusivement dans IndexedDB.
+        const { progressLog: _pl, sessionHistory: _sh, ...slimState } = cleanState;
+        const slimString = JSON.stringify(slimState);
+        localStorage.setItem('fittrack-state', slimString);
 
     } catch (e) {
         // Gérer spécifiquement l'erreur de quota dépassé
@@ -574,11 +607,12 @@ function saveState() {
             console.error('❌ Quota localStorage dépassé!', e);
             showToast('Stockage local plein! Tentative de nettoyage...', 'warning');
 
-            // Tenter de nettoyer et réessayer
+            // Tenter de nettoyer et réessayer avec le slim state
             if (cleanupOldLocalData()) {
                 try {
-                    const cleanState = sanitizeCorruptedValues(state, 'state');
-                    localStorage.setItem('fittrack-state', JSON.stringify(cleanState));
+                    const cleanState2 = sanitizeCorruptedValues(state, 'state');
+                    const { progressLog: _pl2, sessionHistory: _sh2, ...slim2 } = cleanState2;
+                    localStorage.setItem('fittrack-state', JSON.stringify(slim2));
                     showToast('Nettoyage réussi, données sauvegardées', 'success');
                     return;
                 } catch (retryError) {
@@ -989,6 +1023,9 @@ function showBackupHistory() {
 
 // Exposer globalement
 window.showBackupHistory = showBackupHistory;
+window.exportData = exportData;
+window.openExportCSVModal = openExportCSVModal;
+window.exportToCSV = exportToCSV;
 
 // Ouvrir modal de choix d'export CSV
 function openExportCSVModal() {

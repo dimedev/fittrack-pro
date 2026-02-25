@@ -1528,6 +1528,17 @@ function swapExerciseInPreview(exerciseId) {
     const exercise = state.exercises.find(e => e.id === exerciseId);
     if (!exercise) return;
 
+    // Si on est en mode Quick Log, affecter l'exercice
+    if (_quickLogPickerMode) {
+        _quickLogPickerMode = false;
+        const titleEl = document.querySelector('#swap-bottom-sheet .bottom-sheet-title');
+        if (titleEl) titleEl.textContent = 'Remplacer l\'exercice';
+        const currentSection = document.querySelector('.swap-current-exercise');
+        if (currentSection) currentSection.style.display = '';
+        setQuickLogExercise(exerciseId);
+        return;
+    }
+
     // Si on est en mode sélection séance libre, ajouter l'exercice
     if (_freePickerMode) {
         _freePickerMode = false;
@@ -2606,9 +2617,20 @@ function validateCurrentSet() {
         fsSession.currentSetIndex++;
         renderCurrentExercise();
 
-        // Start rest timer (après la première série de CET exercice)
+        // ── Start rest timer ──────────────────────────────────────────
+        // Drop sets : PAS de timer (on réduit le poids immédiatement)
+        // Rest-pause : timer court 20s (micro-pause inter-rp)
+        // Série normale : timer standard selon exercice + phase
         if (getCompletedSetsForExercise(fsSession.currentExerciseIndex) >= 1) {
-            startRestTimer();
+            if (completedSet.isDrop) {
+                // Drop set — pas de repos, juste un haptic leger
+                if (window.HapticFeedback) HapticFeedback.light();
+            } else if (completedSet.isRestPause) {
+                // Rest-pause — timer court 20s fixe
+                startRestTimer(20);
+            } else {
+                startRestTimer();
+            }
         }
     } else if (areAllExercisesComplete()) {
         // TOUS les exercices terminés → fin de séance
@@ -3112,17 +3134,21 @@ function expandRestTimer() {
     if (window.MobileGestures?.Haptics) MobileGestures.Haptics.light();
 }
 
-function startRestTimer() {
+function startRestTimer(overrideDuration = null) {
     // Get exercise name and goal
     const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
     const goal = state.wizardResults?.goal || 'hypertrophy';
 
-    // Temps de repos intelligent selon exercice + objectif
-    let baseRestTime = getSmartRestTime(exercise.effectiveName, goal);
-
-    // Appliquer le multiplicateur de phase (périodisation)
-    const phaseAdjustments = getPhaseAdjustments();
-    fsTimerTarget = Math.round(baseRestTime * phaseAdjustments.restMultiplier);
+    if (overrideDuration !== null) {
+        // Durée imposée (ex: rest-pause = 20s)
+        fsTimerTarget = overrideDuration;
+    } else {
+        // Temps de repos intelligent selon exercice + objectif
+        let baseRestTime = getSmartRestTime(exercise.effectiveName, goal);
+        // Appliquer le multiplicateur de phase (périodisation)
+        const phaseAdjustments = getPhaseAdjustments();
+        fsTimerTarget = Math.round(baseRestTime * phaseAdjustments.restMultiplier);
+    }
     fsTimerSeconds = fsTimerTarget;
 
     updateFsTimerDisplay();
@@ -4173,6 +4199,13 @@ async function finishSession() {
                     if (window.HapticFeedback) {
                         window.HapticFeedback.achievement();
                     }
+                    // Analytics
+                    window.track?.('exercise_pr', {
+                        exercise: exerciseName,
+                        weight: setData.weight,
+                        reps: setData.reps,
+                        pr_type: prCheck.type || '1rm'
+                    });
                 }
             }
         });
@@ -4361,6 +4394,18 @@ async function finishSession() {
             window.HapticFeedback.success();
         }
     }
+
+    // Analytics — funnel conversion
+    window.track?.('session_completed', {
+        duration_min: durationMinutes,
+        exercise_count: Object.keys(setsByExercise).length,
+        total_sets: fsSession.completedSets.length,
+        total_volume: Math.round(totalVolume),
+        session_type: isFreeSession ? 'free' : 'program',
+        program: isFreeSession ? null : (state.wizardResults?.selectedProgram || null),
+        has_pr: newPRs.length > 0,
+        pr_count: newPRs.length
+    });
 
     // Refresh training section
     renderTrainingSection();
@@ -5778,6 +5823,256 @@ window.duplicateSession = duplicateSession;
 window.startSessionFromTemplate = startSessionFromTemplate;
 window.updateTemplate = updateTemplate;
 window.deleteTemplate = deleteTemplate;
+
+// ==================== QUICK LOG ====================
+
+/** Flag pour que le picker sache qu'on est en mode Quick Log */
+let _quickLogPickerMode = false;
+
+/** State du Quick Log */
+let quickLogState = { exercise: null, sets: [] };
+
+function openQuickLogSheet() {
+    quickLogState = { exercise: null, sets: [] };
+    _renderQuickLogExercise();
+    _renderQuickLogSets();
+    const sheet = document.getElementById('quick-log-sheet');
+    if (!sheet) return;
+    if (window.ModalManager) ModalManager.lock('quick-log-sheet');
+    sheet.style.display = 'flex';
+}
+
+function closeQuickLogSheet() {
+    if (window.ModalManager) ModalManager.unlock('quick-log-sheet');
+    const sheet = document.getElementById('quick-log-sheet');
+    if (sheet) sheet.style.display = 'none';
+    _quickLogPickerMode = false;
+}
+
+function openExercisePickerForQuickLog() {
+    // Ouvrir le swap sheet en mode "quick log picker"
+    _quickLogPickerMode = true;
+    const titleEl = document.querySelector('#swap-bottom-sheet .bottom-sheet-title');
+    if (titleEl) titleEl.textContent = 'Choisir un exercice';
+    const currentSection = document.querySelector('.swap-current-exercise');
+    if (currentSection) currentSection.style.display = 'none';
+    closeQuickLogSheet();
+    // Initialiser la recherche vide
+    const searchInput = document.getElementById('swap-search-input');
+    if (searchInput) { searchInput.value = ''; }
+    // Ouvrir le swap sheet
+    if (typeof openSwapSheet === 'function') {
+        openSwapSheet(null); // null = pas d'exercice courant
+    } else {
+        const sheet = document.getElementById('swap-bottom-sheet');
+        if (sheet) {
+            sheet.style.display = 'flex';
+            if (window.ModalManager) ModalManager.lock('swap-bottom-sheet');
+            if (typeof renderSwapSections === 'function') renderSwapSections([], [], []);
+            if (typeof filterSwapExercises === 'function') filterSwapExercises('');
+        }
+    }
+}
+
+function _renderQuickLogExercise() {
+    const picker  = document.getElementById('quick-log-exercise-btn');
+    const iconEl  = document.getElementById('quick-log-exercise-icon');
+    const nameEl  = document.getElementById('quick-log-exercise-name');
+    const hintEl  = document.getElementById('quick-log-exercise-hint');
+    const section = document.getElementById('quick-log-sets-section');
+    if (!picker) return;
+
+    if (quickLogState.exercise) {
+        picker.classList.add('has-exercise');
+        if (iconEl)  iconEl.textContent = '🏋️';
+        if (nameEl)  nameEl.textContent = quickLogState.exercise.name;
+        if (hintEl)  hintEl.textContent = quickLogState.exercise.muscleGroup || 'Appuyer pour changer';
+        if (section) section.style.display = 'block';
+    } else {
+        picker.classList.remove('has-exercise');
+        if (iconEl)  iconEl.textContent = '🏋️';
+        if (nameEl)  nameEl.textContent = 'Choisir un exercice';
+        if (hintEl)  hintEl.textContent = 'Appuyer pour sélectionner';
+        if (section) section.style.display = 'none';
+    }
+}
+
+function setQuickLogExercise(exerciseId) {
+    const exercise = (state.exercises || []).find(e => e.id === exerciseId);
+    if (!exercise) return;
+    quickLogState.exercise = exercise;
+    quickLogState.sets = [];
+    _quickLogPickerMode = false;
+
+    // Restaurer le swap sheet title
+    const titleEl = document.querySelector('#swap-bottom-sheet .bottom-sheet-title');
+    if (titleEl) titleEl.textContent = 'Remplacer l\'exercice';
+    const currentSection = document.querySelector('.swap-current-exercise');
+    if (currentSection) currentSection.style.display = '';
+
+    // Fermer le swap sheet, rouvrir quick log
+    if (typeof closeBottomSheet === 'function') closeBottomSheet();
+    openQuickLogSheet();
+
+    // Auto-ajouter la première série
+    addSetToQuickLog();
+}
+
+function addSetToQuickLog() {
+    if (!quickLogState.exercise) return;
+    // Reprendre le poids de la série précédente comme défaut
+    const lastSet = quickLogState.sets[quickLogState.sets.length - 1];
+    const defaultWeight = lastSet ? lastSet.weight : '';
+    const defaultReps   = lastSet ? lastSet.reps   : 10;
+    quickLogState.sets.push({ weight: defaultWeight, reps: defaultReps });
+    _renderQuickLogSets();
+}
+
+function removeSetFromQuickLog(index) {
+    quickLogState.sets.splice(index, 1);
+    _renderQuickLogSets();
+}
+
+function _renderQuickLogSets() {
+    const list    = document.getElementById('quick-log-sets-list');
+    const saveBtn = document.getElementById('quick-log-save-btn');
+    if (!list) return;
+
+    if (quickLogState.sets.length === 0) {
+        list.innerHTML = '';
+    } else {
+        list.innerHTML = quickLogState.sets.map((set, i) => `
+            <div class="quick-log-set-row" id="ql-set-${i}">
+                <span class="quick-log-set-num">S${i + 1}</span>
+                <div class="quick-log-set-inputs">
+                    <input type="number" class="quick-log-input"
+                           value="${set.weight}"
+                           placeholder="kg"
+                           min="0" max="500" step="0.5"
+                           oninput="quickLogSetChanged(${i}, 'weight', this.value)"
+                           inputmode="decimal">
+                    <span class="quick-log-input-sep">×</span>
+                    <input type="number" class="quick-log-input"
+                           value="${set.reps}"
+                           placeholder="reps"
+                           min="1" max="200" step="1"
+                           oninput="quickLogSetChanged(${i}, 'reps', this.value)"
+                           inputmode="numeric">
+                </div>
+                <button class="quick-log-set-del" onclick="removeSetFromQuickLog(${i})" aria-label="Supprimer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    // Activer/désactiver le bouton sauvegarder
+    const hasValidSets = quickLogState.sets.length > 0 &&
+        quickLogState.sets.some(s => s.reps > 0);
+    if (saveBtn) saveBtn.disabled = !quickLogState.exercise || !hasValidSets;
+}
+
+function quickLogSetChanged(index, field, value) {
+    if (!quickLogState.sets[index]) return;
+    quickLogState.sets[index][field] = field === 'weight'
+        ? parseFloat(value) || 0
+        : parseInt(value)  || 0;
+    // Re-valider le bouton sauvegarder
+    const saveBtn = document.getElementById('quick-log-save-btn');
+    if (saveBtn) {
+        const hasValidSets = quickLogState.sets.some(s => s.reps > 0);
+        saveBtn.disabled = !hasValidSets;
+    }
+}
+
+async function saveQuickLogSession() {
+    if (!quickLogState.exercise || quickLogState.sets.length === 0) return;
+
+    const ex      = quickLogState.exercise;
+    const sets    = quickLogState.sets.filter(s => s.reps > 0);
+    if (sets.length === 0) { showToast('Ajoute au moins une série', 'warning'); return; }
+
+    const today      = new Date().toISOString().split('T')[0];
+    const sessionId  = 'quick-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const totalSets  = sets.length;
+    const totalReps  = sets.reduce((sum, s) => sum + (s.reps || 0), 0);
+    const totalVol   = sets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+    const duration   = Math.max(1, Math.round(totalSets * 2.5)); // estimation ~2.5 min/série
+
+    // ── Construire la session ──
+    const newSession = {
+        sessionId,
+        date: today,
+        sessionType: 'quick',
+        sessionName: ex.name,
+        exercises: [{
+            name: ex.name,
+            effectiveName: ex.name,
+            sets: totalSets,
+            achievedSets: totalSets,
+            achievedReps: totalReps,
+            weight: sets[0]?.weight || 0,
+            setsDetail: sets.map((s, i) => ({
+                setIndex: i,
+                weight: s.weight || 0,
+                reps: s.reps || 0,
+                completed: true,
+                rpe: null, rir: null, isDrop: false, isRestPause: false
+            }))
+        }],
+        duration,
+        totalVolume: totalVol,
+        addedAt: Date.now()
+    };
+
+    // ── Sauvegarder dans sessionHistory ──
+    if (!state.sessionHistory) state.sessionHistory = [];
+    state.sessionHistory.unshift(newSession);
+
+    // ── Sauvegarder dans progressLog ──
+    if (!state.progressLog) state.progressLog = {};
+    if (!state.progressLog[ex.name]) state.progressLog[ex.name] = [];
+    state.progressLog[ex.name].push({
+        date: today,
+        sessionId,
+        sets: totalSets,
+        achievedSets: totalSets,
+        achievedReps: totalReps,
+        weight: sets[0]?.weight || 0,
+        setsDetail: newSession.exercises[0].setsDetail,
+        addedAt: Date.now()
+    });
+
+    // ── Vérifier PR ──
+    if (typeof checkAndUpdatePR === 'function') {
+        const pr = checkAndUpdatePR(ex.name, sets[0]?.weight || 0, Math.max(...sets.map(s => s.reps || 0)));
+        if (pr?.isNewPR) showToast(`🏆 Nouveau PR — ${ex.name} !`, 'success', 3500);
+    }
+
+    saveState();
+
+    // ── Sync Supabase ──
+    if (typeof saveWorkoutSessionToSupabase === 'function') {
+        try { await saveWorkoutSessionToSupabase(newSession); }
+        catch (e) {
+            if (typeof addToSyncQueue === 'function') addToSyncQueue('workout_session', 'insert', newSession);
+        }
+    }
+
+    closeQuickLogSheet();
+    showToast(`✅ ${ex.name} · ${totalSets} série${totalSets > 1 ? 's' : ''} enregistrée${totalSets > 1 ? 's' : ''}`, 'success', 3000);
+    if (window.HapticFeedback) HapticFeedback.success();
+}
+
+// Quick Log
+window.openQuickLogSheet = openQuickLogSheet;
+window.closeQuickLogSheet = closeQuickLogSheet;
+window.openExercisePickerForQuickLog = openExercisePickerForQuickLog;
+window.setQuickLogExercise = setQuickLogExercise;
+window.addSetToQuickLog = addSetToQuickLog;
+window.removeSetFromQuickLog = removeSetFromQuickLog;
+window.quickLogSetChanged = quickLogSetChanged;
+window.saveQuickLogSession = saveQuickLogSession;
 
 // Séance libre
 window.openNewSessionSheet = openNewSessionSheet;

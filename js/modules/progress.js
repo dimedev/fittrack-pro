@@ -137,6 +137,8 @@ function switchProgressTab(tabName) {
         renderMuscleVolumeChart();
         renderFrequencyChart();
         renderMonthlyComparisonChart();
+    } else if (tabName === 'cardio') {
+        renderCardioAnalytics();
     }
 }
 
@@ -264,8 +266,10 @@ function renderProgressFeed() {
     if (feed.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">⚡</div>
+                <div class="empty-state-icon" style="font-size:2.5rem">⚡</div>
                 <div class="empty-state-title">Aucune activité récente</div>
+                <p style="color:var(--text-secondary);margin-top:6px">Lance ta première séance pour voir ton historique ici</p>
+                <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="navigateToSection('training')">Commencer</button>
             </div>
         `;
         return;
@@ -497,9 +501,9 @@ function renderPRsSection() {
     if (exerciseNames.length === 0) {
         container.innerHTML = `
             <div class="empty-state pr-empty-state">
-                <div class="empty-state-icon">🏆</div>
-                <div class="empty-state-title">Aucun record</div>
-                <p>Tes PRs apparaîtront ici après ta première séance</p>
+                <div class="empty-state-icon" style="font-size:2.5rem">🏆</div>
+                <div class="empty-state-title">Aucun record personnel</div>
+                <p style="color:var(--text-secondary)">Chaque série validée te rapproche de ton premier PR</p>
             </div>
         `;
         return;
@@ -1104,64 +1108,81 @@ function openLastSessionDetail() {
 
 // ==================== SESSIONS LIST (NEW) ====================
 
+const SESSION_ROW_HEIGHT = 64;
+const VIRTUAL_LIST_SESSIONS_THRESHOLD = 50;
+
+function renderSessionItemHtml(session, index) {
+    const sessionDate = new Date(session.date);
+    const day = sessionDate.getDate();
+    const month = sessionDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
+    const exercises = session.exercises || [];
+    const totalSets = exercises.reduce((sum, ex) =>
+        sum + (Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0)), 0
+    );
+    const duration = session.duration || 0;
+    const prsCount = countSessionPRs(session);
+    return `
+        <div class="session-history-item" data-session-index="${index}" onclick="openSessionDetail(${index})">
+            <div class="session-history-date">
+                <div class="session-history-day">${day}</div>
+                <div class="session-history-month">${month}</div>
+            </div>
+            <div class="session-history-info">
+                <div class="session-history-title">
+                    ${session.day || 'Séance'}
+                    ${prsCount > 0 ? `<span class="session-history-pr-badge">🏆 ${prsCount} PR${prsCount > 1 ? 's' : ''}</span>` : ''}
+                </div>
+                <div class="session-history-meta">
+                    ${exercises.length} exos • ${totalSets} séries • ${duration} min
+                </div>
+            </div>
+            <span class="session-history-arrow">›</span>
+        </div>
+    `;
+}
+
 function updateSessionHistory() {
     const container = document.getElementById('session-history');
     if (!container) return;
 
-    // Filtrer les sessions soft-deleted
     const activeSessions = state.sessionHistory.filter(s => !s.deletedAt);
 
     if (activeSessions.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">📅</div>
-                <div class="empty-state-title">Aucune séance enregistrée</div>
-                <p>Vos séances apparaîtront ici après votre première session</p>
+                <div class="empty-state-icon" style="font-size:2.5rem">💪</div>
+                <div class="empty-state-title">Prêt à soulever ?</div>
+                <p style="color:var(--text-secondary);margin-top:6px">Tes séances apparaîtront ici. Chaque entraînement compte.</p>
+                <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="navigateToSection('training')">Démarrer une séance</button>
             </div>
         `;
         return;
     }
 
-    // Render all sessions as clean cards
+    if (activeSessions.length > VIRTUAL_LIST_SESSIONS_THRESHOLD) {
+        renderVirtualSessionList(container, activeSessions);
+        return;
+    }
+
+    const PAGE_SIZE = 20;
+    let shownCount = parseInt(container.dataset.shownCount || '0') || PAGE_SIZE;
+    shownCount = Math.min(shownCount, activeSessions.length);
+
+    const visible = activeSessions.slice(0, shownCount);
+    const hasMore = activeSessions.length > shownCount;
+
+    container.dataset.shownCount = shownCount;
     container.innerHTML = `
         <div class="sessions-list-container">
-            ${activeSessions.map((session, _filteredIdx) => {
-                // Trouver l'index réel dans sessionHistory (pour deleteSession/openSessionDetail)
-                const index = state.sessionHistory.indexOf(session);
-                const sessionDate = new Date(session.date);
-                const day = sessionDate.getDate();
-                const month = sessionDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
-                
-                const exercises = session.exercises || [];
-                const totalSets = exercises.reduce((sum, ex) => 
-                    sum + (Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0)), 0
-                );
-                const duration = session.duration || 0;
-                const prsCount = countSessionPRs(session);
-
-                return `
-                    <div class="session-history-item" data-session-index="${index}" onclick="openSessionDetail(${index})">
-                        <div class="session-history-date">
-                            <div class="session-history-day">${day}</div>
-                            <div class="session-history-month">${month}</div>
-                        </div>
-                        <div class="session-history-info">
-                            <div class="session-history-title">
-                                ${session.day || 'Séance'}
-                                ${prsCount > 0 ? `<span class="session-history-pr-badge">🏆 ${prsCount} PR${prsCount > 1 ? 's' : ''}</span>` : ''}
-                            </div>
-                            <div class="session-history-meta">
-                                ${exercises.length} exos • ${totalSets} séries • ${duration} min
-                            </div>
-                        </div>
-                        <span class="session-history-arrow">›</span>
-                    </div>
-                `;
-            }).join('')}
+            ${visible.map((s, i) => renderSessionItemHtml(s, state.sessionHistory.indexOf(s))).join('')}
         </div>
+        ${hasMore ? `
+            <button class="load-more-btn" onclick="loadMoreSessions()">
+                Charger plus (${activeSessions.length - shownCount} restantes)
+            </button>
+        ` : ''}
     `;
 
-    // Attacher swipe-to-delete sur chaque session
     if (window.SwipeToDelete) {
         container.querySelectorAll('.session-history-item').forEach(item => {
             const idx = parseInt(item.dataset.sessionIndex);
@@ -1173,6 +1194,58 @@ function updateSessionHistory() {
             }
         });
     }
+}
+
+function renderVirtualSessionList(container, activeSessions) {
+    const totalHeight = activeSessions.length * SESSION_ROW_HEIGHT;
+    const viewportHeight = Math.min(400, totalHeight);
+    let lastStart = -1;
+    let lastEnd = -1;
+
+    container.innerHTML = `
+        <div class="sessions-list-container virtual-list-scroll" data-virtual-total="${activeSessions.length}" style="max-height:${viewportHeight}px; overflow-y: auto;">
+            <div class="virtual-list-spacer" style="height:${totalHeight}px; position:relative;">
+                <div class="virtual-list-viewport" style="position:absolute; top:0; left:0; right:0; height:${totalHeight}px; pointer-events:none;"></div>
+            </div>
+        </div>
+    `;
+
+    const scrollEl = container.querySelector('.virtual-list-scroll');
+    const viewportEl = container.querySelector('.virtual-list-viewport');
+
+    function updateVisible() {
+        const scrollTop = scrollEl.scrollTop;
+        const start = Math.max(0, Math.floor(scrollTop / SESSION_ROW_HEIGHT) - 2);
+        const visibleCount = Math.ceil(viewportHeight / SESSION_ROW_HEIGHT) + 4;
+        const end = Math.min(activeSessions.length, start + visibleCount);
+        if (start === lastStart && end === lastEnd) return;
+        lastStart = start;
+        lastEnd = end;
+        const slice = activeSessions.slice(start, end);
+        viewportEl.innerHTML = slice.map((s, i) => {
+            const globalIndex = state.sessionHistory.indexOf(s);
+            const rowTop = (start + i) * SESSION_ROW_HEIGHT;
+            return `<div class="virtual-list-row" style="position:absolute;top:${rowTop}px;left:0;right:0;height:${SESSION_ROW_HEIGHT - 1}px;pointer-events:auto;box-sizing:border-box;" data-session-index="${globalIndex}">${renderSessionItemHtml(s, globalIndex)}</div>`;
+        }).join('');
+        viewportEl.querySelectorAll('.virtual-list-row').forEach(el => {
+            const idx = parseInt(el.dataset.sessionIndex);
+            if (!isNaN(idx) && window.SwipeToDelete) {
+                new SwipeToDelete(el, { onDelete: () => deleteSession(idx), thresholdRatio: 0.35 });
+            }
+        });
+    }
+
+    scrollEl.addEventListener('scroll', updateVisible, { passive: true });
+    updateVisible();
+}
+
+function loadMoreSessions() {
+    const container = document.getElementById('session-history');
+    if (!container) return;
+    const PAGE_SIZE = 20;
+    const current = parseInt(container.dataset.shownCount || '20');
+    container.dataset.shownCount = current + PAGE_SIZE;
+    updateSessionHistory();
 }
 
 // ==================== SESSION DETAIL VIEW ====================
@@ -2114,9 +2187,9 @@ function renderCoachRecommendations() {
     
     const emptyStateHTML = `
         <div class="empty-state">
-            <div class="empty-state-icon">🤖</div>
-            <div class="empty-state-title">Pas encore de recommandations</div>
-            <p>Continue à t'entraîner, le coach analysera tes performances</p>
+            <div class="empty-state-icon" style="font-size:2.5rem">🤖</div>
+            <div class="empty-state-title">Le coach se prépare</div>
+            <p style="color:var(--text-secondary)">Après 3 séances, tu recevras des recommandations personnalisées sur ta progression</p>
         </div>
     `;
     
@@ -2273,15 +2346,482 @@ function generateCoachRecommendations() {
     return recommendations.slice(0, 6);
 }
 
+// ==================== HEATMAP ANNUELLE ====================
+
+function renderActivityHeatmap() {
+    const container = document.getElementById('activity-heatmap');
+    const statsEl   = document.getElementById('heatmap-stats');
+    const monthsEl  = document.getElementById('heatmap-months-labels');
+    if (!container) return;
+
+    // ── Construire un dictionnaire date → nombre de séances ──
+    const sessions = (state.sessionHistory || []).filter(s => !s.deletedAt);
+    const byDate = {};
+    sessions.forEach(s => {
+        if (s.date) byDate[s.date] = (byDate[s.date] || 0) + 1;
+    });
+
+    // ── Calculer la fenêtre 52 semaines ──
+    const today     = new Date();
+    const todayStr  = today.toISOString().split('T')[0];
+
+    // Trouver le dernier lundi (début de la dernière semaine complète)
+    const startDate = new Date(today);
+    const dayOfWeek = today.getDay(); // 0=dim, 1=lun...
+    startDate.setDate(today.getDate() - 363 - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    // ── Rendre les colonnes (semaines) ──
+    let html = '';
+    let totalSessions = 0;
+    let activeDays    = 0;
+    const monthBreaks = {}; // week index → month name
+
+    const cursor = new Date(startDate);
+    for (let week = 0; week < 53; week++) {
+        // Marquer le mois si c'est le premier lundi du mois
+        const monthName = cursor.toLocaleDateString('fr-FR', { month: 'short' });
+        if (week === 0 || cursor.getDate() <= 7) {
+            monthBreaks[week] = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+        }
+
+        html += `<div class="heatmap-col" data-week="${week}">`;
+        for (let day = 0; day < 7; day++) {
+            const dateStr  = cursor.toISOString().split('T')[0];
+            const count    = byDate[dateStr] || 0;
+            const isFuture = dateStr > todayStr;
+
+            if (!isFuture && count > 0) { totalSessions += count; activeDays++; }
+
+            const intensity = isFuture ? 0
+                : count === 0 ? 0
+                : count === 1 ? 1
+                : count === 2 ? 2
+                : 3;
+
+            const title = isFuture ? '' : `${dateStr} · ${count} séance${count > 1 ? 's' : ''}`;
+            html += `<div class="heatmap-cell i${intensity}" title="${title}" data-date="${dateStr}"></div>`;
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        html += `</div>`;
+    }
+
+    container.innerHTML = html;
+
+    // ── Labels mois ──
+    if (monthsEl) {
+        let labelsHtml = '';
+        Object.entries(monthBreaks).forEach(([weekIdx, name]) => {
+            labelsHtml += `<span class="heatmap-month-label" style="grid-column:${parseInt(weekIdx)+1}">${name}</span>`;
+        });
+        monthsEl.innerHTML = labelsHtml;
+    }
+
+    // ── Stats header ──
+    if (statsEl) {
+        statsEl.textContent = activeDays > 0
+            ? `${activeDays} jours · ${totalSessions} séances`
+            : 'Aucune séance cette année';
+    }
+}
+
 // ==================== INIT PROGRESSION SECTION ====================
+
+// ==================== INSIGHTS PROACTIFS ====================
+/**
+ * Scanne tous les exercices du progressLog, détecte les plateaux/stagnations
+ * via calculateSuggestedWeight() et affiche des cartes d'action proactives.
+ */
+function renderProactiveInsights() {
+    const section = document.getElementById('proactive-insights-section');
+    if (!section) return;
+
+    const progressLog = state.progressLog || {};
+    const exercises = Object.keys(progressLog);
+
+    // Filtrer : exercices avec ≥ 3 sessions et une activité récente (60 jours)
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const cutoff = sixtyDaysAgo.toISOString().split('T')[0];
+
+    const insights = [];
+
+    exercises.forEach(name => {
+        const logs = progressLog[name] || [];
+        if (logs.length < 3) return;
+
+        const recent = logs.filter(l => l.date >= cutoff);
+        if (recent.length < 1) return; // exercice abandonné
+
+        // Utiliser la suggestion engine existante
+        if (typeof calculateSuggestedWeight !== 'function') return;
+        const suggestion = calculateSuggestedWeight(name, 10);
+        if (!suggestion) return;
+
+        const { isStagnating, action, message, trend, lastWeight, suggested, confidence } = suggestion;
+
+        if (action === 'plateau' || isStagnating) {
+            insights.push({
+                type: 'plateau',
+                exercise: name,
+                message: message || `Plateau détecté sur ${name}`,
+                detail: lastWeight ? `${lastWeight} kg · ${logs.length} sessions` : '',
+                suggestion: suggested && suggested !== lastWeight
+                    ? `Essaie ${suggested} kg la prochaine fois`
+                    : 'Change le schéma de répétitions ou ajoute un deload',
+                icon: '📊',
+                color: 'var(--warning, #f59e0b)'
+            });
+        } else if (trend === 'up' && confidence === 'high' && action === 'weight_up') {
+            insights.push({
+                type: 'progression',
+                exercise: name,
+                message: `Belle progression sur ${name}`,
+                detail: suggested ? `Prêt à passer à ${suggested} kg` : '',
+                suggestion: message || '',
+                icon: '📈',
+                color: 'var(--success, #10b981)'
+            });
+        }
+    });
+
+    if (insights.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    // Trier : plateaux en premier, puis progressions
+    insights.sort((a, b) => (a.type === 'plateau' ? -1 : 1) - (b.type === 'plateau' ? -1 : 1));
+    const shown = insights.slice(0, 5); // max 5 insights
+
+    section.style.display = 'block';
+    section.innerHTML = `
+        <div class="card insights-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="icon">🧠</span>
+                    Insights Coach
+                </div>
+                <span class="insights-badge">${shown.length}</span>
+            </div>
+            <div class="insights-list">
+                ${shown.map(ins => `
+                    <div class="insight-item insight-${ins.type}">
+                        <span class="insight-icon">${ins.icon}</span>
+                        <div class="insight-body">
+                            <div class="insight-title">${ins.exercise}</div>
+                            <div class="insight-desc">${ins.suggestion}</div>
+                            ${ins.detail ? `<div class="insight-meta">${ins.detail}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// ==================== CARDIO ANALYTICS ====================
+
+const CARDIO_TYPE_LABELS = {
+    running: { label: 'Course', icon: '🏃' },
+    cycling: { label: 'Vélo',   icon: '🚴' },
+    walking: { label: 'Marche', icon: '🚶' },
+    swimming: { label: 'Natation', icon: '🏊' },
+    boxing:   { label: 'Boxe',  icon: '🥊' },
+    other:    { label: 'Autre', icon: '💪' }
+};
+
+let _cardioPeriodDays = 30;
+let _cardioCaloriesChart = null;
+
+function switchCardioPeriod(days) {
+    _cardioPeriodDays = days;
+    document.querySelectorAll('.ca-period-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.period) === days);
+    });
+    renderCardioAnalytics();
+}
+
+function renderCardioAnalytics() {
+    const cardioLog = state.cardioLog || {};
+
+    // ── Aplatir toutes les sessions ────────────────────────────────────────────
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - _cardioPeriodDays);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+
+    const allSessions = [];
+    Object.entries(cardioLog).forEach(([date, sessions]) => {
+        (sessions || []).forEach(s => allSessions.push({ ...s, date }));
+    });
+    allSessions.sort((a, b) => b.date.localeCompare(a.date));
+    const filtered = allSessions.filter(s => s.date >= cutoffStr);
+
+    // ── KPIs ─────────────────────────────────────────────────────────────────
+    const totalSessions  = filtered.length;
+    const totalDuration  = filtered.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const totalCalories  = filtered.reduce((sum, s) => sum + (s.calories || 0), 0);
+    const totalDistance  = filtered.reduce((sum, s) => sum + (parseFloat(s.distance) || 0), 0);
+    const avgDuration    = totalSessions ? Math.round(totalDuration / totalSessions) : 0;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('ca-total-sessions', totalSessions);
+    set('ca-total-duration', totalDuration);
+    set('ca-total-calories', Math.round(totalCalories));
+    set('ca-total-distance', totalDistance > 0 ? totalDistance.toFixed(1) : '—');
+    set('ca-avg-duration',   avgDuration);
+    const distLabelEl = document.getElementById('ca-total-distance-label');
+    if (distLabelEl) distLabelEl.textContent = totalDistance > 0 ? totalDistance.toFixed(1) + ' km' : '— km';
+
+    // ── Par type ──────────────────────────────────────────────────────────────
+    const byType = {};
+    filtered.forEach(s => {
+        const t = s.type || 'other';
+        if (!byType[t]) byType[t] = { count: 0, duration: 0, calories: 0, distance: 0 };
+        byType[t].count++;
+        byType[t].duration  += s.duration  || 0;
+        byType[t].calories  += s.calories  || 0;
+        byType[t].distance  += parseFloat(s.distance) || 0;
+    });
+    const typeList = document.getElementById('ca-by-type');
+    if (typeList) {
+        if (Object.keys(byType).length === 0) {
+            typeList.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-state-icon">🏃</div><div>Aucune séance cardio</div></div>';
+        } else {
+            const sorted = Object.entries(byType).sort((a, b) => b[1].count - a[1].count);
+            const maxCount = sorted[0][1].count;
+            typeList.innerHTML = sorted.map(([type, data]) => {
+                const meta = CARDIO_TYPE_LABELS[type] || CARDIO_TYPE_LABELS.other;
+                const pct = Math.round((data.count / maxCount) * 100);
+                const distStr = data.distance > 0 ? ` · ${data.distance.toFixed(1)} km` : '';
+                return `
+                    <div class="ca-type-row">
+                        <span class="ca-type-icon">${meta.icon}</span>
+                        <div class="ca-type-info">
+                            <div class="ca-type-name">${meta.label}</div>
+                            <div class="ca-type-bar-wrap">
+                                <div class="ca-type-bar" style="width:${pct}%"></div>
+                            </div>
+                        </div>
+                        <div class="ca-type-stats">
+                            <span class="ca-type-count">${data.count} séance${data.count > 1 ? 's' : ''}</span>
+                            <span class="ca-type-cal">${Math.round(data.calories)} kcal${distStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // ── Distance par type ────────────────────────────────────────────────────
+    const distByTypeEl = document.getElementById('ca-distance-by-type');
+    if (distByTypeEl) {
+        const withDistance = Object.entries(byType).filter(([, d]) => d.distance > 0);
+        if (withDistance.length === 0) {
+            distByTypeEl.innerHTML = '<div class="empty-state" style="padding:12px; font-size: 13px;"><div>Aucune distance enregistrée. Saisissez la distance lors de l’enregistrement d’une séance (ex. course, vélo).</div></div>';
+        } else {
+            distByTypeEl.innerHTML = withDistance.map(([type, data]) => {
+                const meta = CARDIO_TYPE_LABELS[type] || CARDIO_TYPE_LABELS.other;
+                return `
+                    <div class="ca-type-row">
+                        <span class="ca-type-icon">${meta.icon}</span>
+                        <div class="ca-type-info">
+                            <div class="ca-type-name">${meta.label}</div>
+                        </div>
+                        <div class="ca-type-stats">
+                            <span class="ca-type-cal">${data.distance.toFixed(1)} km</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // ── Zones FC (si avgHeartRate présent sur des séances) ────────────────────
+    const hrContainer = document.getElementById('ca-hr-zones-container');
+    if (hrContainer) {
+        const sessionsWithHR = filtered.filter(s => s.avgHeartRate > 0 || (s.heartRateZones && Object.keys(s.heartRateZones).length));
+        if (sessionsWithHR.length === 0) {
+            hrContainer.innerHTML = '<div class="empty-state" style="padding:16px;"><div class="empty-state-icon">❤️</div><div>Enregistrez la fréquence cardiaque (FC moyenne) dans vos séances pour voir la répartition par zones.</div></div>';
+        } else {
+            const maxHR = 220 - (state.profile?.age || 35);
+            const zoneNames = { z1: 'Récup', z2: 'Endurance', z3: 'Tempo', z4: 'Seuil', z5: 'Max' };
+            const zonePct = { z1: [50, 60], z2: [60, 70], z3: [70, 80], z4: [80, 90], z5: [90, 100] };
+            const zoneCount = { z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 };
+            sessionsWithHR.forEach(s => {
+                const hr = s.avgHeartRate || 0;
+                if (hr <= 0) return;
+                const pct = (hr / maxHR) * 100;
+                if (pct < 60) zoneCount.z1++;
+                else if (pct < 70) zoneCount.z2++;
+                else if (pct < 80) zoneCount.z3++;
+                else if (pct < 90) zoneCount.z4++;
+                else zoneCount.z5++;
+            });
+            const total = sessionsWithHR.length;
+            hrContainer.innerHTML = `
+                <div class="ca-hr-zones-list">
+                    ${['z1', 'z2', 'z3', 'z4', 'z5'].map(z => {
+                        const n = zoneCount[z];
+                        const pct = total ? Math.round((n / total) * 100) : 0;
+                        const [lo, hi] = zonePct[z].map(v => Math.round((v / 100) * maxHR));
+                        return `<div class="ca-hr-zone-row">
+                            <span class="ca-hr-zone-name">${zoneNames[z]}</span>
+                            <span class="ca-hr-zone-range">${lo}–${hi} bpm</span>
+                            <div class="ca-hr-zone-bar-wrap"><div class="ca-hr-zone-bar" style="width:${pct}%"></div></div>
+                            <span class="ca-hr-zone-pct">${n} séance${n !== 1 ? 's' : ''} (${pct}%)</span>
+                        </div>`;
+                    }).join('')}
+                </div>
+            `;
+        }
+    }
+
+    // ── Chart calories ────────────────────────────────────────────────────────
+    _renderCardioCaloriesChart(filtered);
+
+    // ── Historique ────────────────────────────────────────────────────────────
+    const histList = document.getElementById('ca-history-list');
+    if (histList) {
+        if (allSessions.length === 0) {
+            histList.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-state-icon">📋</div><div>Aucune séance enregistrée</div></div>';
+        } else {
+            histList.innerHTML = allSessions.slice(0, 30).map(s => {
+                const meta = CARDIO_TYPE_LABELS[s.type] || CARDIO_TYPE_LABELS.other;
+                const intLabel = { light: 'Légère', moderate: 'Modérée', intense: 'Intense' }[s.intensity] || s.intensity || '';
+                const distStr = (parseFloat(s.distance) > 0) ? ` · ${parseFloat(s.distance).toFixed(1)} km` : '';
+                return `
+                    <div class="ca-history-item">
+                        <span class="ca-history-icon">${meta.icon}</span>
+                        <div class="ca-history-body">
+                            <div class="ca-history-title">${meta.label} <span class="ca-history-date">${s.date}</span></div>
+                            <div class="ca-history-meta">${s.duration} min · ${Math.round(s.calories || 0)} kcal${distStr}${intLabel ? ' · ' + intLabel : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+}
+
+function _renderCardioCaloriesChart(sessions) {
+    const canvas = document.getElementById('cardio-calories-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // Regrouper par jour
+    const byDay = {};
+    sessions.forEach(s => {
+        byDay[s.date] = (byDay[s.date] || 0) + (s.calories || 0);
+    });
+
+    // Générer les N derniers jours
+    const days = [];
+    const values = [];
+    for (let i = _cardioPeriodDays - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const str = d.toISOString().split('T')[0];
+        days.push(str.slice(5));   // MM-DD
+        values.push(Math.round(byDay[str] || 0));
+    }
+
+    if (_cardioCaloriesChart) {
+        _cardioCaloriesChart.destroy();
+        _cardioCaloriesChart = null;
+    }
+
+    _cardioCaloriesChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: days,
+            datasets: [{
+                label: 'Calories',
+                data: values,
+                backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                borderColor:     'rgba(239, 68, 68, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { maxTicksLimit: 8, color: 'rgba(255,255,255,0.4)', font: { size: 10 } }, grid: { display: false } },
+                y: { ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true }
+            }
+        }
+    });
+}
+
+// ==================== MUSCLE GROUP WEEKLY HEATMAP ====================
+
+const MUSCLE_HEATMAP_GROUPS = [
+    { id: 'chest', label: 'Pecs' },
+    { id: 'back', label: 'Dos' },
+    { id: 'shoulders', label: 'Épaules' },
+    { id: 'biceps', label: 'Biceps' },
+    { id: 'triceps', label: 'Triceps' },
+    { id: 'quads', label: 'Quads' },
+    { id: 'hamstrings', label: 'Ischios' },
+    { id: 'glutes', label: 'Fessiers' },
+    { id: 'abs', label: 'Abdos' },
+    { id: 'calves', label: 'Mollets' }
+];
+
+function renderMuscleWeeklyHeatmap() {
+    const container = document.getElementById('muscle-heatmap-grid');
+    if (!container) return;
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const cutoff = sevenDaysAgo.toISOString().split('T')[0];
+
+    const volumeByMuscle = {};
+    (state.sessionHistory || []).filter(s => !s.deletedAt && s.date >= cutoff).forEach(session => {
+        (session.exercises || []).forEach(ex => {
+            const exerciseName = ex.exercise || ex.name || ex.effectiveName || '';
+            const exercise = (typeof defaultExercises !== 'undefined' ? defaultExercises : (state.exercises || [])).find(e => e.name === exerciseName);
+            const muscle = exercise?.muscle || 'other';
+            const setsData = ex.setsDetail || ex.sets || [];
+            const volume = Array.isArray(setsData)
+                ? setsData.reduce((sum, set) => sum + ((set.weight || 0) * (set.reps || 0)), 0)
+                : 0;
+            volumeByMuscle[muscle] = (volumeByMuscle[muscle] || 0) + volume;
+        });
+    });
+
+    const maxVol = Math.max(1, ...Object.values(volumeByMuscle));
+
+    if (Object.keys(volumeByMuscle).length === 0) {
+        container.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">Entraîne-toi cette semaine pour voir la heatmap</div>';
+        return;
+    }
+
+    container.innerHTML = MUSCLE_HEATMAP_GROUPS.map(g => {
+        const vol = volumeByMuscle[g.id] || 0;
+        const intensity = vol > 0 ? Math.min(1, vol / maxVol) : 0;
+        const level = intensity === 0 ? 0 : intensity < 0.25 ? 1 : intensity < 0.55 ? 2 : 3;
+        return `<div class="muscle-heatmap-cell mh-level-${level}" title="${g.label}: ${Math.round(vol)} kg vol">
+            <span class="muscle-heatmap-label">${g.label}</span>
+            <span class="muscle-heatmap-vol">${vol > 0 ? Math.round(vol / 1000 * 10) / 10 + 't' : '—'}</span>
+        </div>`;
+    }).join('');
+}
 
 function initProgressSection() {
     updateProgressHero();
     renderProgressFeed();
     renderPRsSection();
     renderCoachRecommendations();
+    renderProactiveInsights();
     populateProgressExerciseSelect();
     renderWeeklyVolumeChart();
+    renderActivityHeatmap();
+    renderMuscleWeeklyHeatmap();
+    if (typeof AIInsights !== 'undefined') {
+        AIInsights.load();
+    }
 }
 
 // ==================== EXPORTS GLOBAUX ====================
@@ -2296,6 +2836,7 @@ window.renderPRsSection = renderPRsSection;
 window.renderCoachRecommendations = renderCoachRecommendations;
 window.showCoachRecommendationsToast = showCoachRecommendationsToast;
 window.updateSessionHistory = updateSessionHistory;
+window.loadMoreSessions = loadMoreSessions;
 window.populateProgressExerciseSelect = populateProgressExerciseSelect;
 window.updateProgressChart = updateProgressChart;
 window.initProgressSection = initProgressSection;
@@ -2303,6 +2844,11 @@ window.renderWeeklyVolumeChart = renderWeeklyVolumeChart;
 window.renderMuscleVolumeChart = renderMuscleVolumeChart;
 window.renderFrequencyChart = renderFrequencyChart;
 window.renderMonthlyComparisonChart = renderMonthlyComparisonChart;
+window.renderActivityHeatmap = renderActivityHeatmap;
+window.renderProactiveInsights = renderProactiveInsights;
+window.renderCardioAnalytics = renderCardioAnalytics;
+window.switchCardioPeriod = switchCardioPeriod;
+window.renderMuscleWeeklyHeatmap = renderMuscleWeeklyHeatmap;
 window.checkForNewPR = checkForNewPR;
 window.getAllPRs = getAllPRs;
 window.rebuildProgressLogForSession = rebuildProgressLogForSession;

@@ -145,6 +145,20 @@
                 })));
             }
 
+            // ProgressLog — aplatir { exerciseName: [entries] } en lignes indexées
+            if (stateData.progressLog && Object.keys(stateData.progressLog).length > 0) {
+                const plEntries = [];
+                for (const [exerciseName, logs] of Object.entries(stateData.progressLog)) {
+                    for (const log of (logs || [])) {
+                        plEntries.push({ ...log, exerciseName, _stateSync: timestamp });
+                    }
+                }
+                await db.progressLog.clear();
+                if (plEntries.length > 0) {
+                    await db.progressLog.bulkAdd(plEntries);
+                }
+            }
+
             // Metadata
             await db.metadata.put({
                 key: 'lastSave',
@@ -610,6 +624,10 @@
 
         // Direct DB access (pour debug)
         getDB: () => db
+    };
+
+    window.addToSyncQueue = function(type, action, data) {
+        return window.RepzyDB && window.RepzyDB.addToSyncQueue(type, action, data);
     };
 
     console.log('📦 Database module loaded');

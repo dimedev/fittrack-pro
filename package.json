@@ -1,0 +1,24 @@
+{
+  "name": "fittrack-pro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FitTrack Pro — Application de suivi fitness",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/patch-html.js",
+    "build:bundle-only": "vite build",
+    "preview": "vite preview --port 4173",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:all": "vitest run && playwright test"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "terser": "^5.31.0",
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "@playwright/test": "^1.48.0",
+    "happy-dom": "^15.0.0"
+  }
+}

@@ -534,14 +534,6 @@ function openAddExerciseModal() {
         document.body.appendChild(modal);
     }
     
-    // Récupérer tous les exercices disponibles groupés par muscle
-    const exercisesByMuscle = {};
-    state.exercises.forEach(ex => {
-        const muscle = ex.muscle || 'other';
-        if (!exercisesByMuscle[muscle]) exercisesByMuscle[muscle] = [];
-        exercisesByMuscle[muscle].push(ex);
-    });
-    
     modal.innerHTML = `
         <div class="modal" style="max-width: 500px; max-height: 80vh;">
             <div class="modal-header">
@@ -550,26 +542,22 @@ function openAddExerciseModal() {
             </div>
             <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
                 <div class="form-group">
-                    <input type="text" id="add-exercise-search" placeholder="Rechercher..." class="form-input" oninput="filterAddExerciseList()">
+                    <input type="text" id="add-exercise-search" placeholder="Rechercher un exercice..." class="form-input"
+                        oninput="filterAddExerciseList()" autofocus>
                 </div>
                 <div id="add-exercise-list">
-                    ${Object.entries(exercisesByMuscle).map(([muscle, exercises]) => `
-                        <div class="add-exercise-group" data-muscle="${muscle}">
-                            <div class="add-exercise-group-title">${muscleGroups[muscle]?.name || muscle}</div>
-                            ${exercises.map(ex => `
-                                <div class="add-exercise-item" data-name="${ex.name.toLowerCase()}" onclick="addExerciseToSession('${ex.id}')">
-                                    <span>${ex.name}</span>
-                                    <span class="add-exercise-equip">${equipmentTypes[ex.equipment] || ''}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `).join('')}
+                    <p class="add-exercise-hint">Tapez pour rechercher parmi ${state.exercises.length} exercices</p>
                 </div>
             </div>
         </div>
     `;
-    
+
     openModal('add-exercise-modal');
+    // Auto-focus search
+    setTimeout(() => {
+        const input = document.getElementById('add-exercise-search');
+        if (input) input.focus();
+    }, 150);
 }
 
 /**
@@ -585,22 +573,49 @@ function normalizeForExerciseSearch(str) {
 }
 
 /**
- * Filtre la liste d'exercices à ajouter
+ * Filtre la liste d'exercices à ajouter — lazy render (virtualisé)
  */
 function filterAddExerciseList() {
-    const search = normalizeForExerciseSearch(document.getElementById('add-exercise-search').value);
-    const items = document.querySelectorAll('#add-exercise-list .add-exercise-item');
-    
-    items.forEach(item => {
-        const name = normalizeForExerciseSearch(item.dataset.name || '');
-        item.style.display = name.includes(search) ? 'flex' : 'none';
+    const rawSearch = document.getElementById('add-exercise-search')?.value || '';
+    const search = normalizeForExerciseSearch(rawSearch);
+    const container = document.getElementById('add-exercise-list');
+    if (!container) return;
+
+    const MAX_RESULTS = 40;
+
+    if (search.length < 1) {
+        container.innerHTML = `<p class="add-exercise-hint">Tapez pour rechercher parmi ${state.exercises.length} exercices</p>`;
+        return;
+    }
+
+    const results = state.exercises.filter(ex =>
+        normalizeForExerciseSearch(ex.name).includes(search)
+    ).slice(0, MAX_RESULTS);
+
+    if (results.length === 0) {
+        container.innerHTML = '<p class="add-exercise-hint" style="color:var(--text-muted)">Aucun exercice trouvé</p>';
+        return;
+    }
+
+    // Group by muscle — only groups with results
+    const byMuscle = {};
+    results.forEach(ex => {
+        const m = ex.muscle || 'other';
+        if (!byMuscle[m]) byMuscle[m] = [];
+        byMuscle[m].push(ex);
     });
-    
-    // Masquer les groupes vides
-    document.querySelectorAll('#add-exercise-list .add-exercise-group').forEach(group => {
-        const visibleItems = group.querySelectorAll('.add-exercise-item[style="display: flex"], .add-exercise-item:not([style])');
-        group.style.display = visibleItems.length > 0 ? 'block' : 'none';
-    });
+
+    container.innerHTML = Object.entries(byMuscle).map(([muscle, exercises]) => `
+        <div class="add-exercise-group" data-muscle="${muscle}">
+            <div class="add-exercise-group-title">${muscleGroups[muscle]?.name || muscle}</div>
+            ${exercises.map(ex => `
+                <div class="add-exercise-item" onclick="addExerciseToSession('${ex.id}')">
+                    <span>${ex.name}</span>
+                    <span class="add-exercise-equip">${equipmentTypes[ex.equipment] || ''}</span>
+                </div>
+            `).join('')}
+        </div>
+    `).join('');
 }
 
 /**
