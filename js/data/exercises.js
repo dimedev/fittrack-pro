@@ -81,17 +81,6 @@ const exerciseImageMap = {
     'dead-bug': 'dead-bug.webp'
 };
 
-/**
- * Récupère l'URL de l'image pour un exercice
- * @param {string} exerciseId - ID de l'exercice
- * @returns {string|null} URL de l'image ou null si non disponible
- */
-function getExerciseImageUrl(exerciseId) {
-    const imageName = exerciseImageMap[exerciseId];
-    if (!imageName) return null;
-    return EXERCISE_IMAGE_BASE_URL + imageName;
-}
-
 // Catégories de muscles
 const muscleGroups = {
     'chest': { name: 'Pectoraux', icon: '🫁' },
