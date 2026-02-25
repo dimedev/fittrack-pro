@@ -728,9 +728,18 @@ const SessionManager = (function() {
         
         // Sync Supabase si connecté
         if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-            saveWorkoutSessionToSupabase(historyEntry).catch(err => {
-                console.error('Erreur sync Supabase:', err);
-            });
+            saveWorkoutSessionToSupabase(historyEntry)
+                .then(success => {
+                    if (success) {
+                        historyEntry.synced = true;
+                        saveState();
+                        if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
+                    }
+                })
+                .catch(err => {
+                    console.error('Erreur sync Supabase:', err);
+                });
+            if (typeof syncPendingData === 'function') setTimeout(() => syncPendingData(), 2500);
         }
         
         emitSessionUpdate('session-finalized', { session: historyEntry, newPRs });

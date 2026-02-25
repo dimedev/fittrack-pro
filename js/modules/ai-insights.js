@@ -221,8 +221,10 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
         try { localStorage.setItem(AI_SETTINGS_OPENED_KEY, '1'); } catch (_) {}
         const existing = getApiKey();
         const key = prompt(
-            'Clé API Anthropic (Claude)\nhttps://console.anthropic.com/\n\nCommence par "sk-ant-..."',
             existing
+                ? 'Une clé est déjà enregistrée. Colle la nouvelle clé pour la remplacer, ou annule pour garder l\'actuelle.\n(Colle la clé en entier, elle commence par sk-ant-…)'
+                : 'Colle ta clé API en entier (copiée depuis console.anthropic.com).\nElle commence par sk-ant-… et ne doit pas être tronquée.',
+            ''
         );
         if (key === null) return; // cancelled
         saveApiKey(key);
@@ -243,7 +245,7 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
                     <span class="ai-insight-title">Insights IA</span>
                 </div>
                 <p class="ai-insight-text">Reçois chaque semaine une analyse personnalisée de tes séances par Claude. Tous les utilisateurs peuvent l'activer avec une clé API gratuite.</p>
-                <p class="ai-insight-text" style="font-size:0.8em; color: var(--text-muted); margin-top:8px;">Clé gratuite sur <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a> (commence par sk-ant-...).</p>
+                <p class="ai-insight-text" style="font-size:0.8em; color: var(--text-muted); margin-top:8px;">Clé gratuite sur <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>. Colle la clé en entier (format <code>sk-ant-...</code>, jamais affichée en clair dans l’app).</p>
                 <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="openAISettings()">Configurer ma clé API</button>
             </div>
         `;

@@ -6626,18 +6626,25 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 .heatmap-cell.i1 { background: rgba(52, 211, 153, 0.28); }
 .heatmap-cell.i2 { background: rgba(52, 211, 153, 0.60); }
 .heatmap-cell.i3 { background: rgba(52, 211, 153, 1.00); }
+/* Aligner les mois sur la grille du heatmap : 53 colonnes 11px + gap 3px comme .heatmap-grid */
 .heatmap-months {
-    display: flex;
-    gap: 0;
-    margin-top: 5px;
-    overflow: hidden;
+    display: grid;
+    grid-template-columns: repeat(53, 11px);
+    gap: 0 3px;
+    margin-top: 6px;
+    width: max-content;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
 }
 .heatmap-month-label {
-    font-size: 0.6rem;
-    color: var(--text-secondary, rgba(255,255,255,0.35));
+    font-size: 0.65rem;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
     white-space: nowrap;
-    width: 14px;
-    flex-shrink: 0;
+    grid-row: 1;
+    min-width: 11px;
+    text-align: left;
 }
 
 /* ============================================================

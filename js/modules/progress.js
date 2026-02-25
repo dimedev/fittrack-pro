@@ -2304,7 +2304,7 @@ function renderActivityHeatmap() {
         // Marquer le mois si c'est le premier lundi du mois
         const monthName = cursor.toLocaleDateString('fr-FR', { month: 'short' });
         if (week === 0 || cursor.getDate() <= 7) {
-            monthBreaks[week] = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+            monthBreaks[week] = monthName.charAt(0).toUpperCase();
         }
 
         html += `<div class="heatmap-col" data-week="${week}">`;

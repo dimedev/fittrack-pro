@@ -4316,16 +4316,28 @@ async function finishSession() {
             sessionName: fsSession.sessionName || null,
             program: isFreeSession ? null : state.wizardResults.selectedProgram,
             day: isFreeSession ? null : fsSession.splitName,
+            dayIndex: !isFreeSession ? fsSession.splitIndex : null,
             exercises: sessionData,
             duration: durationMinutes,
             totalVolume: Math.round(totalVolume),
             caloriesBurned: caloriesBurned
         };
         if (typeof saveWorkoutSessionToSupabase === 'function') {
-            saveWorkoutSessionToSupabase(sessionToSave).catch(err => {
-                console.error('Erreur sync séance:', err);
-                showToast('⚠️ Séance sauvegardée sur cet appareil uniquement. Reconnectez-vous pour synchroniser.', 'warning');
-            });
+            saveWorkoutSessionToSupabase(sessionToSave)
+                .then(success => {
+                    if (success) {
+                        newSession.synced = true;
+                        saveState();
+                        if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
+                    }
+                })
+                .catch(err => {
+                    console.error('Erreur sync séance:', err);
+                    showToast('⚠️ Séance sauvegardée localement. Clique sur l\'icône de sync pour réessayer.', 'warning');
+                });
+        }
+        if (typeof syncPendingData === 'function') {
+            setTimeout(() => syncPendingData(), 2500);
         }
 
         sessionData.forEach(exData => {
@@ -6053,11 +6065,18 @@ async function saveQuickLogSession() {
 
     // ── Sync Supabase ──
     if (typeof saveWorkoutSessionToSupabase === 'function') {
-        try { await saveWorkoutSessionToSupabase(newSession); }
-        catch (e) {
+        try {
+            const ok = await saveWorkoutSessionToSupabase(newSession);
+            if (ok) {
+                newSession.synced = true;
+                saveState();
+                if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
+            }
+        } catch (e) {
             if (typeof addToSyncQueue === 'function') addToSyncQueue('workout_session', 'insert', newSession);
         }
     }
+    if (typeof syncPendingData === 'function') setTimeout(() => syncPendingData(), 2000);
 
     closeQuickLogSheet();
     showToast(`✅ ${ex.name} · ${totalSets} série${totalSets > 1 ? 's' : ''} enregistrée${totalSets > 1 ? 's' : ''}`, 'success', 3000);

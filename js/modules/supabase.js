@@ -220,25 +220,35 @@ async function resolveConflict(choice) {
     }
 }
 
-// Mettre à jour le badge avec le nombre d'éléments en attente
+// Mettre à jour le badge avec le nombre d'éléments en attente (synchronisation)
 function updatePendingSyncBadge() {
     const badge = document.querySelector('.sync-badge');
     if (!badge) return;
     
     let pendingCount = 0;
     
-    // Compter les entrées journal sans supabaseId
+    // Entrées journal sans supabaseId
     Object.values(state.foodJournal || {}).forEach(entries => {
         pendingCount += entries.filter(e => !e.supabaseId).length;
     });
     
-    // Compter les sessions cardio sans supabaseId
+    // Sessions cardio sans supabaseId
     Object.values(state.cardioLog || {}).forEach(sessions => {
         pendingCount += sessions.filter(s => !s.supabaseId).length;
     });
     
+    // Séances : compter par .synced pour que le badge baisse après sync (on ne renseigne pas toujours supabaseId)
+    if (state.sessionHistory) {
+        pendingCount += state.sessionHistory.filter(s => !s.synced).length;
+    }
+    
+    // Logs de progression non synchronisés
+    Object.values(state.progressLog || {}).forEach(logs => {
+        pendingCount += (logs || []).filter(l => !l.synced).length;
+    });
+    
     if (pendingCount > 0) {
-        badge.textContent = pendingCount > 9 ? '9+' : pendingCount;
+        badge.textContent = pendingCount > 99 ? '99+' : pendingCount;
         badge.style.display = 'flex';
     } else {
         badge.style.display = 'none';
@@ -337,7 +347,7 @@ function updateSyncIndicator(status, message = null) {
     // Mettre à jour le badge
     updatePendingSyncBadge();
     
-    // Compter réellement les items en attente
+    // Compter réellement les items en attente (même logique que updatePendingSyncBadge)
     let queueCount = 0;
     if (state.foodJournal) {
         Object.values(state.foodJournal).forEach(dayEntries => {
@@ -345,7 +355,7 @@ function updateSyncIndicator(status, message = null) {
         });
     }
     if (state.sessionHistory) {
-        queueCount += state.sessionHistory.filter(s => !s.supabaseId).length;
+        queueCount += state.sessionHistory.filter(s => !s.synced).length;
     }
     if (state.cardioLog) {
         Object.values(state.cardioLog).forEach(daySessions => {
@@ -354,6 +364,9 @@ function updateSyncIndicator(status, message = null) {
             }
         });
     }
+    Object.values(state.progressLog || {}).forEach(logs => {
+        queueCount += (logs || []).filter(l => !l.synced).length;
+    });
     pendingSyncCount = queueCount;
     
     // Afficher le compteur si des items sont en attente
@@ -520,10 +533,11 @@ const validators = {
     },
     workoutSession: (session) => {
         const isFree = session.sessionType === 'free';
+        const isQuick = session.sessionType === 'quick';
         return session &&
                session.sessionId &&
                session.date &&
-               (isFree || (session.program && session.day)) &&
+               (isFree || isQuick || (session.program && session.day)) &&
                Array.isArray(session.exercises) &&
                typeof session.duration === 'number' && session.duration >= 0 &&
                typeof session.totalVolume === 'number' && session.totalVolume >= 0;
