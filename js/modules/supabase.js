@@ -1649,8 +1649,10 @@ async function loadAllDataFromSupabase(silent = false) {
                 sessionId: s.session_id || ('legacy-' + s.id), // UUID ou legacy
                 date: s.date,
                 timestamp: new Date(s.created_at).getTime(),
-                program: s.program,
-                day: s.day_name,
+                sessionType: s.session_type || 'program',
+                sessionName: s.session_name || null,
+                program: s.program || null,
+                day: s.day_name || null,
                 dayIndex: s.day_index, // Index du jour dans le split
                 exercises: s.exercises || [],
                 duration: s.duration || 0,
