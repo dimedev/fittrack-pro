@@ -465,6 +465,11 @@ function applyParsedState(parsed) {
             if (session.deletedAt === undefined) session.deletedAt = null;
         });
 
+        // Migration: ajouter sessionType aux séances existantes (toutes sont "program")
+        (state.sessionHistory || []).forEach(session => {
+            if (!session.sessionType) session.sessionType = 'program';
+        });
+
         // Migration: lier progressLog aux sessions via sessionId
         migrateProgressLogSessionIds();
 

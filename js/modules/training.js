@@ -406,6 +406,7 @@ function renderSessionsList(container) {
 
     const splits = program.splits[state.wizardResults.frequency] || program.splits[Object.keys(program.splits)[0]];
     const currentIndex = state.trainingProgress.currentSplitIndex || 0;
+    _currentProgramSplitIndex = currentIndex;
     const totalSessions = state.trainingProgress.totalSessionsCompleted || 0;
     
     // Format last session date
@@ -528,6 +529,11 @@ function renderSessionsList(container) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </div>
         </div>
+
+        <button class="btn-nouvelle-seance" onclick="openNewSessionSheet()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Nouvelle séance
+        </button>
 
         <div class="sessions-list">
             ${sessionsHTML}
@@ -1522,6 +1528,18 @@ function swapExerciseInPreview(exerciseId) {
     const exercise = state.exercises.find(e => e.id === exerciseId);
     if (!exercise) return;
 
+    // Si on est en mode sélection séance libre, ajouter l'exercice
+    if (_freePickerMode) {
+        _freePickerMode = false;
+        // Restaurer le titre du swap sheet
+        const titleEl = document.querySelector('#swap-bottom-sheet .bottom-sheet-title');
+        if (titleEl) titleEl.textContent = 'Remplacer l\'exercice';
+        const currentExerciseSection = document.querySelector('.swap-current-exercise');
+        if (currentExerciseSection) currentExerciseSection.style.display = '';
+        addExerciseToFreeSession(exerciseId);
+        return;
+    }
+
     // Si on est en mode full-screen swap, déléguer
     if (_fsSwapMode) {
         _fsSwapMode = false;
@@ -1605,6 +1623,15 @@ function executeSwapWithParams(exerciseId, exerciseName, idx, newSets, newRepsMi
 
 /** Flag pour savoir si le swap est en mode full-screen */
 let _fsSwapMode = false;
+
+/** Flag pour savoir si le swap est en mode sélection (séance libre) */
+let _freePickerMode = false;
+
+/** Index du split courant dans le programme (pour le bouton "Programme" du new-session-sheet) */
+let _currentProgramSplitIndex = 0;
+
+/** État du builder de séance libre */
+let freeSessionBuilder = { name: '', exercises: [] };
 
 /**
  * Ouvre le swap bottom sheet pour l'exercice en cours dans le full-screen session.
@@ -4193,13 +4220,17 @@ async function finishSession() {
     const userWeight = state.profile?.weight || 70;
     const caloriesBurned = Math.round(met * userWeight * (durationMinutes / 60));
     
+    const isFreeSession = fsSession.sessionType === 'free';
+
     // Save session history
     const newSession = {
         sessionId: fsSession.sessionId, // UUID pour idempotence
         date: today,
         timestamp: Date.now(),
-        program: state.wizardResults.selectedProgram,
-        day: fsSession.splitName,
+        sessionType: fsSession.sessionType || 'program',
+        sessionName: fsSession.sessionName || null,
+        program: isFreeSession ? null : state.wizardResults.selectedProgram,
+        day: isFreeSession ? null : fsSession.splitName,
         exercises: sessionData,
         duration: durationMinutes,
         totalVolume: Math.round(totalVolume),
@@ -4211,28 +4242,34 @@ async function finishSession() {
     // Keep only last 100 sessions
     state.sessionHistory = state.sessionHistory.slice(0, 100);
 
-    // Sauvegarder le template si des swaps/variantes ont été faits pendant la séance
-    const hasSwaps = fsSession.exercises.some(ex => ex.swapped);
-    if (hasSwaps) {
-        const templateKey = `${state.wizardResults.selectedProgram}-${fsSession.splitIndex}`;
-        state.sessionTemplates[templateKey] = {
-            splitIndex: fsSession.splitIndex,
-            splitName: fsSession.splitName,
-            exercises: fsSession.exercises.map(ex => ({
-                originalName: ex.originalName || ex.name,
-                swappedId: ex.effectiveId || null,
-                swappedName: ex.effectiveName !== (ex.originalName || ex.name) ? ex.effectiveName : null
-            })),
-            savedAt: new Date().toISOString()
-        };
+    // Sauvegarder le template si des swaps/variantes ont été faits pendant la séance (programme uniquement)
+    if (!isFreeSession) {
+        const hasSwaps = fsSession.exercises.some(ex => ex.swapped);
+        if (hasSwaps) {
+            const templateKey = `${state.wizardResults.selectedProgram}-${fsSession.splitIndex}`;
+            state.sessionTemplates[templateKey] = {
+                splitIndex: fsSession.splitIndex,
+                splitName: fsSession.splitName,
+                exercises: fsSession.exercises.map(ex => ({
+                    originalName: ex.originalName || ex.name,
+                    swappedId: ex.effectiveId || null,
+                    swappedName: ex.effectiveName !== (ex.originalName || ex.name) ? ex.effectiveName : null
+                })),
+                savedAt: new Date().toISOString()
+            };
+        }
     }
 
     // Update training progress
-    const program = trainingPrograms[state.wizardResults.selectedProgram];
-    const splits = program.splits[state.wizardResults.frequency];
-    state.trainingProgress.currentSplitIndex = (fsSession.splitIndex + 1) % splits.length;
     state.trainingProgress.lastSessionDate = new Date().toISOString();
     state.trainingProgress.totalSessionsCompleted++;
+
+    // Avancer le programme seulement pour les séances du programme
+    if (!isFreeSession) {
+        const program = trainingPrograms[state.wizardResults.selectedProgram];
+        const splits = program.splits[state.wizardResults.frequency];
+        state.trainingProgress.currentSplitIndex = (fsSession.splitIndex + 1) % splits.length;
+    }
 
     // Save state
     saveState();
@@ -4242,8 +4279,10 @@ async function finishSession() {
         const sessionToSave = {
             sessionId: fsSession.sessionId,
             date: today,
-            program: state.wizardResults.selectedProgram,
-            day: fsSession.splitName,
+            sessionType: fsSession.sessionType || 'program',
+            sessionName: fsSession.sessionName || null,
+            program: isFreeSession ? null : state.wizardResults.selectedProgram,
+            day: isFreeSession ? null : fsSession.splitName,
             exercises: sessionData,
             duration: durationMinutes,
             totalVolume: Math.round(totalVolume),
@@ -5329,6 +5368,318 @@ function getMuscleForExercise(exerciseName) {
     return exercise?.muscle || 'unknown';
 }
 
+// ==================== SÉANCE LIBRE ====================
+
+/**
+ * Ouvre la sheet de choix de type de séance
+ */
+function openNewSessionSheet() {
+    const sheet = document.getElementById('new-session-sheet');
+    if (!sheet) return;
+    if (window.ModalManager) ModalManager.lock('new-session-sheet');
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
+}
+
+function closeNewSessionSheet() {
+    if (window.ModalManager) ModalManager.unlock('new-session-sheet');
+    const sheet = document.getElementById('new-session-sheet');
+    if (sheet) sheet.style.display = 'none';
+}
+
+/**
+ * Ouvre le builder de séance libre
+ */
+function openFreeSessionBuilder() {
+    freeSessionBuilder = { name: '', exercises: [] };
+    const nameInput = document.getElementById('free-session-name');
+    if (nameInput) nameInput.value = '';
+    renderFreeSessionExercises();
+    const sheet = document.getElementById('free-session-sheet');
+    if (!sheet) return;
+    if (window.ModalManager) ModalManager.lock('free-session-sheet');
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
+}
+
+function closeFreeSessionBuilder() {
+    if (window.ModalManager) ModalManager.unlock('free-session-sheet');
+    const sheet = document.getElementById('free-session-sheet');
+    if (sheet) sheet.style.display = 'none';
+}
+
+/**
+ * Renders exercise list in the free session builder
+ */
+function renderFreeSessionExercises() {
+    const container = document.getElementById('free-session-exercises');
+    if (!container) return;
+
+    if (freeSessionBuilder.exercises.length === 0) {
+        container.innerHTML = `
+            <div class="free-session-empty">
+                <p>Ajoute des exercices pour construire ta séance</p>
+            </div>`;
+        const startBtn = document.getElementById('free-start-btn');
+        if (startBtn) startBtn.disabled = true;
+        return;
+    }
+
+    const muscleLabels = {
+        chest: 'Pectoraux', back: 'Dos', shoulders: 'Épaules', triceps: 'Triceps',
+        biceps: 'Biceps', quads: 'Quadriceps', hamstrings: 'Ischio', glutes: 'Fessiers',
+        calves: 'Mollets', abs: 'Abdos', traps: 'Trapèzes', forearms: 'Avant-bras',
+        'rear-delts': 'Deltoïdes post.'
+    };
+
+    container.innerHTML = freeSessionBuilder.exercises.map((ex, idx) => `
+        <div class="free-exercise-item">
+            <div class="free-exercise-info">
+                <span class="free-exercise-name">${ex.name}</span>
+                <span class="free-exercise-muscle">${muscleLabels[ex.muscle] || ex.muscle}</span>
+            </div>
+            <div class="free-exercise-params">
+                <label class="free-param-label">
+                    Séries
+                    <input type="number" class="free-param-input" value="${ex.sets}"
+                           min="1" max="10" onchange="updateFreeExerciseSets(${idx}, this.value)">
+                </label>
+                <label class="free-param-label">
+                    Reps
+                    <input type="text" class="free-param-input free-param-reps" value="${ex.reps}"
+                           maxlength="6" onchange="updateFreeExerciseReps(${idx}, this.value)">
+                </label>
+            </div>
+            <button class="free-exercise-delete" onclick="removeExerciseFromFreeSession(${idx})" aria-label="Supprimer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    `).join('');
+
+    const startBtn = document.getElementById('free-start-btn');
+    if (startBtn) startBtn.disabled = false;
+}
+
+function addExerciseToFreeSession(exerciseId) {
+    const exercise = state.exercises.find(e => e.id === exerciseId);
+    if (!exercise) return;
+    // Éviter les doublons
+    if (freeSessionBuilder.exercises.some(e => e.id === exerciseId)) {
+        showToast(`${exercise.name} déjà ajouté`, 'warning');
+        return;
+    }
+    freeSessionBuilder.exercises.push({
+        id: exercise.id,
+        name: exercise.name,
+        muscle: exercise.muscle,
+        equipment: exercise.equipment,
+        sets: 3,
+        reps: '8-12'
+    });
+    closeBottomSheet(); // ferme le swap sheet (picker)
+    // rouvre le builder
+    const sheet = document.getElementById('free-session-sheet');
+    if (sheet) sheet.style.display = 'flex';
+    renderFreeSessionExercises();
+    if (window.HapticFeedback) HapticFeedback.light();
+}
+
+function removeExerciseFromFreeSession(index) {
+    freeSessionBuilder.exercises.splice(index, 1);
+    renderFreeSessionExercises();
+}
+
+function updateFreeExerciseSets(index, value) {
+    const n = Math.max(1, Math.min(10, parseInt(value) || 3));
+    if (freeSessionBuilder.exercises[index]) {
+        freeSessionBuilder.exercises[index].sets = n;
+    }
+}
+
+function updateFreeExerciseReps(index, value) {
+    if (freeSessionBuilder.exercises[index]) {
+        freeSessionBuilder.exercises[index].reps = value.trim() || '8-12';
+    }
+}
+
+/**
+ * Ouvre l'exercise picker (réutilise le swap sheet) en mode séance libre
+ */
+function openExercisePickerForFreeSession() {
+    _freePickerMode = true;
+
+    // Préparer le swap sheet en mode picker
+    const titleEl = document.querySelector('#swap-bottom-sheet .bottom-sheet-title');
+    if (titleEl) titleEl.textContent = 'Ajouter un exercice';
+
+    const currentExerciseEl = document.getElementById('swap-current-name');
+    const currentExerciseSection = document.querySelector('.swap-current-exercise');
+    if (currentExerciseSection) currentExerciseSection.style.display = 'none';
+
+    const variantSection = document.getElementById('swap-variant-section');
+    if (variantSection) variantSection.style.display = 'none';
+
+    // Réinitialiser la recherche
+    const searchInput = document.getElementById('swap-search-input');
+    if (searchInput) { searchInput.value = ''; }
+    const clearBtn = document.querySelector('.swap-search-clear');
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    // Afficher les exercices populaires groupés par muscle
+    const sections = document.getElementById('swap-sections');
+    const searchResults = document.getElementById('swap-search-results');
+    if (searchResults) searchResults.style.display = 'none';
+
+    // Musclees les plus utilisés en séance libre
+    const popularMuscles = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'biceps', 'triceps'];
+    const muscleLabels = {
+        chest: '💪 Pectoraux', back: '🏋️ Dos', shoulders: '🦾 Épaules',
+        quads: '🦵 Quadriceps', hamstrings: '🦵 Ischio', biceps: '💪 Biceps',
+        triceps: '💪 Triceps', glutes: '🍑 Fessiers', abs: '🎯 Abdos'
+    };
+    if (sections) {
+        sections.innerHTML = popularMuscles.map(muscle => {
+            const exercises = state.exercises
+                .filter(e => e.muscle === muscle)
+                .slice(0, 5);
+            if (exercises.length === 0) return '';
+            return `
+                <div class="swap-section">
+                    <div class="swap-section-title">${muscleLabels[muscle] || muscle}</div>
+                    ${exercises.map(ex => `
+                        <div class="swap-option-item" onclick="swapExerciseInPreview('${ex.id}')">
+                            <div class="swap-option-info">
+                                <span class="swap-option-name">${ex.name}</span>
+                                <span class="swap-option-muscle">${ex.equipment}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+        }).join('');
+    }
+
+    // Cacher le free session sheet pendant le picker
+    const freeSheet = document.getElementById('free-session-sheet');
+    if (freeSheet) freeSheet.style.display = 'none';
+    if (window.ModalManager) ModalManager.unlock('free-session-sheet');
+
+    // Ouvrir le swap sheet
+    const sheet = document.getElementById('swap-bottom-sheet');
+    if (!sheet) return;
+    if (window.ModalManager) ModalManager.lock('swap-bottom-sheet');
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
+
+    // Focus sur la recherche
+    setTimeout(() => {
+        const input = document.getElementById('swap-search-input');
+        if (input) input.focus();
+    }, 300);
+}
+
+/**
+ * Lance la séance libre depuis le builder
+ */
+function startFreeSessionFromBuilder() {
+    if (freeSessionBuilder.exercises.length === 0) {
+        showToast('Ajoute au moins un exercice', 'warning');
+        return;
+    }
+    const nameInput = document.getElementById('free-session-name');
+    const sessionName = (nameInput?.value || '').trim() || 'Séance libre';
+
+    closeFreeSessionBuilder();
+    startFreeSessionDirect(freeSessionBuilder.exercises, sessionName);
+}
+
+/**
+ * Démarre une séance libre en plein écran
+ * Contourne la logique programme — n'utilise pas splitIndex ni program
+ */
+function startFreeSessionDirect(exercises, sessionName) {
+    const fsExercises = exercises.map(ex => ({
+        name: ex.name,
+        originalName: ex.name,
+        effectiveName: ex.name,
+        muscle: ex.muscle,
+        sets: ex.sets || 3,
+        reps: ex.reps || '8-12',
+        equipment: ex.equipment || ''
+    }));
+
+    // Vérifier si une session libre existe déjà aujourd'hui
+    const existingSession = loadFsSessionFromStorage();
+    const today = new Date().toISOString().split('T')[0];
+
+    if (existingSession &&
+        existingSession.sessionType === 'free' &&
+        existingSession.sessionId &&
+        new Date(existingSession.startTime).toISOString().split('T')[0] === today &&
+        !existingSession.sessionSaved) {
+        console.log('📌 Reprise session libre:', existingSession.sessionId);
+        fsSession = existingSession;
+        fsSession.active = true;
+    } else {
+        fsSession = {
+            sessionId: 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+            sessionSaved: false,
+            active: true,
+            sessionType: 'free',
+            sessionName: sessionName,
+            splitIndex: -1,
+            splitName: sessionName,
+            exercises: fsExercises,
+            currentExerciseIndex: 0,
+            currentSetIndex: 0,
+            completedSets: [],
+            startTime: Date.now()
+        };
+        console.log('🆕 Session libre créée:', fsSession.sessionId);
+    }
+
+    startAutoSaveFsSession();
+
+    const fsElement = document.getElementById('fullscreen-session');
+    if (!fsElement) { console.error('❌ fullscreen-session introuvable'); return; }
+
+    fsElement.style.display = 'flex';
+    fsElement.offsetHeight;
+    fsElement.classList.remove('animate-in');
+    void fsElement.offsetWidth;
+    fsElement.classList.add('animate-in');
+    OverflowManager.lock();
+
+    const nav = document.querySelector('.nav');
+    const mobileNav = document.querySelector('.mobile-nav');
+    if (nav) nav.style.display = 'none';
+    if (mobileNav) mobileNav.style.display = 'none';
+
+    // Pas de périodisation programme, mais init quand même l'indicateur
+    if (typeof initPeriodization === 'function') initPeriodization();
+    if (typeof updateCurrentPhase === 'function') updateCurrentPhase();
+
+    renderCurrentExercise();
+
+    if (window.MobileGestures?.ExerciseSwipeNavigator && window.innerWidth <= 768) {
+        const fsContent = document.querySelector('.fs-content');
+        if (fsContent) {
+            window._exerciseSwipeNav = new MobileGestures.ExerciseSwipeNavigator(fsContent);
+            window._exerciseSwipeNav.init();
+        }
+    }
+}
+
 // ==================== EXPORTS GLOBAUX ====================
 // Fonctions de session
 window.quickStartSession = quickStartSession;
@@ -5412,6 +5763,8 @@ window.getCompletedSetsForExercise = getCompletedSetsForExercise;
 window.renderCurrentExercise = renderCurrentExercise;
 // fsSession est réassigné à chaque démarrage → getter dynamique
 Object.defineProperty(window, 'fsSession', { get: () => fsSession, configurable: true });
+// _currentProgramSplitIndex mis à jour par renderSessionsList
+Object.defineProperty(window, '_currentProgramSplitIndex', { get: () => _currentProgramSplitIndex, configurable: true });
 
 // Fonctions périodisation
 window.getCurrentPhase = getCurrentPhase;
@@ -5425,6 +5778,19 @@ window.duplicateSession = duplicateSession;
 window.startSessionFromTemplate = startSessionFromTemplate;
 window.updateTemplate = updateTemplate;
 window.deleteTemplate = deleteTemplate;
+
+// Séance libre
+window.openNewSessionSheet = openNewSessionSheet;
+window.closeNewSessionSheet = closeNewSessionSheet;
+window.openFreeSessionBuilder = openFreeSessionBuilder;
+window.closeFreeSessionBuilder = closeFreeSessionBuilder;
+window.openExercisePickerForFreeSession = openExercisePickerForFreeSession;
+window.addExerciseToFreeSession = addExerciseToFreeSession;
+window.removeExerciseFromFreeSession = removeExerciseFromFreeSession;
+window.updateFreeExerciseSets = updateFreeExerciseSets;
+window.updateFreeExerciseReps = updateFreeExerciseReps;
+window.startFreeSessionFromBuilder = startFreeSessionFromBuilder;
+window.startFreeSessionDirect = startFreeSessionDirect;
 
 // Fonctions de rendu
 window.renderProgramTypes = renderProgramTypes;

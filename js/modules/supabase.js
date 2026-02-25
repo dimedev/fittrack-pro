@@ -22,6 +22,7 @@ let pendingSyncCount = 0;
 let lastSyncError = null;
 let isOnline = navigator.onLine;
 let pendingConflict = null;
+let lastCriticalToastTime = 0; // Anti-doublon pour les toasts critiques
 
 // ==================== AUTO-SYNC POLLING ====================
 let autoSyncInterval = null;
@@ -365,9 +366,13 @@ async function withRetry(fn, options = {}) {
     // Échec après tous les retries
     updateSyncIndicator(SyncStatus.ERROR, lastError?.message);
     
-    // Notification pour les erreurs critiques uniquement
+    // Notification pour les erreurs critiques — une seule toast toutes les 10s max
     if (critical) {
-        showToast('✋ Impossible de synchroniser. Vos données sont en sécurité sur cet appareil.', 'error');
+        const now = Date.now();
+        if (now - lastCriticalToastTime > 10000) {
+            lastCriticalToastTime = now;
+            showToast('⚠️ Sync échouée — données sauvegardées localement, retry automatique.', 'warning');
+        }
         updateSyncIndicator('error', 'Sync échoué');
     }
     
@@ -469,11 +474,11 @@ const validators = {
                entry.addedAt;
     },
     workoutSession: (session) => {
+        const isFree = session.sessionType === 'free';
         return session &&
                session.sessionId &&
                session.date &&
-               session.program &&
-               session.day &&
+               (isFree || (session.program && session.day)) &&
                Array.isArray(session.exercises) &&
                typeof session.duration === 'number' && session.duration >= 0 &&
                typeof session.totalVolume === 'number' && session.totalVolume >= 0;
@@ -589,7 +594,29 @@ function generateQueueId() {
 
 function addToSyncQueue(type, action, data) {
     if (!state.syncQueue) state.syncQueue = [];
-    
+
+    // Déduplication : éviter les doublons pour workout_session et progress_log
+    if (type === 'workout_session' && data.sessionId) {
+        const exists = state.syncQueue.some(item =>
+            item.type === 'workout_session' && item.data?.sessionId === data.sessionId
+        );
+        if (exists) {
+            console.log('📭 Déjà en queue (workout_session):', data.sessionId);
+            return;
+        }
+    }
+    if (type === 'progress_log' && data.sessionId && data.exerciseName) {
+        const exists = state.syncQueue.some(item =>
+            item.type === 'progress_log' &&
+            item.data?.sessionId === data.sessionId &&
+            item.data?.exerciseName === data.exerciseName
+        );
+        if (exists) {
+            console.log('📭 Déjà en queue (progress_log):', data.exerciseName, data.sessionId);
+            return;
+        }
+    }
+
     const queueItem = {
         id: generateQueueId(),
         type,        // 'food_journal', 'workout_session', 'cardio', etc.
@@ -598,7 +625,7 @@ function addToSyncQueue(type, action, data) {
         timestamp: Date.now(),
         retries: 0
     };
-    
+
     state.syncQueue.push(queueItem);
     saveState();
     updateSyncIndicator(SyncStatus.IDLE); // Mettre à jour le badge
@@ -641,7 +668,7 @@ async function replaySyncQueue() {
                 } else if (item.type === 'custom_exercise') {
                     await saveCustomExerciseToSupabase(item.data);
                 } else if (item.type === 'progress_log') {
-                    await saveProgressLogToSupabase(item.data);
+                    await saveProgressLogToSupabase(item.data.exerciseName, item.data);
                 }
             }
             // UPSERT operations
@@ -2349,7 +2376,8 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
         return true;
     } catch (error) {
         console.error('Erreur sauvegarde progression:', error);
-        showToast('Erreur sync progression - sauvegardé localement', 'warning');
+        // Online mais Supabase a planté → mise en queue pour retry automatique
+        addToSyncQueue('progress_log', 'insert', { exerciseName, ...logData });
         return false;
     }
 }
@@ -2386,9 +2414,11 @@ async function saveWorkoutSessionToSupabase(sessionData) {
                     user_id: currentUser.id,
                     session_id: sessionData.sessionId,
                     date: sessionData.date,
-                    program: sessionData.program,
-                    day_name: sessionData.day,
-                    day_index: sessionData.dayIndex,
+                    program: sessionData.program || null,
+                    day_name: sessionData.day || null,
+                    day_index: sessionData.dayIndex ?? null,
+                    session_type: sessionData.sessionType || 'program',
+                    session_name: sessionData.sessionName || null,
                     exercises: sessionData.exercises,
                     duration: sessionData.duration || 0,
                     total_volume: sessionData.totalVolume || 0,
@@ -2404,7 +2434,8 @@ async function saveWorkoutSessionToSupabase(sessionData) {
         return true;
     } catch (error) {
         console.error('Erreur sauvegarde séance:', error);
-        showToast('Erreur sync séance - sauvegardé localement', 'warning');
+        // Online mais Supabase a planté → mise en queue pour retry automatique
+        addToSyncQueue('workout_session', 'upsert', sessionData);
         return false;
     }
 }

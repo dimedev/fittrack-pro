@@ -1929,6 +1929,78 @@
         </div>
     </div>
 
+    <!-- Nouvelle Séance — Sheet de choix de type -->
+    <div class="bottom-sheet-overlay" id="new-session-sheet" style="display:none;" onclick="closeNewSessionSheet()">
+        <div class="bottom-sheet new-session-sheet-inner" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Nouvelle séance</h3>
+            </div>
+            <div class="new-session-grid">
+                <button class="session-type-tile tile-program" onclick="closeNewSessionSheet(); showSessionPreview(_currentProgramSplitIndex)">
+                    <span class="tile-icon">🏋️</span>
+                    <span class="tile-title">Programme</span>
+                    <span class="tile-desc">Séance structurée</span>
+                </button>
+                <button class="session-type-tile tile-free" onclick="closeNewSessionSheet(); openFreeSessionBuilder()">
+                    <span class="tile-icon">⚡</span>
+                    <span class="tile-title">Séance libre</span>
+                    <span class="tile-desc">Exercices au choix</span>
+                </button>
+                <button class="session-type-tile tile-cardio" onclick="closeNewSessionSheet(); openCardioLogModal ? openCardioLogModal() : showToast('Cardio disponible depuis l\'onglet dashboard', 'info')">
+                    <span class="tile-icon">🏃</span>
+                    <span class="tile-title">Cardio</span>
+                    <span class="tile-desc">Course, vélo, natation</span>
+                </button>
+                <button class="session-type-tile tile-quick" onclick="closeNewSessionSheet(); showToast('Quick log — bientôt disponible', 'info')">
+                    <span class="tile-icon">⚡</span>
+                    <span class="tile-title">Log rapide</span>
+                    <span class="tile-desc">1 exercice, 30 sec</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Séance Libre — Builder -->
+    <div class="bottom-sheet-overlay" id="free-session-sheet" style="display:none;" onclick="closeFreeSessionBuilder()">
+        <div class="bottom-sheet free-session-sheet-inner" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Séance libre</h3>
+                <button class="sheet-dismiss-btn" onclick="closeFreeSessionBuilder()" aria-label="Fermer">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="free-session-body">
+                <!-- Nom de la séance -->
+                <div class="free-session-name-row">
+                    <input type="text" id="free-session-name"
+                           class="free-session-name-input"
+                           placeholder="Nom de la séance (optionnel)"
+                           maxlength="50"
+                           autocomplete="off">
+                </div>
+                <!-- Liste des exercices -->
+                <div id="free-session-exercises" class="free-session-exercises">
+                    <div class="free-session-empty">
+                        <p>Ajoute des exercices pour construire ta séance</p>
+                    </div>
+                </div>
+                <!-- Bouton ajouter -->
+                <button class="btn-add-free-exercise" onclick="openExercisePickerForFreeSession()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    Ajouter un exercice
+                </button>
+            </div>
+            <div class="free-session-footer">
+                <button class="btn btn-primary free-start-btn" id="free-start-btn"
+                        onclick="startFreeSessionFromBuilder()" disabled>
+                    Démarrer la séance
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Exercise Swap Bottom Sheet - Version Améliorée -->
     <div class="bottom-sheet-overlay" id="swap-bottom-sheet" style="display: none;" onclick="closeBottomSheet()">
         <div class="bottom-sheet swap-sheet-premium" onclick="event.stopPropagation()">
