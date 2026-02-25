@@ -348,7 +348,11 @@ function updateSyncIndicator(status, message = null) {
         queueCount += state.sessionHistory.filter(s => !s.supabaseId).length;
     }
     if (state.cardioLog) {
-        queueCount += state.cardioLog.filter(c => !c.supabaseId).length;
+        Object.values(state.cardioLog).forEach(daySessions => {
+            if (Array.isArray(daySessions)) {
+                queueCount += daySessions.filter(c => !c.supabaseId).length;
+            }
+        });
     }
     pendingSyncCount = queueCount;
     

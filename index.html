@@ -71,26 +71,19 @@
         };
     </script>
 
-    <!-- Sentry — Error monitoring (remplacer YOUR_SENTRY_DSN_LOADER par ta clé projet Sentry dans l’URL) -->
-    <script
-      src="https://js.sentry-cdn.com/YOUR_SENTRY_DSN_LOADER.min.js"
-      crossorigin="anonymous"
-      data-lazy="no"
-    ></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
-    <!-- Chart.js et Quagga chargés à la demande (lazy) pour réduire le first load -->
+    <!-- Sentry — chargé dynamiquement si REPZY_CONFIG.sentryLoader est configuré -->
     <script>
-    window._loadChartJS = function() {
-        return new Promise(function(resolve) {
-            if (typeof Chart !== 'undefined') return resolve();
+    (function() {
+        var cfg = window.REPZY_CONFIG || {};
+        if (cfg.sentryLoader && cfg.sentryLoader !== 'YOUR_SENTRY_DSN_LOADER') {
             var s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-            s.onload = resolve;
-            s.onerror = function() { console.warn('Chart.js load failed'); resolve(); };
+            s.src = 'https://js.sentry-cdn.com/' + cfg.sentryLoader + '.min.js';
+            s.crossOrigin = 'anonymous';
             document.head.appendChild(s);
-        });
+        }
+    })();
+    </script>
+
     };
     window._loadQuagga = function() {
         return new Promise(function(resolve) {
