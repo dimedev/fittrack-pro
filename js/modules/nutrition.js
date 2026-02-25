@@ -3316,29 +3316,16 @@ function getTodayCardioCalories() {
 
 // ==================== INIT & LOAD ====================
 
-// Modifier loadJournalDay pour utiliser la nouvelle UI
-const originalLoadJournalDay = typeof loadJournalDay === 'function' ? loadJournalDay : null;
-
-function loadJournalDay() {
-    // Appeler l'original si disponible pour la compatibilité
-    if (originalLoadJournalDay) {
-        // Pas d'appel car on remplace la logique
-    }
-    
-    // Rendre par repas
+// Override loadJournalDay pour la nouvelle UI par repas
+// (la déclaration originale est plus haut, on la remplace ici)
+loadJournalDay = function() {
     renderMealsByType();
-    
-    // Rendre le cardio
     renderCardioItems();
     updateCardioTotal();
-    
-    // Mettre à jour les macros
     updateJournalSummary();
     updateMacroRings();
-    
-    // Afficher la section "Mes Aliments"
     renderFoodsList();
-}
+};
 
 // Override confirmAddFood pour supporter le mealType
 const originalConfirmAddFood = typeof confirmAddFood === 'function' ? confirmAddFood : null;

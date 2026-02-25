@@ -2608,51 +2608,6 @@ async function deleteProgressLogForSession(sessionId, sessionDate, exerciseNames
     }
 }
 
-// ==================== SYNC INDICATOR ====================
-
-let syncIndicatorTimeout = null;
-
-/**
- * Met à jour l'indicateur de sync visible
- */
-function updateSyncIndicator(status, message = '') {
-    const indicator = document.getElementById('sync-indicator');
-    const statusText = document.getElementById('sync-status-text');
-    
-    if (!indicator || !statusText) return;
-    
-    // Annuler le timeout précédent
-    if (syncIndicatorTimeout) {
-        clearTimeout(syncIndicatorTimeout);
-    }
-    
-    // Afficher l'indicateur
-    indicator.style.display = 'flex';
-    indicator.className = 'sync-indicator';
-    
-    if (status === 'syncing') {
-        indicator.classList.add('syncing');
-        statusText.textContent = message || 'Sync...';
-    } else if (status === 'synced') {
-        indicator.classList.add('synced');
-        statusText.textContent = message || 'Sync OK';
-        // Masquer après 3 secondes
-        syncIndicatorTimeout = setTimeout(() => {
-            indicator.style.display = 'none';
-        }, 3000);
-    } else if (status === 'error') {
-        indicator.classList.add('error');
-        statusText.textContent = message || 'Sync échoué';
-        // Rester visible plus longtemps
-        syncIndicatorTimeout = setTimeout(() => {
-            indicator.style.display = 'none';
-        }, 8000);
-    } else if (status === 'offline') {
-        indicator.classList.add('error');
-        statusText.textContent = 'Hors-ligne';
-    }
-}
-
 // ==================== HYDRATATION SYNC ====================
 
 /**
