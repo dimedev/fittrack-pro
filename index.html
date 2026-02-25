@@ -49,7 +49,7 @@
     <script>
         !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var u=t.createElement("script");u.type="text/javascript",u.async=!0,u.src=s.api_host+"/static/array.js";var l=t.getElementsByTagName("script")[0];l.parentNode.insertBefore(u,l);var n=e;for(void 0!==a?n=e[a]=[]:a="posthog",n.people=n.people||[],n.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},n.people.toString=function(){return n.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep onSessionId".split(" "),p=0;p<o.length;p++)g(n,o[p]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
 var __phKey = (window.REPZY_CONFIG && window.REPZY_CONFIG.posthogKey && window.REPZY_CONFIG.posthogKey !== 'YOUR_POSTHOG_KEY') ? window.REPZY_CONFIG.posthogKey : null;
-        if (__phKey) posthog.init(__phKey, api_host: 'https://eu.i.posthog.com',
+        if (__phKey) posthog.init(__phKey, { api_host: 'https://eu.i.posthog.com',
             person_profiles: 'identified_only',
             autocapture: false,          // On contrôle les events manuellement
             capture_pageview: true,
