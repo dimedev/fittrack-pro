@@ -1947,7 +1947,7 @@
                     <span class="tile-title">Séance libre</span>
                     <span class="tile-desc">Exercices au choix</span>
                 </button>
-                <button class="session-type-tile tile-cardio" onclick="closeNewSessionSheet(); openCardioLogModal ? openCardioLogModal() : showToast('Cardio disponible depuis l\'onglet dashboard', 'info')">
+                <button class="session-type-tile tile-cardio" onclick="closeNewSessionSheet(); openCardioSessionFlow()">
                     <span class="tile-icon">🏃</span>
                     <span class="tile-title">Cardio</span>
                     <span class="tile-desc">Course, vélo, natation</span>
@@ -1996,6 +1996,199 @@
                 <button class="btn btn-primary free-start-btn" id="free-start-btn"
                         onclick="startFreeSessionFromBuilder()" disabled>
                     Démarrer la séance
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CARDIO LIVE — Sheet 1 : Picker d'activité             -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="bottom-sheet-overlay" id="cardio-session-picker" style="display:none;" onclick="closeCardioSessionPicker()">
+        <div class="bottom-sheet cardio-picker-inner" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Séance cardio</h3>
+                <button class="sheet-dismiss-btn" onclick="closeCardioSessionPicker()" aria-label="Fermer">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="cardio-picker-body">
+                <!-- Types d'activités -->
+                <p class="cardio-picker-label">Type d'activité</p>
+                <div class="cardio-type-grid">
+                    <button class="cardio-pick-type selected" data-type="running" onclick="selectCardioSessionType('running')">
+                        <span class="cardio-pick-icon">🏃</span>
+                        <span class="cardio-pick-name">Course</span>
+                    </button>
+                    <button class="cardio-pick-type" data-type="cycling" onclick="selectCardioSessionType('cycling')">
+                        <span class="cardio-pick-icon">🚴</span>
+                        <span class="cardio-pick-name">Vélo</span>
+                    </button>
+                    <button class="cardio-pick-type" data-type="swimming" onclick="selectCardioSessionType('swimming')">
+                        <span class="cardio-pick-icon">🏊</span>
+                        <span class="cardio-pick-name">Natation</span>
+                    </button>
+                    <button class="cardio-pick-type" data-type="rowing" onclick="selectCardioSessionType('rowing')">
+                        <span class="cardio-pick-icon">🚣</span>
+                        <span class="cardio-pick-name">Rameur</span>
+                    </button>
+                    <button class="cardio-pick-type" data-type="hiit" onclick="selectCardioSessionType('hiit')">
+                        <span class="cardio-pick-icon">🔥</span>
+                        <span class="cardio-pick-name">HIIT</span>
+                    </button>
+                    <button class="cardio-pick-type" data-type="walking" onclick="selectCardioSessionType('walking')">
+                        <span class="cardio-pick-icon">🚶</span>
+                        <span class="cardio-pick-name">Marche</span>
+                    </button>
+                    <button class="cardio-pick-type" data-type="elliptical" onclick="selectCardioSessionType('elliptical')">
+                        <span class="cardio-pick-icon">⚙️</span>
+                        <span class="cardio-pick-name">Elliptique</span>
+                    </button>
+                    <button class="cardio-pick-type" data-type="other" onclick="selectCardioSessionType('other')">
+                        <span class="cardio-pick-icon">💪</span>
+                        <span class="cardio-pick-name">Autre</span>
+                    </button>
+                </div>
+
+                <!-- Intensité -->
+                <p class="cardio-picker-label">Intensité</p>
+                <div class="cardio-intensity-row">
+                    <button class="cardio-pick-intensity" data-intensity="light" onclick="selectCardioSessionIntensity('light')">
+                        <span class="cardio-intensity-dot dot-light"></span>Légère
+                    </button>
+                    <button class="cardio-pick-intensity selected" data-intensity="moderate" onclick="selectCardioSessionIntensity('moderate')">
+                        <span class="cardio-intensity-dot dot-moderate"></span>Modérée
+                    </button>
+                    <button class="cardio-pick-intensity" data-intensity="vigorous" onclick="selectCardioSessionIntensity('vigorous')">
+                        <span class="cardio-intensity-dot dot-vigorous"></span>Intense
+                    </button>
+                </div>
+            </div>
+            <div class="cardio-picker-footer">
+                <button class="btn btn-primary cardio-start-btn" onclick="startCardioLive()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+                    Démarrer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CARDIO LIVE — Screen 2 : Timer plein écran            -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div id="cardio-live-screen" style="display:none;">
+        <div class="cardio-live-header">
+            <button class="cardio-live-close-btn" onclick="closeCardioLiveScreen()" aria-label="Arrêter">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+            <div class="cardio-live-activity">
+                <span id="cardio-live-icon" class="cardio-live-activity-icon">🏃</span>
+                <span id="cardio-live-label" class="cardio-live-activity-name">Course</span>
+            </div>
+            <div style="width:44px"></div><!-- spacer -->
+        </div>
+
+        <div class="cardio-live-center">
+            <div class="cardio-live-timer-wrap">
+                <div id="cardio-live-timer" class="cardio-live-timer">00:00</div>
+                <div class="cardio-live-timer-label">durée</div>
+            </div>
+
+            <div class="cardio-live-stats-row">
+                <div class="cardio-live-stat">
+                    <span id="cardio-live-calories" class="cardio-live-stat-value">0</span>
+                    <span class="cardio-live-stat-unit">kcal</span>
+                </div>
+                <div class="cardio-live-stat-sep"></div>
+                <div class="cardio-live-stat">
+                    <span id="cardio-live-minutes" class="cardio-live-stat-value">0</span>
+                    <span class="cardio-live-stat-unit">min</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="cardio-live-footer">
+            <!-- Switcher intensité -->
+            <div class="cardio-live-intensity-row">
+                <button class="cardio-live-intensity-btn" data-intensity="light" onclick="updateLiveCardioIntensity('light')">
+                    <span class="cardio-intensity-dot dot-light"></span>Légère
+                </button>
+                <button class="cardio-live-intensity-btn active" data-intensity="moderate" onclick="updateLiveCardioIntensity('moderate')">
+                    <span class="cardio-intensity-dot dot-moderate"></span>Modérée
+                </button>
+                <button class="cardio-live-intensity-btn" data-intensity="vigorous" onclick="updateLiveCardioIntensity('vigorous')">
+                    <span class="cardio-intensity-dot dot-vigorous"></span>Intense
+                </button>
+            </div>
+
+            <button class="btn cardio-finish-btn" onclick="finishCardioSession()">
+                Terminer la séance
+            </button>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CARDIO LIVE — Sheet 3 : Formulaire post-séance        -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="bottom-sheet-overlay" id="cardio-finish-sheet" style="display:none;" onclick="closeCardioFinishSheet()">
+        <div class="bottom-sheet cardio-finish-inner" onclick="event.stopPropagation()">
+            <div class="bottom-sheet-header">
+                <div class="bottom-sheet-handle"></div>
+                <h3 class="bottom-sheet-title">Résumé de séance</h3>
+            </div>
+            <div class="cardio-finish-body">
+                <!-- Résumé visuel -->
+                <div class="cardio-finish-summary">
+                    <div class="cardio-finish-summary-icon" id="cardio-finish-icon">🏃</div>
+                    <div class="cardio-finish-summary-info">
+                        <div class="cardio-finish-summary-type" id="cardio-finish-type">Course</div>
+                        <div class="cardio-finish-summary-stats">
+                            <span><strong id="cardio-finish-duration">0</strong> min</span>
+                            <span class="cardio-finish-sep">·</span>
+                            <span><strong id="cardio-finish-calories">0</strong> kcal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Distance + Allure -->
+                <div class="cardio-finish-field">
+                    <label class="cardio-finish-label" for="cardio-distance">Distance (km) <span class="cardio-finish-optional">optionnel</span></label>
+                    <input type="number" id="cardio-distance" class="cardio-finish-input"
+                           placeholder="Ex : 5.2" step="0.1" min="0" max="200"
+                           oninput="onCardioDistanceChange()">
+                    <div id="cardio-pace-display" class="cardio-finish-computed" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Allure : <strong id="cardio-pace-value">—</strong> min/km
+                    </div>
+                </div>
+
+                <!-- BPM + Zone -->
+                <div class="cardio-finish-field">
+                    <label class="cardio-finish-label" for="cardio-bpm">Fréquence cardiaque moy. <span class="cardio-finish-optional">optionnel</span></label>
+                    <div class="cardio-bpm-row">
+                        <input type="number" id="cardio-bpm" class="cardio-finish-input"
+                               placeholder="Ex : 155" min="40" max="220"
+                               oninput="onCardioBpmChange()">
+                        <span class="cardio-bpm-unit">bpm</span>
+                    </div>
+                    <div id="cardio-zone-display" class="cardio-finish-computed" style="display:none;">
+                        <span class="cardio-zone-badge" id="cardio-zone-value">Z3</span>
+                        <span id="cardio-zone-label">Aérobie</span>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="cardio-finish-field">
+                    <label class="cardio-finish-label" for="cardio-notes-input">Notes <span class="cardio-finish-optional">optionnel</span></label>
+                    <textarea id="cardio-notes-input" class="cardio-finish-textarea"
+                              placeholder="Ressenti, conditions, parcours…" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="cardio-finish-footer">
+                <button class="btn btn-primary cardio-save-btn" onclick="saveCardioSessionFromLive()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                    Enregistrer la séance
                 </button>
             </div>
         </div>

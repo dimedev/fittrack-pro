@@ -3957,6 +3957,347 @@ if (typeof document !== 'undefined') {
 }
 
 // ==================== EXPORTS GLOBAUX ====================
+// ==================== CARDIO SESSION LIVE ====================
+
+/** State de la session cardio live */
+let cardioLiveSession = {
+    type: 'running',
+    intensity: 'moderate',
+    startTime: null,
+    timerInterval: null,
+    elapsedSeconds: 0
+};
+
+const CARDIO_SESSION_TYPES = {
+    running:  { label: 'Course',   icon: '🏃' },
+    cycling:  { label: 'Vélo',     icon: '🚴' },
+    walking:  { label: 'Marche',   icon: '🚶' },
+    swimming: { label: 'Natation', icon: '🏊' },
+    boxing:   { label: 'Boxe',     icon: '🥊' },
+    hiit:     { label: 'HIIT',     icon: '💥' },
+    rowing:   { label: 'Rameur',   icon: '🚣' },
+    other:    { label: 'Autre',    icon: '💪' }
+};
+
+const CARDIO_MET = {
+    running:  { light: 6,   moderate: 9.8,  intense: 12.8 },
+    cycling:  { light: 4,   moderate: 6.8,  intense: 10   },
+    walking:  { light: 2.5, moderate: 3.5,  intense: 5    },
+    swimming: { light: 5,   moderate: 7,    intense: 10   },
+    boxing:   { light: 7,   moderate: 10,   intense: 13   },
+    hiit:     { light: 7,   moderate: 11,   intense: 14   },
+    rowing:   { light: 5,   moderate: 8,    intense: 11   },
+    other:    { light: 4,   moderate: 6,    intense: 8    }
+};
+
+/** Ouvre le picker de type d'activité (depuis Nouvelle séance → Cardio) */
+function openCardioSessionFlow() {
+    cardioLiveSession = { type: 'running', intensity: 'moderate', startTime: null, timerInterval: null, elapsedSeconds: 0 };
+    _renderCardioPickerState();
+    const sheet = document.getElementById('cardio-session-picker');
+    if (!sheet) return;
+    if (window.ModalManager) ModalManager.lock('cardio-session-picker');
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
+}
+
+function closeCardioSessionPicker() {
+    if (window.ModalManager) ModalManager.unlock('cardio-session-picker');
+    const sheet = document.getElementById('cardio-session-picker');
+    if (sheet) sheet.style.display = 'none';
+}
+
+function selectCardioSessionType(type) {
+    cardioLiveSession.type = type;
+    _renderCardioPickerState();
+}
+
+function selectCardioSessionIntensity(intensity) {
+    cardioLiveSession.intensity = intensity;
+    _renderCardioPickerState();
+}
+
+function _renderCardioPickerState() {
+    document.querySelectorAll('#cardio-session-picker .cardio-pick-type').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.type === cardioLiveSession.type);
+    });
+    document.querySelectorAll('#cardio-session-picker .cardio-pick-intensity').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.intensity === cardioLiveSession.intensity);
+    });
+}
+
+/** Démarre le timer live */
+function startCardioLive() {
+    closeCardioSessionPicker();
+
+    cardioLiveSession.startTime = Date.now();
+    cardioLiveSession.elapsedSeconds = 0;
+
+    const typeData = CARDIO_SESSION_TYPES[cardioLiveSession.type] || CARDIO_SESSION_TYPES.other;
+
+    // Mettre à jour l'en-tête du live screen
+    const iconEl = document.getElementById('cardio-live-icon');
+    const labelEl = document.getElementById('cardio-live-label');
+    if (iconEl) iconEl.textContent = typeData.icon;
+    if (labelEl) labelEl.textContent = typeData.label;
+
+    // Mettre à jour l'intensité active
+    document.querySelectorAll('.cardio-live-intensity-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.intensity === cardioLiveSession.intensity);
+    });
+
+    _updateCardioLiveDisplay();
+
+    // Démarrer l'interval
+    cardioLiveSession.timerInterval = setInterval(() => {
+        cardioLiveSession.elapsedSeconds = Math.floor((Date.now() - cardioLiveSession.startTime) / 1000);
+        _updateCardioLiveDisplay();
+    }, 1000);
+
+    // Ouvrir le live screen
+    const screen = document.getElementById('cardio-live-screen');
+    if (!screen) return;
+    if (window.ModalManager) ModalManager.lock('cardio-live-screen');
+    screen.style.display = 'flex';
+    screen.offsetHeight;
+    screen.classList.remove('animate-in');
+    void screen.offsetWidth;
+    screen.classList.add('animate-in');
+
+    if (window.HapticFeedback) HapticFeedback.success();
+}
+
+function _updateCardioLiveDisplay() {
+    const s = cardioLiveSession.elapsedSeconds;
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const timerStr = h > 0
+        ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+        : `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+
+    const timerEl = document.getElementById('cardio-live-timer');
+    if (timerEl) timerEl.textContent = timerStr;
+
+    // Calories en temps réel
+    const weight = state.profile?.weight || 70;
+    const met = CARDIO_MET[cardioLiveSession.type]?.[cardioLiveSession.intensity] || 6;
+    const calories = Math.round(met * weight * (s / 3600));
+    const calEl = document.getElementById('cardio-live-calories');
+    if (calEl) calEl.textContent = calories;
+
+    const minEl = document.getElementById('cardio-live-minutes');
+    if (minEl) minEl.textContent = Math.floor(s / 60);
+}
+
+function updateLiveCardioIntensity(intensity) {
+    cardioLiveSession.intensity = intensity;
+    document.querySelectorAll('.cardio-live-intensity-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.intensity === intensity);
+    });
+    _updateCardioLiveDisplay();
+    if (window.HapticFeedback) HapticFeedback.light();
+}
+
+/** Terminer la session cardio — ouvre le formulaire post-séance */
+function finishCardioSession() {
+    if (cardioLiveSession.timerInterval) {
+        clearInterval(cardioLiveSession.timerInterval);
+        cardioLiveSession.timerInterval = null;
+    }
+
+    const durationMinutes = Math.round(cardioLiveSession.elapsedSeconds / 60);
+    if (durationMinutes < 1) {
+        showToast('Séance trop courte pour être enregistrée', 'warning');
+        closeCardioLiveScreen();
+        return;
+    }
+
+    const weight = state.profile?.weight || 70;
+    const met = CARDIO_MET[cardioLiveSession.type]?.[cardioLiveSession.intensity] || 6;
+    const calories = Math.round(met * weight * (durationMinutes / 60));
+
+    // Remplir le résumé dans le formulaire de fin
+    const typeData = CARDIO_SESSION_TYPES[cardioLiveSession.type] || CARDIO_SESSION_TYPES.other;
+    const sumIcon = document.getElementById('cardio-finish-icon');
+    const sumType = document.getElementById('cardio-finish-type');
+    const sumDuration = document.getElementById('cardio-finish-duration');
+    const sumCalories = document.getElementById('cardio-finish-calories');
+    if (sumIcon) sumIcon.textContent = typeData.icon;
+    if (sumType) sumType.textContent = typeData.label;
+    if (sumDuration) sumDuration.textContent = durationMinutes + ' min';
+    if (sumCalories) sumCalories.textContent = calories + ' kcal';
+
+    // Reset optionals
+    const distInput = document.getElementById('cardio-distance');
+    const bpmInput = document.getElementById('cardio-bpm');
+    const notesInput = document.getElementById('cardio-notes-input');
+    const paceDisplay = document.getElementById('cardio-pace-display');
+    const zoneDisplay = document.getElementById('cardio-zone-display');
+    if (distInput) distInput.value = '';
+    if (bpmInput) bpmInput.value = '';
+    if (notesInput) notesInput.value = '';
+    if (paceDisplay) paceDisplay.style.display = 'none';
+    if (zoneDisplay) zoneDisplay.style.display = 'none';
+
+    // Fermer live, ouvrir finish
+    closeCardioLiveScreen(false);
+    const sheet = document.getElementById('cardio-finish-sheet');
+    if (!sheet) return;
+    if (window.ModalManager) ModalManager.lock('cardio-finish-sheet');
+    sheet.style.display = 'flex';
+    sheet.offsetHeight;
+    sheet.classList.remove('animate-in');
+    void sheet.offsetWidth;
+    sheet.classList.add('animate-in');
+
+    if (window.HapticFeedback) HapticFeedback.success();
+}
+
+function closeCardioLiveScreen(stopTimer = true) {
+    if (stopTimer && cardioLiveSession.timerInterval) {
+        clearInterval(cardioLiveSession.timerInterval);
+        cardioLiveSession.timerInterval = null;
+    }
+    if (window.ModalManager) ModalManager.unlock('cardio-live-screen');
+    const screen = document.getElementById('cardio-live-screen');
+    if (screen) screen.style.display = 'none';
+}
+
+function closeCardioFinishSheet() {
+    if (window.ModalManager) ModalManager.unlock('cardio-finish-sheet');
+    const sheet = document.getElementById('cardio-finish-sheet');
+    if (sheet) sheet.style.display = 'none';
+}
+
+/** Calcul de l'allure quand distance change */
+function onCardioDistanceChange() {
+    const distInput = document.getElementById('cardio-distance');
+    const paceDisplay = document.getElementById('cardio-pace-display');
+    const paceValue = document.getElementById('cardio-pace-value');
+    const dist = parseFloat(distInput?.value || 0);
+    const durationMin = Math.round(cardioLiveSession.elapsedSeconds / 60);
+    if (dist > 0 && durationMin > 0) {
+        const paceMinPerKm = durationMin / dist;
+        const paceMin = Math.floor(paceMinPerKm);
+        const paceSec = Math.round((paceMinPerKm - paceMin) * 60);
+        if (paceValue) paceValue.textContent = `${paceMin}'${String(paceSec).padStart(2, '0')}"`;
+        if (paceDisplay) paceDisplay.style.display = 'flex';
+    } else {
+        if (paceDisplay) paceDisplay.style.display = 'none';
+    }
+}
+
+/** Calcul de la zone cardio quand BPM change */
+function onCardioBpmChange() {
+    const bpmInput = document.getElementById('cardio-bpm');
+    const zoneDisplay = document.getElementById('cardio-zone-display');
+    const zoneValue = document.getElementById('cardio-zone-value');
+    const zoneLabel = document.getElementById('cardio-zone-label');
+    const bpm = parseInt(bpmInput?.value || 0);
+    const age = state.profile?.age || 30;
+    const hrMax = 220 - age;
+    if (bpm > 0) {
+        const pct = bpm / hrMax;
+        let zone, label, color;
+        if (pct < 0.6)       { zone = 1; label = 'Récupération';  color = '#94a3b8'; }
+        else if (pct < 0.7)  { zone = 2; label = 'Endurance';     color = '#22c55e'; }
+        else if (pct < 0.8)  { zone = 3; label = 'Aérobie';       color = '#eab308'; }
+        else if (pct < 0.9)  { zone = 4; label = 'Anaérobie';     color = '#f97316'; }
+        else                 { zone = 5; label = 'Max';            color = '#ef4444'; }
+        if (zoneValue) { zoneValue.textContent = zone; zoneValue.style.color = color; }
+        if (zoneLabel) { zoneLabel.textContent = label; zoneLabel.style.color = color; }
+        if (zoneDisplay) zoneDisplay.style.display = 'flex';
+    } else {
+        if (zoneDisplay) zoneDisplay.style.display = 'none';
+    }
+}
+
+/** Sauvegarde finale */
+async function saveCardioSessionFromLive() {
+    const durationMinutes = Math.round(cardioLiveSession.elapsedSeconds / 60);
+    const weight = state.profile?.weight || 70;
+    const met = CARDIO_MET[cardioLiveSession.type]?.[cardioLiveSession.intensity] || 6;
+    const calories = Math.round(met * weight * (durationMinutes / 60));
+    const today = new Date().toISOString().split('T')[0];
+
+    const distVal = parseFloat(document.getElementById('cardio-distance')?.value || 0);
+    const bpmVal = parseInt(document.getElementById('cardio-bpm')?.value || 0);
+    const notesVal = (document.getElementById('cardio-notes-input')?.value || '').trim();
+
+    // 1. Sauvegarder dans cardioLog (compatibilité existante + nutrition)
+    const cardioEntry = {
+        type: cardioLiveSession.type,
+        duration: durationMinutes,
+        intensity: cardioLiveSession.intensity,
+        calories,
+        date: today,
+        addedAt: Date.now(),
+        distance: distVal || null,
+        avgBpm: bpmVal || null,
+        notes: notesVal || null
+    };
+    if (!state.cardioLog) state.cardioLog = {};
+    if (!state.cardioLog[today]) state.cardioLog[today] = [];
+    state.cardioLog[today].push(cardioEntry);
+
+    // 2. Sauvegarder dans sessionHistory (séance complète)
+    const typeData = CARDIO_SESSION_TYPES[cardioLiveSession.type] || CARDIO_SESSION_TYPES.other;
+    const sessionId = 'cardio-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const sessionEntry = {
+        sessionId,
+        date: today,
+        timestamp: Date.now(),
+        sessionType: 'cardio',
+        sessionName: typeData.label,
+        program: null,
+        day: null,
+        exercises: [],
+        duration: durationMinutes,
+        totalVolume: 0,
+        caloriesBurned: calories,
+        cardioData: {
+            type: cardioLiveSession.type,
+            intensity: cardioLiveSession.intensity,
+            distance: distVal || null,
+            avgBpm: bpmVal || null,
+            notes: notesVal || null
+        },
+        synced: false
+    };
+    if (!state.sessionHistory) state.sessionHistory = [];
+    state.sessionHistory.unshift(sessionEntry);
+    state.sessionHistory = state.sessionHistory.slice(0, 100);
+
+    // 3. Update streak
+    if (state.trainingProgress) {
+        state.trainingProgress.lastSessionDate = new Date().toISOString();
+    }
+
+    saveState();
+
+    // 4. Sync Supabase
+    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+        if (typeof saveCardioSessionToSupabase === 'function') {
+            saveCardioSessionToSupabase(today, cardioEntry).catch(() => {});
+        }
+        if (typeof saveWorkoutSessionToSupabase === 'function') {
+            saveWorkoutSessionToSupabase(sessionEntry).catch(() => {});
+        }
+    }
+
+    closeCardioFinishSheet();
+    showToast(`${typeData.label} enregistrée — ${durationMinutes} min · ${calories} kcal 🔥`, 'success');
+    if (window.HapticFeedback) HapticFeedback.achievement();
+
+    if (typeof updateStreak === 'function') updateStreak();
+    if (typeof renderTrainingSection === 'function') renderTrainingSection();
+    if (typeof updateDashboard === 'function') updateDashboard();
+}
+
 // Exporter toutes les fonctions appelées depuis le HTML
 window.openMealSheet = openMealSheet;
 window.closeMealSheet = closeMealSheet;
@@ -3965,6 +4306,18 @@ window.toggleMealSection = toggleMealSection;
 window.openCardioSheet = openCardioSheet;
 window.closeCardioSheet = closeCardioSheet;
 window.addCardioSession = addCardioSession;
+window.openCardioSessionFlow = openCardioSessionFlow;
+window.closeCardioSessionPicker = closeCardioSessionPicker;
+window.selectCardioSessionType = selectCardioSessionType;
+window.selectCardioSessionIntensity = selectCardioSessionIntensity;
+window.startCardioLive = startCardioLive;
+window.updateLiveCardioIntensity = updateLiveCardioIntensity;
+window.finishCardioSession = finishCardioSession;
+window.closeCardioLiveScreen = closeCardioLiveScreen;
+window.closeCardioFinishSheet = closeCardioFinishSheet;
+window.onCardioDistanceChange = onCardioDistanceChange;
+window.onCardioBpmChange = onCardioBpmChange;
+window.saveCardioSessionFromLive = saveCardioSessionFromLive;
 window.openFoodQuantitySheetForMeal = openFoodQuantitySheetForMeal;
 window.openFoodQuantitySheetForEdit = openFoodQuantitySheetForEdit;
 window.closeFoodQuantitySheet = closeFoodQuantitySheet;
