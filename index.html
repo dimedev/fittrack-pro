@@ -45,30 +45,32 @@
     <link rel="manifest" href="webmanifest" />
 
 
-    <!-- PostHog — Product analytics (remplacer YOUR_POSTHOG_KEY par ta clé) -->
+    <!-- PostHog — Product analytics (remplacer YOUR_POSTHOG_KEY par ta clé dans REPZY_CONFIG) -->
     <script>
-        !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var u=t.createElement("script");u.type="text/javascript",u.async=!0,u.src=s.api_host+"/static/array.js";var l=t.getElementsByTagName("script")[0];l.parentNode.insertBefore(u,l);var n=e;for(void 0!==a?n=e[a]=[]:a="posthog",n.people=n.people||[],n.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},n.people.toString=function(){return n.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep onSessionId".split(" "),p=0;p<o.length;p++)g(n,o[p]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
-        posthog.init((window.REPZY_CONFIG && window.REPZY_CONFIG.posthogKey) ? window.REPZY_CONFIG.posthogKey : 'YOUR_POSTHOG_KEY', {
-            api_host: 'https://eu.i.posthog.com',
-            person_profiles: 'identified_only',
-            autocapture: false,          // On contrôle les events manuellement
-            capture_pageview: true,
-            disable_session_recording: true,
-            loaded: function(ph) {
-                // Identifier l'utilisateur si connecté
-                if (typeof state !== 'undefined' && state && state.profile && state.profile.email) {
-                    ph.identify(state.profile.email);
-                }
+        (function() {
+            var phKey = window.REPZY_CONFIG && window.REPZY_CONFIG.posthogKey;
+            if (!phKey || phKey === 'YOUR_POSTHOG_KEY') {
+                window.posthog = { capture: function(){}, identify: function(){}, init: function(){}, __loaded: false };
+                window.track = function() {};
+                return;
             }
-        });
-        // Helper global pour tracking sans crasher si Posthog n'est pas configuré
-        window.track = function(event, props) {
-            try {
-                if (window.posthog && window.posthog.__loaded && window.REPZY_CONFIG && window.REPZY_CONFIG.posthogKey && window.REPZY_CONFIG.posthogKey !== 'YOUR_POSTHOG_KEY') {
-                    posthog.capture(event, props || {});
+            !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var u=t.createElement("script");u.type="text/javascript",u.async=!0,u.src=s.api_host+"/static/array.js";var l=t.getElementsByTagName("script")[0];l.parentNode.insertBefore(u,l);var n=e;for(void 0!==a?n=e[a]=[]:a="posthog",n.people=n.people||[],n.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},n.people.toString=function(){return n.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep onSessionId".split(" "),p=0;p<o.length;p++)g(n,o[p]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+            posthog.init(phKey, {
+                api_host: 'https://eu.i.posthog.com',
+                person_profiles: 'identified_only',
+                autocapture: false,
+                capture_pageview: true,
+                disable_session_recording: true,
+                loaded: function(ph) {
+                    if (typeof state !== 'undefined' && state && state.profile && state.profile.email) {
+                        ph.identify(state.profile.email);
+                    }
                 }
-            } catch(e) {}
-        };
+            });
+            window.track = function(event, props) {
+                try { if (window.posthog && window.posthog.__loaded) posthog.capture(event, props || {}); } catch(e) {}
+            };
+        })();
     </script>
 
     <!-- Sentry — chargé dynamiquement si REPZY_CONFIG.sentryLoader est configuré -->
@@ -84,21 +86,7 @@
     })();
     </script>
 
-    <!-- Ancien bloc supprimé --> — Error monitoring (remplacer YOUR_SENTRY_DSN_LOADER par ta clé projet Sentry dans l’URL) -->
-    <script
-></script>
-    <script>
-    (function() {
-        var cfg = window.REPZY_CONFIG || {};
-        if (cfg.sentryLoader && cfg.sentryLoader !== 'YOUR_SENTRY_DSN_LOADER') {
-            var s = document.createElement('script');
-            s.src = 'https://js.sentry-cdn.com/' + cfg.sentryLoader + '.min.js';
-            s.crossOrigin = 'anonymous';
-            document.head.appendChild(s);
-        }
-    })();
-    </script>
-
+    <!-- Bloc Sentry dupliqué --> — Error monitoring (remplacer YOUR_SENTRY_DSN_LOADER par ta clé projet Sentry dans l’URL) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
     <!-- Chart.js et Quagga chargés à la demande (lazy) pour réduire le first load -->
