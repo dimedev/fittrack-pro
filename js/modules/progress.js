@@ -248,7 +248,7 @@ function generateProgressFeed() {
                 icon: b.icon,
                 title: 'Badge débloqué!',
                 text: b.name,
-                date: new Date().toISOString().split('T')[0]
+                date: new Date().toLocaleDateString('en-CA')
             });
         });
     }
@@ -2286,7 +2286,7 @@ function renderActivityHeatmap() {
 
     // ── Calculer la fenêtre 52 semaines ──
     const today     = new Date();
-    const todayStr  = today.toISOString().split('T')[0];
+    const todayStr  = today.toLocaleDateString('en-CA');
 
     // Trouver le dernier lundi (début de la dernière semaine complète)
     const startDate = new Date(today);
@@ -2309,7 +2309,7 @@ function renderActivityHeatmap() {
 
         html += `<div class="heatmap-col" data-week="${week}">`;
         for (let day = 0; day < 7; day++) {
-            const dateStr  = cursor.toISOString().split('T')[0];
+            const dateStr  = cursor.toLocaleDateString('en-CA');
             const count    = byDate[dateStr] || 0;
             const isFuture = dateStr > todayStr;
 

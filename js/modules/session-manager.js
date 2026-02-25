@@ -635,7 +635,7 @@ const SessionManager = (function() {
      * Finalise et sauvegarde la session dans l'historique
      * @returns {Object|null} Session sauvegardée
      */
-    function finalizeSession() {
+    async function finalizeSession() {
         if (!state.activeSession) {
             console.warn('SessionManager: Pas de session à finaliser');
             return null;
@@ -726,20 +726,19 @@ const SessionManager = (function() {
         
         saveState();
         
-        // Sync Supabase si connecté
+        // Sync Supabase si connecté (await pour garantir la persistance)
         if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-            saveWorkoutSessionToSupabase(historyEntry)
-                .then(success => {
-                    if (success) {
-                        historyEntry.synced = true;
-                        saveState();
-                        if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
-                    }
-                })
-                .catch(err => {
-                    console.error('Erreur sync Supabase:', err);
-                });
-            if (typeof syncPendingData === 'function') setTimeout(() => syncPendingData(), 2500);
+            try {
+                const ok = await saveWorkoutSessionToSupabase(historyEntry);
+                if (ok) {
+                    historyEntry.synced = true;
+                    saveState();
+                    if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
+                }
+            } catch (err) {
+                console.error('Erreur sync Supabase:', err);
+                if (typeof addToSyncQueue === 'function') addToSyncQueue('workout_session', 'upsert', historyEntry);
+            }
         }
         
         emitSessionUpdate('session-finalized', { session: historyEntry, newPRs });

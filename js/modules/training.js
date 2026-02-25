@@ -4271,9 +4271,8 @@ async function finishSession() {
     };
     
     state.sessionHistory.unshift(newSession);
-
-    // Keep only last 100 sessions
     state.sessionHistory = state.sessionHistory.slice(0, 100);
+    if (typeof criticalLog === 'function') criticalLog('session_saved_local', { sessionId: newSession.sessionId, date: newSession.date, exercises: newSession.exercises?.length || 0 });
 
     // Sauvegarder le template si des swaps/variantes ont été faits pendant la séance (programme uniquement)
     if (!isFreeSession) {
@@ -4307,7 +4306,7 @@ async function finishSession() {
     // Save state
     saveState();
 
-    // Sync with Supabase
+    // Sync with Supabase (await pour garantir la persistance)
     if (typeof isLoggedIn === 'function' && isLoggedIn()) {
         const sessionToSave = {
             sessionId: fsSession.sessionId,
@@ -4323,42 +4322,32 @@ async function finishSession() {
             caloriesBurned: caloriesBurned
         };
         if (typeof saveWorkoutSessionToSupabase === 'function') {
-            saveWorkoutSessionToSupabase(sessionToSave)
-                .then(success => {
-                    if (success) {
-                        newSession.synced = true;
-                        saveState();
-                        if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
-                    }
-                })
-                .catch(err => {
-                    console.error('Erreur sync séance:', err);
-                    showToast('⚠️ Séance sauvegardée localement. Clique sur l\'icône de sync pour réessayer.', 'warning');
-                });
-        }
-        if (typeof syncPendingData === 'function') {
-            setTimeout(() => syncPendingData(), 2500);
+            try {
+                const ok = await saveWorkoutSessionToSupabase(sessionToSave);
+                if (ok) {
+                    newSession.synced = true;
+                    saveState();
+                    if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
+                }
+            } catch (err) {
+                console.error('Erreur sync séance:', err);
+                if (typeof addToSyncQueue === 'function') addToSyncQueue('workout_session', 'upsert', sessionToSave);
+            }
         }
 
-        sessionData.forEach(exData => {
+        for (const exData of sessionData) {
             const logs = state.progressLog[exData.exercise];
             if (logs && logs.length > 0) {
                 const lastLog = logs[logs.length - 1];
                 if (typeof saveProgressLogToSupabase === 'function') {
-                    saveProgressLogToSupabase(exData.exercise, lastLog).catch(err => {
-                        console.error('Erreur sync progression:', err);
-                        showToast('⚠️ Progression sauvegardée localement. Synchronisation en attente.', 'warning');
-                    });
+                    try { await saveProgressLogToSupabase(exData.exercise, lastLog); }
+                    catch (err) { console.warn('Sync progression en attente:', exData.exercise); }
                 }
             }
-        });
+        }
         
-        // Sync training progress
         if (typeof saveTrainingSettingsToSupabase === 'function') {
-            saveTrainingSettingsToSupabase().catch(err => {
-                console.error('Erreur sync paramètres:', err);
-                showToast('Erreur synchronisation paramètres - sauvegardés localement', 'warning');
-            });
+            saveTrainingSettingsToSupabase().catch(() => {});
         }
     }
 
@@ -5186,7 +5175,8 @@ async function deduplicateSessions() {
         console.log(`  Étape 1: ${removedById} doublons supprimés par sessionId`);
     }
 
-    // ÉTAPE 2 : Pour les sessions SANS sessionId (legacy), dédupliquer par date+program+day+timestamp proche
+    // ÉTAPE 2 : Pour les sessions SANS sessionId (legacy), dédupliquer par date+program+day
+    // SEULEMENT si les timestamps sont proches (<5 min) pour ne pas supprimer des sessions matin/soir
     const final = [];
     const legacy = [];
     const withId = [];
@@ -5199,10 +5189,8 @@ async function deduplicateSessions() {
         }
     });
 
-    // Les sessions avec ID sont toutes gardées (déjà dédupliquées à l'étape 1)
     final.push(...withId);
 
-    // Pour les legacy, grouper par date+program+day
     let removedByLegacy = 0;
     if (legacy.length > 0) {
         const legacyGroups = {};
@@ -5217,11 +5205,24 @@ async function deduplicateSessions() {
                 final.push(sessions[0]);
                 return;
             }
-            // Garder la session avec le plus d'exercices
-            sessions.sort((a, b) => (b.exercises?.length || 0) - (a.exercises?.length || 0));
-            final.push(sessions[0]);
-            removedByLegacy += sessions.length - 1;
-            console.log(`  Legacy doublon "${key}": gardé ${sessions[0].exercises?.length || 0} exos, supprimé ${sessions.length - 1}`);
+            // Trier par timestamp pour grouper les proches
+            sessions.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            const kept = [sessions[0]];
+            for (let i = 1; i < sessions.length; i++) {
+                const prev = kept[kept.length - 1];
+                const timeDiff = Math.abs((sessions[i].timestamp || 0) - (prev.timestamp || 0));
+                if (timeDiff < 300000) {
+                    // <5 min : vrai doublon, garder celui avec le plus d'exercices
+                    if ((sessions[i].exercises?.length || 0) > (prev.exercises?.length || 0)) {
+                        kept[kept.length - 1] = sessions[i];
+                    }
+                    removedByLegacy++;
+                } else {
+                    // >5 min : sessions distinctes (matin/soir), garder les deux
+                    kept.push(sessions[i]);
+                }
+            }
+            final.push(...kept);
         });
     }
 
@@ -6040,6 +6041,7 @@ async function saveQuickLogSession() {
     // ── Sauvegarder dans sessionHistory ──
     if (!state.sessionHistory) state.sessionHistory = [];
     state.sessionHistory.unshift(newSession);
+    if (typeof criticalLog === 'function') criticalLog('quicklog_saved_local', { sessionId: newSession.sessionId, date: newSession.date });
 
     // ── Sauvegarder dans progressLog ──
     if (!state.progressLog) state.progressLog = {};

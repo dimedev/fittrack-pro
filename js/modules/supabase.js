@@ -24,6 +24,26 @@ let isOnline = navigator.onLine;
 let pendingConflict = null;
 let lastCriticalToastTime = 0; // Anti-doublon pour les toasts critiques
 
+// ==================== CRITICAL LOGGER ====================
+// Journal local des operations critiques pour debug post-mortem
+function criticalLog(action, data) {
+    try {
+        const entry = { ts: Date.now(), action, ...(data || {}) };
+        const raw = localStorage.getItem('repzy-critical-log');
+        const logs = raw ? JSON.parse(raw) : [];
+        logs.push(entry);
+        if (logs.length > 200) logs.splice(0, logs.length - 200);
+        localStorage.setItem('repzy-critical-log', JSON.stringify(logs));
+    } catch (_) {}
+}
+window.criticalLog = criticalLog;
+window.showCriticalLog = function() {
+    try {
+        const raw = localStorage.getItem('repzy-critical-log');
+        console.table(raw ? JSON.parse(raw) : []);
+    } catch (_) { console.log('Pas de log critique'); }
+};
+
 // ==================== AUTO-SYNC POLLING ====================
 let autoSyncInterval = null;
 const AUTO_SYNC_INTERVAL_MS = 30000; // 30 secondes
@@ -1037,32 +1057,43 @@ function initSupabase() {
         // Initialiser la détection réseau
         initNetworkDetection();
         
-        // Écouter les changements d'auth
+        // Écouter les changements d'auth — debounce pour eviter triple appel
+        // SIGNED_IN + INITIAL_SESSION + getSession() arrivent quasi-simultanement
+        // On debounce pour n'appeler onUserLoggedIn() qu'une seule fois
+        let _authDebounceTimer = null;
+        let _authDone = false;
         supabaseClient.auth.onAuthStateChange((event, session) => {
             console.log('Auth event:', event);
-            if (session) {
+            if (session && session.user) {
                 currentUser = session.user;
-                onUserLoggedIn();
-            } else {
+                clearTimeout(_authDebounceTimer);
+                if (!_authDone) {
+                    _authDebounceTimer = setTimeout(() => {
+                        _authDone = true;
+                        onUserLoggedIn();
+                    }, 400);
+                }
+            } else if (!session) {
                 currentUser = null;
+                _authDone = false;
+                clearTimeout(_authDebounceTimer);
                 onUserLoggedOut();
             }
         });
         
-        // Vérifier si déjà connecté
+        // checkAuth n'appelle plus onUserLoggedIn directement — laisse onAuthStateChange s'en charger
         checkAuth();
     } catch (error) {
         console.error('Erreur init Supabase:', error);
     }
 }
 
-// Vérifier l'authentification
+// Vérifier l'authentification (ne declenche PAS onUserLoggedIn — onAuthStateChange s'en charge)
 async function checkAuth() {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             currentUser = session.user;
-            onUserLoggedIn();
         } else {
             showAuthModal();
         }
@@ -1244,9 +1275,20 @@ function showAuthModal() {
 
 // ==================== SYNC DONNÉES ====================
 
+// Guard anti-parallel : empeche les appels concurrents qui ecrasent les donnees
+let _isLoadingFromSupabase = false;
+let _loadQueuedSilent = null;
+
 // Charger toutes les données depuis Supabase
 async function loadAllDataFromSupabase(silent = false) {
     if (!currentUser) return;
+    
+    if (_isLoadingFromSupabase) {
+        console.log('⏳ loadAllDataFromSupabase déjà en cours — appel ignoré');
+        _loadQueuedSilent = silent;
+        return;
+    }
+    _isLoadingFromSupabase = true;
     
     // Afficher indicateur de sync en cours
     if (!silent) {
@@ -1742,76 +1784,75 @@ async function loadAllDataFromSupabase(silent = false) {
             .order('created_at', { ascending: false });
         
         if (sessions) {
-            // Garder les sessions locales
-            const localSessions = [...(state.sessionHistory || [])];
+            // ETAPE 1 : Capturer TOUTES les sessions locales non-syncees AVANT ecrasement
+            const unsyncedLocal = (state.sessionHistory || []).filter(s =>
+                !s.deletedAt && (!s.synced || !s.supabaseId)
+            );
+            if (unsyncedLocal.length > 0) {
+                console.log(`🛡️ ${unsyncedLocal.length} session(s) locale(s) non-syncée(s) protégée(s)`);
+                criticalLog('merge_protect', { count: unsyncedLocal.length, ids: unsyncedLocal.map(s => s.sessionId || s.id) });
+            }
             
-            // Reconstruire depuis Supabase
+            // ETAPE 2 : Construire les sessions Supabase
             const supabaseSessions = sessions.map(s => ({
-                id: s.session_id || ('legacy-' + s.id), // Pour compatibilité locale
-                sessionId: s.session_id || ('legacy-' + s.id), // UUID ou legacy
+                id: s.session_id || ('legacy-' + s.id),
+                sessionId: s.session_id || ('legacy-' + s.id),
                 date: s.date,
                 timestamp: new Date(s.created_at).getTime(),
                 sessionType: s.session_type || 'program',
                 sessionName: s.session_name || null,
                 program: s.program || null,
                 day: s.day_name || null,
-                dayIndex: s.day_index, // Index du jour dans le split
+                dayIndex: s.day_index,
                 exercises: s.exercises || [],
                 duration: s.duration || 0,
                 totalVolume: s.total_volume || 0,
                 caloriesBurned: s.calories_burned || 0,
-                synced: true // Marquer comme synchronisé
+                synced: true
             }));
             
-            // Identifier les sessions locales non présentes dans Supabase
-            const localOnlySessions = localSessions.filter(localSession => {
+            // ETAPE 3 : Construire le Set des sessionIds Supabase pour lookup rapide
+            const supabaseIds = new Set(supabaseSessions.map(s => s.sessionId));
+            
+            // ETAPE 4 : Re-injecter les sessions locales non presentes dans Supabase
+            const merged = [...supabaseSessions];
+            unsyncedLocal.forEach(localSession => {
                 const localId = localSession.sessionId || localSession.id;
-                return !supabaseSessions.some(sSession => {
-                    // 1. Comparaison par sessionId (fiable)
-                    if (localId && sSession.sessionId && (sSession.sessionId === localId)) return true;
-                    // 2. Fallback timestamp pour les sessions legacy sans sessionId
-                    if (!localId) {
-                        return sSession.date === localSession.date &&
-                            Math.abs(sSession.timestamp - localSession.timestamp) < 5000;
-                    }
-                    return false;
-                });
+                if (localId && supabaseIds.has(localId)) return;
+                // Fallback timestamp pour legacy
+                if (!localId) {
+                    const existsByTimestamp = supabaseSessions.some(ss =>
+                        ss.date === localSession.date && Math.abs(ss.timestamp - localSession.timestamp) < 5000
+                    );
+                    if (existsByTimestamp) return;
+                }
+                merged.push(localSession);
+                // Tenter sync en arriere-plan
+                saveWorkoutSessionToSupabase({
+                    sessionId: localId || ('local-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5)),
+                    date: localSession.date,
+                    sessionType: localSession.sessionType || 'program',
+                    sessionName: localSession.sessionName || null,
+                    program: localSession.program,
+                    day: localSession.day,
+                    exercises: localSession.exercises,
+                    duration: localSession.duration || 0,
+                    totalVolume: localSession.totalVolume || 0,
+                    caloriesBurned: localSession.caloriesBurned || 0
+                }).then(ok => {
+                    if (ok) { localSession.synced = true; saveState(); }
+                }).catch(() => {});
             });
             
-            // Merger : Supabase + sessions locales non sync
-            state.sessionHistory = [...supabaseSessions];
-            
-            // Ajouter et sync les sessions locales non synchronisées (sans supabaseId ou sans synced)
-            localOnlySessions.forEach(localSession => {
-                if (localSession.deletedAt) {
-                    // Session supprimée localement — la supprimer aussi de Supabase si elle existe
-                    const sid = localSession.sessionId || localSession.id;
-                    if (sid) deleteWorkoutSessionFromSupabase(sid).catch(() => {});
-                    return;
-                }
-                const isUnsynced = !localSession.supabaseId || !localSession.synced;
-                if (isUnsynced) {
-                    state.sessionHistory.push(localSession);
-
-                    // Tenter de sync cette session manquante
-                    saveWorkoutSessionToSupabase({
-                        sessionId: localSession.sessionId || ('local-' + Date.now()),
-                        date: localSession.date,
-                        program: localSession.program,
-                        day: localSession.day,
-                        exercises: localSession.exercises,
-                        duration: localSession.duration || 0,
-                        totalVolume: localSession.totalVolume || 0,
-                        caloriesBurned: localSession.caloriesBurned || 0
-                    }).catch(err => {
-                        console.warn('Sync rattrapage session:', err);
-                    });
-                }
+            // ETAPE 5 : Supprimer les sessions soft-deleted localement
+            const deletedLocal = (state.sessionHistory || []).filter(s => s.deletedAt);
+            deletedLocal.forEach(s => {
+                const sid = s.sessionId || s.id;
+                if (sid) deleteWorkoutSessionFromSupabase(sid).catch(() => {});
             });
             
-            // Trier par timestamp décroissant et limiter à 100
-            state.sessionHistory.sort((a, b) => b.timestamp - a.timestamp);
-            state.sessionHistory = state.sessionHistory.slice(0, 100);
+            // ETAPE 6 : Assigner, trier, limiter
+            state.sessionHistory = merged.sort((a, b) => b.timestamp - a.timestamp).slice(0, 100);
         }
         
         if (!silent) {
@@ -1847,6 +1888,13 @@ async function loadAllDataFromSupabase(silent = false) {
         if (!silent) {
             showToast('⚠️ Impossible de charger vos données cloud. Mode hors-ligne activé.', 'warning');
         }
+    } finally {
+        _isLoadingFromSupabase = false;
+        if (_loadQueuedSilent !== null) {
+            const queuedSilent = _loadQueuedSilent;
+            _loadQueuedSilent = null;
+            loadAllDataFromSupabase(queuedSilent);
+        }
     }
 }
 
@@ -1863,6 +1911,25 @@ function refreshAllUI() {
     if (typeof updateMacroRings === 'function') updateMacroRings();
     if (document.getElementById('journal-date') && typeof loadJournalDay === 'function') {
         loadJournalDay();
+    }
+    healthCheck();
+}
+
+// Verification de coherence apres chargement
+function healthCheck() {
+    const total = (state.sessionHistory || []).length;
+    const unsynced = (state.sessionHistory || []).filter(s => !s.synced && !s.deletedAt).length;
+    const deleted = (state.sessionHistory || []).filter(s => s.deletedAt).length;
+    const progressExercises = Object.keys(state.progressLog || {}).length;
+
+    criticalLog('health_check', { total, unsynced, deleted, progressExercises });
+
+    if (unsynced > 5) {
+        console.warn(`⚠️ HEALTH: ${unsynced}/${total} séances non synchronisées`);
+    }
+    if (total === 0 && progressExercises > 0) {
+        console.warn('⚠️ HEALTH: progressLog non vide mais sessionHistory vide — incohérence possible');
+        criticalLog('health_inconsistency', { sessionHistory: total, progressLog: progressExercises });
     }
 }
 
@@ -2536,11 +2603,12 @@ async function saveWorkoutSessionToSupabase(sessionData) {
             
             if (error) throw error;
             console.log('✅ Séance sauvegardée (UPSERT):', sessionData.sessionId);
+            criticalLog('session_synced', { sessionId: sessionData.sessionId, date: sessionData.date });
         }, { maxRetries: 2, critical: true });
         return true;
     } catch (error) {
         console.error('Erreur sauvegarde séance:', error);
-        // Online mais Supabase a planté → mise en queue pour retry automatique
+        criticalLog('session_sync_failed', { sessionId: sessionData.sessionId, error: error.message });
         addToSyncQueue('workout_session', 'upsert', sessionData);
         return false;
     }
