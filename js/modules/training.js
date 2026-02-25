@@ -1964,12 +1964,12 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
 
     // Vérifier si une session active existe déjà pour ce split
     const existingSession = loadFsSessionFromStorage();
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     
     if (existingSession && 
         existingSession.splitName === splitName && 
         existingSession.sessionId &&
-        new Date(existingSession.startTime).toISOString().split('T')[0] === today) {
+        new Date(existingSession.startTime).toLocaleDateString('en-CA') === today) {
         // Reprendre la session existante (même jour, même split)
         console.log('📌 Reprise de la session existante:', existingSession.sessionId);
         fsSession = existingSession;
@@ -4121,7 +4121,7 @@ async function finishSession() {
     updatePeriodization();
 
     // Détecter les doublons avant de sauvegarder
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     const existingSession = state.sessionHistory.find(s =>
         !s.deletedAt &&
         s.date === today &&
@@ -5665,12 +5665,12 @@ function startFreeSessionDirect(exercises, sessionName) {
 
     // Vérifier si une session libre existe déjà aujourd'hui
     const existingSession = loadFsSessionFromStorage();
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
 
     if (existingSession &&
         existingSession.sessionType === 'free' &&
         existingSession.sessionId &&
-        new Date(existingSession.startTime).toISOString().split('T')[0] === today &&
+        new Date(existingSession.startTime).toLocaleDateString('en-CA') === today &&
         !existingSession.sessionSaved) {
         console.log('📌 Reprise session libre:', existingSession.sessionId);
         fsSession = existingSession;
@@ -5992,7 +5992,7 @@ async function saveQuickLogSession() {
     const sets    = quickLogState.sets.filter(s => s.reps > 0);
     if (sets.length === 0) { showToast('Ajoute au moins une série', 'warning'); return; }
 
-    const today      = new Date().toISOString().split('T')[0];
+    const today      = new Date().toLocaleDateString('en-CA');
     const sessionId  = 'quick-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     const totalSets  = sets.length;
     const totalReps  = sets.reduce((sum, s) => sum + (s.reps || 0), 0);

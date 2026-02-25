@@ -1179,9 +1179,18 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
     width: fit-content;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .tab {
+    flex-shrink: 0;
     padding: 10px 20px;
     border: none;
     background: transparent;

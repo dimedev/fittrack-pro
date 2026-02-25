@@ -215,7 +215,10 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
         }
     }
 
+    const AI_SETTINGS_OPENED_KEY = 'repzy-ai-settings-opened';
+
     function openAISettings() {
+        try { localStorage.setItem(AI_SETTINGS_OPENED_KEY, '1'); } catch (_) {}
         const existing = getApiKey();
         const key = prompt(
             'Clé API Anthropic (Claude)\nhttps://console.anthropic.com/\n\nCommence par "sk-ant-..."',
@@ -230,6 +233,22 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
 
     // ==================== MAIN ENTRY ====================
 
+    function renderActivationCard() {
+        const container = document.getElementById('ai-insights-container');
+        if (!container) return;
+        container.innerHTML = `
+            <div class="ai-insight-card ai-insight-activation">
+                <div class="ai-insight-header">
+                    <span class="ai-insight-icon">🤖</span>
+                    <span class="ai-insight-title">Insights IA</span>
+                </div>
+                <p class="ai-insight-text">Reçois chaque semaine une analyse personnalisée de tes séances par Claude. Tous les utilisateurs peuvent l'activer avec une clé API gratuite.</p>
+                <p class="ai-insight-text" style="font-size:0.8em; color: var(--text-muted); margin-top:8px;">Clé gratuite sur <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a> (commence par sk-ant-...).</p>
+                <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="openAISettings()">Configurer ma clé API</button>
+            </div>
+        `;
+    }
+
     async function load(forceRefresh = false) {
         const container = document.getElementById('ai-insights-container');
         if (!container) return;
@@ -237,7 +256,7 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
         const apiKey = getApiKey();
 
         if (!apiKey) {
-            renderInsightCard(null, false, 'Configurez votre clé API Claude pour recevoir des insights personnalisés chaque semaine.');
+            renderActivationCard();
             return;
         }
 

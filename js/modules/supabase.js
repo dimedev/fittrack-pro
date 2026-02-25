@@ -1767,7 +1767,7 @@ async function loadAllDataFromSupabase(silent = false) {
             // Merger : Supabase + sessions locales non sync
             state.sessionHistory = [...supabaseSessions];
             
-            // Ajouter et sync les sessions locales manquantes (exclure soft-deleted)
+            // Ajouter et sync les sessions locales non synchronisées (sans supabaseId ou sans synced)
             localOnlySessions.forEach(localSession => {
                 if (localSession.deletedAt) {
                     // Session supprimée localement — la supprimer aussi de Supabase si elle existe
@@ -1775,7 +1775,8 @@ async function loadAllDataFromSupabase(silent = false) {
                     if (sid) deleteWorkoutSessionFromSupabase(sid).catch(() => {});
                     return;
                 }
-                if (!localSession.synced) {
+                const isUnsynced = !localSession.supabaseId || !localSession.synced;
+                if (isUnsynced) {
                     state.sessionHistory.push(localSession);
 
                     // Tenter de sync cette session manquante
@@ -1844,6 +1845,7 @@ function refreshAllUI() {
     if (typeof populateSessionDaySelect === 'function') populateSessionDaySelect();
     if (typeof populateProgressExerciseSelect === 'function') populateProgressExerciseSelect();
     if (typeof updateSessionHistory === 'function') updateSessionHistory();
+    if (typeof renderProgressFeed === 'function') renderProgressFeed();
     if (typeof updateMacroRings === 'function') updateMacroRings();
     if (document.getElementById('journal-date') && typeof loadJournalDay === 'function') {
         loadJournalDay();
