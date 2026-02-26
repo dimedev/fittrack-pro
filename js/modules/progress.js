@@ -1023,9 +1023,20 @@ function countSessionPRs(session) {
         const prs = getExercisePRs(exerciseName);
         if (!prs) return;
 
-        const hasPR = (prs.maxWeight.date === sessionDate && prs.maxWeight.value > 0)
+        // Vérifier TOUS les types de PRs (poids, 1RM, volume, reps à un poids)
+        let hasPR = (prs.maxWeight.date === sessionDate && prs.maxWeight.value > 0)
             || (prs.estimated1RM && prs.estimated1RM.date === sessionDate && prs.estimated1RM.value > 0)
             || (prs.maxVolume && prs.maxVolume.date === sessionDate && prs.maxVolume.value > 0);
+
+        // Vérifier aussi les PRs de reps à un poids donné
+        if (!hasPR && prs.maxRepsAtWeight) {
+            for (const weightKey in prs.maxRepsAtWeight) {
+                if (prs.maxRepsAtWeight[weightKey].date === sessionDate) {
+                    hasPR = true;
+                    break;
+                }
+            }
+        }
 
         if (hasPR) prCount++;
     });
