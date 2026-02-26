@@ -1054,11 +1054,6 @@ html, body, main {
         -webkit-tap-highlight-color: transparent;
     }
 
-    .mobile-nav-item svg,
-    .mobile-nav-item span {
-        pointer-events: none; /* Clics toujours captés par le <button> parent */
-    }
-
     .mobile-nav-item svg {
         width: 26px;
         height: 26px;
