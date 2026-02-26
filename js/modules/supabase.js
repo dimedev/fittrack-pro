@@ -1905,13 +1905,20 @@ function refreshAllUI() {
     if (typeof updateDashboard === 'function') updateDashboard();
     if (typeof updateWeeklySchedule === 'function') updateWeeklySchedule();
     if (typeof populateSessionDaySelect === 'function') populateSessionDaySelect();
-    if (typeof populateProgressExerciseSelect === 'function') populateProgressExerciseSelect();
     if (typeof updateSessionHistory === 'function') updateSessionHistory();
-    if (typeof renderProgressFeed === 'function') renderProgressFeed();
     if (typeof updateMacroRings === 'function') updateMacroRings();
     if (document.getElementById('journal-date') && typeof loadJournalDay === 'function') {
         loadJournalDay();
     }
+
+    // ── Rafraîchir la TOTALITÉ de la section Progrès ──
+    // Critique: initProgressSection() re-rend les stats hero (PRs, progression, badges),
+    // les records, la heatmap, les charts de volume, le feed, etc.
+    // Sans cet appel, ces éléments restaient à zéro après le chargement Supabase.
+    if (typeof initProgressSection === 'function') {
+        initProgressSection();
+    }
+
     healthCheck();
 }
 
