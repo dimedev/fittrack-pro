@@ -263,22 +263,74 @@
     }
 }
 
-/* Exercise cards */
+/* Exercise cards & session tiles */
 [data-theme="light"] .exercise-card,
 [data-theme="light"] .food-item,
 [data-theme="light"] .meal-card,
-[data-theme="light"] .journal-entry {
+[data-theme="light"] .journal-entry,
+[data-theme="light"] .session-type-tile,
+[data-theme="light"] .today-session-card,
+[data-theme="light"] .pr-card-premium,
+[data-theme="light"] .feed-item,
+[data-theme="light"] .session-item,
+[data-theme="light"] .coach-card {
     background: #ffffff !important;
     border-color: #d2d2d7 !important;
+}
+
+[data-theme="light"] .session-type-tile.tile-program {
+    background: rgba(255, 0, 0, 0.04) !important;
+    border-color: var(--accent-brand) !important;
+}
+
+[data-theme="light"] .session-type-tile.tile-free {
+    background: rgba(250, 204, 21, 0.06) !important;
+    border-color: rgba(200, 160, 0, 0.3) !important;
+}
+
+[data-theme="light"] .session-type-tile.tile-cardio {
+    background: rgba(52, 211, 153, 0.06) !important;
+    border-color: rgba(30, 160, 100, 0.3) !important;
+}
+
+[data-theme="light"] .session-type-tile.tile-quick {
+    background: rgba(251, 146, 60, 0.06) !important;
+    border-color: rgba(200, 110, 40, 0.3) !important;
 }
 
 @media (prefers-color-scheme: light) {
     [data-theme="auto"] .exercise-card,
     [data-theme="auto"] .food-item,
     [data-theme="auto"] .meal-card,
-    [data-theme="auto"] .journal-entry {
+    [data-theme="auto"] .journal-entry,
+    [data-theme="auto"] .session-type-tile,
+    [data-theme="auto"] .today-session-card,
+    [data-theme="auto"] .pr-card-premium,
+    [data-theme="auto"] .feed-item,
+    [data-theme="auto"] .session-item,
+    [data-theme="auto"] .coach-card {
         background: #ffffff !important;
         border-color: #d2d2d7 !important;
+    }
+
+    [data-theme="auto"] .session-type-tile.tile-program {
+        background: rgba(255, 0, 0, 0.04) !important;
+        border-color: var(--accent-brand) !important;
+    }
+
+    [data-theme="auto"] .session-type-tile.tile-free {
+        background: rgba(250, 204, 21, 0.06) !important;
+        border-color: rgba(200, 160, 0, 0.3) !important;
+    }
+
+    [data-theme="auto"] .session-type-tile.tile-cardio {
+        background: rgba(52, 211, 153, 0.06) !important;
+        border-color: rgba(30, 160, 100, 0.3) !important;
+    }
+
+    [data-theme="auto"] .session-type-tile.tile-quick {
+        background: rgba(251, 146, 60, 0.06) !important;
+        border-color: rgba(200, 110, 40, 0.3) !important;
     }
 }
 
@@ -297,19 +349,19 @@
 
 /* Tabs */
 [data-theme="light"] .nav-tab,
-[data-theme="light"] .bottom-nav-item {
+[data-theme="light"] .mobile-nav-item {
     color: #6e6e73 !important;
     background: transparent !important;
 }
 
 [data-theme="light"] .nav-tab.active,
-[data-theme="light"] .bottom-nav-item.active {
+[data-theme="light"] .mobile-nav-item.active {
     color: #ff0000 !important;
     background: transparent !important;
 }
 
 /* Bottom nav active indicator - red line at bottom instead of bg */
-[data-theme="light"] .bottom-nav-item.active::after {
+[data-theme="light"] .mobile-nav-item.active::after {
     content: '';
     position: absolute;
     bottom: 8px;
@@ -323,18 +375,18 @@
 
 @media (prefers-color-scheme: light) {
     [data-theme="auto"] .nav-tab,
-    [data-theme="auto"] .bottom-nav-item {
+    [data-theme="auto"] .mobile-nav-item {
         color: #6e6e73 !important;
         background: transparent !important;
     }
 
     [data-theme="auto"] .nav-tab.active,
-    [data-theme="auto"] .bottom-nav-item.active {
+    [data-theme="auto"] .mobile-nav-item.active {
         color: #ff0000 !important;
         background: transparent !important;
     }
 
-    [data-theme="auto"] .bottom-nav-item.active::after {
+    [data-theme="auto"] .mobile-nav-item.active::after {
         content: '';
         position: absolute;
         bottom: 8px;
@@ -402,14 +454,24 @@
 }
 
 /* ==================== THEME TRANSITION ==================== */
+/* Ciblé sur les éléments principaux pour éviter le freeze mobile (pas de wildcard *) */
 html.theme-transitioning,
-html.theme-transitioning *,
-html.theme-transitioning *::before,
-html.theme-transitioning *::after {
-    transition: background-color 0.3s ease,
-                color 0.3s ease,
-                border-color 0.3s ease,
-                box-shadow 0.3s ease !important;
+html.theme-transitioning body,
+html.theme-transitioning .nav,
+html.theme-transitioning .mobile-nav,
+html.theme-transitioning .card,
+html.theme-transitioning .section,
+html.theme-transitioning .modal,
+html.theme-transitioning .bottom-sheet-content,
+html.theme-transitioning .btn,
+html.theme-transitioning .tabs,
+html.theme-transitioning .progress-hero,
+html.theme-transitioning input,
+html.theme-transitioning select,
+html.theme-transitioning textarea {
+    transition: background-color 0.25s ease,
+                color 0.25s ease,
+                border-color 0.25s ease !important;
 }
 
 /* ==================== THEME TOGGLE STYLES ==================== */
