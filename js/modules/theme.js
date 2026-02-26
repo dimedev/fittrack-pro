@@ -136,25 +136,46 @@
     function renderThemeSelector() {
         const currentTheme = getTheme();
 
+        // Pas de onclick inline — on bind via addEventListener après insertion dans le DOM
         return `
             <div class="theme-selector">
                 <button class="theme-option ${currentTheme === 'auto' ? 'active' : ''}"
-                        data-theme="auto" onclick="ThemeManager.setTheme('auto')">
+                        data-theme="auto">
                     <span class="theme-icon">🌗</span>
                     <span>Auto</span>
                 </button>
                 <button class="theme-option ${currentTheme === 'light' ? 'active' : ''}"
-                        data-theme="light" onclick="ThemeManager.setTheme('light')">
+                        data-theme="light">
                     <span class="theme-icon">☀️</span>
                     <span>Clair</span>
                 </button>
                 <button class="theme-option ${currentTheme === 'dark' ? 'active' : ''}"
-                        data-theme="dark" onclick="ThemeManager.setTheme('dark')">
+                        data-theme="dark">
                     <span class="theme-icon">🌙</span>
                     <span>Sombre</span>
                 </button>
             </div>
         `;
+    }
+
+    /**
+     * Bind click events on theme buttons (called after DOM insertion)
+     * Uses event delegation on .theme-selector for reliability on iOS
+     */
+    function bindThemeSelector() {
+        document.querySelectorAll('.theme-selector').forEach(selector => {
+            // Délégation d'événements : un seul listener sur le parent
+            selector.addEventListener('click', (e) => {
+                const btn = e.target.closest('.theme-option');
+                if (btn && btn.dataset.theme) {
+                    setTheme(btn.dataset.theme);
+                }
+            });
+            // Aussi pointer-events: none sur les enfants des boutons (comme la nav)
+            selector.querySelectorAll('.theme-option span').forEach(span => {
+                span.style.pointerEvents = 'none';
+            });
+        });
     }
 
     /**
@@ -253,6 +274,7 @@
         setTheme,
         toggleTheme,
         renderThemeSelector,
+        bindThemeSelector,
         setupDebugListeners,
         init
     };

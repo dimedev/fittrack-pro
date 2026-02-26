@@ -337,6 +337,7 @@ function init() {
             const themeContainer = document.getElementById('theme-selector-container');
             if (themeContainer) {
                 themeContainer.innerHTML = ThemeManager.renderThemeSelector();
+                ThemeManager.bindThemeSelector();
             }
         }
 

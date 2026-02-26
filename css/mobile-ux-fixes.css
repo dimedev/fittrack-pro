@@ -1066,6 +1066,11 @@ html, body, main {
         -webkit-tap-highlight-color: transparent;
     }
 
+    .mobile-nav-item svg,
+    .mobile-nav-item span {
+        pointer-events: none;
+    }
+
     .mobile-nav-item svg {
         width: 26px;
         height: 26px;
