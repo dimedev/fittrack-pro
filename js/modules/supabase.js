@@ -1794,21 +1794,33 @@ async function loadAllDataFromSupabase(silent = false) {
             }
             
             // ETAPE 2 : Construire les sessions Supabase
-            const supabaseSessions = sessions.map(s => ({
-                id: s.session_id || ('legacy-' + s.id),
-                sessionId: s.session_id || ('legacy-' + s.id),
-                date: s.date,
-                timestamp: new Date(s.created_at).getTime(),
-                sessionType: s.session_type || 'program',
-                sessionName: s.session_name || null,
-                program: s.program || null,
-                day: s.day_name || null,
-                exercises: s.exercises || [],
-                duration: s.duration || 0,
-                totalVolume: s.total_volume || 0,
-                caloriesBurned: s.calories_burned || 0,
-                synced: true
-            }));
+            // Lookup rapide pour préserver les métadonnées locales (prsCount, etc.)
+            const localSessionMap = {};
+            (state.sessionHistory || []).forEach(ls => {
+                const lid = ls.sessionId || ls.id;
+                if (lid) localSessionMap[lid] = ls;
+            });
+
+            const supabaseSessions = sessions.map(s => {
+                const sid = s.session_id || ('legacy-' + s.id);
+                const local = localSessionMap[sid];
+                return {
+                    id: sid,
+                    sessionId: sid,
+                    date: s.date,
+                    timestamp: new Date(s.created_at).getTime(),
+                    sessionType: s.session_type || 'program',
+                    sessionName: s.session_name || null,
+                    program: s.program || null,
+                    day: s.day_name || null,
+                    exercises: s.exercises || [],
+                    duration: s.duration || 0,
+                    totalVolume: s.total_volume || 0,
+                    caloriesBurned: s.calories_burned || 0,
+                    prsCount: local?.prsCount, // Préserver le nombre de PRs depuis les données locales
+                    synced: true
+                };
+            });
             
             // ETAPE 3 : Construire le Set des sessionIds Supabase pour lookup rapide
             const supabaseIds = new Set(supabaseSessions.map(s => s.sessionId));

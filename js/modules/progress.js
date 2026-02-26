@@ -1005,19 +1005,24 @@ function renderTrainingWeekSummary() {
 
 function countSessionPRs(session) {
     if (!session || !session.exercises) return 0;
+
+    // Priorité : utiliser le prsCount stocké dans la session (fiable, capturé au moment de la sauvegarde)
+    if (typeof session.prsCount === 'number' && session.prsCount >= 0) {
+        return session.prsCount;
+    }
+
+    // Fallback pour les anciennes sessions sans prsCount : recalculer depuis le progressLog
     let prCount = 0;
     const sessionDate = session.date;
 
     session.exercises.forEach(ex => {
         const exerciseName = ex.exercise || ex.name;
-        // Utiliser findProgressLogs (case-insensitive) au lieu d'accès direct
         const logs = findProgressLogs(exerciseName);
         if (!logs || logs.length === 0) return;
 
         const prs = getExercisePRs(exerciseName);
         if (!prs) return;
 
-        // Compter si N'IMPORTE QUEL type de PR a été battu ce jour
         const hasPR = (prs.maxWeight.date === sessionDate && prs.maxWeight.value > 0)
             || (prs.estimated1RM && prs.estimated1RM.date === sessionDate && prs.estimated1RM.value > 0)
             || (prs.maxVolume && prs.maxVolume.date === sessionDate && prs.maxVolume.value > 0);

@@ -4269,7 +4269,8 @@ async function finishSession() {
         exercises: sessionData,
         duration: durationMinutes,
         totalVolume: Math.round(totalVolume),
-        caloriesBurned: caloriesBurned
+        caloriesBurned: caloriesBurned,
+        prsCount: newPRs.length // Nombre de PRs battus pendant la séance
     };
     
     state.sessionHistory.unshift(newSession);
