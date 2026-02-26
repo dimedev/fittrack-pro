@@ -47,18 +47,20 @@
     padding: 24px !important;
 }
 
-/* Réduire les ombres excessives */
-.card:hover, .stat-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-}
+/* Réduire les ombres excessives - uniquement sur dispositifs avec hover (pas touch) */
+@media (hover: hover) {
+    .card:hover, .stat-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
 
-.btn-primary:hover {
-    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.2) !important;
-}
+    .btn-primary:hover {
+        box-shadow: 0 4px 12px rgba(255, 0, 0, 0.2) !important;
+    }
 
-/* Supprimer les transformations hover excessives */
-.stat-card:hover, .program-card:hover {
-    transform: translateY(0) !important;
+    /* Supprimer les transformations hover excessives */
+    .stat-card:hover, .program-card:hover {
+        transform: translateY(0) !important;
+    }
 }
 
 /* Améliorer la lisibilité des petits textes */
@@ -184,9 +186,11 @@ html, body, main {
     white-space: nowrap;
 }
 
-.btn-toggle-browse:hover {
-    border-color: var(--accent-primary);
-    background: var(--accent-glow);
+@media (hover: hover) {
+    .btn-toggle-browse:hover {
+        border-color: var(--accent-primary);
+        background: var(--accent-glow);
+    }
 }
 
 #browse-btn-icon {
@@ -221,8 +225,10 @@ html, body, main {
     color: white;
 }
 
-.btn-icon.btn-danger-icon:hover {
-    background: #dc2626;
+@media (hover: hover) {
+    .btn-icon.btn-danger-icon:hover {
+        background: #dc2626;
+    }
 }
 
 .btn-icon.btn-primary-icon {
@@ -231,8 +237,10 @@ html, body, main {
     font-weight: 700;
 }
 
-.btn-icon.btn-primary-icon:hover {
-    background: var(--accent-secondary);
+@media (hover: hover) {
+    .btn-icon.btn-primary-icon:hover {
+        background: var(--accent-secondary);
+    }
 }
 
 /* ==================== JOURNAL ENTRIES FULL WIDTH ==================== */
@@ -491,8 +499,10 @@ html, body, main {
     border-color: var(--accent-primary) !important;
 }
 
-#toggle-multiselect-btn:hover {
-    transform: scale(1.02);
+@media (hover: hover) {
+    #toggle-multiselect-btn:hover {
+        transform: scale(1.02);
+    }
 }
 
 .food-select-item.selectable {
@@ -608,8 +618,10 @@ html, body, main {
     min-height: unset;
 }
 
-.food-counter-badge .btn:hover {
-    background: rgba(0, 0, 0, 0.4);
+@media (hover: hover) {
+    .food-counter-badge .btn:hover {
+        background: rgba(0, 0, 0, 0.4);
+    }
 }
 
 /* ==================== FIX 1B4: BOUTONS CLIQUABLES ==================== */
@@ -1446,10 +1458,14 @@ html, body, main {
 .card,
 .modal,
 .bottom-sheet,
-.toast,
-.mobile-nav-item {
+.toast {
     will-change: transform;
     contain: layout style;
+}
+
+/* Nav items: will-change sans contain (contain: layout casse le hit testing SVG sur iOS) */
+.mobile-nav-item {
+    will-change: transform;
 }
 
 /* Réduire les repaints sur les animations */
@@ -2165,14 +2181,16 @@ textarea:focus-visible {
     stroke-width: 2.5 !important;
 }
 
-/* Hover state */
-.modal-close:hover,
-.btn-close:hover,
-.fs-close-btn:hover {
-    background: var(--bg-hover) !important;
-    border-color: var(--border-hover) !important;
-    color: var(--text-primary) !important;
-    transform: scale(1.05) !important;
+/* Hover state - uniquement sur dispositifs avec hover réel */
+@media (hover: hover) {
+    .modal-close:hover,
+    .btn-close:hover,
+    .fs-close-btn:hover {
+        background: var(--bg-hover) !important;
+        border-color: var(--border-hover) !important;
+        color: var(--text-primary) !important;
+        transform: scale(1.05) !important;
+    }
 }
 
 /* Active/Press state - devient rouge */

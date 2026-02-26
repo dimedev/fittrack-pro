@@ -201,9 +201,11 @@
     border-color: #d2d2d7 !important;
 }
 
-[data-theme="light"] .btn-ghost:hover,
-[data-theme="light"] .btn-outline:hover {
-    background: #f0f0f5 !important;
+@media (hover: hover) {
+    [data-theme="light"] .btn-ghost:hover,
+    [data-theme="light"] .btn-outline:hover {
+        background: #f0f0f5 !important;
+    }
 }
 
 @media (prefers-color-scheme: light) {
@@ -500,9 +502,11 @@ html.theme-transitioning textarea {
     flex: 1;
 }
 
-.theme-option:hover {
-    color: var(--text-secondary);
-    background: var(--bg-hover);
+@media (hover: hover) {
+    .theme-option:hover {
+        color: var(--text-secondary);
+        background: var(--bg-hover);
+    }
 }
 
 .theme-option.active {
