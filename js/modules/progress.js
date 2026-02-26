@@ -1010,14 +1010,19 @@ function countSessionPRs(session) {
 
     session.exercises.forEach(ex => {
         const exerciseName = ex.exercise || ex.name;
-        const logs = state.progressLog[exerciseName];
-        if (!logs) return;
+        // Utiliser findProgressLogs (case-insensitive) au lieu d'accès direct
+        const logs = findProgressLogs(exerciseName);
+        if (!logs || logs.length === 0) return;
 
-        // Check if any PR was set on this date
         const prs = getExercisePRs(exerciseName);
-        if (prs && prs.maxWeight.date === sessionDate) {
-            prCount++;
-        }
+        if (!prs) return;
+
+        // Compter si N'IMPORTE QUEL type de PR a été battu ce jour
+        const hasPR = (prs.maxWeight.date === sessionDate && prs.maxWeight.value > 0)
+            || (prs.estimated1RM && prs.estimated1RM.date === sessionDate && prs.estimated1RM.value > 0)
+            || (prs.maxVolume && prs.maxVolume.date === sessionDate && prs.maxVolume.value > 0);
+
+        if (hasPR) prCount++;
     });
 
     return prCount;
