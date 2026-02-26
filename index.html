@@ -3778,54 +3778,90 @@
     <script src="js/modules/ai-insights.js?v=2"></script>
     <script src="js/app.js?v=33"></script>
 
-    <!-- DEBUG PANEL - à supprimer après diagnostic -->
+    <!-- DEBUG PANEL v2 - à supprimer après diagnostic -->
     <script>
     (function(){
         var p = document.createElement('div');
         p.id = 'dbg-panel';
-        p.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:999999;background:#000;color:#0f0;padding:8px;font:10px/1.3 monospace;max-height:220px;overflow-y:auto;border-bottom:2px solid #0f0;';
-        p.innerHTML = '<b>DEBUG READY - tape sur theme/nav</b><br>';
+        p.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:999999;background:#000;color:#0f0;padding:8px;font:10px/1.3 monospace;max-height:250px;overflow-y:auto;border-bottom:2px solid #0f0;';
+        p.innerHTML = '<b>DEBUG v2</b><br>';
         document.body.appendChild(p);
+        var navTouchCount = {};
 
         function log(msg) {
-            var t = new Date().toTimeString().slice(0,8);
+            var t = new Date().toTimeString().slice(0,12);
             p.innerHTML += t + ' ' + msg + '<br>';
             p.scrollTop = 999999;
         }
 
-        // Intercepter TOUS les touch/click sur theme-option et mobile-nav-item
+        // NAV: Track touchmove (iOS cancels click if finger moves)
         document.addEventListener('touchstart', function(e) {
-            var btn = e.target.closest('.theme-option');
-            if (btn) log('THEME TOUCHSTART "' + btn.dataset.theme + '" target=' + e.target.tagName + '.' + (e.target.className||''));
             var nav = e.target.closest('.mobile-nav-item');
-            if (nav) log('NAV TOUCHSTART "' + nav.dataset.section + '" target=' + e.target.tagName);
+            if (nav) {
+                var touch = e.touches[0];
+                navTouchCount[nav.dataset.section] = { moves: 0, sx: touch.clientX, sy: touch.clientY, canceled: false };
+                log('NAV START "' + nav.dataset.section + '" pos=' + Math.round(touch.clientX) + ',' + Math.round(touch.clientY));
+            }
+            var btn = e.target.closest('.theme-option');
+            if (btn) log('THEME START "' + btn.dataset.theme + '"');
+        }, true);
+
+        document.addEventListener('touchmove', function(e) {
+            var nav = e.target.closest('.mobile-nav-item');
+            if (nav && navTouchCount[nav.dataset.section]) {
+                navTouchCount[nav.dataset.section].moves++;
+                var touch = e.touches[0];
+                var dx = Math.abs(touch.clientX - navTouchCount[nav.dataset.section].sx);
+                var dy = Math.abs(touch.clientY - navTouchCount[nav.dataset.section].sy);
+                if (navTouchCount[nav.dataset.section].moves <= 3) {
+                    log('NAV MOVE "' + nav.dataset.section + '" dx=' + Math.round(dx) + ' dy=' + Math.round(dy) + ' defaultPrevented=' + e.defaultPrevented);
+                }
+            }
         }, true);
 
         document.addEventListener('touchend', function(e) {
-            var btn = e.target.closest('.theme-option');
-            if (btn) log('THEME TOUCHEND "' + btn.dataset.theme + '"');
             var nav = e.target.closest('.mobile-nav-item');
-            if (nav) log('NAV TOUCHEND "' + nav.dataset.section + '"');
+            if (nav) {
+                var info = navTouchCount[nav.dataset.section] || {};
+                log('NAV END "' + nav.dataset.section + '" moves=' + (info.moves||0) + ' canceled=' + e.defaultPrevented);
+            }
+            var btn = e.target.closest('.theme-option');
+            if (btn) log('THEME END "' + btn.dataset.theme + '"');
+        }, true);
+
+        document.addEventListener('touchcancel', function(e) {
+            var nav = e.target.closest('.mobile-nav-item');
+            if (nav) log('NAV CANCEL "' + nav.dataset.section + '" !!');
         }, true);
 
         document.addEventListener('click', function(e) {
-            var btn = e.target.closest('.theme-option');
-            if (btn) log('THEME CLICK "' + btn.dataset.theme + '" dataThemeNow=' + document.documentElement.getAttribute('data-theme'));
             var nav = e.target.closest('.mobile-nav-item');
-            if (nav) log('NAV CLICK "' + nav.dataset.section + '"');
+            if (nav) log('✅ NAV CLICK "' + nav.dataset.section + '"');
+            var btn = e.target.closest('.theme-option');
+            if (btn) log('✅ THEME CLICK "' + btn.dataset.theme + '"');
         }, true);
 
-        // Surveiller les changements de data-theme
+        // Also log ALL clicks on the nav area to check if something else captures them
+        var mobileNav = document.querySelector('.mobile-nav');
+        if (mobileNav) {
+            mobileNav.addEventListener('click', function(e) {
+                if (!e.target.closest('.mobile-nav-item')) {
+                    log('⚠️ CLICK on .mobile-nav but NOT on nav-item! target=' + e.target.tagName + '.' + (e.target.className||''));
+                }
+            }, true);
+        }
+
+        // Surveiller changements de data-theme
         var obs = new MutationObserver(function(muts) {
             muts.forEach(function(m) {
                 if (m.attributeName === 'data-theme') {
-                    log('⚡ data-theme CHANGED → "' + document.documentElement.getAttribute('data-theme') + '"');
+                    log('⚡ THEME → "' + document.documentElement.getAttribute('data-theme') + '"');
                 }
             });
         });
         obs.observe(document.documentElement, { attributes: true });
 
-        log('Panel init OK, data-theme="' + document.documentElement.getAttribute('data-theme') + '"');
+        log('v2 OK, theme="' + document.documentElement.getAttribute('data-theme') + '"');
     })();
     </script>
 </body>
