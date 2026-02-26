@@ -223,23 +223,24 @@ function updateStatWithAnimation(elementId, newValue) {
 let currentSection = 'dashboard';
 
 function setupNavigation() {
-    // Navigation desktop et mobile
-    // Sur iOS, le click synthétisé après touchend est peu fiable (surtout après repaint CSS).
-    // On utilise touchend directement sur mobile, avec click en fallback desktop.
-    document.querySelectorAll('.nav-tab, .mobile-nav-item').forEach(tab => {
-        let touchHandled = false;
+    // Sur iOS, le click synthétisé après touchend est peu fiable (retardé, dupliqué, fantôme).
+    // Stratégie : touchend = navigation immédiate sur mobile, click = fallback desktop uniquement.
+    // Dès qu'un touch est détecté, TOUS les click events sur la nav sont ignorés.
+    let isTouchNav = false;
 
+    document.querySelectorAll('.nav-tab, .mobile-nav-item').forEach(tab => {
         tab.addEventListener('touchend', (e) => {
-            e.preventDefault(); // Empêcher le click synthétisé (éviter double navigation)
-            touchHandled = true;
+            isTouchNav = true;
+            e.preventDefault();
             const section = tab.dataset.section;
             navigateToSection(section);
         });
 
-        tab.addEventListener('click', () => {
-            if (touchHandled) {
-                touchHandled = false;
-                return; // Déjà géré par touchend
+        tab.addEventListener('click', (e) => {
+            if (isTouchNav) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return; // Touch device : touchend gère tout, click ignoré
             }
             const section = tab.dataset.section;
             navigateToSection(section);
