@@ -236,11 +236,11 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
     // ==================== MAIN ENTRY ====================
 
     function renderActivationCard() {
-        // Ne rien afficher si pas de clé API — l’utilisateur peut activer
-        // les insights IA depuis les paramètres s’il le souhaite
-        const container = document.getElementById(‘ai-insights-container’);
+        // Ne rien afficher si pas de clé API — l'utilisateur peut activer
+        // les insights IA depuis les paramètres s'il le souhaite
+        const container = document.getElementById('ai-insights-container');
         if (!container) return;
-        container.innerHTML = ‘’;
+        container.innerHTML = '';
     }
 
     async function load(forceRefresh = false) {

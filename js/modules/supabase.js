@@ -1803,7 +1803,6 @@ async function loadAllDataFromSupabase(silent = false) {
                 sessionName: s.session_name || null,
                 program: s.program || null,
                 day: s.day_name || null,
-                dayIndex: s.day_index,
                 exercises: s.exercises || [],
                 duration: s.duration || 0,
                 totalVolume: s.total_volume || 0,
@@ -2502,7 +2501,7 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
     
     try {
         await withRetry(async () => {
-            const dataToUpsert = {
+            const dataToInsert = {
                 user_id: currentUser.id,
                 exercise_name: exerciseName,
                 date: logData.date,
@@ -2513,43 +2512,15 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
                 achieved_sets: logData.achievedSets
             };
 
-            // Ajouter session_id si disponible (pour dedup et delete)
-            if (logData.sessionId) {
-                dataToUpsert.session_id = logData.sessionId;
-            }
-
-            // Ajouter setsDetail si disponible (sérialiser en JSON)
+            // Ajouter setsDetail si disponible
             if (logData.setsDetail && Array.isArray(logData.setsDetail) && logData.setsDetail.length > 0) {
-                dataToUpsert.sets_detail = logData.setsDetail;
+                dataToInsert.sets_detail = logData.setsDetail;
             }
 
-            // Upsert pour idempotence (évite les doublons)
-            // Si la contrainte unique (user_id, session_id, exercise_name) existe, utilise upsert
-            // Sinon, fallback sur insert (les anciennes entrées sans session_id restent en insert)
-            if (logData.sessionId) {
-                const { error } = await supabaseClient
-                    .from('progress_log')
-                    .upsert(dataToUpsert, {
-                        onConflict: 'user_id,session_id,exercise_name',
-                        ignoreDuplicates: false
-                    });
-                if (error) {
-                    // Si la contrainte unique n'existe pas encore, fallback insert
-                    if (error.code === '42P10' || error.message?.includes('constraint')) {
-                        const { error: insertError } = await supabaseClient
-                            .from('progress_log')
-                            .insert(dataToUpsert);
-                        if (insertError) throw insertError;
-                    } else {
-                        throw error;
-                    }
-                }
-            } else {
-                const { error } = await supabaseClient
-                    .from('progress_log')
-                    .insert(dataToUpsert);
-                if (error) throw error;
-            }
+            const { error } = await supabaseClient
+                .from('progress_log')
+                .insert(dataToInsert);
+            if (error) throw error;
 
             console.log('✅ Progression sauvegardée');
         }, { maxRetries: 3, critical: true });
@@ -2596,7 +2567,6 @@ async function saveWorkoutSessionToSupabase(sessionData) {
                     date: sessionData.date,
                     program: sessionData.program || null,
                     day_name: sessionData.day || null,
-                    day_index: sessionData.dayIndex ?? null,
                     session_type: sessionData.sessionType || 'program',
                     session_name: sessionData.sessionName || null,
                     exercises: sessionData.exercises,
