@@ -159,21 +159,38 @@
     }
 
     /**
-     * Bind click events on theme buttons (called after DOM insertion)
-     * Uses event delegation on .theme-selector for reliability on iOS
+     * Bind events on theme buttons (called after DOM insertion)
+     * Uses touchend + click fallback for iOS reliability
      */
     function bindThemeSelector() {
         document.querySelectorAll('.theme-selector').forEach(selector => {
-            // Délégation d'événements : un seul listener sur le parent
+            let touchHandled = false;
+
+            // pointer-events: none sur les enfants (les taps tombent sur le bouton parent)
+            selector.querySelectorAll('.theme-option span').forEach(span => {
+                span.style.pointerEvents = 'none';
+            });
+
+            // touchend = réaction immédiate sur mobile
+            selector.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const btn = e.target.closest('.theme-option');
+                if (btn && btn.dataset.theme) {
+                    touchHandled = true;
+                    setTheme(btn.dataset.theme);
+                }
+            });
+
+            // click = fallback desktop
             selector.addEventListener('click', (e) => {
+                if (touchHandled) {
+                    touchHandled = false;
+                    return;
+                }
                 const btn = e.target.closest('.theme-option');
                 if (btn && btn.dataset.theme) {
                     setTheme(btn.dataset.theme);
                 }
-            });
-            // Aussi pointer-events: none sur les enfants des boutons (comme la nav)
-            selector.querySelectorAll('.theme-option span').forEach(span => {
-                span.style.pointerEvents = 'none';
             });
         });
     }

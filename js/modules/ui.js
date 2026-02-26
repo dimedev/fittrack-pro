@@ -224,13 +224,28 @@ let currentSection = 'dashboard';
 
 function setupNavigation() {
     // Navigation desktop et mobile
+    // Sur iOS, le click synthétisé après touchend est peu fiable (surtout après repaint CSS).
+    // On utilise touchend directement sur mobile, avec click en fallback desktop.
     document.querySelectorAll('.nav-tab, .mobile-nav-item').forEach(tab => {
+        let touchHandled = false;
+
+        tab.addEventListener('touchend', (e) => {
+            e.preventDefault(); // Empêcher le click synthétisé (éviter double navigation)
+            touchHandled = true;
+            const section = tab.dataset.section;
+            navigateToSection(section);
+        });
+
         tab.addEventListener('click', () => {
+            if (touchHandled) {
+                touchHandled = false;
+                return; // Déjà géré par touchend
+            }
             const section = tab.dataset.section;
             navigateToSection(section);
         });
     });
-    
+
     // Initialize current section
     const activeSection = document.querySelector('.section.active');
     if (activeSection) {
