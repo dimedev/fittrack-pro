@@ -4121,7 +4121,9 @@ async function finishSession() {
     updatePeriodization();
 
     // Détecter les doublons avant de sauvegarder
-    const today = new Date().toLocaleDateString('en-CA');
+    // Utiliser la date de DÉBUT de la séance (pas la date de fin)
+    // Évite que les séances commencées avant minuit soient datées au lendemain
+    const today = new Date(fsSession.startTime).toLocaleDateString('en-CA');
     const existingSession = state.sessionHistory.find(s =>
         !s.deletedAt &&
         s.date === today &&
@@ -4259,7 +4261,7 @@ async function finishSession() {
     const newSession = {
         sessionId: fsSession.sessionId, // UUID pour idempotence
         date: today,
-        timestamp: Date.now(),
+        timestamp: fsSession.startTime || Date.now(), // Utiliser le début de la séance
         sessionType: fsSession.sessionType || 'program',
         sessionName: fsSession.sessionName || null,
         program: isFreeSession ? null : state.wizardResults.selectedProgram,
@@ -4273,6 +4275,17 @@ async function finishSession() {
     state.sessionHistory.unshift(newSession);
     state.sessionHistory = state.sessionHistory.slice(0, 100);
     if (typeof criticalLog === 'function') criticalLog('session_saved_local', { sessionId: newSession.sessionId, date: newSession.date, exercises: newSession.exercises?.length || 0 });
+
+    // ── Backup DIRECT dans localStorage (filet de sécurité) ──
+    // IndexedDB est asynchrone et peut ne pas écrire si l'onglet est fermé rapidement.
+    // Ce backup garantit que la session n'est JAMAIS perdue.
+    try {
+        const sessionsBackup = state.sessionHistory.slice(0, 30);
+        localStorage.setItem('fittrack-sessions-backup', JSON.stringify(sessionsBackup));
+        console.log('💾 Backup session localStorage OK:', newSession.sessionId);
+    } catch (backupErr) {
+        console.warn('⚠️ Backup session localStorage échoué:', backupErr);
+    }
 
     // Sauvegarder le template si des swaps/variantes ont été faits pendant la séance (programme uniquement)
     if (!isFreeSession) {
@@ -4303,8 +4316,18 @@ async function finishSession() {
         state.trainingProgress.currentSplitIndex = (fsSession.splitIndex + 1) % splits.length;
     }
 
-    // Save state
+    // Save state (localStorage synchrone + IndexedDB async)
     saveState();
+
+    // ── Attendre confirmation IndexedDB si disponible ──
+    if (window.RepzyDB && window.RepzyDB.isReady()) {
+        try {
+            await window.RepzyDB.saveState(state);
+            console.log('✅ Session confirmée dans IndexedDB');
+        } catch (idbErr) {
+            console.warn('⚠️ IndexedDB write failed, localStorage backup active:', idbErr);
+        }
+    }
 
     // Sync with Supabase (await pour garantir la persistance)
     if (typeof isLoggedIn === 'function' && isLoggedIn()) {

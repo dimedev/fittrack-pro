@@ -400,7 +400,40 @@ async function loadStateAsync() {
         }
     }
 
+    // ── Restauration des backups localStorage si collections vides ──
+    // Filet de sécurité : si IndexedDB n'a pas restauré sessionHistory/progressLog,
+    // on les récupère depuis les backups localStorage.
     if (parsed) {
+        if (!parsed.sessionHistory || parsed.sessionHistory.length === 0) {
+            try {
+                const sessionsBackup = localStorage.getItem('fittrack-sessions-backup');
+                if (sessionsBackup) {
+                    const sessions = JSON.parse(sessionsBackup);
+                    if (Array.isArray(sessions) && sessions.length > 0) {
+                        parsed.sessionHistory = sessions;
+                        console.log(`🔄 ${sessions.length} sessions restaurées depuis backup localStorage`);
+                    }
+                }
+            } catch (e) {
+                console.warn('Restauration backup sessions échouée:', e);
+            }
+        }
+
+        if (!parsed.progressLog || Object.keys(parsed.progressLog).length === 0) {
+            try {
+                const progressBackup = localStorage.getItem('fittrack-progress-backup');
+                if (progressBackup) {
+                    const progress = JSON.parse(progressBackup);
+                    if (progress && typeof progress === 'object' && Object.keys(progress).length > 0) {
+                        parsed.progressLog = progress;
+                        console.log(`🔄 progressLog restauré depuis backup localStorage (${Object.keys(progress).length} exercices)`);
+                    }
+                }
+            } catch (e) {
+                console.warn('Restauration backup progressLog échouée:', e);
+            }
+        }
+
         applyParsedState(parsed);
     }
 
@@ -600,6 +633,27 @@ function saveState() {
         const { progressLog: _pl, sessionHistory: _sh, ...slimState } = cleanState;
         const slimString = JSON.stringify(slimState);
         localStorage.setItem('fittrack-state', slimString);
+
+        // 3. Backup des sessions récentes dans localStorage (filet de sécurité)
+        // Protège contre la perte de données si IndexedDB est indisponible ou lent
+        try {
+            const recentSessions = (cleanState.sessionHistory || []).slice(0, 30);
+            localStorage.setItem('fittrack-sessions-backup', JSON.stringify(recentSessions));
+        } catch (_backupErr) {
+            console.warn('⚠️ Backup sessions localStorage échoué');
+        }
+
+        // 4. Backup du progressLog récent dans localStorage
+        try {
+            const recentProgressLog = {};
+            Object.entries(cleanState.progressLog || {}).forEach(([exercise, logs]) => {
+                const recent = (logs || []).slice(-10); // garder les 10 dernières entrées par exercice
+                if (recent.length > 0) recentProgressLog[exercise] = recent;
+            });
+            localStorage.setItem('fittrack-progress-backup', JSON.stringify(recentProgressLog));
+        } catch (_backupErr2) {
+            console.warn('⚠️ Backup progressLog localStorage échoué');
+        }
 
     } catch (e) {
         // Gérer spécifiquement l'erreur de quota dépassé

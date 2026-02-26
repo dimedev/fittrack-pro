@@ -236,19 +236,11 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
     // ==================== MAIN ENTRY ====================
 
     function renderActivationCard() {
-        const container = document.getElementById('ai-insights-container');
+        // Ne rien afficher si pas de clé API — l’utilisateur peut activer
+        // les insights IA depuis les paramètres s’il le souhaite
+        const container = document.getElementById(‘ai-insights-container’);
         if (!container) return;
-        container.innerHTML = `
-            <div class="ai-insight-card ai-insight-activation">
-                <div class="ai-insight-header">
-                    <span class="ai-insight-icon">🤖</span>
-                    <span class="ai-insight-title">Insights IA</span>
-                </div>
-                <p class="ai-insight-text">Reçois chaque semaine une analyse personnalisée de tes séances par Claude. Tous les utilisateurs peuvent l'activer avec une clé API gratuite.</p>
-                <p class="ai-insight-text" style="font-size:0.8em; color: var(--text-muted); margin-top:8px;">Clé gratuite sur <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>. Colle la clé en entier (format <code>sk-ant-...</code>, jamais affichée en clair dans l’app).</p>
-                <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="openAISettings()">Configurer ma clé API</button>
-            </div>
-        `;
+        container.innerHTML = ‘’;
     }
 
     async function load(forceRefresh = false) {

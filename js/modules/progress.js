@@ -188,52 +188,55 @@ function updateProgressHero() {
 
 function generateProgressFeed() {
     const feed = [];
-    
-    // PRs récents (7 derniers jours)
+
+    // PRs récents (7 derniers jours) — seulement les VRAIS PRs détectés
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
-    if (state.progressLog) {
-        Object.keys(state.progressLog).forEach(exercise => {
-            const logs = state.progressLog[exercise] || [];
-            logs.forEach(log => {
-                if (new Date(log.date) >= weekAgo) {
-                    // Fallback: essayer setsDetail puis utiliser les données agrégées
-                    if (log.setsDetail) {
-                        log.setsDetail.forEach(set => {
-                            if (set.completed) {
-                                feed.push({
-                                    type: 'pr',
-                                    icon: '🏆',
-                                    title: 'Nouveau PR!',
-                                    text: `${exercise}: ${set.weight}kg × ${set.reps}`,
-                                    date: log.date
-                                });
-                            }
-                        });
-                    } else if (log.weight > 0 && log.achievedReps > 0) {
-                        // Fallback avec données agrégées
+
+    if (state.progressLog && typeof getAllPRs === 'function') {
+        try {
+            const allPRs = getAllPRs();
+            Object.entries(allPRs).forEach(([exercise, prData]) => {
+                // Vérifier le PR de poids max
+                if (prData.maxWeight && prData.maxWeight.value > 0 && prData.maxWeight.date) {
+                    if (new Date(prData.maxWeight.date) >= weekAgo) {
                         feed.push({
                             type: 'pr',
                             icon: '🏆',
                             title: 'Nouveau PR!',
-                            text: `${exercise}: ${log.weight}kg × ${log.achievedReps} reps`,
-                            date: log.date
+                            text: `${exercise}: ${prData.maxWeight.value}kg`,
+                            date: prData.maxWeight.date
+                        });
+                    }
+                }
+                // Vérifier le PR de 1RM estimé
+                if (prData.estimated1RM && prData.estimated1RM.value > 0 && prData.estimated1RM.date) {
+                    if (new Date(prData.estimated1RM.date) >= weekAgo && prData.estimated1RM.date !== prData.maxWeight?.date) {
+                        feed.push({
+                            type: 'pr',
+                            icon: '💪',
+                            title: 'PR 1RM estimé!',
+                            text: `${exercise}: ${prData.estimated1RM.value}kg (1RM)`,
+                            date: prData.estimated1RM.date
                         });
                     }
                 }
             });
-        });
+        } catch (e) {
+            console.warn('Erreur génération PRs feed:', e);
+        }
     }
-    
+
     // Séances récentes (exclure les soft-deleted)
     if (state.sessionHistory) {
         state.sessionHistory.filter(s => !s.deletedAt).slice(0, 5).forEach(s => {
+            const sessionLabel = s.day || s.sessionName || 'Séance libre';
+            const exerciseCount = s.exercises?.length || 0;
             feed.push({
                 type: 'session',
                 icon: '✅',
                 title: 'Séance terminée',
-                text: `${s.day} - ${s.duration || 0} min`,
+                text: `${sessionLabel} — ${exerciseCount} exo · ${s.duration || 0} min`,
                 date: s.date
             });
         });
