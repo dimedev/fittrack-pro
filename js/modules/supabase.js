@@ -47,7 +47,9 @@ window.showCriticalLog = function() {
 // ==================== AUTO-SYNC POLLING ====================
 let autoSyncInterval = null;
 const AUTO_SYNC_INTERVAL_MS = 30000; // 30 secondes
+const MAX_SYNC_INTERVAL_MS = 300000; // 5 minutes max après échecs consécutifs
 let lastSyncTimestamp = 0;
+let consecutiveSyncFailures = 0;
 
 /**
  * Formate le temps écoulé depuis la dernière sync
@@ -470,6 +472,7 @@ function initNetworkDetection() {
     
     window.addEventListener('online', () => {
         isOnline = true;
+        consecutiveSyncFailures = 0; // Reset backoff on reconnect
         console.log('🌐 Retour en ligne');
         updateSyncIndicator(SyncStatus.IDLE);
         
@@ -1852,18 +1855,22 @@ async function loadAllDataFromSupabase(silent = false) {
                     caloriesBurned: localSession.caloriesBurned || 0
                 }).then(ok => {
                     if (ok) { localSession.synced = true; saveState(); }
-                }).catch(() => {});
+                }).catch(err => {
+                    console.warn('⚠️ Sync session locale échouée, sera retentée au prochain cycle:', err?.message || err);
+                });
             });
             
             // ETAPE 5 : Supprimer les sessions soft-deleted localement
             const deletedLocal = (state.sessionHistory || []).filter(s => s.deletedAt);
             deletedLocal.forEach(s => {
                 const sid = s.sessionId || s.id;
-                if (sid) deleteWorkoutSessionFromSupabase(sid).catch(() => {});
+                if (sid) deleteWorkoutSessionFromSupabase(sid).catch(err => {
+                    console.warn('⚠️ Suppression Supabase échouée pour session:', sid, err?.message || err);
+                });
             });
             
-            // ETAPE 6 : Assigner, trier, limiter
-            state.sessionHistory = merged.sort((a, b) => b.timestamp - a.timestamp).slice(0, 100);
+            // ETAPE 6 : Assigner et trier (SANS limiter — toutes les sessions sont conservées)
+            state.sessionHistory = merged.sort((a, b) => b.timestamp - a.timestamp);
         }
         
         if (!silent) {
@@ -2513,7 +2520,7 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
     
     try {
         await withRetry(async () => {
-            const dataToInsert = {
+            const dataToUpsert = {
                 user_id: currentUser.id,
                 exercise_name: exerciseName,
                 date: logData.date,
@@ -2524,15 +2531,36 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
                 achieved_sets: logData.achievedSets
             };
 
-            // Ajouter setsDetail si disponible
-            if (logData.setsDetail && Array.isArray(logData.setsDetail) && logData.setsDetail.length > 0) {
-                dataToInsert.sets_detail = logData.setsDetail;
+            // Ajouter session_id pour déduplication
+            if (logData.sessionId) {
+                dataToUpsert.session_id = logData.sessionId;
             }
 
+            // Ajouter setsDetail si disponible
+            if (logData.setsDetail && Array.isArray(logData.setsDetail) && logData.setsDetail.length > 0) {
+                dataToUpsert.sets_detail = logData.setsDetail;
+            }
+
+            // UPSERT au lieu d'INSERT pour éviter les doublons
+            // onConflict sur (user_id, exercise_name, date, session_id) si la contrainte existe
+            // Sinon, fallback silencieux en INSERT classique
             const { error } = await supabaseClient
                 .from('progress_log')
-                .insert(dataToInsert);
-            if (error) throw error;
+                .upsert(dataToUpsert, {
+                    onConflict: 'user_id,exercise_name,date,session_id',
+                    ignoreDuplicates: false
+                });
+            if (error) {
+                // Si la contrainte unique n'existe pas encore, fallback en insert
+                if (error.code === '42P10' || error.message?.includes('unique')) {
+                    const { error: insertErr } = await supabaseClient
+                        .from('progress_log')
+                        .insert(dataToUpsert);
+                    if (insertErr) throw insertErr;
+                } else {
+                    throw error;
+                }
+            }
 
             console.log('✅ Progression sauvegardée');
         }, { maxRetries: 3, critical: true });
@@ -2756,22 +2784,29 @@ function startAutoSync() {
             return;
         }
         
-        // Synchronisation silencieuse
+        // Synchronisation silencieuse avec backoff sur échecs consécutifs
         try {
             const now = Date.now();
-            // Éviter les syncs trop rapprochées (au moins 25s entre chaque)
-            if (now - lastSyncTimestamp < 25000) {
+            // Backoff exponentiel : après N échecs, attendre plus longtemps
+            const effectiveInterval = Math.min(
+                AUTO_SYNC_INTERVAL_MS * Math.pow(1.5, consecutiveSyncFailures),
+                MAX_SYNC_INTERVAL_MS
+            );
+            if (now - lastSyncTimestamp < effectiveInterval - 5000) {
                 return;
             }
-            
+
             lastSyncTimestamp = now;
-            
+
             // Charger les données depuis Supabase (silencieux)
             await loadAllDataFromSupabase(true); // true = mode silencieux
-            
+
+            // Succès → reset le compteur d'échecs
+            consecutiveSyncFailures = 0;
+
         } catch (error) {
-            console.warn('Erreur auto-sync:', error);
-            // Ne pas afficher de toast, continuer silencieusement
+            consecutiveSyncFailures = Math.min(consecutiveSyncFailures + 1, 10);
+            console.warn(`Erreur auto-sync (échec ${consecutiveSyncFailures}, prochain dans ~${Math.round(AUTO_SYNC_INTERVAL_MS * Math.pow(1.5, consecutiveSyncFailures) / 1000)}s):`, error?.message || error);
         }
     }, AUTO_SYNC_INTERVAL_MS);
 }

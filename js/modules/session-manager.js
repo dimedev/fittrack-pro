@@ -719,7 +719,7 @@ const SessionManager = (function() {
         };
         
         state.sessionHistory.unshift(historyEntry);
-        state.sessionHistory = state.sessionHistory.slice(0, 100);
+        // PAS de slice(0, 100) — on garde TOUTES les sessions
         
         // Nettoyer la session active
         state.activeSession = null;

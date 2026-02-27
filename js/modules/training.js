@@ -4274,7 +4274,8 @@ async function finishSession() {
     };
     
     state.sessionHistory.unshift(newSession);
-    state.sessionHistory = state.sessionHistory.slice(0, 100);
+    // PAS de slice(0, 100) — on garde TOUTES les sessions pour éviter la perte de données.
+    // La limitation se fait uniquement côté affichage (UI).
     if (typeof criticalLog === 'function') criticalLog('session_saved_local', { sessionId: newSession.sessionId, date: newSession.date, exercises: newSession.exercises?.length || 0 });
 
     // ── Backup DIRECT dans localStorage (filet de sécurité) ──
@@ -4345,33 +4346,101 @@ async function finishSession() {
             totalVolume: Math.round(totalVolume),
             caloriesBurned: caloriesBurned
         };
-        if (typeof saveWorkoutSessionToSupabase === 'function') {
+
+        // ── TENTATIVE ATOMIQUE via RPC (session + progress logs en une transaction) ──
+        let atomicSuccess = false;
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
-                const ok = await saveWorkoutSessionToSupabase(sessionToSave);
-                if (ok) {
+                // Préparer les progress logs pour la RPC
+                const progressLogsForRPC = sessionData.map(exData => {
+                    const logs = state.progressLog[exData.exercise];
+                    if (!logs || logs.length === 0) return null;
+                    const lastLog = logs[logs.length - 1];
+                    return {
+                        exercise_name: exData.exercise,
+                        date: lastLog.date,
+                        sets: lastLog.sets,
+                        reps: lastLog.reps || lastLog.achievedReps,
+                        weight: lastLog.weight,
+                        achieved_reps: lastLog.achievedReps,
+                        achieved_sets: lastLog.achievedSets,
+                        sets_detail: lastLog.setsDetail || []
+                    };
+                }).filter(Boolean);
+
+                const { data: rpcResult, error: rpcError } = await supabaseClient.rpc('save_session_atomic', {
+                    p_session: {
+                        session_id: sessionToSave.sessionId,
+                        date: sessionToSave.date,
+                        session_type: sessionToSave.sessionType,
+                        session_name: sessionToSave.sessionName,
+                        program: sessionToSave.program,
+                        day: sessionToSave.day,
+                        exercises: sessionToSave.exercises,
+                        duration: sessionToSave.duration,
+                        total_volume: sessionToSave.totalVolume,
+                        calories_burned: sessionToSave.caloriesBurned
+                    },
+                    p_progress_logs: progressLogsForRPC
+                });
+
+                if (!rpcError && rpcResult?.success) {
+                    atomicSuccess = true;
                     newSession.synced = true;
+                    // Marquer les progress logs comme synced
+                    sessionData.forEach(exData => {
+                        const logs = state.progressLog[exData.exercise];
+                        if (logs && logs.length > 0) {
+                            logs[logs.length - 1].synced = true;
+                        }
+                    });
                     saveState();
                     if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
+                    console.log('✅ Session sauvegardée atomiquement via RPC');
+                } else {
+                    console.warn('RPC save_session_atomic non disponible ou échouée, fallback classique:', rpcError?.message || rpcResult?.error);
                 }
-            } catch (err) {
-                console.error('Erreur sync séance:', err);
-                if (typeof addToSyncQueue === 'function') addToSyncQueue('workout_session', 'upsert', sessionToSave);
+            } catch (rpcErr) {
+                console.warn('RPC save_session_atomic non disponible, fallback classique:', rpcErr?.message);
             }
         }
 
-        for (const exData of sessionData) {
-            const logs = state.progressLog[exData.exercise];
-            if (logs && logs.length > 0) {
-                const lastLog = logs[logs.length - 1];
-                if (typeof saveProgressLogToSupabase === 'function') {
-                    try { await saveProgressLogToSupabase(exData.exercise, lastLog); }
-                    catch (err) { console.warn('Sync progression en attente:', exData.exercise); }
+        // ── FALLBACK CLASSIQUE (si la RPC n'est pas déployée ou a échoué) ──
+        if (!atomicSuccess) {
+            if (typeof saveWorkoutSessionToSupabase === 'function') {
+                try {
+                    const ok = await saveWorkoutSessionToSupabase(sessionToSave);
+                    if (ok) {
+                        newSession.synced = true;
+                        saveState();
+                        if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
+                    }
+                } catch (err) {
+                    console.error('Erreur sync séance:', err);
+                    if (typeof addToSyncQueue === 'function') addToSyncQueue('workout_session', 'upsert', sessionToSave);
+                }
+            }
+
+            for (const exData of sessionData) {
+                const logs = state.progressLog[exData.exercise];
+                if (logs && logs.length > 0) {
+                    const lastLog = logs[logs.length - 1];
+                    if (typeof saveProgressLogToSupabase === 'function') {
+                        try { await saveProgressLogToSupabase(exData.exercise, lastLog); }
+                        catch (err) { console.warn('Sync progression en attente:', exData.exercise); }
+                    }
                 }
             }
         }
-        
+
+        // Training settings (indépendant, toujours exécuté)
         if (typeof saveTrainingSettingsToSupabase === 'function') {
-            saveTrainingSettingsToSupabase().catch(() => {});
+            saveTrainingSettingsToSupabase().catch(err => {
+                console.warn('⚠️ Sync training settings échouée, sera retentée:', err?.message || err);
+                if (typeof addToSyncQueue === 'function') {
+                    addToSyncQueue({ type: 'training_settings', action: 'upsert', data: { source: 'finishSession' } });
+                }
+            });
         }
     }
 

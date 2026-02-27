@@ -4337,7 +4337,7 @@ async function saveCardioSessionFromLive() {
     };
     if (!state.sessionHistory) state.sessionHistory = [];
     state.sessionHistory.unshift(sessionEntry);
-    state.sessionHistory = state.sessionHistory.slice(0, 100);
+    // PAS de slice(0, 100) — on garde TOUTES les sessions
 
     // 3. Update streak
     if (state.trainingProgress) {
@@ -4349,10 +4349,14 @@ async function saveCardioSessionFromLive() {
     // 4. Sync Supabase
     if (typeof isLoggedIn === 'function' && isLoggedIn()) {
         if (typeof saveCardioSessionToSupabase === 'function') {
-            saveCardioSessionToSupabase(today, cardioEntry).catch(() => {});
+            saveCardioSessionToSupabase(today, cardioEntry).catch(err => {
+                console.warn('⚠️ Sync cardio échouée, sera retentée:', err?.message || err);
+            });
         }
         if (typeof saveWorkoutSessionToSupabase === 'function') {
-            saveWorkoutSessionToSupabase(sessionEntry).catch(() => {});
+            saveWorkoutSessionToSupabase(sessionEntry).catch(err => {
+                console.warn('⚠️ Sync session cardio échouée, sera retentée:', err?.message || err);
+            });
         }
     }
 

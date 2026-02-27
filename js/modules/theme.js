@@ -36,10 +36,8 @@
      * @param {string} theme - 'auto', 'light', or 'dark'
      */
     function setTheme(theme) {
-        dbg(`setTheme("${theme}") AVANT: saved="${getTheme()}" data-theme="${document.documentElement.getAttribute('data-theme')}"`);
-
         if (!VALID_THEMES.includes(theme)) {
-            dbg(`INVALID theme: "${theme}"`);
+            console.warn('Invalid theme:', theme);
             return;
         }
 
@@ -52,7 +50,8 @@
         // Update UI if selector exists
         updateThemeSelector(theme);
 
-        dbg(`setTheme DONE: saved="${getTheme()}" data-theme="${document.documentElement.getAttribute('data-theme')}"`);
+        // Log
+        console.log(`🎨 Theme set to: ${theme} (applied: ${getAppliedTheme()})`);
 
         // Haptic feedback
         if (window.HapticFeedback) {
@@ -196,75 +195,6 @@
     }
 
     /**
-     * On-screen debug panel (visible on iPhone without dev tools)
-     */
-    let debugPanel = null;
-    let debugLogs = [];
-
-    function dbg(msg) {
-        const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
-        const line = `${time} ${msg}`;
-        debugLogs.push(line);
-        if (debugLogs.length > 40) debugLogs.shift();
-        console.log(`🔍 ${msg}`);
-        if (debugPanel) {
-            debugPanel.querySelector('.debug-content').textContent = debugLogs.join('\n');
-            debugPanel.querySelector('.debug-content').scrollTop = 99999;
-        }
-    }
-
-    function createDebugPanel() {
-        if (debugPanel) return;
-        debugPanel = document.createElement('div');
-        debugPanel.id = 'theme-debug-panel';
-        debugPanel.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                <b style="color:#0f0;font-size:11px;">DEBUG THEME/NAV</b>
-                <button onclick="document.getElementById('theme-debug-panel').style.display='none'" style="background:#600;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:11px;">X</button>
-            </div>
-            <pre class="debug-content" style="margin:0;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;font-size:10px;line-height:1.3;color:#0f0;"></pre>
-        `;
-        debugPanel.style.cssText = 'position:fixed;top:60px;left:4px;right:4px;z-index:999999;background:rgba(0,0,0,0.92);color:#0f0;padding:8px;border-radius:8px;font-family:monospace;font-size:10px;pointer-events:auto;';
-        document.body.appendChild(debugPanel);
-    }
-
-    function setupDebugListeners() {
-        createDebugPanel();
-
-        // Debug sur les boutons de thème
-        const themeButtons = document.querySelectorAll('.theme-option');
-        dbg(`Found ${themeButtons.length} theme btns`);
-        themeButtons.forEach(btn => {
-            btn.addEventListener('touchstart', (e) => {
-                dbg(`THEME TOUCHSTART "${btn.dataset.theme}" target=${e.target.tagName}.${e.target.className}`);
-            }, { passive: true });
-            btn.addEventListener('touchend', (e) => {
-                dbg(`THEME TOUCHEND "${btn.dataset.theme}" target=${e.target.tagName}.${e.target.className}`);
-            }, { passive: true });
-            btn.addEventListener('click', (e) => {
-                dbg(`THEME CLICK "${btn.dataset.theme}" target=${e.target.tagName}.${e.target.className}`);
-            });
-        });
-
-        // Debug sur les boutons de nav
-        const navButtons = document.querySelectorAll('.mobile-nav-item');
-        dbg(`Found ${navButtons.length} nav btns`);
-        navButtons.forEach(btn => {
-            btn.addEventListener('touchstart', (e) => {
-                dbg(`NAV TOUCHSTART "${btn.dataset.section}" target=${e.target.tagName}${e.target.className ? '.' + e.target.className : ''}`);
-            }, { passive: true });
-            btn.addEventListener('touchend', (e) => {
-                dbg(`NAV TOUCHEND "${btn.dataset.section}" target=${e.target.tagName}${e.target.className ? '.' + e.target.className : ''}`);
-            }, { passive: true });
-            btn.addEventListener('click', (e) => {
-                dbg(`NAV CLICK "${btn.dataset.section}" target=${e.target.tagName}${e.target.className ? '.' + e.target.className : ''}`);
-            });
-        });
-
-        dbg('Debug listeners ready!');
-    }
-
-    /**
      * Toggle between light and dark (skips auto)
      */
     function toggleTheme() {
@@ -274,14 +204,9 @@
 
     // Initialize on DOM ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            init();
-            // Installer debug après un petit délai pour que le DOM soit complet
-            setTimeout(setupDebugListeners, 1000);
-        });
+        document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
-        setTimeout(setupDebugListeners, 1000);
     }
 
     // Export
@@ -292,7 +217,6 @@
         toggleTheme,
         renderThemeSelector,
         bindThemeSelector,
-        setupDebugListeners,
         init
     };
 

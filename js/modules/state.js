@@ -777,10 +777,14 @@ function checkStorageQuota() {
 }
 
 // Marquer la sync comme effectuée
+// IMPORTANT: Utilise le pattern slim (exclut progressLog et sessionHistory)
+// pour éviter de dépasser le quota localStorage
 function markSyncComplete() {
     try {
         state._lastSyncAt = new Date().toISOString();
-        localStorage.setItem('fittrack-state', JSON.stringify(state));
+        // Slim state : exclure les collections volumineuses (comme saveState)
+        const { progressLog: _pl, sessionHistory: _sh, ...slimState } = state;
+        localStorage.setItem('fittrack-state', JSON.stringify(slimState));
     } catch (e) {
         console.error('Erreur markSyncComplete:', e);
     }
@@ -1383,7 +1387,8 @@ function mergeImportedData(currentState, importedState, conflicts) {
             }
         });
         
-        merged.sessionHistory = allSessions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 100);
+        merged.sessionHistory = allSessions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        // PAS de slice(0, 100) — on garde TOUTES les sessions lors du merge import
     }
     
     // 3. FoodJournal : merger par jour

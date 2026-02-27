@@ -74,17 +74,26 @@ function calculateMonthlyProgression() {
         let sessionVolume = 0;
 
         // Calculer le volume de la séance
+        // Utilise getEffectiveWeight pour les exercices au poids de corps
         (session.exercises || []).forEach(ex => {
             const setsData = ex.setsDetail || ex.sets || [];
             if (Array.isArray(setsData)) {
                 setsData.forEach(set => {
                     if (set.completed !== false) {
-                        sessionVolume += (set.weight || 0) * (set.reps || 0);
+                        const rawWeight = set.weight || 0;
+                        const effectiveWeight = (typeof getEffectiveWeight === 'function')
+                            ? getEffectiveWeight(ex.exercise || ex.name, rawWeight)
+                            : rawWeight;
+                        sessionVolume += effectiveWeight * (set.reps || 0);
                     }
                 });
             } else {
                 // Format ancien: sets est un nombre
-                sessionVolume += (ex.weight || 0) * (ex.achievedReps || 0);
+                const rawWeight = ex.weight || 0;
+                const effectiveWeight = (typeof getEffectiveWeight === 'function')
+                    ? getEffectiveWeight(ex.exercise || ex.name, rawWeight)
+                    : rawWeight;
+                sessionVolume += effectiveWeight * (ex.achievedReps || 0);
             }
         });
 
