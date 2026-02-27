@@ -245,6 +245,11 @@ function init() {
     
     // Initialiser l'interface
     initUI();
+
+    // Initialiser le router (deep linking + bouton back)
+    if (typeof initRouter === 'function') {
+        initRouter();
+    }
     
     // Initialiser le sticky header nutrition
     if (typeof initNutritionStickyScroll === 'function') {

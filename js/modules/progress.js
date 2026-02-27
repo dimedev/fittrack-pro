@@ -116,6 +116,11 @@ function calculateMonthlyProgression() {
 // ==================== TAB SWITCHING ====================
 
 function switchProgressTab(tabName) {
+    // Mettre à jour le hash pour deep linking (sous-route progress)
+    if (typeof updateHash === 'function') {
+        updateHash('progression', tabName);
+    }
+
     // Mettre à jour les boutons d'onglets
     document.querySelectorAll('#progress .tabs .tab').forEach(tab => {
         tab.classList.remove('active');
@@ -2164,15 +2169,17 @@ function renderCoachRecommendations() {
             'increase_reps': '💪',
             'deload': '⚠️',
             'maintain': '✅',
-            'plateau': '🔄'
+            'plateau': '🔄',
+            'volume_plateau': '📉'
         };
-        
+
         const colorMap = {
             'increase_weight': 'success',
             'increase_reps': 'info',
             'deload': 'warning',
             'maintain': 'neutral',
-            'plateau': 'warning'
+            'plateau': 'warning',
+            'volume_plateau': 'warning'
         };
         
         const icon = iconMap[rec.type] || '💡';
@@ -2267,7 +2274,7 @@ function generateCoachRecommendations() {
         if (recent.length >= 3) {
             const allSameWeight = recent.every(l => l.weight === lastLog.weight);
             const noRepsProgress = recent.every(l => (l.achievedReps / l.achievedSets) < targetReps);
-            
+
             if (allSameWeight && noRepsProgress) {
                 recommendations.push({
                     exercise: exerciseName,
@@ -2277,6 +2284,18 @@ function generateCoachRecommendations() {
                 });
                 return;
             }
+        }
+
+        // Détection de plateau de VOLUME (variation < 3% sur 6 sessions)
+        const volPlat = detectVolumePlateau(exerciseName);
+        if (volPlat && volPlat.isPlateaued) {
+            recommendations.push({
+                exercise: exerciseName,
+                type: 'volume_plateau',
+                message: `Volume stagnant (${volPlat.volumeChange > 0 ? '+' : ''}${volPlat.volumeChange}%). Varie les reps ou les séries.`,
+                reason: 'Volume quasi identique sur les 6 dernières séances'
+            });
+            return;
         }
         
         // Progression normale
@@ -2473,6 +2492,270 @@ function renderProactiveInsights() {
             </div>
         </div>
     `;
+}
+
+// ==================== ADVANCED INSIGHTS (Phase 2C) ====================
+
+/**
+ * Détecte un plateau de volume sur un exercice donné.
+ * Compare le volume moyen des 3 dernières sessions vs les 3 précédentes.
+ * @param {string} exerciseName
+ * @returns {object|null} { isPlateaued, volumeChange, avgRecent, avgPrevious }
+ */
+function detectVolumePlateau(exerciseName) {
+    const logs = state.progressLog?.[exerciseName];
+    if (!logs || logs.length < 6) return null;
+
+    const recent = logs.slice(-3);
+    const previous = logs.slice(-6, -3);
+
+    function calcVolume(entries) {
+        return entries.reduce((sum, log) => {
+            if (log.setsDetail && log.setsDetail.length > 0) {
+                return sum + log.setsDetail.reduce((s, set) => {
+                    const rawW = set.weight || 0;
+                    const ew = (typeof getEffectiveWeight === 'function')
+                        ? getEffectiveWeight(exerciseName, rawW)
+                        : rawW;
+                    return s + ew * (set.reps || 0);
+                }, 0);
+            }
+            const rawW = log.weight || 0;
+            const ew = (typeof getEffectiveWeight === 'function')
+                ? getEffectiveWeight(exerciseName, rawW)
+                : rawW;
+            return sum + ew * (log.achievedReps || 0);
+        }, 0);
+    }
+
+    const recentVol = calcVolume(recent);
+    const prevVol = calcVolume(previous);
+    const avgRecent = recentVol / 3;
+    const avgPrevious = prevVol / 3;
+
+    if (avgPrevious === 0) return null;
+
+    const change = ((avgRecent - avgPrevious) / avgPrevious) * 100;
+    return {
+        isPlateaued: Math.abs(change) < 3,
+        volumeChange: Math.round(change * 10) / 10,
+        avgRecent: Math.round(avgRecent),
+        avgPrevious: Math.round(avgPrevious)
+    };
+}
+
+/**
+ * Calcule un score de progression par exercice sur une période (basé sur le 1RM estimé).
+ * @param {string} exerciseName
+ * @param {number} periodDays — fenêtre d'analyse (défaut 30)
+ * @returns {object|null} { score, category, trend, e1rmStart, e1rmEnd }
+ */
+function calculateProgressionScore(exerciseName, periodDays) {
+    periodDays = periodDays || 30;
+    const logs = state.progressLog?.[exerciseName];
+    if (!logs || logs.length < 3) return null;
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - periodDays);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+
+    // Séparer ancien / récent
+    const oldLogs = logs.filter(l => l.date < cutoffStr);
+    const recentLogs = logs.filter(l => l.date >= cutoffStr);
+    if (recentLogs.length < 1) return null;
+
+    function best1RM(entries) {
+        let best = 0;
+        entries.forEach(log => {
+            if (log.setsDetail && log.setsDetail.length > 0) {
+                log.setsDetail.forEach(set => {
+                    if (set.weight > 0 && set.reps > 0) {
+                        const r = Math.min(set.reps, 20);
+                        const e = set.weight * (1 + r / 30);
+                        if (e > best) best = e;
+                    }
+                });
+            } else if (log.weight > 0 && log.achievedReps > 0 && log.achievedSets > 0) {
+                const avgReps = log.achievedReps / log.achievedSets;
+                const r = Math.min(avgReps, 20);
+                const e = log.weight * (1 + r / 30);
+                if (e > best) best = e;
+            }
+        });
+        return Math.round(best * 10) / 10;
+    }
+
+    // Si pas assez d'ancien, comparer premier tiers vs dernier tiers de la période
+    let e1rmStart, e1rmEnd;
+    if (oldLogs.length >= 2) {
+        e1rmStart = best1RM(oldLogs.slice(-3));
+        e1rmEnd = best1RM(recentLogs);
+    } else {
+        const half = Math.floor(recentLogs.length / 2);
+        if (half < 1) return null;
+        e1rmStart = best1RM(recentLogs.slice(0, half));
+        e1rmEnd = best1RM(recentLogs.slice(half));
+    }
+
+    if (e1rmStart === 0) return null;
+
+    const score = Math.round(((e1rmEnd - e1rmStart) / e1rmStart) * 1000) / 10; // ex: 5.2%
+    let category, trend;
+    if (score > 5) { category = 'En forte progression'; trend = 'up'; }
+    else if (score > 0) { category = 'En progression'; trend = 'up'; }
+    else if (score > -3) { category = 'Stable'; trend = 'stable'; }
+    else { category = 'En régression'; trend = 'down'; }
+
+    return { score, category, trend, e1rmStart, e1rmEnd };
+}
+
+/**
+ * Retourne l'exercice avec la meilleure progression ce mois-ci.
+ * @returns {object|null} { name, score, category, trend }
+ */
+function getBestExerciseOfMonth() {
+    const progressLog = state.progressLog || {};
+    const exercises = Object.keys(progressLog);
+    let best = null;
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+
+    exercises.forEach(name => {
+        const logs = progressLog[name] || [];
+        // Au moins 3 sessions et activité ce mois
+        if (logs.length < 3) return;
+        const hasThisMonth = logs.some(l => l.date >= startOfMonth);
+        if (!hasThisMonth) return;
+
+        const result = calculateProgressionScore(name, 30);
+        if (!result) return;
+
+        if (!best || result.score > best.score) {
+            best = { name, ...result };
+        }
+    });
+
+    return best;
+}
+
+/**
+ * Compte le nombre d'exercices en plateau (poids ou volume).
+ * @returns {number}
+ */
+function countPlateauExercises() {
+    const progressLog = state.progressLog || {};
+    let count = 0;
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const cutoff = sixtyDaysAgo.toISOString().split('T')[0];
+
+    Object.keys(progressLog).forEach(name => {
+        const logs = progressLog[name] || [];
+        if (logs.length < 3) return;
+        const recent = logs.filter(l => l.date >= cutoff);
+        if (recent.length < 1) return;
+
+        // Check volume plateau
+        const volPlat = detectVolumePlateau(name);
+        if (volPlat && volPlat.isPlateaued) { count++; return; }
+
+        // Check weight plateau (3 sessions same weight)
+        const last3 = logs.slice(-3);
+        if (last3.length >= 3 && last3.every(l => l.weight === last3[0].weight)) {
+            count++;
+        }
+    });
+
+    return count;
+}
+
+/**
+ * Rend la card Insights sur le Dashboard.
+ * Meilleur exercice du mois, plateaux détectés, trend volume.
+ */
+function renderDashboardInsights() {
+    const container = document.getElementById('dashboard-insights-content');
+    if (!container) return;
+
+    const bestExo = getBestExerciseOfMonth();
+    const plateauCount = countPlateauExercises();
+    const monthlyProg = calculateMonthlyProgression();
+
+    // Trend label
+    let trendIcon, trendLabel;
+    if (monthlyProg === null) { trendIcon = '—'; trendLabel = 'Pas assez de données'; }
+    else if (monthlyProg > 5) { trendIcon = '📈'; trendLabel = `+${monthlyProg}% vs mois dernier`; }
+    else if (monthlyProg > -5) { trendIcon = '➡️'; trendLabel = `${monthlyProg >= 0 ? '+' : ''}${monthlyProg}% stable`; }
+    else { trendIcon = '📉'; trendLabel = `${monthlyProg}% vs mois dernier`; }
+
+    let html = '<div class="dashboard-insights-grid">';
+
+    // Meilleur exercice
+    if (bestExo) {
+        html += `
+            <div class="dash-insight-item">
+                <span class="dash-insight-icon">🏅</span>
+                <div class="dash-insight-body">
+                    <div class="dash-insight-label">Meilleur exercice du mois</div>
+                    <div class="dash-insight-value">${bestExo.name}</div>
+                    <div class="dash-insight-meta" style="color: var(--success)">${bestExo.score > 0 ? '+' : ''}${bestExo.score}%</div>
+                </div>
+            </div>`;
+    }
+
+    // Plateaux
+    html += `
+        <div class="dash-insight-item">
+            <span class="dash-insight-icon">${plateauCount > 0 ? '⚠️' : '✅'}</span>
+            <div class="dash-insight-body">
+                <div class="dash-insight-label">Plateaux détectés</div>
+                <div class="dash-insight-value">${plateauCount}</div>
+                <div class="dash-insight-meta">${plateauCount > 0 ? 'Consultez vos insights' : 'Aucun plateau !'}</div>
+            </div>
+        </div>`;
+
+    // Volume trend
+    html += `
+        <div class="dash-insight-item">
+            <span class="dash-insight-icon">${trendIcon}</span>
+            <div class="dash-insight-body">
+                <div class="dash-insight-label">Volume mensuel</div>
+                <div class="dash-insight-value">${trendLabel}</div>
+            </div>
+        </div>`;
+
+    html += '</div>';
+
+    // Link
+    html += `<div class="dash-insight-link" onclick="if(typeof navigateToSection==='function'){navigateToSection('progress');}">Voir tous les insights →</div>`;
+
+    container.innerHTML = html;
+}
+
+/**
+ * Alerte proactive via toast si ≥2 exercices en plateau.
+ * Maximum 1 toast par jour.
+ */
+function checkPlateauAlert() {
+    const today = new Date().toISOString().split('T')[0];
+    if (state._lastPlateauAlertDate === today) return;
+
+    const count = countPlateauExercises();
+    if (count >= 2 && typeof showToast === 'function') {
+        state._lastPlateauAlertDate = today;
+        showToast(
+            `⚠️ ${count} exercices en plateau. Consultez vos insights.`,
+            'warning',
+            {
+                duration: 5000,
+                action: (typeof navigateToSection === 'function') ? {
+                    label: 'Voir',
+                    callback: function() { navigateToSection('progress'); }
+                } : undefined
+            }
+        );
+    }
 }
 
 // ==================== CARDIO ANALYTICS ====================
@@ -2775,6 +3058,8 @@ function initProgressSection() {
     renderWeeklyVolumeChart();
     renderActivityHeatmap();
     renderMuscleWeeklyHeatmap();
+    renderDashboardInsights();
+    checkPlateauAlert();
     if (typeof AIInsights !== 'undefined') {
         AIInsights.load();
     }
@@ -2812,5 +3097,10 @@ window.deleteSession = deleteSession;
 window.updateSession = updateSession;
 window.toggleSessionEditMode = toggleSessionEditMode;
 window.deleteSetFromSession = deleteSetFromSession;
+window.detectVolumePlateau = detectVolumePlateau;
+window.calculateProgressionScore = calculateProgressionScore;
+window.getBestExerciseOfMonth = getBestExerciseOfMonth;
+window.renderDashboardInsights = renderDashboardInsights;
+window.checkPlateauAlert = checkPlateauAlert;
 
 console.log('✅ progress.js: Fonctions exportées au scope global');

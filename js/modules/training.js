@@ -2009,6 +2009,11 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
     fsElement.classList.add('animate-in');
     OverflowManager.lock();
 
+    // Push state pour le bouton back (permet de revenir via le bouton retour)
+    if (typeof updateHash === 'function') {
+        history.pushState({ section: 'session' }, '', '#session');
+    }
+
     // Hide nav
     const nav = document.querySelector('.nav');
     const mobileNav = document.querySelector('.mobile-nav');
@@ -2598,6 +2603,14 @@ function validateCurrentSet() {
     // Haptic feedback sur completion de set
     if (window.HapticFeedback) {
         window.HapticFeedback.success();
+    }
+
+    // Pulse animation sur le bouton validé (Phase 2D)
+    const validateBtn = document.getElementById('fs-validate-btn');
+    if (validateBtn) {
+        validateBtn.classList.remove('set-validated-pulse');
+        void validateBtn.offsetWidth;
+        validateBtn.classList.add('set-validated-pulse');
     }
 
     // Move to next set or exercise
@@ -4731,12 +4744,85 @@ function showRealtimePRBadge(exerciseName, message, type) {
 
 // ==================== PR NOTIFICATION SPECTACULAIRE ====================
 
+/**
+ * Lance un effet confettis canvas plein écran (Phase 2D).
+ * @param {number} duration — durée en ms (défaut 2500)
+ */
+function launchConfetti(duration) {
+    duration = duration || 2500;
+    var canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:100001;pointer-events:none;';
+    document.body.appendChild(canvas);
+    var ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    var colors = ['#FFD700', '#FF0000', '#FFFFFF', '#ff4444', '#44ff44', '#4488ff'];
+    var particles = [];
+    var count = Math.min(120, Math.max(60, Math.floor(canvas.width / 4)));
+
+    for (var i = 0; i < count; i++) {
+        particles.push({
+            x: canvas.width * Math.random(),
+            y: canvas.height * -0.1 - Math.random() * canvas.height * 0.3,
+            vx: (Math.random() - 0.5) * 6,
+            vy: Math.random() * 3 + 2,
+            w: Math.random() * 8 + 4,
+            h: Math.random() * 6 + 2,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            rotationSpeed: (Math.random() - 0.5) * 10,
+            opacity: 1,
+            isCircle: Math.random() > 0.5
+        });
+    }
+
+    var start = performance.now();
+    function animate(now) {
+        var elapsed = now - start;
+        if (elapsed > duration) {
+            if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+            return;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        var fadeStart = duration * 0.7;
+        particles.forEach(function(p) {
+            p.x += p.vx;
+            p.vy += 0.12; // gravity
+            p.vx *= 0.99; // friction
+            p.y += p.vy;
+            p.rotation += p.rotationSpeed;
+            if (elapsed > fadeStart) {
+                p.opacity = Math.max(0, 1 - (elapsed - fadeStart) / (duration - fadeStart));
+            }
+            ctx.save();
+            ctx.globalAlpha = p.opacity;
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            if (p.isCircle) {
+                ctx.beginPath();
+                ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            }
+            ctx.restore();
+        });
+        requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+}
+
 function showPRNotification(prs) {
     // Haptic achievement
     if (window.HapticFeedback) {
         window.HapticFeedback.achievement();
     }
-    
+
+    // 🎊 Confettis canvas (Phase 2D)
+    launchConfetti(2800);
+
     // Créer overlay celebration spectaculaire
     const overlay = document.createElement('div');
     overlay.className = 'pr-celebration-overlay';

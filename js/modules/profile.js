@@ -350,6 +350,11 @@ function updateDashboard() {
         if (typeof renderCoachRecommendations === 'function') {
             renderCoachRecommendations();
         }
+
+        // Dashboard insights (Phase 2C)
+        if (typeof renderDashboardInsights === 'function') {
+            renderDashboardInsights();
+        }
     } catch (error) {
         console.error('Erreur dans updateDashboard:', error);
     } finally {
@@ -401,10 +406,16 @@ function updateQuickSummary() {
         }
     }
     
-    // Streak
+    // Streak (avec bounce animation si incrémenté)
     if (streakEl) {
         const currentStreak = state.goals?.currentStreak || 0;
+        const prevStreak = parseInt(streakEl.textContent) || 0;
         streakEl.textContent = currentStreak;
+        if (currentStreak > prevStreak && prevStreak > 0) {
+            streakEl.classList.remove('streak-updated');
+            void streakEl.offsetWidth; // force reflow
+            streakEl.classList.add('streak-updated');
+        }
     }
     
     // Update Readiness Score

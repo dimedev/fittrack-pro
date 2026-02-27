@@ -78,6 +78,113 @@ const AutosaveIndicator = {
 
 // ==================== MODAL MANAGER (Unified Scroll Lock) ====================
 
+// ==================== FOCUS TRAP ====================
+
+/**
+ * Piège de focus pour l'accessibilité des modals/sheets.
+ * Empêche le Tab de sortir du modal ouvert.
+ */
+const FocusTrap = {
+    _traps: new Map(), // id → { element, previousFocus, handler }
+
+    /** Sélecteur des éléments focusables */
+    _focusableSelector: [
+        'a[href]:not([disabled]):not([tabindex="-1"])',
+        'button:not([disabled]):not([tabindex="-1"])',
+        'input:not([disabled]):not([tabindex="-1"]):not([type="hidden"])',
+        'select:not([disabled]):not([tabindex="-1"])',
+        'textarea:not([disabled]):not([tabindex="-1"])',
+        '[tabindex]:not([tabindex="-1"]):not([disabled])',
+        '[contenteditable="true"]'
+    ].join(', '),
+
+    /**
+     * Active le piège de focus sur un élément
+     * @param {string} id - Identifiant unique du trap
+     * @param {HTMLElement} element - L'élément conteneur (modal/sheet)
+     */
+    activate(id, element) {
+        if (!element || this._traps.has(id)) return;
+
+        const previousFocus = document.activeElement;
+
+        // Ajouter les attributs ARIA
+        element.setAttribute('role', 'dialog');
+        element.setAttribute('aria-modal', 'true');
+
+        const handler = (e) => {
+            if (e.key !== 'Tab') return;
+
+            const focusable = element.querySelectorAll(this._focusableSelector);
+            if (focusable.length === 0) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (e.shiftKey) {
+                // Shift+Tab : si on est sur le premier, aller au dernier
+                if (document.activeElement === first || !element.contains(document.activeElement)) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            } else {
+                // Tab : si on est sur le dernier, aller au premier
+                if (document.activeElement === last || !element.contains(document.activeElement)) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handler);
+        this._traps.set(id, { element, previousFocus, handler });
+
+        // Focus le premier élément focusable (ou le conteneur)
+        requestAnimationFrame(() => {
+            const focusable = element.querySelectorAll(this._focusableSelector);
+            if (focusable.length > 0) {
+                focusable[0].focus();
+            } else {
+                element.setAttribute('tabindex', '-1');
+                element.focus();
+            }
+        });
+    },
+
+    /**
+     * Désactive le piège de focus et restaure le focus précédent
+     */
+    deactivate(id) {
+        const trap = this._traps.get(id);
+        if (!trap) return;
+
+        document.removeEventListener('keydown', trap.handler);
+
+        // Retirer les attributs ARIA
+        trap.element.removeAttribute('aria-modal');
+
+        // Restaurer le focus à l'élément déclencheur
+        if (trap.previousFocus && typeof trap.previousFocus.focus === 'function') {
+            try { trap.previousFocus.focus(); } catch (_) {}
+        }
+
+        this._traps.delete(id);
+    },
+
+    /**
+     * Désactive tous les traps
+     */
+    deactivateAll() {
+        for (const [id] of this._traps) {
+            this.deactivate(id);
+        }
+    }
+};
+
+window.FocusTrap = FocusTrap;
+
+// ==================== MODAL MANAGER ====================
+
 const ModalManager = {
     _stack: [],
     _scrollY: 0,
@@ -101,12 +208,21 @@ const ModalManager = {
             document.body.classList.add('modal-open');
         }
         this._stack.push(id);
+
+        // Activer le focus trap sur l'élément modal
+        const modalElement = document.getElementById(id);
+        if (modalElement) {
+            FocusTrap.activate(id, modalElement);
+        }
     },
 
     unlock(id) {
         const idx = this._stack.indexOf(id);
         if (idx === -1) return;
         this._stack.splice(idx, 1);
+
+        // Désactiver le focus trap
+        FocusTrap.deactivate(id);
 
         if (this._stack.length === 0) {
             document.body.style.overflow = this._bodyStyles?.overflow || '';
@@ -120,6 +236,7 @@ const ModalManager = {
     },
 
     forceUnlockAll() {
+        FocusTrap.deactivateAll();
         this._stack = [];
         document.body.style.overflow = '';
         document.body.style.position = '';
@@ -254,31 +371,130 @@ function setupNavigation() {
     }
 }
 
+// ==================== ROUTER (Hash-based Deep Linking) ====================
+
+let _routerReady = false;
+let _skipNextHashUpdate = false;
+
+/**
+ * Mini-router hash-based pour deep linking + bouton back
+ * Routes supportées :
+ *   #dashboard, #training, #nutrition, #progress
+ *   #progress/prs, #progress/history, #progress/stats, #progress/badges, #progress/photos, #progress/cardio
+ *   #session (full-screen en cours)
+ */
+function initRouter() {
+    // Écouter le bouton back / forward du navigateur
+    window.addEventListener('popstate', (e) => {
+        // Si on est en session full-screen, intercepter le back pour fermer la session
+        const fsElement = document.getElementById('fullscreen-session');
+        if (fsElement && fsElement.style.display !== 'none' && typeof closeFullScreenSession === 'function') {
+            // Repousser l'état session pour que le prochain back fonctionne aussi
+            history.pushState({ section: 'session' }, '', '#session');
+            closeFullScreenSession();
+            return;
+        }
+
+        const route = parseRoute();
+        if (route.section) {
+            _skipNextHashUpdate = true;
+            _navigateToSectionInternal(route.section);
+            // Gérer les sous-routes (ex: #progress/history)
+            if (route.sub && typeof switchProgressTab === 'function') {
+                setTimeout(() => switchProgressTab(route.sub), 50);
+            }
+        }
+    });
+
+    // Au chargement, restaurer la section depuis le hash
+    const initialRoute = parseRoute();
+    if (initialRoute.section && initialRoute.section !== 'dashboard') {
+        // Délai pour que le DOM soit prêt
+        setTimeout(() => {
+            _skipNextHashUpdate = true;
+            _navigateToSectionInternal(initialRoute.section);
+            if (initialRoute.sub && typeof switchProgressTab === 'function') {
+                setTimeout(() => switchProgressTab(initialRoute.sub), 100);
+            }
+        }, 100);
+    }
+
+    _routerReady = true;
+}
+
+/**
+ * Parse le hash courant en { section, sub }
+ * Ex: "#progress/history" → { section: "progress", sub: "history" }
+ */
+function parseRoute() {
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return { section: 'dashboard', sub: null };
+
+    const parts = hash.split('/');
+    const section = parts[0] || 'dashboard';
+
+    // Normaliser "progression" → "progress" pour l'affichage
+    const normalizedSection = (section === 'progression') ? 'progress' : section;
+    const sub = parts[1] || null;
+
+    // Vérifier que c'est une section valide
+    const validSections = ['dashboard', 'training', 'nutrition', 'progress', 'session'];
+    if (!validSections.includes(normalizedSection)) {
+        return { section: 'dashboard', sub: null };
+    }
+
+    return { section: normalizedSection === 'progress' ? 'progression' : normalizedSection, sub };
+}
+
+/**
+ * Met à jour le hash sans déclencher le popstate
+ */
+function updateHash(sectionId, sub) {
+    if (_skipNextHashUpdate) {
+        _skipNextHashUpdate = false;
+        return;
+    }
+
+    // Normaliser pour le hash (progression → progress)
+    const hashSection = (sectionId === 'progression') ? 'progress' : sectionId;
+    const newHash = sub ? `#${hashSection}/${sub}` : `#${hashSection}`;
+
+    if (window.location.hash !== newHash) {
+        history.pushState({ section: sectionId, sub }, '', newHash);
+    }
+}
+
 function navigateToSection(sectionId) {
+    _navigateToSectionInternal(sectionId);
+    // Mettre à jour le hash pour deep linking
+    updateHash(sectionId, null);
+}
+
+function _navigateToSectionInternal(sectionId) {
     // 1. RESET scroll AVANT animation (instant pour éviter conflit visuel)
     window.scrollTo({ top: 0, behavior: 'instant' });
-    
+
     // Ordre des sections pour les animations directionnelles
     const sectionOrder = ['progression', 'dashboard', 'training', 'nutrition'];
-    
+
     // Déterminer la direction de l'animation
     const currentIndex = sectionOrder.indexOf(currentSection);
     const targetIndex = sectionOrder.indexOf(sectionId);
     const direction = targetIndex > currentIndex ? 'right' : 'left';
-    
+
     // Mettre à jour les onglets
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.mobile-nav-item').forEach(t => t.classList.remove('active'));
     document.querySelectorAll(`[data-section="${sectionId}"]`).forEach(t => t.classList.add('active'));
-    
+
     // Déplacer l'indicateur du menu mobile
     updateMobileNavIndicator(sectionId);
-    
+
     // Afficher la section avec animation directionnelle
     document.querySelectorAll('.section').forEach(s => {
         s.classList.remove('active', 'slide-left', 'slide-right');
     });
-    
+
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
         targetSection.classList.add('active');
@@ -287,7 +503,7 @@ function navigateToSection(sectionId) {
             targetSection.classList.add(`slide-${direction}`);
         }
     }
-    
+
     // Mettre à jour la section actuelle
     currentSection = sectionId;
 
@@ -952,5 +1168,8 @@ window.UndoManager = UndoManager;
 window.showConfirmModal = showConfirmModal;
 window.showDuplicateSessionModal = showDuplicateSessionModal;
 window.AutosaveIndicator = AutosaveIndicator;
+window.initRouter = initRouter;
+window.updateHash = updateHash;
+window.navigateToSection = navigateToSection;
 
 console.log('✅ ui.js: Fonctions exportées au scope global (+ UndoManager, showConfirmModal, showDuplicateSessionModal, AutosaveIndicator)');

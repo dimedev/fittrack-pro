@@ -364,6 +364,14 @@
         if (typeof showProgressToast === 'function') {
             showProgressToast(achievement.icon, `Badge débloqué : ${achievement.name}`, 4000);
         }
+        // Animer le badge dans le DOM s'il est visible (Phase 2D)
+        if (achievement.id) {
+            var el = document.querySelector('.badge-item[data-tooltip="' + (achievement.description || '').replace(/"/g, '\\"') + '"]');
+            if (el) {
+                el.classList.add('badge-just-unlocked');
+                setTimeout(function() { el.classList.remove('badge-just-unlocked'); }, 1000);
+            }
+        }
     }
 
     // ==================== EXPORT ====================

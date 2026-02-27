@@ -955,6 +955,83 @@ h1, h2, h3, h4, h5, h6 {
     100% { transform: scale(1); }
 }
 
+/* ─── Dashboard Insights (Phase 2C) ─── */
+.dashboard-insights-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+.dash-insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    transition: background var(--transition-fast);
+}
+
+.dash-insight-item:hover {
+    background: var(--bg-hover);
+}
+
+.dash-insight-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.dash-insight-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.dash-insight-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+}
+
+.dash-insight-value {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-insight-meta {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.dash-insight-link {
+    padding: 10px 16px;
+    text-align: right;
+    font-size: var(--text-xs);
+    color: var(--accent-brand);
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity var(--transition-fast);
+}
+
+.dash-insight-link:hover {
+    opacity: 0.8;
+}
+
+/* Volume plateau type in coach recommendations */
+.insight-item.insight-volume_plateau {
+    border-left: 3px solid var(--warning);
+}
+
 /* Nav tab indicator slide */
 .nav-tab {
     position: relative;
@@ -3641,6 +3718,43 @@ h1, h2, h3, h4, h5, h6 {
     .pr-celebration-message {
         font-size: 1rem;
     }
+}
+
+/* ─── Streak Bounce Animation (Phase 2D) ─── */
+@keyframes streakBounce {
+    0% { transform: scale(1); }
+    20% { transform: scale(1.35); }
+    40% { transform: scale(0.9); }
+    60% { transform: scale(1.15); }
+    80% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+.streak-updated {
+    animation: streakBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── Badge Unlock Glow Animation (Phase 2D) ─── */
+@keyframes badgeUnlock {
+    0% { transform: scale(0); opacity: 0; }
+    40% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 24px var(--accent-brand); }
+    70% { transform: scale(0.95); box-shadow: 0 0 8px var(--accent-brand); }
+    100% { transform: scale(1); opacity: 1; box-shadow: none; }
+}
+
+.badge-just-unlocked {
+    animation: badgeUnlock 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── Set validation pulse (Phase 2D) ─── */
+@keyframes setValidPulse {
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.set-validated-pulse {
+    animation: setValidPulse 0.5s ease-out;
 }
 
 /* Desktop: max 2 colonnes */
