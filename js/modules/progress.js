@@ -3103,4 +3103,22 @@ window.getBestExerciseOfMonth = getBestExerciseOfMonth;
 window.renderDashboardInsights = renderDashboardInsights;
 window.checkPlateauAlert = checkPlateauAlert;
 
+// Service Registry
+if (typeof Services !== 'undefined') {
+    Services.registerAll({
+        checkForNewPR: checkForNewPR,
+        renderCoachRecommendations: renderCoachRecommendations,
+        updateSessionHistory: updateSessionHistory,
+        findProgressLogs: findProgressLogs,
+        renderPRsSection: renderPRsSection,
+        renderWeeklyVolumeChart: renderWeeklyVolumeChart,
+        renderProgressFeed: renderProgressFeed,
+        updateProgressHero: updateProgressHero,
+        renderDashboardInsights: renderDashboardInsights,
+        checkPlateauAlert: checkPlateauAlert,
+        initProgressSection: initProgressSection,
+        getAllPRs: getAllPRs
+    });
+}
+
 console.log('✅ progress.js: Fonctions exportées au scope global');

@@ -15,6 +15,9 @@
  * leurs globals (Chart, supabase, Dexie, Quagga, Sentry) avant ce bundle.
  */
 
+// ── Service Registry (doit être chargé en premier) ──────────────────────────
+import './modules/services.js';
+
 // ── Données statiques ────────────────────────────────────────────────────────
 import './data/foods.js';
 import './data/exercises.js';
@@ -36,6 +39,8 @@ import './modules/supabase.js';
 import './modules/profile.js';
 
 // ── Nutrition ────────────────────────────────────────────────────────────────
+import './modules/nutrition-core.js';
+import './modules/nutrition-ui.js';
 import './modules/nutrition.js';
 import './modules/food-api.js';
 import './modules/nutrition-suggestions.js';
@@ -45,6 +50,11 @@ import './modules/meal-templates.js';
 import './modules/cardio.js';
 
 // ── Entraînement ─────────────────────────────────────────────────────────────
+import './modules/training-shared.js';
+import './modules/training-periodization.js';
+import './modules/training-wizard.js';
+import './modules/training-swap.js';
+import './modules/training-builder.js';
 import './modules/training.js';
 import './modules/session-manager.js';
 import './modules/session-ui.js';

@@ -2859,4 +2859,22 @@ window.saveHydrationToSupabase = saveHydrationToSupabase;
 window.deleteWorkoutSessionFromSupabase = deleteWorkoutSessionFromSupabase;
 window.deleteProgressLogForSession = deleteProgressLogForSession;
 
+// Service Registry
+if (typeof Services !== 'undefined') {
+    Services.registerAll({
+        isLoggedIn: isLoggedIn,
+        getCurrentUser: getCurrentUser,
+        addToSyncQueue: addToSyncQueue,
+        syncPendingData: syncPendingData,
+        loadAllDataFromSupabase: loadAllDataFromSupabase,
+        saveTrainingSettingsToSupabase: saveTrainingSettingsToSupabase,
+        saveWorkoutSessionToSupabase: saveWorkoutSessionToSupabase,
+        deleteWorkoutSessionFromSupabase: deleteWorkoutSessionFromSupabase,
+        updateSyncIndicator: updateSyncIndicator,
+        updatePendingSyncBadge: updatePendingSyncBadge,
+        saveProgressLogToSupabase: saveProgressLogToSupabase,
+        deleteProgressLogForSession: deleteProgressLogForSession
+    });
+}
+
 console.log('✅ supabase.js: Fonctions exportées au scope global');

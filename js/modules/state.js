@@ -1441,6 +1441,15 @@ function mergeImportedData(currentState, importedState, conflicts) {
 // ==================== GETTERS GLOBAUX POUR MODULES EXTERNES ====================
 // Exposer l'accès au state pour les modules isolés (IIFE) comme health-integration.js
 
+// Service Registry
+if (typeof Services !== 'undefined') {
+    Services.registerAll({
+        saveState: saveState,
+        inferMealType: inferMealType,
+        calculateCardioCalories: calculateCardioCalories
+    });
+}
+
 window.RepzyState = {
     getSessionHistory: () => (state.sessionHistory || []).filter(s => !s.deletedAt),
     getFoodJournal: () => state.foodJournal || {},

@@ -806,19 +806,15 @@ window.calculateConsumedMacros = calculateConsumedMacros;
 window.updateReadinessScore = updateReadinessScore;
 window.updateProgressionRecommendations = updateProgressionRecommendations;
 
-console.log('✅ profile.js: Fonctions exportées au scope global');
-
-// ==================== EXPORTS GLOBAUX ====================
-window.openProfileModal = openProfileModal;
-window.saveProfile = saveProfile;
-window.calculateProfile = calculateProfile;
-window.calculateMacros = calculateMacros;
-window.updateDashboard = updateDashboard;
-window.updateQuickSummary = updateQuickSummary;
-window.calculateReadinessScore = calculateReadinessScore;
-window.updateReadinessScore = updateReadinessScore;
-window.updateMacroBars = updateMacroBars;
-window.calculateConsumedMacros = calculateConsumedMacros;
-window.updateProgressionRecommendations = updateProgressionRecommendations;
+// Service Registry
+if (typeof Services !== 'undefined') {
+    Services.registerAll({
+        updateDashboard: updateDashboard,
+        updateQuickSummary: updateQuickSummary,
+        updateStreak: updateStreak,
+        calculateProfile: calculateProfile,
+        calculateMacros: calculateMacros
+    });
+}
 
 console.log('✅ profile.js: Fonctions exportées au scope global');

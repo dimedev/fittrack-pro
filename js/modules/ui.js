@@ -1172,4 +1172,17 @@ window.initRouter = initRouter;
 window.updateHash = updateHash;
 window.navigateToSection = navigateToSection;
 
+// Service Registry
+if (typeof Services !== 'undefined') {
+    Services.registerAll({
+        showToast: showToast,
+        showConfirmModal: showConfirmModal,
+        showSection: showSection,
+        animateValue: animateValue,
+        updateHash: updateHash,
+        navigateToSection: navigateToSection,
+        initUI: initUI
+    });
+}
+
 console.log('✅ ui.js: Fonctions exportées au scope global (+ UndoManager, showConfirmModal, showDuplicateSessionModal, AutosaveIndicator)');
