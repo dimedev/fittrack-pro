@@ -10,8 +10,8 @@ var MAX_QUANTITY = 10000;     // g (10kg max par entrée)
 var MIN_QUANTITY = 1;         // g minimum
 
 // Variables pour sélection multiple
-var selectedFoodsToAdd = [];
-var multiSelectModeActive = false;
+let selectedFoodsToAdd = [];
+let multiSelectModeActive = false;
 var selectedFoodsFromBase = [];
 
 // Variables pour suggestions refresh

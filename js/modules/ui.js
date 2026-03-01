@@ -1177,7 +1177,6 @@ if (typeof Services !== 'undefined') {
     Services.registerAll({
         showToast: showToast,
         showConfirmModal: showConfirmModal,
-        showSection: showSection,
         animateValue: animateValue,
         updateHash: updateHash,
         navigateToSection: navigateToSection,

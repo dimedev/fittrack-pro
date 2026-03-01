@@ -1124,10 +1124,6 @@ function renderSessionCompleteState() {
 
 // ==================== REST TIMER (FULL-SCREEN) ====================
 
-let fsTimerInterval = null;
-let fsTimerSeconds = 0;
-let fsTimerTarget = 90;
-let fsTimerEndTime = 0; // Timestamp de fin pour calcul précis
 
 /**
  * Détermine le temps de repos intelligent selon l'exercice et l'objectif
@@ -1172,7 +1168,6 @@ function getSmartRestTime(exerciseName, goal) {
 
 // ==================== FULLSCREEN REST TIMER ====================
 
-let fsRestTimerFullscreen = true;
 
 function toggleRestTimerFullscreen() {
     const timer = document.getElementById('fs-rest-timer-prominent');
@@ -1554,7 +1549,6 @@ function startRestPause() {
 }
 
 // Mini-timer pour rest-pause (15 secondes par défaut)
-let restPauseTimerInterval = null;
 
 function startRestPauseTimer(seconds = 15) {
     // Afficher le timer prominent
@@ -2828,10 +2822,6 @@ function toggleExerciseHistory() {
     }
 }
 
-let exerciseSheetSwipeInitialized = false;
-let swipeStartY = 0;
-let swipeCurrentY = 0;
-let isSwipeDragging = false;
 
 function initExerciseSheetSwipe() {
     if (exerciseSheetSwipeInitialized) return;
@@ -3099,7 +3089,6 @@ function preloadNextExerciseGif() {
  */
 // ==================== NAVIGATOR SWIPE-TO-DISMISS ====================
 
-let _navigatorSwipeInit = false;
 
 function initNavigatorSheetSwipe() {
     if (_navigatorSwipeInit) return;
@@ -3453,8 +3442,6 @@ async function navigateToExercise(targetIndex) {
 }
 
 // État pour le toggle pause/play du GIF
-let gifPaused = false;
-let cachedGifSrc = null;
 
 /**
  * Toggle pause/play du GIF dans la fiche exercice

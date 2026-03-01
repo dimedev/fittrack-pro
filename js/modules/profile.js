@@ -811,7 +811,6 @@ if (typeof Services !== 'undefined') {
     Services.registerAll({
         updateDashboard: updateDashboard,
         updateQuickSummary: updateQuickSummary,
-        updateStreak: updateStreak,
         calculateProfile: calculateProfile,
         calculateMacros: calculateMacros
     });

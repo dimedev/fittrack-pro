@@ -88,7 +88,7 @@ const CYCLE_PRESETS = {
 };
 
 // ==================== WIZARD STATE ====================
-var wizardState = {
+let wizardState = {
     currentStep: 1,
     frequency: null,
     goal: null,
@@ -98,7 +98,7 @@ var wizardState = {
 };
 
 // ==================== FULL-SCREEN SESSION STATE ====================
-var fsSession = {
+let fsSession = {
     sessionId: null, // UUID unique pour idempotence
     sessionSaved: false, // Protection contre double sauvegarde
     active: false,
@@ -141,7 +141,7 @@ document.addEventListener('click', function(e) {
 });
 
 // ==================== SESSION PREVIEW STATE ====================
-var previewSession = {
+let previewSession = {
     splitIndex: null,
     splitName: '',
     exercises: [], // { originalName, muscle, sets, reps, swappedId, swappedName, isModified }
@@ -151,53 +151,53 @@ var previewSession = {
 // ==================== FLAGS & STATE PARTAGÉS ====================
 
 /** Flag pour savoir si le swap est en mode full-screen */
-var _fsSwapMode = false;
+let _fsSwapMode = false;
 
 /** Flag pour savoir si le swap est en mode sélection (séance libre) */
-var _freePickerMode = false;
+let _freePickerMode = false;
 
 /** Index du split courant dans le programme */
-var _currentProgramSplitIndex = 0;
+let _currentProgramSplitIndex = 0;
 
 /** État du builder de séance libre */
-var freeSessionBuilder = { name: '', exercises: [] };
+let freeSessionBuilder = { name: '', exercises: [] };
 
 /** Variable pour stocker le swap en attente (pour confirmation des paramètres) */
-var pendingSwap = null;
+let pendingSwap = null;
 
 /** Flag pour que le picker sache qu'on est en mode Quick Log */
-var _quickLogPickerMode = false;
+let _quickLogPickerMode = false;
 
 /** State du Quick Log */
-var quickLogState = { exercise: null, sets: [] };
+let quickLogState = { exercise: null, sets: [] };
 
 // ==================== TIMER STATE ====================
-var fsTimerInterval = null;
-var fsTimerSeconds = 0;
-var fsTimerTarget = 90;
-var fsTimerEndTime = 0; // Timestamp de fin pour calcul précis
-var fsRestTimerFullscreen = true;
-var restPauseTimerInterval = null;
+let fsTimerInterval = null;
+let fsTimerSeconds = 0;
+let fsTimerTarget = 90;
+let fsTimerEndTime = 0; // Timestamp de fin pour calcul précis
+let fsRestTimerFullscreen = true;
+let restPauseTimerInterval = null;
 
 // ==================== SESSION PERSISTENCE ====================
-var fsSessionSaveInterval = null;
+let fsSessionSaveInterval = null;
 
 // ==================== GIF STATE ====================
-var gifPaused = false;
-var cachedGifSrc = null;
+let gifPaused = false;
+let cachedGifSrc = null;
 
 // ==================== SWIPE STATE ====================
-var exerciseSheetSwipeInitialized = false;
+let exerciseSheetSwipeInitialized = false;
 var swipeStartY = 0;
 var swipeCurrentY = 0;
 var isSwipeDragging = false;
 
-var swapSheetSwipeInitialized = false;
+let swapSheetSwipeInitialized = false;
 var swapSwipeStartY = 0;
 var swapSwipeCurrentY = 0;
 var isSwapSwipeDragging = false;
 
-var _navigatorSwipeInit = false;
+let _navigatorSwipeInit = false;
 
 // ==================== BODYWEIGHT UTILITIES ====================
 
