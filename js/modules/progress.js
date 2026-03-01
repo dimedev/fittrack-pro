@@ -108,6 +108,11 @@ function calculateMonthlyProgression() {
     // Si pas de données le mois précédent, pas de calcul possible
     if (previousMonthVolume === 0) return null;
 
+    // Si on est dans les 7 premiers jours du mois et aucune session ce mois,
+    // ne pas afficher -100% (pas encore assez de données)
+    const dayOfMonth = new Date().getDate();
+    if (dayOfMonth <= 7 && currentMonthVolume === 0) return null;
+
     // Calculer la progression
     const progression = ((currentMonthVolume - previousMonthVolume) / previousMonthVolume) * 100;
     return Math.round(progression);
@@ -161,21 +166,21 @@ function switchProgressTab(tabName) {
 let currentChartPeriod = 'month';
 
 function updateProgressHero() {
-    // PRs ce mois
+    // PRs : fenêtre glissante 30 jours (évite le "0 PRs" le 1er du mois)
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    let prsThisMonth = 0;
-    
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    let prsRecent = 0;
+
     if (state.progressLog) {
         Object.keys(state.progressLog).forEach(exercise => {
             const logs = state.progressLog[exercise];
-            const monthLogs = logs.filter(log => new Date(log.date) >= startOfMonth);
-            prsThisMonth += monthLogs.length;
+            const recentLogs = logs.filter(log => new Date(log.date) >= thirtyDaysAgo);
+            prsRecent += recentLogs.length;
         });
     }
-    
+
     const prsEl = document.getElementById('progress-prs-month');
-    if (prsEl) prsEl.textContent = prsThisMonth;
+    if (prsEl) prsEl.textContent = prsRecent;
     
     // Progression (calculer la diff de volume avec le mois dernier)
     const percentEl = document.getElementById('progress-percentage');
