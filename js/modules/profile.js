@@ -599,116 +599,8 @@ function updateReadinessScore() {
     `;
 }
 
-function updateMacroBars() {
-    if (!state.profile || !state.profile.macros) return;
-
-    const consumed = calculateConsumedMacros();
-    const targets = state.profile.macros;
-    const targetCalories = state.profile.targetCalories || 2000;
-
-    // === PROGRESS RINGS (Premium UI) ===
-    if (window.PremiumUI && typeof window.PremiumUI.createProgressRing === 'function') {
-        // Calories Ring
-        const caloriesContainer = document.getElementById('ring-calories');
-        if (caloriesContainer) {
-            window.PremiumUI.createProgressRing(caloriesContainer, {
-                value: consumed.calories,
-                max: targetCalories,
-                label: 'CALORIES',
-                type: 'calories',
-                size: 90
-            });
-            const caloriesDetail = document.getElementById('ring-calories-detail');
-            if (caloriesDetail) caloriesDetail.textContent = `${consumed.calories} / ${targetCalories}`;
-        }
-
-        // Protein Ring
-        const proteinContainer = document.getElementById('ring-protein');
-        if (proteinContainer) {
-            window.PremiumUI.createProgressRing(proteinContainer, {
-                value: consumed.protein,
-                max: targets.protein,
-                label: 'PROTÉINES',
-                type: 'protein',
-                size: 90
-            });
-            const proteinDetail = document.getElementById('ring-protein-detail');
-            if (proteinDetail) proteinDetail.textContent = `${consumed.protein} / ${targets.protein}g`;
-        }
-
-        // Carbs Ring
-        const carbsContainer = document.getElementById('ring-carbs');
-        if (carbsContainer) {
-            window.PremiumUI.createProgressRing(carbsContainer, {
-                value: consumed.carbs,
-                max: targets.carbs,
-                label: 'GLUCIDES',
-                type: 'carbs',
-                size: 90
-            });
-            const carbsDetail = document.getElementById('ring-carbs-detail');
-            if (carbsDetail) carbsDetail.textContent = `${consumed.carbs} / ${targets.carbs}g`;
-        }
-
-        // Fat Ring
-        const fatContainer = document.getElementById('ring-fat');
-        if (fatContainer) {
-            window.PremiumUI.createProgressRing(fatContainer, {
-                value: consumed.fat,
-                max: targets.fat,
-                label: 'LIPIDES',
-                type: 'fat',
-                size: 90
-            });
-            const fatDetail = document.getElementById('ring-fat-detail');
-            if (fatDetail) fatDetail.textContent = `${consumed.fat} / ${targets.fat}g`;
-        }
-
-        // Update status badge
-        const statusBadge = document.getElementById('macros-status');
-        if (statusBadge) {
-            const caloriesPercent = (consumed.calories / targetCalories) * 100;
-            if (caloriesPercent >= 90 && caloriesPercent <= 110) {
-                statusBadge.textContent = '✓ Objectif atteint';
-                statusBadge.className = 'badge badge-success';
-                statusBadge.style.display = 'inline-flex';
-            } else if (caloriesPercent > 110) {
-                statusBadge.textContent = 'Dépassé';
-                statusBadge.className = 'badge badge-warning';
-                statusBadge.style.display = 'inline-flex';
-            } else if (caloriesPercent > 0) {
-                statusBadge.textContent = 'En cours';
-                statusBadge.className = 'badge badge-info';
-                statusBadge.style.display = 'inline-flex';
-            } else {
-                statusBadge.style.display = 'none';
-            }
-        }
-    }
-
-    // === FALLBACK BARS (for very small screens or if PremiumUI not loaded) ===
-    const proteinBar = document.getElementById('macro-protein-bar');
-    const carbsBar = document.getElementById('macro-carbs-bar');
-    const fatBar = document.getElementById('macro-fat-bar');
-
-    if (proteinBar) {
-        const proteinPercent = Math.min((consumed.protein / targets.protein) * 100, 100);
-        document.getElementById('macro-protein-value').textContent = `${consumed.protein} / ${targets.protein}g`;
-        proteinBar.style.width = `${proteinPercent}%`;
-    }
-
-    if (carbsBar) {
-        const carbsPercent = Math.min((consumed.carbs / targets.carbs) * 100, 100);
-        document.getElementById('macro-carbs-value').textContent = `${consumed.carbs} / ${targets.carbs}g`;
-        carbsBar.style.width = `${carbsPercent}%`;
-    }
-
-    if (fatBar) {
-        const fatPercent = Math.min((consumed.fat / targets.fat) * 100, 100);
-        document.getElementById('macro-fat-value').textContent = `${consumed.fat} / ${targets.fat}g`;
-        fatBar.style.width = `${fatPercent}%`;
-    }
-}
+// updateMacroBars() — version principale dans nutrition-ui.js:651
+// Doublon supprime de profile.js pour eviter les conflits de redefinition
 
 function calculateConsumedMacros() {
     let protein = 0, carbs = 0, fat = 0, calories = 0;
@@ -738,61 +630,8 @@ function calculateConsumedMacros() {
     };
 }
 
-function updateProgressionRecommendations() {
-    const container = document.getElementById('next-progression');
-    
-    if (Object.keys(state.progressLog).length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">Commencez à loguer vos séances pour voir vos recommandations de progression</p>';
-        return;
-    }
-
-    let recommendations = [];
-    
-    Object.entries(state.progressLog).forEach(([exercise, logs]) => {
-        if (logs.length >= 2) {
-            const lastTwo = logs.slice(-2);
-            const current = lastTwo[1];
-            const previous = lastTwo[0];
-            
-            // Vérifier si la personne a atteint toutes les reps
-            const targetReps = parseInt(current.reps.toString().split('-')[1]) || parseInt(current.reps);
-            
-            if (current.achievedReps >= targetReps && current.achievedSets >= current.sets) {
-                // Prêt à progresser
-                recommendations.push({
-                    exercise,
-                    type: 'increase',
-                    message: `+2.5kg la prochaine fois (${current.weight}kg → ${current.weight + 2.5}kg)`
-                });
-            } else if (current.achievedReps < targetReps - 2 && previous.achievedReps < targetReps - 2) {
-                // En difficulté, considérer un deload
-                recommendations.push({
-                    exercise,
-                    type: 'deload',
-                    message: `Deload conseillé (-10%)`
-                });
-            } else {
-                recommendations.push({
-                    exercise,
-                    type: 'maintain',
-                    message: `Continue à ${current.weight}kg`
-                });
-            }
-        }
-    });
-
-    if (recommendations.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">Continuez à loguer vos séances pour des recommandations personnalisées</p>';
-        return;
-    }
-
-        container.innerHTML = recommendations.slice(0, 5).map(rec => `
-        <div class="progression-indicator ${rec.type}">
-            <span>${rec.type === 'increase' ? '📈' : rec.type === 'deload' ? '📉' : '➡️'}</span>
-            <span><strong>${rec.exercise}:</strong> ${rec.message}</span>
-        </div>
-    `).join('');
-}
+// updateProgressionRecommendations() — version principale dans goals.js:276
+// Doublon supprime de profile.js pour eviter les conflits de redefinition
 
 // ==================== EXPORTS GLOBAUX ====================
 window.openProfileModal = openProfileModal;
@@ -801,10 +640,9 @@ window.updateDashboard = updateDashboard;
 window.updateQuickSummary = updateQuickSummary;
 window.calculateProfile = calculateProfile;
 window.calculateMacros = calculateMacros;
-window.updateMacroBars = updateMacroBars;
 window.calculateConsumedMacros = calculateConsumedMacros;
 window.updateReadinessScore = updateReadinessScore;
-window.updateProgressionRecommendations = updateProgressionRecommendations;
+// updateMacroBars et updateProgressionRecommendations exportes par nutrition-ui.js et goals.js
 
 // Service Registry
 if (typeof Services !== 'undefined') {

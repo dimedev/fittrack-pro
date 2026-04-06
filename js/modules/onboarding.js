@@ -31,7 +31,7 @@
         onboardingState = { currentStep: 1, goal: null, experience: null, frequency: null, equipment: null };
 
         overlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
+        if (typeof ModalManager !== 'undefined') ModalManager.lock('onboarding-overlay');
         updateOnboardingUI();
 
         window.track?.('onboarding_started');
@@ -40,7 +40,7 @@
     function hide() {
         const overlay = document.getElementById('onboarding-overlay');
         if (overlay) overlay.classList.remove('active');
-        document.body.style.overflow = '';
+        if (typeof ModalManager !== 'undefined') ModalManager.unlock('onboarding-overlay');
     }
 
     // ==================== NAVIGATION ====================

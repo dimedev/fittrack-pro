@@ -1856,7 +1856,19 @@ async function loadAllDataFromSupabase(silent = false) {
                 }).then(ok => {
                     if (ok) { localSession.synced = true; saveState(); }
                 }).catch(err => {
-                    console.warn('⚠️ Sync session locale échouée, sera retentée au prochain cycle:', err?.message || err);
+                    console.warn('⚠️ Sync session locale échouée, ajout à la queue:', err?.message || err);
+                    // Ajouter à la syncQueue pour retry au lieu de perdre silencieusement
+                    addToSyncQueue('workout_session', 'upsert', {
+                        sessionId: localSession.sessionId || localSession.id,
+                        date: localSession.date,
+                        sessionType: localSession.sessionType || 'program',
+                        program: localSession.program,
+                        day: localSession.day,
+                        exercises: localSession.exercises,
+                        duration: localSession.duration || 0,
+                        totalVolume: localSession.totalVolume || 0,
+                        caloriesBurned: localSession.caloriesBurned || 0
+                    });
                 });
             });
             

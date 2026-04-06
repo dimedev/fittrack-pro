@@ -609,6 +609,11 @@ function adjustReps(delta) {
 }
 
 function validateCurrentSet() {
+    // Protection double-clic (debounce 400ms)
+    if (window._validatingSet) return;
+    window._validatingSet = true;
+    setTimeout(() => { window._validatingSet = false; }, 400);
+
     const weight = parseFloat(document.getElementById('fs-weight-input').value) || 0;
     const repsInput = document.getElementById('fs-reps-input');
     const repsRaw = repsInput.value.trim();
@@ -1823,12 +1828,14 @@ function mergeSessions(oldSession) {
 // ==================== FINISH SESSION ====================
 
 async function finishSession() {
-    // Protection contre double exécution
-    if (fsSession.sessionSaved) {
-        console.warn('⚠️ Session déjà sauvegardée, ignore finishSession()');
+    // Protection contre double exécution (synchrone, avant tout await)
+    if (fsSession.sessionSaved || fsSession._finishInProgress) {
+        console.warn('⚠️ Session déjà sauvegardée ou en cours, ignore finishSession()');
         return;
     }
+    fsSession._finishInProgress = true;
 
+    try {
     // Restaurer un set en cours d'édition non validé
     restoreEditingSetIfNeeded();
 
@@ -2245,6 +2252,14 @@ async function finishSession() {
     // Refresh training section
     renderTrainingSection();
     if (typeof updateDashboard === 'function') updateDashboard();
+
+    } catch (err) {
+        console.error('❌ Erreur finishSession:', err);
+        fsSession.sessionSaved = false;
+        if (typeof showToast === 'function') showToast('Erreur lors de la sauvegarde', 'error');
+    } finally {
+        fsSession._finishInProgress = false;
+    }
 }
 
 // getExerciseIdByName, getEffectiveExerciseName, getLastLog → training-shared.js
@@ -2981,6 +2996,12 @@ function toggleFsSettings() {
 
     const isOpen = sheet.style.display !== 'none';
     sheet.style.display = isOpen ? 'none' : 'flex';
+
+    // ModalManager scroll lock
+    if (typeof ModalManager !== 'undefined') {
+        if (isOpen) ModalManager.unlock('fs-settings-sheet');
+        else ModalManager.lock('fs-settings-sheet');
+    }
 
     // Sync toggle states with current visibility
     if (!isOpen) {

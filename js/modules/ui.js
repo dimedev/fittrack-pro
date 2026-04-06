@@ -690,9 +690,22 @@ function setupModals() {
         });
     });
 
-    // Fermer avec Escape
+    // Fermer avec Escape — gere TOUTES les modals (overlay + sheets + custom)
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+            // Priorite au stack ModalManager (ferme le dernier ouvert)
+            const stack = ModalManager.activeModals;
+            if (stack && stack.length > 0) {
+                const lastId = stack[stack.length - 1];
+                const el = document.getElementById(lastId);
+                if (el) {
+                    el.classList.remove('active');
+                    el.style.display = 'none';
+                }
+                ModalManager.unlock(lastId);
+                return;
+            }
+            // Fallback : fermer les modal-overlay.active restantes
             document.querySelectorAll('.modal-overlay.active').forEach(modal => {
                 modal.classList.remove('active');
                 ModalManager.unlock(modal.id);

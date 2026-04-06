@@ -279,24 +279,7 @@
                     </div>
                 </div>
 
-                <!-- Recommandations du Coach - DASHBOARD -->
-                <div class="card" style="margin-top: 16px;">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="icon">🤖</span>
-                            Recommandations du Coach
-                        </div>
-                    </div>
-                    <div id="coach-recommendations-dashboard">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">🤖</div>
-                            <div class="empty-state-title">Pas encore de recommandations</div>
-                            <p>Continue à t'entraîner, le coach analysera tes performances</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dashboard Insights (Phase 2C) -->
+                <!-- Insights & Recommandations (unifié) -->
                 <div class="card" style="margin-top: 16px;">
                     <div class="card-header">
                         <div class="card-title">
@@ -310,6 +293,7 @@
                             <p>Entraîne-toi pour débloquer tes insights</p>
                         </div>
                     </div>
+                    <div id="coach-recommendations-dashboard"></div>
                 </div>
 
                 <!-- Macros du Jour - UNIFIED STYLE -->
@@ -434,8 +418,8 @@
                     </div>
                 </div>
 
-                <!-- Data Management Card -->
-                <div class="card" style="margin-top: 16px;">
+                <!-- Data Management Card (masqué par défaut — accessible via profil) -->
+                <div class="card" id="data-management-card" style="margin-top: 16px; display: none;">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">💾</span>
@@ -475,7 +459,8 @@
                 </div>
 
                 <!-- Health Integration Card -->
-                <div class="card" style="margin-top: 16px;">
+                <!-- Health Integration Card (masqué — feature export-only, pas utile au quotidien) -->
+                <div class="card" id="health-integration-card" style="margin-top: 16px; display: none;">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">🏥</span>

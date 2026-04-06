@@ -336,6 +336,11 @@ function updateJournalQuantity(index, quantity) {
 
 // Supprimer une entrée du journal (avec UNDO)
 function removeFromJournal(index) {
+    // Protection double-clic rapide
+    if (window._removingJournalEntry) return;
+    window._removingJournalEntry = true;
+    setTimeout(() => { window._removingJournalEntry = false; }, 500);
+
     const date = document.getElementById('journal-date').value;
 
     if (state.foodJournal[date]) {

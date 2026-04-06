@@ -600,6 +600,7 @@ function saveState() {
     try {
         // Mettre à jour le timestamp de modification locale
         state._localModifiedAt = new Date().toISOString();
+        state._lastSaved = Date.now();
 
         // Nettoyer les valeurs corrompues avant sauvegarde
         const cleanState = sanitizeCorruptedValues(state, 'state');
@@ -621,8 +622,16 @@ function saveState() {
 
         // 1. Sauvegarder dans IndexedDB (asynchrone, principal — données complètes)
         if (window.RepzyDB && window.RepzyDB.isReady()) {
-            window.RepzyDB.saveState(cleanState).catch(err => {
-                console.warn('Erreur sauvegarde IndexedDB:', err);
+            window.RepzyDB.saveState(cleanState).catch(async (err) => {
+                console.warn('Erreur sauvegarde IndexedDB, retry...', err);
+                try {
+                    await window.RepzyDB.saveState(cleanState);
+                } catch (err2) {
+                    console.error('IndexedDB save failed after retry:', err2);
+                    if (typeof showToast === 'function') {
+                        showToast('Stockage local en erreur. Connectez-vous pour sauvegarder.', 'warning');
+                    }
+                }
             });
         }
 
@@ -1459,3 +1468,33 @@ window.RepzyState = {
     getProfile: () => state.profile || null,
     getAll: () => ({ ...state })
 };
+
+// ── Cross-tab sync : detecter les changements localStorage depuis un autre onglet ──
+window.addEventListener('storage', (e) => {
+    if (e.key === 'fittrack-state' && e.newValue) {
+        try {
+            const externalState = JSON.parse(e.newValue);
+            // Merger seulement si les donnees externes sont plus recentes
+            if (externalState._lastSaved && externalState._lastSaved > (state._lastSaved || 0)) {
+                // Preserver les collections qui sont dans IndexedDB
+                const preserveProgressLog = state.progressLog;
+                const preserveSessionHistory = state.sessionHistory;
+                Object.assign(state, externalState);
+                // Restaurer les collections completes (slim state n'a pas ces donnees)
+                if (!externalState.progressLog && preserveProgressLog) {
+                    state.progressLog = preserveProgressLog;
+                }
+                if (!externalState.sessionHistory && preserveSessionHistory) {
+                    state.sessionHistory = preserveSessionHistory;
+                }
+                if (typeof showToast === 'function') {
+                    showToast('Données mises à jour depuis un autre onglet', 'info');
+                }
+                // Refresh UI si disponible
+                if (typeof updateDashboard === 'function') updateDashboard();
+            }
+        } catch (err) {
+            console.warn('Cross-tab merge error:', err);
+        }
+    }
+});

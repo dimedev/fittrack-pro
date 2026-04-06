@@ -22,7 +22,7 @@ async function openBarcodeScanner() {
     }
 
     scannerModal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    if (typeof ModalManager !== 'undefined') ModalManager.lock('barcode-scanner-modal');
 
     // Haptic feedback
     if (window.HapticFeedback) {
@@ -261,7 +261,7 @@ function closeBarcodeScanner() {
     const scannerModal = document.getElementById('barcode-scanner-modal');
     if (scannerModal) {
         scannerModal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (typeof ModalManager !== 'undefined') ModalManager.unlock('barcode-scanner-modal');
     }
 
     stopScanning();
