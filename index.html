@@ -6,7 +6,7 @@
     <title>Repzy</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=45">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
@@ -234,7 +234,7 @@
                 </div>
 
                 <!-- Account Card - MOBILE ONLY -->
-                <div class="account-card-mobile" style="margin-top: 16px;">
+                <div class="account-card-mobile">
                     <div class="account-info">
                         <div class="account-icon">👤</div>
                         <div class="account-details">
@@ -248,7 +248,7 @@
                 </div>
 
                 <!-- Theme Selector -->
-                <div class="card" style="margin-top: 16px; padding: 16px;">
+                <div class="card" style="padding: 16px;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
                         <span style="font-size: 1.2rem;">🎨</span>
                         <span style="font-weight: 600; color: var(--text-primary);">Apparence</span>
@@ -259,7 +259,7 @@
                 </div>
 
                 <!-- Readiness Score & Recovery - NEW PREMIUM FEATURES -->
-                <div class="dashboard-smart-grid" style="margin-top: 16px;">
+                <div class="dashboard-smart-grid">
                     <div id="readiness-score-container">
                         <!-- Rempli par updateReadinessScore() -->
                     </div>
@@ -269,7 +269,7 @@
                 </div>
 
                 <!-- Weekly Insights - INTELLIGENCE -->
-                <div class="readiness-card insights-card" style="margin-top: 16px;">
+                <div class="readiness-card insights-card">
                     <div class="insights-title">
                         <span class="icon">💡</span>
                         INSIGHTS DE LA SEMAINE
@@ -280,7 +280,7 @@
                 </div>
 
                 <!-- Insights & Recommandations (unifié) -->
-                <div class="card" style="margin-top: 16px;">
+                <div class="card">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">📊</span>
@@ -297,7 +297,7 @@
                 </div>
 
                 <!-- Macros du Jour - UNIFIED STYLE -->
-                <div class="macros-card-premium" style="margin-top: 16px;">
+                <div class="macros-card-premium card--hero">
                     <div class="macros-header">
                         <div class="macros-title">
                             <span class="icon">🎯</span>
@@ -358,12 +358,12 @@
                 </div>
 
                 <!-- Hydratation Widget -->
-                <div class="hydration-card" id="hydration-widget" style="margin-top: 16px;">
+                <div class="hydration-card" id="hydration-widget">
                     <!-- Rempli par renderHydrationWidget() -->
                 </div>
 
                 <!-- Today's Session - IMPROVED CTA -->
-                <div class="card today-session-card" id="today-session-card" style="margin-top: 16px; display: none;">
+                <div class="card today-session-card" id="today-session-card" style="display: none;">
                     <div class="today-session-header">
                         <span class="today-session-label">Séance du jour</span>
                     </div>
@@ -373,7 +373,7 @@
                 </div>
 
                 <!-- Training Week Summary -->
-                <div class="card training-week-card" id="training-week-summary" style="margin-top: 16px;">
+                <div class="card training-week-card" id="training-week-summary">
                     <div class="week-progress-header">
                         <span class="week-title">Cette semaine</span>
                         <span class="week-count" id="week-sessions-count">0/0 séances</span>
@@ -405,7 +405,7 @@
                 </div>
 
                 <!-- Profile Card - UNIFIED STYLE -->
-                <div class="profile-card-simplified" style="margin-top: 16px;">
+                <div class="profile-card-simplified">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">👤</span>
@@ -419,7 +419,7 @@
                 </div>
 
                 <!-- Data Management Card (masqué par défaut — accessible via profil) -->
-                <div class="card" id="data-management-card" style="margin-top: 16px; display: none;">
+                <div class="card" id="data-management-card" style="display: none;">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">💾</span>
@@ -454,13 +454,13 @@
                                 Importer des données
                             </button>
                         </div>
-                        <p id="storage-info" style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted); text-align: center;"></p>
+                        <p id="storage-info" style="font-size: 0.8rem; color: var(--text-muted); text-align: center;"></p>
                     </div>
                 </div>
 
                 <!-- Health Integration Card -->
                 <!-- Health Integration Card (masqué — feature export-only, pas utile au quotidien) -->
-                <div class="card" id="health-integration-card" style="margin-top: 16px; display: none;">
+                <div class="card" id="health-integration-card" style="display: none;">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">🏥</span>
@@ -481,7 +481,7 @@
                 </div>
 
                 <!-- Bodyweight Chart -->
-                <div class="card" style="margin-top: 16px;" id="bodyweight-chart-card">
+                <div class="card" id="bodyweight-chart-card">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">📈</span>
@@ -506,9 +506,9 @@
                     <span id="stat-days">--</span>
                 </div>
 
-                <div id="recommendations-card-container" style="margin-top: 16px;"></div>
+                <div id="recommendations-card-container"></div>
                 
-                <div id="smart-insights-card-container" style="margin-top: 16px;"></div>
+                <div id="smart-insights-card-container"></div>
 
             </section>
 
@@ -786,7 +786,7 @@
                     </div>
 
                     <!-- Calories Chart -->
-                    <div class="card" style="margin-top: 16px;" id="calories-chart-card">
+                    <div class="card" id="calories-chart-card">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="icon">📊</span>
@@ -839,13 +839,13 @@
                 </div>
 
                 <!-- Insights proactifs — masqué si vide -->
-                <div id="proactive-insights-section" style="display:none; margin-top:20px;"></div>
+                <div id="proactive-insights-section" style="display:none; "></div>
 
                 <!-- IA Insights hebdomadaires -->
-                <div id="ai-insights-container" style="margin-top:20px;"></div>
+                <div id="ai-insights-container" style=""></div>
 
                 <!-- Fil de Progression Quotidien -->
-                <div class="card" style="margin-top: 20px;">
+                <div class="card">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">⚡</span>
@@ -861,7 +861,7 @@
                 </div>
 
                 <!-- Recommandations du Coach -->
-                <div class="card" style="margin-top: 20px;">
+                <div class="card">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">🤖</span>
@@ -878,7 +878,7 @@
                 </div>
 
                 <!-- Heatmap d'activité annuelle -->
-                <div class="card heatmap-card" style="margin-top: 20px;">
+                <div class="card heatmap-card">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">🗓️</span>
@@ -901,7 +901,7 @@
                 </div>
 
                 <!-- Tabs Navigation -->
-                <div class="tabs" style="margin-top: 24px;">
+                <div class="tabs">
                     <button class="tab active" data-tab="prs" onclick="switchProgressTab('prs')">Records</button>
                     <button class="tab" data-tab="badges" onclick="switchProgressTab('badges')">Badges</button>
                     <button class="tab" data-tab="history" onclick="switchProgressTab('history')">Séances</button>
@@ -928,7 +928,7 @@
                         </div>
                     </div>
 
-                    <div class="card" style="margin-top: 16px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="icon">📊</span>
@@ -952,7 +952,7 @@
                     </div>
 
                     <!-- Weekly Volume Chart -->
-                    <div class="card" style="margin-top: 16px;" id="volume-chart-card">
+                    <div class="card" id="volume-chart-card">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="icon">💪</span>
@@ -1041,7 +1041,7 @@
                     </div>
 
                     <!-- Répartition par type -->
-                    <div class="card" style="margin-top: 14px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title"><span class="icon">🏃</span> Par activité</div>
                         </div>
@@ -1049,7 +1049,7 @@
                     </div>
 
                     <!-- Distance cumulée -->
-                    <div class="card" style="margin-top: 14px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title"><span class="icon">📏</span> Distance cumulée</div>
                             <div class="ca-period-switcher">
@@ -1060,7 +1060,7 @@
                     </div>
 
                     <!-- Zones FC (fréquence cardiaque) -->
-                    <div class="card" style="margin-top: 14px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title"><span class="icon">❤️</span> Zones FC</div>
                         </div>
@@ -1073,7 +1073,7 @@
                     </div>
 
                     <!-- Évolution calories (chart) -->
-                    <div class="card" style="margin-top: 14px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title"><span class="icon">🔥</span> Calories brûlées</div>
                             <div class="ca-period-switcher">
@@ -1087,7 +1087,7 @@
                     </div>
 
                     <!-- Historique sessions -->
-                    <div class="card" style="margin-top: 14px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title"><span class="icon">📋</span> Historique</div>
                         </div>
@@ -1107,7 +1107,7 @@
                         <div id="muscle-heatmap-grid" class="muscle-heatmap-grid"></div>
                     </div>
 
-                    <div class="card" style="margin-top: 16px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="icon">🎯</span>
@@ -1120,7 +1120,7 @@
                     </div>
                     
                     <!-- Fréquence d'entraînement -->
-                    <div class="card" style="margin-top: 16px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="icon">📅</span>
@@ -1133,7 +1133,7 @@
                     </div>
                     
                     <!-- Comparaison mois/mois -->
-                    <div class="card" style="margin-top: 16px;">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="icon">📊</span>
@@ -1249,7 +1249,7 @@
             </div>
             <div class="modal-body">
                 <div id="quantity-food-info"></div>
-                <div class="form-group" style="margin-top: 15px;">
+                <div class="form-group">
                     <label class="form-label">Quantité (g)</label>
                     <input type="number" class="form-input" id="food-quantity" value="100">
                 </div>
@@ -1388,7 +1388,7 @@
                     </button>
                 </div>
 
-                <div id="remove-food-suggestion" style="margin-top: 20px; display: none;">
+                <div id="remove-food-suggestion" style="display: none;">
                     <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">Suggestion de remplacement :</p>
                     <div id="remove-food-suggestion-content"></div>
                 </div>
@@ -1435,7 +1435,7 @@
                         <button type="button" class="icon-picker-btn" data-icon="💪" onclick="selectFavoriteIcon('💪')">💪</button>
                     </div>
                 </div>
-                <div id="save-favorite-preview" style="margin-top: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div id="save-favorite-preview" style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
                     <p style="color: var(--text-muted); font-size: 0.9rem;">Aperçu du repas...</p>
                 </div>
             </div>
@@ -1486,7 +1486,7 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <div style="border-top: 1px solid var(--border-color); padding-top: 15px;">
                     <label class="form-label">Ajouter des aliments</label>
                     <div class="form-group" style="margin-bottom: 10px;">
                         <input type="text" class="form-input" id="create-favorite-food-search" placeholder="🔍 Rechercher un aliment..." oninput="searchFoodsForFavorite()">
@@ -1494,14 +1494,14 @@
                     <div class="food-search-results" id="create-favorite-food-results" style="max-height: 150px;"></div>
                 </div>
 
-                <div style="margin-top: 15px;">
+                <div>
                     <label class="form-label">Aliments sélectionnés</label>
                     <div id="create-favorite-items" style="min-height: 60px; background: var(--bg-tertiary); border-radius: 8px; padding: 10px;">
                         <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Aucun aliment ajouté</p>
                     </div>
                 </div>
 
-                <div id="create-favorite-macros" style="margin-top: 15px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; display: none;">
+                <div id="create-favorite-macros" style="padding: 12px; background: var(--bg-tertiary); border-radius: 8px; display: none;">
                     <div style="display: flex; justify-content: space-around; text-align: center; font-size: 0.85rem;">
                         <div><strong id="create-fav-cals">0</strong> <span style="color: var(--text-muted);">kcal</span></div>
                         <div><strong id="create-fav-prot">0</strong>g <span style="color: var(--text-muted);">prot</span></div>
@@ -1526,7 +1526,7 @@
             </div>
             <div class="modal-body">
                 <div id="apply-favorite-info"></div>
-                <div class="form-group" style="margin-top: 15px;">
+                <div class="form-group">
                     <label class="form-label">Ajouter à quel repas ?</label>
                     <select class="form-select" id="apply-favorite-target">
                         <option value="breakfast">🌅 Petit-déjeuner</option>
@@ -1580,7 +1580,7 @@
 
                 <div class="food-search-results" id="swap-exercise-results" style="max-height: 300px;"></div>
 
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                <div style="padding-top: 15px; border-top: 1px solid var(--border-color);">
                     <button class="btn btn-sm btn-secondary" onclick="openCustomExerciseModal()" style="width: 100%; justify-content: center;">
                         ➕ Ajouter un exercice personnalisé
                     </button>
@@ -1758,7 +1758,7 @@
                 </div>
 
                 <!-- Section de confirmation -->
-                <div id="off-confirm-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                <div id="off-confirm-section" style="display: none; padding-top: 20px; border-top: 1px solid var(--border-color);">
                     <h4 style="margin-bottom: 15px;">Produit sélectionné</h4>
                     <div id="off-product-details"></div>
                 </div>
@@ -1784,7 +1784,7 @@
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-top: 15px;">
+                <div class="form-group">
                     <label class="form-label">Pose</label>
                     <div class="pose-selector">
                         <button type="button" class="pose-btn active" data-pose="front" onclick="selectPose('front')">🧍 Face</button>
@@ -1845,7 +1845,7 @@
                             <span class="photo-viewer-stat-label">% MG</span>
                         </div>
                     </div>
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                    <div style="padding-top: 15px; border-top: 1px solid var(--border-color);">
                         <p style="font-size: 0.85rem; color: var(--text-muted);">Notes:</p>
                         <p id="viewer-notes" style="font-size: 0.9rem;">-</p>
                     </div>
@@ -2825,7 +2825,7 @@
                 </div>
 
                 <!-- CTA -->
-                <button class="btn btn-primary btn-block" id="quantity-confirm-btn" onclick="confirmAddFood()" style="margin-top: 16px;">
+                <button class="btn btn-primary btn-block" id="quantity-confirm-btn" onclick="confirmAddFood()">
                     Ajouter au repas
                 </button>
             </div>
@@ -3564,7 +3564,7 @@
             </div>
 
             <!-- Bouton pour basculer en saisie manuelle -->
-            <button class="btn btn-secondary btn-block" onclick="showManualBarcodeInput()" style="margin-top: 12px; min-height: 48px;">
+            <button class="btn btn-secondary btn-block" onclick="showManualBarcodeInput()" style="min-height: 48px;">
                 ⌨️ Saisie manuelle du code
             </button>
 

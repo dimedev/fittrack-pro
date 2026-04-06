@@ -65,7 +65,7 @@
 }
 
 .live-stat-value {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -1831,7 +1831,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .rest-timer-time {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 2rem;
     font-weight: 800;
     color: var(--text-primary);
@@ -1864,7 +1864,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .fs-timer-value {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-muted);
@@ -2667,7 +2667,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     color: var(--text-secondary);
     text-align: right;
     flex: 1;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.75rem;
 }
 
@@ -4138,7 +4138,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     border-radius: var(--radius-sm, 6px);
     color: var(--text-primary);
     font-size: 0.95rem;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono);
     text-align: center;
     -moz-appearance: textfield;
     transition: border-color 0.2s ease;
@@ -4958,7 +4958,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .brief-target-weight {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--accent-primary);
@@ -5094,7 +5094,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .brief-summary-value {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -7510,4 +7510,74 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 .mh-level-3 .muscle-heatmap-vol { color: rgba(255,255,255,0.8); }
 @media (max-width: 380px) {
     .muscle-heatmap-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ==================== PREMIUM POLISH (Phase 4) ==================== */
+
+/* Timer glow effect */
+.fs-rest-timer-prominent {
+    position: relative;
+}
+.fs-rest-timer-prominent::after {
+    content: '';
+    position: absolute;
+    inset: -20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 0, 0, 0.12) 0%, transparent 70%);
+    animation: timerGlow 2s ease-in-out infinite;
+    z-index: -1;
+    pointer-events: none;
+}
+@keyframes timerGlow {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.08); opacity: 1; }
+}
+
+/* Bolder inputs in fullscreen session */
+.fullscreen-session .fs-input {
+    font-size: 1.25rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    padding: 14px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.fullscreen-session .fs-input:focus {
+    border-color: var(--accent-brand);
+    box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
+    outline: none;
+}
+
+/* Exercise name — larger, bolder */
+#fs-exercise-name {
+    font-size: clamp(1.25rem, 5vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+/* Set completion animation */
+.set-row.just-completed {
+    animation: setComplete 500ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes setComplete {
+    0% { transform: scale(1); background: transparent; }
+    30% { transform: scale(1.02); background: rgba(34, 197, 94, 0.15); }
+    100% { transform: scale(1); background: transparent; }
+}
+
+/* Validate button — premium feel */
+.fs-validate-btn {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.fs-validate-btn:active {
+    transform: scale(0.97);
+}
+
+/* Set indicator — monospace for alignment */
+#fs-set-indicator {
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
 }
