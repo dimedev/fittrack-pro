@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="auto">
+<html lang="fr" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,25 +8,25 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=47">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=48">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=46">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=47">
     <!-- Deferred: loaded async, applied when ready -->
-    <link rel="stylesheet" href="css/session-manager.css?v=39" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="css/premium-components.css?v=23" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/session-manager.css?v=40" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/premium-components.css?v=24" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=6" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/micro-animations.css?v=1" media="print" onload="this.media='all'">
     <!-- Theme CSS must be LAST to override other styles -->
-    <link rel="stylesheet" href="css/theme.css?v=4">
+    <link rel="stylesheet" href="css/theme.css?v=5">
 
-    <!-- Theme script (loaded early to prevent flash) -->
+    <!-- Theme script : Pit Lane canon = always dark, preference kept for future -->
     <script>
-        // Apply theme immediately before page renders
         (function() {
-            const saved = localStorage.getItem('repzy-theme') || 'auto';
-            document.documentElement.setAttribute('data-theme', saved);
+            // Force dark regardless of saved preference (Pit Lane canon)
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
         })();
     </script>
 
@@ -212,100 +212,47 @@
 
             <!-- Dashboard Section -->
             <section id="dashboard" class="section active" role="tabpanel" aria-labelledby="tab-dashboard">
-                <!-- Quick Summary Card - NEW -->
-                <div class="quick-summary-card" id="quick-summary-card">
-                    <div class="quick-summary-greeting" id="quick-summary-greeting">Bienvenue</div>
-                    <div class="quick-summary-stats">
-                        <div class="quick-stat">
-                            <span class="quick-stat-icon">🔥</span>
-                            <span class="quick-stat-value" id="quick-cals-remaining">--</span>
-                            <span class="quick-stat-label">kcal restantes</span>
+
+                <!-- ═════════ PIT LANE HERO ═════════ -->
+                <div class="pl-dashboard-hero card--hero" id="pl-dashboard-hero">
+                    <div class="pl-hero-kicker">
+                        <span class="pl-hero-kicker-dot"></span>
+                        <span id="pl-hero-kicker-label">BONJOUR</span>
+                        <span class="pl-hero-kicker-sep">•</span>
+                        <span id="pl-hero-kicker-date">—</span>
+                    </div>
+                    <h1 class="pl-hero-title" id="pl-hero-title">Aujourd'hui</h1>
+                    <div class="pl-hero-stats">
+                        <div class="pl-hero-stat">
+                            <span class="pl-hero-stat-value" id="quick-cals-remaining">--</span>
+                            <span class="pl-hero-stat-label">kcal restantes</span>
                         </div>
-                        <div class="quick-stat">
-                            <span class="quick-stat-icon">🏋️</span>
-                            <span class="quick-stat-value" id="quick-session-name">--</span>
-                            <span class="quick-stat-label">prévue</span>
+                        <div class="pl-hero-stat pl-hero-stat-divider">
+                            <span class="pl-hero-stat-value" id="quick-session-name">--</span>
+                            <span class="pl-hero-stat-label">séance prévue</span>
                         </div>
-                        <div class="quick-stat">
-                            <span class="quick-stat-icon">⚡</span>
-                            <span class="quick-stat-value" id="quick-streak">0</span>
-                            <span class="quick-stat-label">jours de série</span>
+                        <div class="pl-hero-stat pl-hero-stat-divider">
+                            <span class="pl-hero-stat-value" id="quick-streak">0</span>
+                            <span class="pl-hero-stat-label">jours de série</span>
                         </div>
+                    </div>
+                    <div class="pl-hero-cta-row">
+                        <button class="btn btn-primary pl-hero-cta-primary" onclick="showSection('training')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            <span>Commencer la séance</span>
+                        </button>
+                        <button class="btn btn-ghost pl-hero-cta-ghost" onclick="showSection('training')">Programme</button>
                     </div>
                 </div>
 
-                <!-- Account Card - MOBILE ONLY -->
-                <div class="account-card-mobile">
-                    <div class="account-info">
-                        <div class="account-icon">👤</div>
-                        <div class="account-details">
-                            <div class="account-label">Compte</div>
-                            <div class="account-email" id="mobile-user-email">--</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-sm btn-outline" id="mobile-logout-btn" onclick="signOut()">
-                        Déconnexion
-                    </button>
-                </div>
+                <div id="pl-hero-greeting" class="sr-only" aria-hidden="true"></div>
 
-                <!-- ── SECONDARY PANEL (collapsible) ──────────────────────── -->
-                <details class="dashboard-secondary" id="dashboard-secondary-panel">
-                    <summary class="dashboard-secondary-toggle">
-                        <span class="dashboard-secondary-label">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                            Insights &amp; Récupération
-                        </span>
-                        <svg class="dashboard-secondary-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </summary>
-
-                    <div class="dashboard-secondary-content">
-                        <!-- Readiness Score & Recovery -->
-                        <div class="dashboard-smart-grid">
-                            <div id="readiness-score-container">
-                                <!-- Rempli par updateReadinessScore() -->
-                            </div>
-                            <div id="muscle-recovery-container">
-                                <!-- Rempli par SmartTraining.renderMuscleRecoveryWidget() -->
-                            </div>
-                        </div>
-
-                        <!-- Weekly Insights - INTELLIGENCE -->
-                        <div class="readiness-card insights-card">
-                            <div class="insights-title">
-                                <span class="icon">💡</span>
-                                INSIGHTS DE LA SEMAINE
-                            </div>
-                            <div id="insights-container">
-                                <!-- Rempli par renderInsightsWidget() -->
-                            </div>
-                        </div>
-
-                        <!-- Insights & Recommandations (unifié) -->
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">
-                                    <span class="icon">📊</span>
-                                    Insights
-                                </div>
-                            </div>
-                            <div id="dashboard-insights-content">
-                                <div class="empty-state" style="padding: 16px;">
-                                    <div class="empty-state-icon">📊</div>
-                                    <p>Entraîne-toi pour débloquer tes insights</p>
-                                </div>
-                            </div>
-                            <div id="coach-recommendations-dashboard"></div>
-                        </div>
-                    </div>
-                </details>
-                <!-- ────────────────────────────────────────────────────────── -->
-
-                <!-- Macros du Jour - UNIFIED STYLE -->
+                <!-- ═════════ MACROS DU JOUR ═════════ -->
                 <div class="macros-card-premium card--hero">
                     <div class="macros-header">
                         <div class="macros-title">
-                            <span class="icon">🎯</span>
-                            Macros du Jour
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
+                            <span>Macros du Jour</span>
                         </div>
                         <span class="badge badge-info" id="macros-status" style="display: none;">En cours</span>
                     </div>
@@ -381,6 +328,45 @@
                     </div>
                 </div>
 
+                <!-- ═════════ SECONDARY PANEL (Insights & Recovery, collapsible) ═════════ -->
+                <details class="dashboard-secondary" id="dashboard-secondary-panel">
+                    <summary class="dashboard-secondary-toggle">
+                        <span class="dashboard-secondary-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                            <span class="dashboard-secondary-text">Insights &amp; Récupération</span>
+                        </span>
+                        <svg class="dashboard-secondary-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </summary>
+                    <div class="dashboard-secondary-content">
+                        <div class="dashboard-smart-grid">
+                            <div id="readiness-score-container"><!-- updateReadinessScore() --></div>
+                            <div id="muscle-recovery-container"><!-- SmartTraining.renderMuscleRecoveryWidget() --></div>
+                        </div>
+                        <div class="readiness-card insights-card">
+                            <div class="insights-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+                                <span>Insights de la semaine</span>
+                            </div>
+                            <div id="insights-container"><!-- renderInsightsWidget() --></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                    <span>Insights</span>
+                                </div>
+                            </div>
+                            <div id="dashboard-insights-content">
+                                <div class="empty-state" style="padding: 16px;">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.35"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                    <p>Entraîne-toi pour débloquer tes insights</p>
+                                </div>
+                            </div>
+                            <div id="coach-recommendations-dashboard"></div>
+                        </div>
+                    </div>
+                </details>
+
                 <!-- Training Week Summary -->
                 <div class="card training-week-card" id="training-week-summary">
                     <div class="week-progress-header">
@@ -406,7 +392,7 @@
                                 <span id="last-session-sets">24 séries</span>
                                 <span class="stat-separator">•</span>
                                 <span id="last-session-duration">45 min</span>
-                                <span class="last-session-prs" id="last-session-prs" style="display: none;">🏆 <span id="last-session-prs-count">0</span> PRs</span>
+                                <span class="last-session-prs" id="last-session-prs" style="display: none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> <span id="last-session-prs-count">0</span> PRs</span>
                             </div>
                         </div>
                         <div class="last-session-arrow">›</div>
@@ -417,8 +403,8 @@
                 <div class="profile-card-simplified">
                     <div class="card-header">
                         <div class="card-title">
-                            <span class="icon">👤</span>
-                            Mon Profil
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <span>Mon Profil</span>
                         </div>
                         <button class="btn btn-sm btn-secondary" onclick="openProfileModal()">Modifier</button>
                     </div>
@@ -431,8 +417,8 @@
                 <div class="card" id="bodyweight-chart-card">
                     <div class="card-header">
                         <div class="card-title">
-                            <span class="icon">📈</span>
-                            Evolution du Poids
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                            <span>Evolution du Poids</span>
                         </div>
                         <div class="chart-filters">
                             <button class="filter-btn active" data-period="30" onclick="filterWeightChart(30)">30J</button>
@@ -767,8 +753,15 @@
 
             <!-- Progress Section -->
             <section id="progress" class="section" role="tabpanel" aria-labelledby="tab-progress">
-                <!-- Hero Header avec Résumé -->
-                <div class="progress-hero">
+                <!-- ═════════ PIT LANE PROGRESS HERO ═════════ -->
+                <div class="progress-hero card--hero">
+                    <div class="pl-hero-kicker">
+                        <span class="pl-hero-kicker-dot"></span>
+                        <span>PROGRESSION</span>
+                        <span class="pl-hero-kicker-sep">•</span>
+                        <span>LIVE TRACKING</span>
+                    </div>
+                    <h1 class="pl-hero-title">MES RECORDS</h1>
                     <div class="progress-summary-stats">
                         <div class="summary-stat">
                             <span class="stat-value" id="progress-prs-month">0</span>
@@ -795,13 +788,13 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">
-                            <span class="icon">⚡</span>
-                            Activité Récente
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            <span>Activité Récente</span>
                         </div>
                     </div>
                     <div id="daily-progress-feed" class="daily-progress-feed">
                         <div class="empty-state">
-                            <div class="empty-state-icon">⚡</div>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.3"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                             <div class="empty-state-title">Aucune activité récente</div>
                         </div>
                     </div>
@@ -811,13 +804,13 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">
-                            <span class="icon">🤖</span>
-                            Recommandations du Coach
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+                            <span>Recommandations du Coach</span>
                         </div>
                     </div>
                     <div id="coach-recommendations">
                         <div class="empty-state">
-                            <div class="empty-state-icon">🤖</div>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.3"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg>
                             <div class="empty-state-title">Pas encore de recommandations</div>
                             <p>Continue à t'entraîner, le coach analysera tes performances</p>
                         </div>
@@ -828,8 +821,8 @@
                 <div class="card heatmap-card">
                     <div class="card-header">
                         <div class="card-title">
-                            <span class="icon">🗓️</span>
-                            Activité annuelle
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <span>Activité annuelle</span>
                         </div>
                         <span id="heatmap-stats" class="heatmap-header-stats"></span>
                     </div>
@@ -862,13 +855,13 @@
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
-                                <span class="icon">🏆</span>
-                                Mes Records Personnels
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                                <span>Mes Records Personnels</span>
                             </div>
                         </div>
                         <div id="prs-container">
                             <div class="empty-state" style="padding: 30px;">
-                                <div class="empty-state-icon">🏆</div>
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.35"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
                                 <div class="empty-state-title">Pas encore de records</div>
                                 <p>Loguez vos séances pour voir vos PRs apparaître ici</p>
                             </div>
@@ -878,8 +871,8 @@
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
-                                <span class="icon">📊</span>
-                                Évolution des Performances
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                <span>Évolution des Performances</span>
                             </div>
                             <div class="chart-controls">
                                 <select class="form-select" id="progress-exercise" onchange="updateProgressChart()">
@@ -902,8 +895,8 @@
                     <div class="card" id="volume-chart-card">
                         <div class="card-header">
                             <div class="card-title">
-                                <span class="icon">💪</span>
-                                Volume d'Entraînement Hebdomadaire
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5 5 8l-2 2 2 2 1.5 1.5 2 2 2-2 1.5-1.5"/><path d="m17.5 17.5 1.5-1.5 2-2-2-2-1.5-1.5-2-2-2 2-1.5 1.5"/><line x1="8" y1="8" x2="16" y2="16"/></svg>
+                                <span>Volume d'Entraînement Hebdomadaire</span>
                             </div>
                         </div>
                         <div class="chart-container">
@@ -917,8 +910,8 @@
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
-                                <span class="icon">🏅</span>
-                                Accomplissements
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                                <span>Accomplissements</span>
                             </div>
                         </div>
                         <div id="achievements-container">
@@ -931,7 +924,7 @@
                 <div id="tab-history" class="tab-content" style="display: none;">
                     <div id="session-history">
                         <div class="empty-state">
-                            <div class="empty-state-icon">📅</div>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             <div class="empty-state-title">Aucune séance enregistrée</div>
                             <p>Vos séances apparaîtront ici</p>
                         </div>
@@ -943,14 +936,14 @@
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
-                                <span class="icon">📸</span>
-                                Photos de Progression
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                <span>Photos de Progression</span>
                             </div>
                             <button class="btn btn-sm btn-primary" onclick="openAddPhotoModal()" data-tooltip="Ajouter une photo de progression">+ Ajouter</button>
                         </div>
                         <div id="photos-gallery">
                             <div class="empty-state">
-                                <div class="empty-state-icon">📸</div>
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.3"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                                 <div class="empty-state-title">Aucune photo</div>
                                 <p>Prenez votre première photo de progression !</p>
                             </div>
@@ -990,7 +983,10 @@
                     <!-- Répartition par type -->
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title"><span class="icon">🏃</span> Par activité</div>
+                            <div class="card-title">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="m5 22 3-7 3 2 1-4 3 3"/><path d="m11 13 5-1 2 3-2 3"/></svg>
+                                <span>Par activité</span>
+                            </div>
                         </div>
                         <div id="ca-by-type" class="ca-by-type-list"></div>
                     </div>
@@ -998,7 +994,10 @@
                     <!-- Distance cumulée -->
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title"><span class="icon">📏</span> Distance cumulée</div>
+                            <div class="card-title">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="8" y1="11" x2="8" y2="13"/><line x1="12" y1="11" x2="12" y2="13"/><line x1="16" y1="11" x2="16" y2="13"/></svg>
+                                <span>Distance cumulée</span>
+                            </div>
                             <div class="ca-period-switcher">
                                 <span class="ca-total-distance-label" id="ca-total-distance-label">— km</span>
                             </div>
@@ -1009,11 +1008,14 @@
                     <!-- Zones FC (fréquence cardiaque) -->
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title"><span class="icon">❤️</span> Zones FC</div>
+                            <div class="card-title">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                                <span>Zones FC</span>
+                            </div>
                         </div>
                         <div id="ca-hr-zones-container">
                             <div class="empty-state" style="padding:16px;">
-                                <div class="empty-state-icon">❤️</div>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.3"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                                 <div>Enregistrez la fréquence cardiaque (FC moyenne) dans vos séances pour voir la répartition par zones.</div>
                             </div>
                         </div>
@@ -3750,7 +3752,7 @@
     <script src="js/modules/recipes.js?v=4"></script>
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=45"></script>
-    <script src="js/modules/profile.js?v=26"></script>
+    <script src="js/modules/profile.js?v=27"></script>
     <script src="js/modules/nutrition-core.js?v=1"></script>
     <script src="js/modules/nutrition-ui.js?v=1"></script>
     <script src="js/modules/nutrition.js?v=32"></script>
@@ -3766,7 +3768,7 @@
     <script src="js/modules/training.js?v=44"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=9"></script>
-    <script src="js/modules/progress.js?v=28"></script>
+    <script src="js/modules/progress.js?v=29"></script>
     <script src="js/modules/achievements.js?v=2"></script>
     <script src="js/modules/smart-training.js?v=2"></script>
     <script src="js/modules/health-integration.js?v=2"></script>

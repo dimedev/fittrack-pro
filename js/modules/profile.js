@@ -362,25 +362,56 @@ function updateDashboard() {
     }
 }
 
-// ==================== QUICK SUMMARY ====================
+// ==================== QUICK SUMMARY (PIT LANE HERO) ====================
 function updateQuickSummary() {
+    // Pit Lane hero targets (nouveaux)
+    const kickerLabelEl = document.getElementById('pl-hero-kicker-label');
+    const kickerDateEl = document.getElementById('pl-hero-kicker-date');
+    const heroTitleEl = document.getElementById('pl-hero-title');
+    const heroGreetingEl = document.getElementById('pl-hero-greeting');
+    // Legacy (peut exister encore sur anciennes vues)
     const greetingEl = document.getElementById('quick-summary-greeting');
+
     const calsRemainingEl = document.getElementById('quick-cals-remaining');
     const sessionNameEl = document.getElementById('quick-session-name');
     const streakEl = document.getElementById('quick-streak');
-    
-    if (!greetingEl) return;
-    
-    // Greeting based on time of day + pseudo
+
+    // Greeting by hour
     const hour = new Date().getHours();
-    let greeting = 'Bienvenue';
-    if (hour >= 5 && hour < 12) greeting = 'Bonjour';
-    else if (hour >= 12 && hour < 18) greeting = 'Bon après-midi';
-    else if (hour >= 18 && hour < 22) greeting = 'Bonsoir';
-    else greeting = 'Bonne nuit';
-    
+    let greeting = 'BIENVENUE';
+    if (hour >= 5 && hour < 12) greeting = 'BONJOUR';
+    else if (hour >= 12 && hour < 18) greeting = 'BON APRÈS-MIDI';
+    else if (hour >= 18 && hour < 22) greeting = 'BONSOIR';
+    else greeting = 'BONNE NUIT';
+
     const pseudo = state.profile?.pseudo;
-    greetingEl.textContent = pseudo ? `${greeting}, ${pseudo} 👋` : `${greeting} 👋`;
+    const pseudoPart = pseudo ? `, ${pseudo.toUpperCase()}` : '';
+
+    // Date kicker (format: JEU 21 AVR)
+    const now = new Date();
+    const days = ['DIM','LUN','MAR','MER','JEU','VEN','SAM'];
+    const months = ['JAN','FÉV','MAR','AVR','MAI','JUIN','JUIL','AOÛ','SEP','OCT','NOV','DÉC'];
+    const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
+
+    if (kickerLabelEl) kickerLabelEl.textContent = `${greeting}${pseudoPart}`;
+    if (kickerDateEl) kickerDateEl.textContent = dateStr;
+    if (heroTitleEl) {
+        // Si une séance est prévue, afficher son nom en titre
+        if (state.selectedProgram && typeof trainingPrograms !== 'undefined' && trainingPrograms[state.selectedProgram]) {
+            const program = trainingPrograms[state.selectedProgram];
+            const currentDay = state.currentTrainingDay || 1;
+            const split = program.splits?.[currentDay - 1];
+            heroTitleEl.textContent = (split?.name || program.name || 'Aujourd\'hui').toUpperCase();
+        } else {
+            heroTitleEl.textContent = 'AUJOURD\'HUI';
+        }
+    }
+    if (heroGreetingEl) heroGreetingEl.textContent = `${greeting}${pseudoPart} — ${dateStr}`;
+
+    // Legacy support
+    if (greetingEl) {
+        greetingEl.textContent = pseudo ? `${greeting}, ${pseudo}` : greeting;
+    }
     
     // Calories remaining (avec bonus cardio)
     if (state.profile && state.profile.targetCalories) {

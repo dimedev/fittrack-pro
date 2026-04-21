@@ -1330,58 +1330,85 @@
     }
 }
 
-/* ==================== PROGRESS HERO ==================== */
+/* ==================== PROGRESS HERO — PIT LANE ==================== */
 .progress-hero {
-    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
-    border-radius: var(--radius-xl);
-    padding: 20px;
-    border: 1px solid var(--border-color);
-    margin-bottom: 4px;
+    position: relative;
+    padding: 22px 20px 20px;
+    border-radius: var(--card-radius, 18px);
+    background:
+        radial-gradient(140% 90% at 100% 0%, color-mix(in srgb, var(--accent-brand) 14%, transparent) 0%, transparent 55%),
+        linear-gradient(180deg, #0b0b0b 0%, var(--bg-card) 100%);
+    border: 1px solid color-mix(in srgb, #fff 7%, transparent);
+    overflow: hidden;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+.progress-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--card-radius, 18px);
+    background:
+        linear-gradient(90deg, transparent 98%, color-mix(in srgb, var(--accent-brand) 32%, transparent) 100%),
+        linear-gradient(180deg, transparent 98%, color-mix(in srgb, var(--accent-brand) 16%, transparent) 100%);
+    pointer-events: none;
+    border: 1px solid color-mix(in srgb, var(--accent-brand) 26%, transparent);
+}
+
+.progress-hero .pl-hero-kicker,
+.progress-hero .pl-hero-title {
+    position: relative;
+    z-index: 1;
 }
 
 .progress-summary-stats {
-    display: flex;
-    gap: 24px;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    position: relative;
+    z-index: 1;
+    margin-top: 4px;
 }
 
 .summary-stat {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 4px;
+    padding: 0 10px;
+}
+.summary-stat:first-child { padding-left: 0; }
+.summary-stat + .summary-stat {
+    border-left: 1px solid color-mix(in srgb, #fff 10%, transparent);
 }
 
 .summary-stat .stat-value {
-    font-size: 1.75rem;
-    font-weight: 800;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: clamp(1.4rem, 6vw, 1.8rem);
+    font-weight: 700;
     color: var(--text-primary);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
 }
 
 .summary-stat .stat-label {
-    font-size: 0.75rem;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.58rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 500;
+    letter-spacing: 0.14em;
+    font-weight: 600;
 }
 
 @media (max-width: 640px) {
     .progress-hero {
-        padding: 16px;
+        padding: 18px 16px 16px;
     }
-    
-    .progress-summary-stats {
-        gap: 16px;
-    }
-    
+    .summary-stat { padding: 0 6px; }
     .summary-stat .stat-value {
-        font-size: 1.5rem;
-    }
-    
-    .summary-stat .stat-label {
-        font-size: 0.65rem;
+        font-size: 1.3rem;
     }
 }
 
@@ -1415,16 +1442,41 @@
 }
 
 .feed-item.feed-session {
-    border-left-color: var(--success);
+    border-left-color: color-mix(in srgb, #fff 35%, transparent);
 }
 
 .feed-item.feed-badge {
     border-left-color: var(--warning);
 }
 
+/* PIT LANE : feed icon = dot pulse brand (emoji caché, visuel unifié) */
 .feed-icon {
-    font-size: 1.5rem;
     flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent-brand);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-brand) 70%, transparent);
+    position: relative;
+    font-size: 0;
+    color: transparent;
+    align-self: center;
+    margin-left: 2px;
+    animation: pl-feed-dot 2.4s ease-in-out infinite;
+}
+.feed-item.feed-session .feed-icon {
+    background: #fff;
+    box-shadow: 0 0 8px color-mix(in srgb, #fff 50%, transparent);
+}
+.feed-item.feed-badge .feed-icon {
+    background: color-mix(in srgb, var(--accent-brand) 60%, #fff);
+}
+@keyframes pl-feed-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.82); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .feed-icon { animation: none; }
 }
 
 .feed-content {
@@ -2150,8 +2202,21 @@
 }
 
 .ready-suggestion {
-    font-size: 0.75rem;
-    color: var(--success);
+    font-size: 0.72rem;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid color-mix(in srgb, #fff 6%, transparent);
+}
+.ready-suggestion::before {
+    content: '•';
+    color: var(--accent-brand);
+    margin-right: 6px;
+    font-weight: 700;
 }
 
 .recovery-muscles {

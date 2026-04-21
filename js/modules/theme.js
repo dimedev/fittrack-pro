@@ -9,6 +9,8 @@
 
     /**
      * Get the current theme preference
+     * PIT LANE CANON: dark par défaut. Auto et Light sont gardés en
+     * preference mais tombent sur dark (Light n'est plus supporté visuellement).
      * @returns {string} 'auto', 'light', or 'dark'
      */
     function getTheme() {
@@ -16,19 +18,19 @@
         if (saved && VALID_THEMES.includes(saved)) {
             return saved;
         }
-        return 'auto'; // Default
+        return 'dark'; // Pit Lane canon: dark is default
     }
 
     /**
      * Get the actual applied theme (resolves 'auto' to actual theme)
-     * @returns {string} 'light' or 'dark'
+     * FORCE DARK: light et auto → dark. L'app n'est visuellement plus
+     * supportée en light mode. On garde la fonction pour compat mais
+     * elle retourne toujours 'dark'.
+     * @returns {string} 'dark' (forcé)
      */
     function getAppliedTheme() {
-        const theme = getTheme();
-        if (theme === 'auto') {
-            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-        }
-        return theme;
+        // Pit Lane : toujours dark, peu importe la préférence
+        return 'dark';
     }
 
     /**
@@ -74,7 +76,9 @@
             }, 300);
         }
 
-        html.setAttribute('data-theme', theme);
+        // FORCE DARK: on applique toujours data-theme="dark" peu importe le choix user
+        // (la préférence est sauvegardée mais n'a pas d'effet visuel actuellement)
+        html.setAttribute('data-theme', 'dark');
 
         // Update meta theme-color for mobile browsers
         updateMetaThemeColor();
@@ -84,8 +88,8 @@
      * Update the meta theme-color tag for mobile browser UI
      */
     function updateMetaThemeColor() {
-        const appliedTheme = getAppliedTheme();
-        const color = appliedTheme === 'light' ? '#f8f9fa' : '#0a0a0f';
+        // PIT LANE : toujours noir profond (status bar iOS Safari aligné)
+        const color = '#000000';
 
         let meta = document.querySelector('meta[name="theme-color"]');
         if (!meta) {

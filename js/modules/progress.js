@@ -288,7 +288,7 @@ function renderProgressFeed() {
     if (feed.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon" style="font-size:2.5rem">⚡</div>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.3"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 <div class="empty-state-title">Aucune activité récente</div>
                 <p style="color:var(--text-secondary);margin-top:6px">Lance ta première séance pour voir ton historique ici</p>
                 <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="navigateToSection('training')">Commencer</button>
