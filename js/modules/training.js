@@ -80,6 +80,44 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
         console.log('🆕 Nouvelle session créée:', fsSession.sessionId);
     }
 
+    // ── Multi-device lock ──────────────────────────────────────────────────
+    // Acquérir le lock en arrière-plan (ne bloque pas le démarrage local)
+    // Si conflit → affiche modal de confirmation
+    if (typeof acquireSessionLock === 'function' && typeof isLoggedIn === 'function' && isLoggedIn()) {
+        const program = state.wizardResults?.selectedProgram || null;
+        acquireSessionLock(fsSession.sessionId, program, splitName).then(lockResult => {
+            if (lockResult.locked && lockResult.conflict) {
+                const conflict = lockResult.conflict;
+                const timeStr = conflict.started_at
+                    ? new Date(conflict.started_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                    : 'récemment';
+                showConfirmModal({
+                    title: 'Séance active sur un autre appareil',
+                    message: `Cette séance a été démarrée sur un autre appareil à ${timeStr}. Continuer ici annulera l'autre.`,
+                    icon: '📱',
+                    confirmLabel: 'Continuer ici',
+                    cancelLabel: 'Annuler'
+                }).then(confirmed => {
+                    if (confirmed) {
+                        // Force le lock pour ce device
+                        if (typeof supabaseClient !== 'undefined' && currentUser) {
+                            const today = new Date().toISOString().split('T')[0];
+                            supabaseClient.from('active_sessions')
+                                .update({ device_id: getDeviceId(), session_id: fsSession.sessionId })
+                                .eq('user_id', currentUser.id)
+                                .eq('session_date', today)
+                                .eq('program', program || null)
+                                .eq('day', splitName || null)
+                                .then(() => console.log('🔒 Lock multi-device forcé'));
+                        }
+                    } else {
+                        closeFullScreenSession();
+                    }
+                });
+            }
+        }).catch(() => { /* lock optionnel, continuer */ });
+    }
+
     // Démarrer la sauvegarde automatique
     startAutoSaveFsSession();
 
@@ -305,6 +343,14 @@ async function closeFullScreenSession() {
     // Supprimer la session sauvegardée
     clearFsSessionFromStorage();
 
+    // Libérer le lock multi-device (abandon de séance)
+    if (typeof releaseSessionLock === 'function' && typeof isLoggedIn === 'function' && isLoggedIn()) {
+        const isFree = fsSession.sessionType === 'free';
+        const prog = !isFree ? (state.wizardResults?.selectedProgram || null) : null;
+        const d = !isFree ? (fsSession.splitName || null) : null;
+        releaseSessionLock(prog, d).catch(() => {});
+    }
+
     document.getElementById('fullscreen-session').style.display = 'none';
     OverflowManager.unlock();
 
@@ -326,6 +372,9 @@ async function closeFullScreenSession() {
 function renderCurrentExercise() {
     const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
     if (!exercise) return;
+
+    // Libère le lock du set précédent dès qu'on render le suivant
+    fsSession._validatingKey = null;
 
     const totalSets = exercise.sets;
     const currentSet = fsSession.currentSetIndex + 1;
@@ -609,10 +658,11 @@ function adjustReps(delta) {
 }
 
 function validateCurrentSet() {
-    // Protection double-clic (debounce 400ms)
-    if (window._validatingSet) return;
-    window._validatingSet = true;
-    setTimeout(() => { window._validatingSet = false; }, 400);
+    // Protection double-submit par clé d'état (exerciceIndex-setIndex)
+    // Immunise contre les double-clics même après 500ms+ sur le même set
+    const _lockKey = `${fsSession.currentExerciseIndex}-${fsSession.currentSetIndex}`;
+    if (fsSession._validatingKey === _lockKey) return;
+    fsSession._validatingKey = _lockKey;
 
     const weight = parseFloat(document.getElementById('fs-weight-input').value) || 0;
     const repsInput = document.getElementById('fs-reps-input');
@@ -964,6 +1014,8 @@ function reindexAfterReorder(oldIndex, newIndex) {
 // ==================== EXERCICE & SESSION COMPLETE STATES ====================
 
 function renderExerciseCompleteState() {
+    // Libère le lock du set précédent
+    fsSession._validatingKey = null;
     // Masquer le contenu normal
     const content = document.getElementById('fs-content');
     if (content) content.style.display = 'none';
@@ -1079,6 +1131,8 @@ function goToNextExercise() {
 }
 
 function renderSessionCompleteState() {
+    // Libère le lock (séance terminée)
+    fsSession._validatingKey = null;
     // Masquer le contenu normal
     const content = document.getElementById('fs-content');
     if (content) content.style.display = 'none';
@@ -2259,6 +2313,14 @@ async function finishSession() {
         if (typeof showToast === 'function') showToast('Erreur lors de la sauvegarde', 'error');
     } finally {
         fsSession._finishInProgress = false;
+
+        // Libérer le lock multi-device
+        if (typeof releaseSessionLock === 'function' && typeof isLoggedIn === 'function' && isLoggedIn()) {
+            const isFree = fsSession.sessionType === 'free';
+            const prog = !isFree ? (state.wizardResults?.selectedProgram || null) : null;
+            const d = !isFree ? (fsSession.splitName || null) : null;
+            releaseSessionLock(prog, d).catch(() => {});
+        }
     }
 }
 

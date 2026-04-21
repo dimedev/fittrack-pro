@@ -2585,6 +2585,120 @@ async function saveProgressLogToSupabase(exerciseName, logData) {
     }
 }
 
+// ==================== MULTI-DEVICE SESSION LOCK ====================
+
+/**
+ * ID unique de ce device (persisté en localStorage pour stabilité)
+ */
+function getDeviceId() {
+    let deviceId = localStorage.getItem('repzy-device-id');
+    if (!deviceId) {
+        deviceId = 'dev-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('repzy-device-id', deviceId);
+    }
+    return deviceId;
+}
+
+/**
+ * Acquiert un lock de séance pour ce device.
+ * Si un autre device a déjà un lock actif (< 24h) pour ce (user, date, program, day),
+ * retourne { locked: true, otherDevice: '...' } → UI peut demander confirmation.
+ *
+ * @param {string} sessionId - UUID de la séance
+ * @param {string} program - Nom du programme (null pour free session)
+ * @param {string} day - Nom du split/jour (null pour free session)
+ * @returns {{ success: boolean, locked: boolean, conflict: object|null }}
+ */
+async function acquireSessionLock(sessionId, program, day) {
+    if (!currentUser || !isOnline) return { success: true, locked: false, conflict: null };
+
+    try {
+        const deviceId = getDeviceId();
+        const today = new Date().toISOString().split('T')[0];
+
+        // Upsert : crée ou remplace le lock pour ce (user, date, program, day)
+        // ON CONFLICT → update pour ce device
+        const { data, error } = await supabaseClient
+            .from('active_sessions')
+            .upsert({
+                user_id: currentUser.id,
+                device_id: deviceId,
+                session_id: sessionId,
+                program: program || null,
+                day: day || null,
+                session_date: today
+            }, {
+                onConflict: 'user_id,session_date,program,day',
+                ignoreDuplicates: false
+            })
+            .select()
+            .single();
+
+        if (error) {
+            // Erreur 23505 = violation unique : un autre device a le lock
+            if (error.code === '23505' || error.message?.includes('unique')) {
+                // Récupérer les infos du conflit
+                const { data: existing } = await supabaseClient
+                    .from('active_sessions')
+                    .select('device_id, session_id, started_at')
+                    .eq('user_id', currentUser.id)
+                    .eq('session_date', today)
+                    .eq('program', program || null)
+                    .eq('day', day || null)
+                    .maybeSingle();
+
+                // Si le lock existant est du MÊME device, mettre à jour
+                if (existing?.device_id === deviceId) {
+                    await supabaseClient
+                        .from('active_sessions')
+                        .update({ session_id: sessionId, updated_at: new Date().toISOString() })
+                        .eq('user_id', currentUser.id)
+                        .eq('session_date', today)
+                        .eq('program', program || null)
+                        .eq('day', day || null);
+                    return { success: true, locked: false, conflict: null };
+                }
+
+                return { success: false, locked: true, conflict: existing };
+            }
+            console.warn('⚠️ acquireSessionLock error:', error.message);
+            return { success: true, locked: false, conflict: null }; // Mode dégradé : continuer
+        }
+
+        return { success: true, locked: false, conflict: null };
+    } catch (err) {
+        console.warn('⚠️ acquireSessionLock exception:', err?.message);
+        return { success: true, locked: false, conflict: null }; // Mode dégradé : continuer
+    }
+}
+
+/**
+ * Libère le lock de séance (fin de séance ou abandon).
+ */
+async function releaseSessionLock(program, day) {
+    if (!currentUser || !isOnline) return;
+
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const deviceId = getDeviceId();
+
+        await supabaseClient
+            .from('active_sessions')
+            .delete()
+            .eq('user_id', currentUser.id)
+            .eq('device_id', deviceId)
+            .eq('session_date', today)
+            .eq('program', program || null)
+            .eq('day', day || null);
+    } catch (err) {
+        console.warn('⚠️ releaseSessionLock exception:', err?.message);
+    }
+}
+
+window.acquireSessionLock = acquireSessionLock;
+window.releaseSessionLock = releaseSessionLock;
+window.getDeviceId = getDeviceId;
+
 // Sauvegarder une séance (avec retry et feedback - CRITIQUE)
 async function saveWorkoutSessionToSupabase(sessionData) {
     if (!currentUser) return false;

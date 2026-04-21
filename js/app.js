@@ -439,8 +439,31 @@ window.continueOffline = continueOffline;
 document.addEventListener('DOMContentLoaded', init);
 
 // Sauvegarder avant de quitter la page
-window.addEventListener('beforeunload', () => {
-    saveState();
+// Note: 'beforeunload' ne fire pas sur iOS Safari (PWA ou onglet swipé)
+// On utilise 'pagehide' (universel) + 'visibilitychange' (PWA background)
+function _emergencyFlush() {
+    try {
+        // 1. Flush la séance en cours si active (avant saveState qui efface pendingFsSession)
+        if (typeof saveFsSessionToStorage === 'function') {
+            saveFsSessionToStorage();
+        }
+        // 2. Sauvegarder l'état complet (synchrone → localStorage)
+        if (typeof saveState === 'function') {
+            saveState();
+        }
+    } catch (e) {
+        // Silencieux — on est en train de quitter
+    }
+}
+
+window.addEventListener('beforeunload', _emergencyFlush);
+window.addEventListener('pagehide', _emergencyFlush);  // iOS Safari + bfcache
+
+// Sur mobile, quand l'app passe en arrière-plan (tab switcher, accueil)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        _emergencyFlush();
+    }
 });
 
 // ==================== SERVICE WORKER ====================

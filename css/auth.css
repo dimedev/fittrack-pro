@@ -79,16 +79,7 @@ body {
     animation: fadeInUp 0.4s ease-out;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+/* fadeInUp → canonical in style-nike-shadcn.css */
 
 /* ==================== LOGO ==================== */
 .auth-logo {
@@ -233,9 +224,7 @@ body {
     animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+/* spin → canonical in style-nike-shadcn.css */
 
 /* Secondary button */
 .auth-btn-secondary {
@@ -258,10 +247,7 @@ body {
     animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+/* fadeIn → canonical in style-nike-shadcn.css */
 
 .auth-message.success {
     background: rgba(34, 197, 94, 0.1);
@@ -359,16 +345,7 @@ body {
     animation: pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(0.9);
-        opacity: 0.7;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 1;
-    }
-}
+/* pulse → canonical in style-nike-shadcn.css */
 
 /* ==================== PASSWORD STRENGTH ==================== */
 .password-strength {

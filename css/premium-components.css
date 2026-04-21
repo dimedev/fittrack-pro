@@ -311,10 +311,7 @@
 .progress-ring--lg .progress-ring__number { font-size: var(--text-3xl); }
 
 /* ==================== SKELETON LOADERS ==================== */
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
+/* shimmer → canonical in style-nike-shadcn.css */
 
 .skeleton {
     background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--bg-hover) 20%, var(--bg-tertiary) 40%, var(--bg-tertiary) 100%);
@@ -571,12 +568,15 @@
     border: 2px solid transparent;
     border-top-color: currentColor;
     border-radius: 50%;
-    animation: spin 0.6s linear infinite;
+    animation: btn-spin 0.6s linear infinite;
 }
 
 .btn-primary.loading::after { border-top-color: var(--bg-primary); }
 
-@keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+/* Variante spin pour boutons loading — doit inclure translate pour maintenir le centrage */
+@keyframes btn-spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
 
 .form-input:focus, .form-select:focus {
     border-color: var(--text-primary);
