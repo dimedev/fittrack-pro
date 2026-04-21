@@ -346,6 +346,12 @@ function init() {
             }
         }
 
+        // Détection partage natif (navigator.share + navigator.canShare)
+        if (navigator.share && navigator.canShare) {
+            const hint = document.getElementById('export-share-hint');
+            if (hint) hint.style.display = '';
+        }
+
         console.log('✅ Repzy - Prêt !');
     }, 400);
 }

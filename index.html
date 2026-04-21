@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="css/nutrition-premium.css?v=5" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/micro-animations.css?v=1" media="print" onload="this.media='all'">
     <!-- Theme CSS must be LAST to override other styles -->
     <link rel="stylesheet" href="css/theme.css?v=4">
 
@@ -247,54 +248,57 @@
                     </button>
                 </div>
 
-                <!-- Theme Selector -->
-                <div class="card" style="padding: 16px;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                        <span style="font-size: 1.2rem;">🎨</span>
-                        <span style="font-weight: 600; color: var(--text-primary);">Apparence</span>
-                    </div>
-                    <div id="theme-selector-container">
-                        <!-- Filled by ThemeManager.renderThemeSelector() -->
-                    </div>
-                </div>
+                <!-- ── SECONDARY PANEL (collapsible) ──────────────────────── -->
+                <details class="dashboard-secondary" id="dashboard-secondary-panel">
+                    <summary class="dashboard-secondary-toggle">
+                        <span class="dashboard-secondary-label">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                            Insights &amp; Récupération
+                        </span>
+                        <svg class="dashboard-secondary-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </summary>
 
-                <!-- Readiness Score & Recovery - NEW PREMIUM FEATURES -->
-                <div class="dashboard-smart-grid">
-                    <div id="readiness-score-container">
-                        <!-- Rempli par updateReadinessScore() -->
-                    </div>
-                    <div id="muscle-recovery-container">
-                        <!-- Rempli par SmartTraining.renderMuscleRecoveryWidget() -->
-                    </div>
-                </div>
+                    <div class="dashboard-secondary-content">
+                        <!-- Readiness Score & Recovery -->
+                        <div class="dashboard-smart-grid">
+                            <div id="readiness-score-container">
+                                <!-- Rempli par updateReadinessScore() -->
+                            </div>
+                            <div id="muscle-recovery-container">
+                                <!-- Rempli par SmartTraining.renderMuscleRecoveryWidget() -->
+                            </div>
+                        </div>
 
-                <!-- Weekly Insights - INTELLIGENCE -->
-                <div class="readiness-card insights-card">
-                    <div class="insights-title">
-                        <span class="icon">💡</span>
-                        INSIGHTS DE LA SEMAINE
-                    </div>
-                    <div id="insights-container">
-                        <!-- Rempli par renderInsightsWidget() -->
-                    </div>
-                </div>
+                        <!-- Weekly Insights - INTELLIGENCE -->
+                        <div class="readiness-card insights-card">
+                            <div class="insights-title">
+                                <span class="icon">💡</span>
+                                INSIGHTS DE LA SEMAINE
+                            </div>
+                            <div id="insights-container">
+                                <!-- Rempli par renderInsightsWidget() -->
+                            </div>
+                        </div>
 
-                <!-- Insights & Recommandations (unifié) -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="icon">📊</span>
-                            Insights
+                        <!-- Insights & Recommandations (unifié) -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <span class="icon">📊</span>
+                                    Insights
+                                </div>
+                            </div>
+                            <div id="dashboard-insights-content">
+                                <div class="empty-state" style="padding: 16px;">
+                                    <div class="empty-state-icon">📊</div>
+                                    <p>Entraîne-toi pour débloquer tes insights</p>
+                                </div>
+                            </div>
+                            <div id="coach-recommendations-dashboard"></div>
                         </div>
                     </div>
-                    <div id="dashboard-insights-content">
-                        <div class="empty-state" style="padding: 16px;">
-                            <div class="empty-state-icon">📊</div>
-                            <p>Entraîne-toi pour débloquer tes insights</p>
-                        </div>
-                    </div>
-                    <div id="coach-recommendations-dashboard"></div>
-                </div>
+                </details>
+                <!-- ────────────────────────────────────────────────────────── -->
 
                 <!-- Macros du Jour - UNIFIED STYLE -->
                 <div class="macros-card-premium card--hero">
@@ -357,6 +361,11 @@
                     </div>
                 </div>
 
+                <!-- Nutrition Goal Card (suggestion pour fermer le gap) -->
+                <div id="nutrition-goal-card">
+                    <!-- Rempli par renderNutritionGoalCard() -->
+                </div>
+
                 <!-- Hydratation Widget -->
                 <div class="hydration-card" id="hydration-widget">
                     <!-- Rempli par renderHydrationWidget() -->
@@ -415,68 +424,6 @@
                     </div>
                     <div id="profile-summary" class="profile-summary-compact">
                         <p style="color: var(--text-secondary);">Configurez votre profil pour commencer</p>
-                    </div>
-                </div>
-
-                <!-- Data Management Card (masqué par défaut — accessible via profil) -->
-                <div class="card" id="data-management-card" style="display: none;">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="icon">💾</span>
-                            Mes Données
-                        </div>
-                    </div>
-                    <div class="card-body" style="padding: 16px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <button class="btn btn-secondary" onclick="exportData('json')" style="justify-content: center;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Export JSON
-                            </button>
-                            <button class="btn btn-secondary" onclick="openExportCSVModal()" style="justify-content: center;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                                </svg>
-                                Export CSV
-                            </button>
-                            <button class="btn btn-ghost" onclick="importData()" style="justify-content: center; grid-column: span 2;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="17 8 12 3 7 8"></polyline>
-                                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                                </svg>
-                                Importer des données
-                            </button>
-                        </div>
-                        <p id="storage-info" style="font-size: 0.8rem; color: var(--text-muted); text-align: center;"></p>
-                    </div>
-                </div>
-
-                <!-- Health Integration Card -->
-                <!-- Health Integration Card (masqué — feature export-only, pas utile au quotidien) -->
-                <div class="card" id="health-integration-card" style="display: none;">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="icon">🏥</span>
-                            Intégration Santé
-                        </div>
-                    </div>
-                    <div class="card-body" style="padding: 16px;">
-                        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">
-                            Exportez vos données vers Apple Health ou Google Fit
-                        </p>
-                        <button class="btn btn-secondary btn-block" onclick="HealthIntegration.showSettings()" style="justify-content: center; gap: 8px;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                            Configurer
-                        </button>
                     </div>
                 </div>
 
@@ -1205,6 +1152,14 @@
                         <option value="lean-bulk">Prise de Masse Légère (+250 kcal)</option>
                         <option value="bulk">Prise de Masse (+500 kcal)</option>
                     </select>
+                </div>
+            </div>
+                <!-- Apparence / Thème -->
+                <div class="form-group" style="padding-top: 8px; border-top: 1px solid var(--border-color); margin-top: 8px;">
+                    <label class="form-label">Apparence</label>
+                    <div id="theme-selector-container">
+                        <!-- Filled by ThemeManager.renderThemeSelector() -->
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -3291,6 +3246,25 @@
                 </button>
             </div>
 
+            <!-- Warmup Guide (auto-shown for compound exercises on set 1) -->
+            <div class="fs-warmup-panel" id="fs-warmup-panel" style="display: none;">
+                <div class="fs-warmup-header" onclick="toggleWarmupPanel()">
+                    <span class="fs-warmup-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        Échauffement suggéré
+                    </span>
+                    <svg class="fs-warmup-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                </div>
+                <div class="fs-warmup-sets" id="fs-warmup-sets">
+                    <!-- Rempli par renderWarmupSets() -->
+                </div>
+            </div>
+
+            <!-- RPE Suggestion Banner -->
+            <div class="fs-rpe-suggestion" id="fs-rpe-suggestion" style="display: none;">
+                <!-- Rempli par renderRpeSuggestion() -->
+            </div>
+
             <!-- Completed Sets -->
             <div class="fs-completed-sets" id="fs-completed-sets">
                 <!-- Filled dynamically -->
@@ -3425,15 +3399,22 @@
                 <button class="modal-close" onclick="closeModal('export-csv-modal')">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">Choisissez les données à exporter (compatible Excel)</p>
+                <p style="color: var(--text-secondary); margin-bottom: 4px;">Choisissez les données à exporter (compatible Excel)</p>
+                <p id="export-share-hint" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 16px; display: none;">📤 Partage natif disponible sur cet appareil</p>
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     <button class="btn btn-secondary" onclick="exportToCSV('nutrition')" style="justify-content: flex-start; gap: 12px;">
                         <span style="font-size: 1.2rem;">🥗</span>
-                        <span>Journal Nutrition</span>
+                        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                            <span>Journal Nutrition</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">date, repas, aliment, macros</span>
+                        </div>
                     </button>
                     <button class="btn btn-secondary" onclick="exportToCSV('training')" style="justify-content: flex-start; gap: 12px;">
                         <span style="font-size: 1.2rem;">🏋️</span>
-                        <span>Séances d'entraînement</span>
+                        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                            <span>Séances — Séries détaillées</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">poids, reps, RPE, 1RM estimé</span>
+                        </div>
                     </button>
                     <button class="btn btn-secondary" onclick="exportToCSV('bodyweight')" style="justify-content: flex-start; gap: 12px;">
                         <span style="font-size: 1.2rem;">⚖️</span>
@@ -3785,6 +3766,7 @@
     <script src="js/modules/theme.js?v=6"></script>
     <script src="js/modules/onboarding.js?v=1"></script>
     <script src="js/modules/ai-insights.js?v=2"></script>
+    <script src="js/modules/coach-engine.js?v=1"></script>
     <script src="js/app.js?v=34"></script>
 
 </body>

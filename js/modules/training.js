@@ -565,6 +565,13 @@ function renderCurrentExercise() {
     // Render completed sets for this exercise
     renderCompletedSets();
 
+    // ── Coach: warmup panel + RPE suggestion ──────────────────────────
+    // Appel après remplissage du weight input (suggestedWeight déjà calculé)
+    renderWarmupPanel();
+    if (exercise && typeof renderRpeSuggestion === 'function') {
+        renderRpeSuggestion(exercise.effectiveName);
+    }
+
     // Update contextual action button label
     updateActionButton();
 }
@@ -581,7 +588,10 @@ function renderCompletedSets() {
         return;
     }
 
-    container.innerHTML = exerciseSets.map(set => {
+    const prevCount = container._prevSetCount || 0;
+    const isNewSet = exerciseSets.length > prevCount;
+
+    container.innerHTML = exerciseSets.map((set, idx) => {
         // Déterminer les classes et labels pour techniques avancées
         let extraClass = '';
         let labelPrefix = '';
@@ -596,6 +606,10 @@ function renderCompletedSets() {
             labelPrefix = `S${set.setIndex + 1}`;
         }
 
+        // Marquer uniquement le dernier set si nouvellement ajouté
+        const isNew = isNewSet && idx === exerciseSets.length - 1;
+        if (isNew) extraClass += ' set-just-added';
+
         return `
             <div class="fs-completed-set${extraClass}" data-exercise-index="${set.exerciseIndex}" data-set-index="${set.setIndex}">
                 <span class="fs-completed-set-num">${labelPrefix}</span>
@@ -607,6 +621,8 @@ function renderCompletedSets() {
             </div>
         `;
     }).join('');
+
+    container._prevSetCount = exerciseSets.length;
 
     // Attacher SwipeToDelete sur chaque série complétée
     if (window.SwipeToDelete) {
@@ -620,6 +636,138 @@ function renderCompletedSets() {
         });
     }
 }
+
+// ==================== WARMUP SETS CALCULÉS ====================
+
+/**
+ * Détermine si un exercice est un mouvement composé méritant un échauffement
+ */
+function _isCompoundForWarmup(exerciseName, exercise) {
+    if (exercise && exercise.type === 'compound') return true;
+    // Fallback sur le nom pour les exercices sans type défini
+    const compoundKeywords = [
+        'squat', 'soulevé', 'deadlift', 'développé', 'bench', 'press',
+        'rowing', 'row', 'tirage', 'tractions', 'pull', 'militaire', 'overhead',
+        'hip thrust', 'hack squat', 'leg press', 'presse'
+    ];
+    const nameLower = (exerciseName || '').toLowerCase();
+    return compoundKeywords.some(kw => nameLower.includes(kw));
+}
+
+/**
+ * Calcule les warmup sets pour un exercice avec poids de travail donné.
+ * @param {number} workingWeight — poids de travail (kg)
+ * @param {string} exerciseName
+ * @param {object} exercise — objet exercice (pour vérifier type)
+ * @param {number} barWeight — poids de la barre (défaut 20kg)
+ * @returns {Array} — tableau de { reps, weight, pct }
+ */
+function computeWarmupSets(workingWeight, exerciseName, exercise, barWeight) {
+    barWeight = barWeight || 20;
+    if (!workingWeight || workingWeight <= 0) return [];
+    if (!_isCompoundForWarmup(exerciseName, exercise)) return [];
+
+    // Pas d'échauffement si poids de travail proche de la barre
+    if (workingWeight <= barWeight + 10) return [];
+
+    const round = (w) => Math.round(w / 2.5) * 2.5;
+
+    const candidates = [
+        { reps: 8, pct: 0.4, label: '40%' },
+        { reps: 5, pct: 0.6, label: '60%' },
+        { reps: 3, pct: 0.8, label: '80%' }
+    ];
+
+    return candidates
+        .map(c => ({
+            reps: c.reps,
+            weight: Math.max(barWeight, round(workingWeight * c.pct)),
+            pct: c.label
+        }))
+        .filter(s => s.weight < workingWeight);  // exclure si = working weight
+}
+
+/**
+ * Rend le panneau d'échauffement pour l'exercice courant
+ */
+function renderWarmupPanel() {
+    const panel = document.getElementById('fs-warmup-panel');
+    const setsContainer = document.getElementById('fs-warmup-sets');
+    if (!panel || !setsContainer) return;
+
+    const exercise = fsSession.exercises?.[fsSession.currentExerciseIndex];
+    if (!exercise) { panel.style.display = 'none'; return; }
+
+    // Afficher seulement sur la première série de travail
+    const completedForExercise = (fsSession.completedSets || []).filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex && !s.isWarmup
+    );
+    if (completedForExercise.length > 0) { panel.style.display = 'none'; return; }
+
+    const workingWeight = parseFloat(document.getElementById('fs-weight-input')?.value) || 0;
+    const warmupSets = computeWarmupSets(workingWeight, exercise.effectiveName, exercise);
+
+    if (warmupSets.length === 0) { panel.style.display = 'none'; return; }
+
+    setsContainer.innerHTML = warmupSets.map((s, i) => `
+        <div class="fs-warmup-row">
+            <span class="fs-warmup-row-num">${i + 1}</span>
+            <span class="fs-warmup-row-detail"><strong>${s.weight}kg</strong> × ${s.reps} reps</span>
+            <span class="fs-warmup-row-pct">${s.pct}</span>
+        </div>
+    `).join('');
+
+    panel.style.display = '';
+}
+
+/**
+ * Toggle collapse du panneau warmup
+ */
+function toggleWarmupPanel() {
+    const panel = document.getElementById('fs-warmup-panel');
+    if (panel) panel.classList.toggle('collapsed');
+}
+
+window.toggleWarmupPanel = toggleWarmupPanel;
+
+// ==================== RPE SUGGESTION BANNER ====================
+
+/**
+ * Affiche une bannière de suggestion de poids basée sur le RPE de la dernière session.
+ */
+function renderRpeSuggestion(exerciseName) {
+    const banner = document.getElementById('fs-rpe-suggestion');
+    if (!banner) return;
+
+    if (!window.SmartTraining || typeof window.SmartTraining.calculateSuggestedWeight !== 'function') {
+        banner.style.display = 'none';
+        return;
+    }
+
+    try {
+        const suggestion = window.SmartTraining.calculateSuggestedWeight(exerciseName);
+        if (!suggestion || !suggestion.message || suggestion.source === 'none') {
+            banner.style.display = 'none';
+            return;
+        }
+
+        // Afficher uniquement si la source est RPE
+        if (!suggestion.action || !suggestion.action.startsWith('rpe_')) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        banner.innerHTML = `
+            <span class="fs-rpe-suggestion-icon">📈</span>
+            <span class="fs-rpe-suggestion-text">${suggestion.message}</span>
+        `;
+        banner.style.display = 'flex';
+    } catch (_) {
+        banner.style.display = 'none';
+    }
+}
+
+// ==================== (FIN) WARMUP + RPE ====================
 
 // Constantes de validation
 const MAX_REPS = 500;

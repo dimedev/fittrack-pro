@@ -442,22 +442,114 @@ function getDayName(dayIndex) {
     return days[dayIndex];
 }
 
+// ==================== NUTRITION GOAL CARD (Dashboard) ====================
+
+/**
+ * Rend la carte "Pour atteindre ton objectif aujourd'hui" dans le dashboard.
+ * Suggère 3 aliments pour fermer le gap protéines/calories.
+ */
+function renderNutritionGoalCard() {
+    const container = document.getElementById('nutrition-goal-card');
+    if (!container) return;
+
+    // Ne rien afficher si pas de profil ou de foods
+    if (!state?.profile || !state?.foods?.length) { container.innerHTML = ''; return; }
+
+    const nutrition = getNutritionContext();
+    const remainingProtein = Math.max(0, (state.profile.macros?.protein || 150) - (nutrition.consumed?.protein || 0));
+    const remainingCals = Math.max(0, (state.profile.targetCalories || 2000) - (nutrition.consumed?.calories || 0));
+
+    // Afficher uniquement si déficit protéines > 20g (sinon la carte n'est pas utile)
+    if (remainingProtein < 20) { container.innerHTML = ''; return; }
+
+    // Scorer les aliments par capacité à fermer le gap protéines
+    const scored = (state.foods || [])
+        .filter(f => f.protein > 0 && f.calories > 0)
+        .map(f => {
+            const qty = f.unitWeight || 100;
+            const prot = (f.protein * qty) / 100;
+            const cals = (f.calories * qty) / 100;
+            // Score = combien de protéines l'aliment apporte par rapport au gap, sans dépasser les calories
+            const protScore = Math.min(prot / Math.max(remainingProtein, 1), 1) * 60;
+            const calPenalty = cals > remainingCals ? 20 : 0;
+            return { food: f, prot: Math.round(prot), cals: Math.round(cals), qty, score: protScore - calPenalty };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+
+    if (scored.length === 0) { container.innerHTML = ''; return; }
+
+    const items = scored.map(item => `
+        <div class="ngc-item">
+            <div class="ngc-item-info">
+                <span class="ngc-item-name">${item.food.name}</span>
+                <span class="ngc-item-detail">${item.qty}g · +${item.prot}g prot · ${item.cals} kcal</span>
+            </div>
+            <button class="ngc-item-add" onclick="quickAddNutritionGoalFood(${item.food.id || JSON.stringify(item.food.id)}, ${item.qty})" title="Ajouter">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+        </div>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="nutrition-goal-card card">
+            <div class="ngc-header">
+                <span class="ngc-icon">🎯</span>
+                <div class="ngc-title">
+                    <span class="ngc-heading">Il te manque ${remainingProtein}g de protéines</span>
+                    <span class="ngc-sub">Ajoute l'un de ces aliments</span>
+                </div>
+            </div>
+            <div class="ngc-list">${items}</div>
+        </div>
+    `;
+}
+
+/**
+ * Ajoute rapidement un aliment depuis la carte nutrition-goal au repas en cours
+ */
+function quickAddNutritionGoalFood(foodId, quantity) {
+    if (!window.addFoodToMeal) return;
+
+    // Déterminer le repas selon l'heure
+    const hour = new Date().getHours();
+    let meal = 'snack';
+    if (hour >= 5 && hour < 10) meal = 'breakfast';
+    else if (hour >= 11 && hour < 14) meal = 'lunch';
+    else if (hour >= 18 && hour < 22) meal = 'dinner';
+
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) return;
+
+    addFoodToMeal(meal, food, quantity);
+    showToast(`${food.name} ajouté (${meal})`, 'success');
+    renderNutritionGoalCard(); // Rafraîchir
+}
+
+window.quickAddNutritionGoalFood = quickAddNutritionGoalFood;
+
 // ==================== EXPORTS ====================
 
 window.NutritionSuggestions = {
     // Génération
     generate: generateSmartSuggestions,
     getDailyMessage: generateDailySuggestionMessage,
-    
+
     // Contexte
     getTrainingContext,
     getTimeContext,
     getNutritionContext,
-    
+
     // Analyse
     analyzeHabits: analyzeEatingHabits,
-    
+
+    // Dashboard card
+    renderGoalCard: renderNutritionGoalCard,
+
     // Constantes
     MAX: MAX_SUGGESTIONS,
     TYPES: SUGGESTION_TYPES
 };
+
+// Exposer pour appel depuis nutrition-ui.js
+window.renderNutritionGoalCard = renderNutritionGoalCard;

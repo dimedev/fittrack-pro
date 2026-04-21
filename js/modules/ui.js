@@ -490,16 +490,39 @@ function _navigateToSectionInternal(sectionId) {
     // Déplacer l'indicateur du menu mobile
     updateMobileNavIndicator(sectionId);
 
-    // Afficher la section avec animation directionnelle
+    // Masquer toutes les sections sauf l'active courante
     document.querySelectorAll('.section').forEach(s => {
-        s.classList.remove('active', 'slide-left', 'slide-right');
+        if (!s.classList.contains('active')) {
+            s.classList.remove('slide-left', 'slide-right', 'section-exiting', 'exit-left', 'exit-right');
+        }
     });
 
+    const prevSectionEl = currentSection ? document.getElementById(currentSection) : null;
     const targetSection = document.getElementById(sectionId);
+    const isChangingSection = currentSection && currentSection !== sectionId;
+
+    // Animer la sortie de la section courante
+    if (prevSectionEl && isChangingSection && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const exitDir = direction === 'right' ? 'left' : 'right';
+        prevSectionEl.classList.remove('active', 'slide-left', 'slide-right');
+        prevSectionEl.classList.add('section-exiting', `exit-${exitDir}`);
+
+        const cleanup = () => {
+            prevSectionEl.classList.remove('section-exiting', 'exit-left', 'exit-right');
+            prevSectionEl.style.display = '';
+            prevSectionEl.removeEventListener('animationend', cleanup);
+        };
+        prevSectionEl.addEventListener('animationend', cleanup, { once: true });
+        // Failsafe si animationend ne fire pas (navigation rapide)
+        setTimeout(cleanup, 350);
+    } else if (prevSectionEl && isChangingSection) {
+        prevSectionEl.classList.remove('active', 'slide-left', 'slide-right');
+    }
+
+    // Afficher la section cible avec animation d'entrée
     if (targetSection) {
         targetSection.classList.add('active');
-        // Appliquer l'animation uniquement si on change de section
-        if (currentSection && currentSection !== sectionId) {
+        if (isChangingSection) {
             targetSection.classList.add(`slide-${direction}`);
         }
     }
@@ -594,8 +617,9 @@ function openModal(modalId) {
         modal.classList.add('active');
         ModalManager.lock(modalId);
 
-        // Setup swipe to close on mobile
-        if (window.innerWidth <= 768) {
+        // Setup swipe to close on mobile (once only per element)
+        if (window.innerWidth <= 768 && modal.dataset.swipeInit !== 'true') {
+            modal.dataset.swipeInit = 'true';
             setupModalSwipe(modal);
         }
     }
@@ -681,13 +705,31 @@ function setupModalSwipe(overlay) {
 
 // Fermer les modales en cliquant sur l'overlay
 function setupModals() {
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
+    // Backdrop click sur les modal-overlay existants + dynamiques (délégation)
+    document.addEventListener('click', (e) => {
+        const overlay = e.target;
+        if (
+            overlay.classList.contains('modal-overlay') &&
+            overlay.classList.contains('active') &&
+            e.target === overlay
+        ) {
+            // Utiliser closeModal pour bénéficier de l'animation de sortie
+            const modalId = overlay.id;
+            if (modalId && typeof closeModal === 'function') {
+                closeModal(modalId);
+            } else {
                 overlay.classList.remove('active');
                 ModalManager.unlock(overlay.id);
             }
-        });
+        }
+    }, { capture: false });
+
+    // Garde aussi l'écouteur direct (compat anciennes ouvertures dynamiques)
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        if (!overlay._backdropListenerSet) {
+            overlay._backdropListenerSet = true;
+            // L'écouteur délégué ci-dessus gère déjà le clic — pas de doublon
+        }
     });
 
     // Fermer avec Escape — gere TOUTES les modals (overlay + sheets + custom)

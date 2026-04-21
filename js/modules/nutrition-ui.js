@@ -605,6 +605,11 @@ function updateMacroRings() {
 
     // NOUVEAU: Mettre à jour les anneaux SVG statiques de l'onglet Nutrition
     updateNutritionSVGRings(consumed, targets);
+
+    // Carte "Pour atteindre ton objectif" dans le dashboard
+    if (typeof renderNutritionGoalCard === 'function') {
+        renderNutritionGoalCard();
+    }
 }
 
 // Animer les progress rings SVG de l'onglet Nutrition
@@ -638,13 +643,55 @@ function updateNutritionSVGRings(consumed, targets) {
 
         // Ajouter/retirer la classe "complete" pour le glow effect
         if (container) {
-            if (percentage >= 100) {
+            const wasComplete = container.dataset.wasComplete === '1';
+            const nowComplete = percentage >= 100;
+
+            if (nowComplete) {
                 container.classList.add('complete');
+                // Déclencher le burst uniquement lors de la transition incomplete → complete
+                if (!wasComplete) {
+                    container.dataset.wasComplete = '1';
+                    _triggerRingBurst(container);
+                    if (window.HapticFeedback) HapticFeedback.success();
+                }
             } else {
                 container.classList.remove('complete');
+                container.dataset.wasComplete = '';
             }
         }
     });
+}
+
+/**
+ * Burst de 5 particules autour du ring quand il atteint 100%
+ */
+function _triggerRingBurst(container) {
+    // Skip si prefers-reduced-motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    container.style.position = 'relative';
+
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+        const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+        const dist = 30 + Math.random() * 16;
+        const tx = Math.cos(angle) * dist + 'px';
+        const ty = Math.sin(angle) * dist + 'px';
+
+        const p = document.createElement('span');
+        p.className = 'ring-burst-particle';
+        p.style.setProperty('--tx', tx);
+        p.style.setProperty('--ty', ty);
+        p.style.left = '50%';
+        p.style.top = '50%';
+        p.style.marginLeft = '-3px';
+        p.style.marginTop = '-3px';
+        p.style.animationDelay = (i * 30) + 'ms';
+        container.appendChild(p);
+
+        // Retirer après l'animation
+        setTimeout(() => p.remove(), 600 + i * 30);
+    }
 }
 
 // Mise à jour des barres de macros (fallback mobile)

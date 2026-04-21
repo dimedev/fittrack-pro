@@ -368,6 +368,7 @@ h1, h2, h3, h4, h5, h6 {
     max-width: 1200px;
     margin: 0 auto;
     padding: 24px;
+    position: relative; /* nécessaire pour position:absolute des sections en sortie */
 }
 
 .section {
@@ -404,6 +405,37 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes slideInLeft {
     from { opacity: 0; transform: translateX(-30px); }
     to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideOutLeft {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-20px); }
+}
+
+@keyframes slideOutRight {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(20px); }
+}
+
+/* Section en cours de disparition (JS applique display:none après animationend) */
+.section-exiting {
+    display: flex !important;
+    flex-direction: column;
+    gap: 16px;
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 0;
+}
+
+.section-exiting.exit-left {
+    animation: slideOutLeft 200ms ease-in forwards;
+}
+
+.section-exiting.exit-right {
+    animation: slideOutRight 200ms ease-in forwards;
 }
 
 /* ── Section child stagger animation ────────────────────────── */
@@ -1196,6 +1228,100 @@ h1, h2, h3, h4, h5, h6 {
     border-color: var(--border-hover);
 }
 
+/* ── Nutrition Goal Card ─────────────────────────────────────────── */
+.nutrition-goal-card {
+    padding: 16px;
+}
+
+.ngc-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.ngc-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.ngc-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ngc-heading {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ngc-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.ngc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ngc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.ngc-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ngc-item-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.ngc-item-detail {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.ngc-item-add {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-brand);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ngc-item-add:hover {
+    background: var(--accent-brand-hover);
+    transform: scale(1.1);
+}
+
+.ngc-item-add:active {
+    transform: scale(0.95);
+}
+/* ────────────────────────────────────────────────────────────────── */
+
 /* Card hierarchy — visual weight */
 .card--hero {
     border-color: rgba(255, 0, 0, 0.15);
@@ -1205,6 +1331,81 @@ h1, h2, h3, h4, h5, h6 {
 .card--compact {
     padding: 12px 16px;
 }
+
+/* ── Dashboard secondary collapsible ──────────────────────────────────── */
+.dashboard-secondary {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color var(--transition-base);
+}
+
+.dashboard-secondary[open] {
+    border-color: var(--border-hover);
+}
+
+.dashboard-secondary-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    background: var(--bg-card);
+    transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.dashboard-secondary-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.dashboard-secondary-toggle:hover {
+    background: var(--bg-hover);
+}
+
+.dashboard-secondary-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dashboard-secondary-label svg {
+    color: var(--accent-brand);
+    opacity: 0.8;
+}
+
+.dashboard-secondary-chevron {
+    color: var(--text-muted);
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+details.dashboard-secondary[open] .dashboard-secondary-chevron {
+    transform: rotate(180deg);
+}
+
+.dashboard-secondary-content {
+    padding: 0 0 8px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dashboard-secondary-content > * {
+    margin: 0 12px;
+}
+
+.dashboard-secondary-content > *:first-child {
+    margin-top: 12px;
+}
+/* ──────────────────────────────────────────────────────────────────────── */
 
 .card-header {
     display: flex;
@@ -4995,6 +5196,118 @@ h1, h2, h3, h4, h5, h6 {
 .suggestion-weight strong {
     color: var(--success);
 }
+
+/* ── Warmup Panel (in-session) ──────────────────────────────────── */
+.fs-warmup-panel {
+    background: rgba(255, 160, 0, 0.05);
+    border: 1px solid rgba(255, 160, 0, 0.2);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.fs-warmup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.fs-warmup-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #f59e0b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.fs-warmup-chevron {
+    color: #f59e0b;
+    transition: transform 200ms ease;
+}
+
+.fs-warmup-panel.collapsed .fs-warmup-chevron {
+    transform: rotate(180deg);
+}
+
+.fs-warmup-sets {
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fs-warmup-panel.collapsed .fs-warmup-sets {
+    display: none;
+}
+
+.fs-warmup-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 50px;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255, 160, 0, 0.06);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.fs-warmup-row-num {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 160, 0, 0.3);
+    color: #f59e0b;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.fs-warmup-row-detail {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.fs-warmup-row-pct {
+    text-align: right;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* ── RPE Suggestion Banner ──────────────────────────────────────── */
+.fs-rpe-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    color: #818cf8;
+}
+
+.fs-rpe-suggestion-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.fs-rpe-suggestion-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.fs-rpe-suggestion-text strong {
+    color: var(--text-primary);
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
 
 /* Warmup Modal */
 .warmup-sets {

@@ -1136,32 +1136,50 @@ function exportToCSV(type) {
             break;
 
         case 'training':
-            headers = ['Date', 'Type_Seance', 'Duree_min', 'Volume_Total_kg', 'Exercices', 'Series_Totales'];
-            filename = 'repzy-training';
+            // Export coach-grade : une ligne par série avec RPE, RIR, 1RM estimé
+            headers = ['Date', 'Seance', 'Exercice', 'Serie', 'Poids_kg', 'Reps', 'Volume_kg', '1RM_estime', 'RPE', 'RIR', 'Warmup', 'Notes'];
+            filename = 'repzy-training-detail';
 
             (state.sessionHistory || []).forEach(session => {
-                let totalVolume = 0;
-                let totalSets = 0;
-
                 (session.exercises || []).forEach(ex => {
-                    const sets = ex.setsDetail || ex.sets || [];
-                    if (Array.isArray(sets)) {
-                        sets.forEach(set => {
-                            if (set.completed !== false) {
-                                totalVolume += (set.weight || 0) * (set.reps || 0);
-                                totalSets++;
-                            }
+                    const setsDetail = ex.setsDetail || [];
+                    if (setsDetail.length > 0) {
+                        setsDetail.forEach((set, si) => {
+                            const w = set.weight || 0;
+                            const r = set.reps || 0;
+                            const oneRm = r === 1 ? w : Math.round(w * (1 + r / 30));
+                            data.push({
+                                Date: session.date,
+                                Seance: session.dayType || session.day || 'Custom',
+                                Exercice: ex.name || ex.effectiveName || '',
+                                Serie: si + 1,
+                                Poids_kg: w,
+                                Reps: r,
+                                Volume_kg: Math.round(w * r),
+                                '1RM_estime': oneRm,
+                                RPE: set.rpe || '',
+                                RIR: set.rir || '',
+                                Warmup: set.isWarmup ? 'Oui' : '',
+                                Notes: set.notes || ''
+                            });
+                        });
+                    } else {
+                        // Fallback si pas de setsDetail
+                        data.push({
+                            Date: session.date,
+                            Seance: session.dayType || session.day || 'Custom',
+                            Exercice: ex.name || ex.effectiveName || '',
+                            Serie: '',
+                            Poids_kg: ex.weight || '',
+                            Reps: ex.reps || '',
+                            Volume_kg: ex.volume || '',
+                            '1RM_estime': '',
+                            RPE: '',
+                            RIR: '',
+                            Warmup: '',
+                            Notes: ''
                         });
                     }
-                });
-
-                data.push({
-                    Date: session.date,
-                    Type_Seance: session.dayType || session.day || 'Custom',
-                    Duree_min: session.duration || 0,
-                    Volume_Total_kg: Math.round(totalVolume),
-                    Exercices: (session.exercises || []).length,
-                    Series_Totales: totalSets
                 });
             });
             break;
@@ -1221,15 +1239,43 @@ function exportToCSV(type) {
     // BOM UTF-8 pour Excel
     const BOM = '\uFEFF';
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
+    const dateStr = new Date().toISOString().split('T')[0];
+    const downloadFilename = `${filename}-${dateStr}.csv`;
+
+    // Tenter le partage natif sur mobile (iOS/Android)
+    if (navigator.share && navigator.canShare) {
+        const file = new File([blob], downloadFilename, { type: 'text/csv' });
+        const canShareFile = navigator.canShare({ files: [file] });
+        if (canShareFile) {
+            navigator.share({
+                title: `Export Repzy — ${type}`,
+                text: `Données exportées le ${dateStr}`,
+                files: [file]
+            }).then(() => {
+                showToast('Export partagé !', 'success');
+                closeModal('export-csv-modal');
+            }).catch(err => {
+                if (err.name !== 'AbortError') {
+                    _downloadCSV(blob, downloadFilename);
+                }
+            });
+            return;
+        }
+    }
+
+    // Fallback : téléchargement direct
+    _downloadCSV(blob, downloadFilename);
+    showToast(`✅ Export CSV "${type}" (${data.length} lignes)`, 'success');
+    closeModal('export-csv-modal');
+}
+
+function _downloadCSV(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-
-    showToast(`✅ Export CSV "${type}" (${data.length} lignes)`, 'success');
-    closeModal('export-csv-modal');
 }
 
 // Import des données
