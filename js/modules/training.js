@@ -565,12 +565,12 @@ function renderCurrentExercise() {
     // Render completed sets for this exercise
     renderCompletedSets();
 
-    // ── Coach: warmup panel + RPE suggestion ──────────────────────────
-    // Appel après remplissage du weight input (suggestedWeight déjà calculé)
+    // ── Coach: warmup panel + RPE suggestion + RPE quick picker ──────
     renderWarmupPanel();
     if (exercise && typeof renderRpeSuggestion === 'function') {
         renderRpeSuggestion(exercise.effectiveName);
     }
+    updateRpeQuickPicker();
 
     // Update contextual action button label
     updateActionButton();
@@ -596,7 +596,11 @@ function renderCompletedSets() {
         let extraClass = '';
         let labelPrefix = '';
 
-        if (set.isDrop) {
+        const isWarmup = !!set.isWarmup;
+        if (isWarmup) {
+            extraClass = ' is-warmup';
+            labelPrefix = `W${(set.warmupIndex || 0) + 1}`;
+        } else if (set.isDrop) {
             extraClass = ' is-drop';
             labelPrefix = `D${set.dropNumber || 1}`;
         } else if (set.isRestPause) {
@@ -610,23 +614,27 @@ function renderCompletedSets() {
         const isNew = isNewSet && idx === exerciseSets.length - 1;
         if (isNew) extraClass += ' set-just-added';
 
+        // Warmup sets : pas d'édition ni suppression (setIndex négatif)
+        const actionButtons = isWarmup ? '' : `
+                <button class="fs-completed-set-edit" onclick="editCompletedSet(${set.setIndex})">✎</button>
+                <button class="fs-completed-set-delete" onclick="deleteCompletedSet(${set.exerciseIndex}, ${set.setIndex})">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>`;
+
         return `
             <div class="fs-completed-set${extraClass}" data-exercise-index="${set.exerciseIndex}" data-set-index="${set.setIndex}">
                 <span class="fs-completed-set-num">${labelPrefix}</span>
                 <span class="fs-completed-set-value">${set.weight}kg × ${set.reps}</span>
-                <button class="fs-completed-set-edit" onclick="editCompletedSet(${set.setIndex})">✎</button>
-                <button class="fs-completed-set-delete" onclick="deleteCompletedSet(${set.exerciseIndex}, ${set.setIndex})">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
+                ${actionButtons}
             </div>
         `;
     }).join('');
 
     container._prevSetCount = exerciseSets.length;
 
-    // Attacher SwipeToDelete sur chaque série complétée
+    // Attacher SwipeToDelete sur les séries réelles (pas warmup)
     if (window.SwipeToDelete) {
-        container.querySelectorAll('.fs-completed-set').forEach(el => {
+        container.querySelectorAll('.fs-completed-set:not(.is-warmup)').forEach(el => {
             const exIdx = parseInt(el.dataset.exerciseIndex);
             const setIdx = parseInt(el.dataset.setIndex);
             new SwipeToDelete(el, {
@@ -688,7 +696,8 @@ function computeWarmupSets(workingWeight, exerciseName, exercise, barWeight) {
 }
 
 /**
- * Rend le panneau d'échauffement pour l'exercice courant
+ * Rend le panneau d'échauffement pour l'exercice courant.
+ * Chaque row a un bouton ✓ pour logger la série comme isWarmup.
  */
 function renderWarmupPanel() {
     const panel = document.getElementById('fs-warmup-panel');
@@ -698,27 +707,120 @@ function renderWarmupPanel() {
     const exercise = fsSession.exercises?.[fsSession.currentExerciseIndex];
     if (!exercise) { panel.style.display = 'none'; return; }
 
-    // Afficher seulement sur la première série de travail
-    const completedForExercise = (fsSession.completedSets || []).filter(
+    // Masquer si l'user a skippé pour cet exercice
+    const skipKey = `warmup-skip-${fsSession.currentExerciseIndex}`;
+    if (fsSession[skipKey]) { panel.style.display = 'none'; return; }
+
+    // Masquer après la première vraie série validée
+    const realSets = (fsSession.completedSets || []).filter(
         s => s.exerciseIndex === fsSession.currentExerciseIndex && !s.isWarmup
     );
-    if (completedForExercise.length > 0) { panel.style.display = 'none'; return; }
+    if (realSets.length > 0) { panel.style.display = 'none'; return; }
 
     const workingWeight = parseFloat(document.getElementById('fs-weight-input')?.value) || 0;
     const warmupSets = computeWarmupSets(workingWeight, exercise.effectiveName, exercise);
 
     if (warmupSets.length === 0) { panel.style.display = 'none'; return; }
 
-    setsContainer.innerHTML = warmupSets.map((s, i) => `
-        <div class="fs-warmup-row">
+    // Sets déjà validés en warmup pour cet exercice
+    const doneWarmupIndices = new Set(
+        (fsSession.completedSets || [])
+            .filter(s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isWarmup)
+            .map(s => s.warmupIndex)
+    );
+
+    setsContainer.innerHTML = warmupSets.map((s, i) => {
+        const done = doneWarmupIndices.has(i);
+        return `
+        <div class="fs-warmup-row${done ? ' done' : ''}" id="warmup-row-${i}">
             <span class="fs-warmup-row-num">${i + 1}</span>
-            <span class="fs-warmup-row-detail"><strong>${s.weight}kg</strong> × ${s.reps} reps</span>
+            <span class="fs-warmup-row-detail"><strong>${s.weight}kg</strong> × ${s.reps}</span>
             <span class="fs-warmup-row-pct">${s.pct}</span>
+            <button class="fs-warmup-row-check" onclick="logWarmupSet(${i}, ${s.weight}, ${s.reps})" title="${done ? 'Fait' : 'Marquer comme fait'}">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     panel.style.display = '';
 }
+
+/**
+ * Logue un set warmup dans completedSets (isWarmup: true) depuis le panel.
+ */
+function logWarmupSet(warmupIndex, weight, reps) {
+    const exercise = fsSession.exercises?.[fsSession.currentExerciseIndex];
+    if (!exercise) return;
+
+    // Éviter les doublons
+    const alreadyLogged = (fsSession.completedSets || []).some(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex &&
+             s.isWarmup && s.warmupIndex === warmupIndex
+    );
+    if (alreadyLogged) return;
+
+    const warmupSet = {
+        exerciseIndex: fsSession.currentExerciseIndex,
+        setIndex: -warmupIndex - 1,   // index négatif pour différencier des vraies séries
+        warmupIndex,
+        weight,
+        reps,
+        isWarmup: true,
+        rpe: null,
+        rir: null
+    };
+
+    if (!fsSession.completedSets) fsSession.completedSets = [];
+    fsSession.completedSets.push(warmupSet);
+    saveFsSessionToStorage();
+
+    if (window.HapticFeedback) HapticFeedback.light();
+
+    // Marquer la row comme done
+    const row = document.getElementById(`warmup-row-${warmupIndex}`);
+    if (row) row.classList.add('done');
+
+    // Vérifier si tous les warmup sets sont faits → réduire le panel
+    const exercise2 = fsSession.exercises?.[fsSession.currentExerciseIndex];
+    const workingWeight = parseFloat(document.getElementById('fs-weight-input')?.value) || 0;
+    const allWarmups = computeWarmupSets(workingWeight, exercise2.effectiveName, exercise2);
+    const doneCount = (fsSession.completedSets || []).filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex && s.isWarmup
+    ).length;
+
+    if (doneCount >= allWarmups.length) {
+        setTimeout(() => {
+            const panel = document.getElementById('fs-warmup-panel');
+            if (panel) panel.classList.add('collapsed');
+        }, 500);
+    }
+}
+
+window.logWarmupSet = logWarmupSet;
+
+/**
+ * Ignore le panneau warmup pour cet exercice.
+ */
+function skipWarmupPanel(event) {
+    if (event) event.stopPropagation(); // Ne pas toggler le collapse
+    const panel = document.getElementById('fs-warmup-panel');
+    if (panel) {
+        panel.style.transition = 'opacity 200ms ease, max-height 200ms ease';
+        panel.style.opacity = '0';
+        setTimeout(() => {
+            panel.style.display = 'none';
+            panel.style.opacity = '';
+        }, 200);
+    }
+    if (fsSession) {
+        const skipKey = `warmup-skip-${fsSession.currentExerciseIndex}`;
+        fsSession[skipKey] = true;
+    }
+    if (window.HapticFeedback) HapticFeedback.light();
+}
+
+window.skipWarmupPanel = skipWarmupPanel;
 
 /**
  * Toggle collapse du panneau warmup
@@ -729,6 +831,99 @@ function toggleWarmupPanel() {
 }
 
 window.toggleWarmupPanel = toggleWarmupPanel;
+
+// ==================== RPE QUICK PICKER ====================
+
+/** Labels descriptifs par valeur RPE */
+const RPE_LABELS = {
+    6:  'Très facile — plusieurs reps en réserve',
+    7:  'Facile — 3 reps en réserve',
+    8:  'Modéré — 2 reps en réserve',
+    9:  'Difficile — 1 rep en réserve',
+    10: 'Maximum — impossible de continuer'
+};
+
+/**
+ * Affiche/masque le RPE quick picker selon si on est sur la dernière série.
+ */
+function updateRpeQuickPicker() {
+    const picker = document.getElementById('fs-rpe-quick');
+    if (!picker) return;
+
+    const exercise = fsSession.exercises?.[fsSession.currentExerciseIndex];
+    if (!exercise) { picker.style.display = 'none'; return; }
+
+    const totalSets = exercise.sets || 4;
+    const completedForExercise = (fsSession.completedSets || []).filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex && !s.isWarmup
+    ).length;
+
+    // Afficher sur la dernière série uniquement
+    const isLastSet = (completedForExercise + 1) >= totalSets;
+
+    if (!isLastSet) {
+        picker.style.display = 'none';
+        return;
+    }
+
+    // Restaurer la sélection en cours si déjà choisie
+    const currentRpe = document.getElementById('fs-rpe-input')?.value;
+    if (currentRpe) {
+        _highlightRpeBtn(parseInt(currentRpe));
+    } else {
+        // Dé-sélectionner tous
+        document.querySelectorAll('.fs-rpe-btn').forEach(b => b.classList.remove('selected'));
+        const hint = document.getElementById('fs-rpe-quick-hint');
+        if (hint) hint.textContent = '';
+    }
+
+    picker.style.display = '';
+}
+
+/**
+ * Sélectionne une valeur RPE depuis le quick picker.
+ * Auto-remplit le select caché + haptic + highlight.
+ * @param {number} value — 6 à 10
+ */
+function selectQuickRpe(value) {
+    // Remplir le select caché (utilisé dans validateCurrentSet)
+    const rpeInput = document.getElementById('fs-rpe-input');
+    if (rpeInput) rpeInput.value = String(value);
+
+    // S'assurer que la section autoregulation est "active" (pour que validateCurrentSet lise la valeur)
+    const autoSection = document.getElementById('fs-autoregulation-section');
+    if (autoSection) autoSection.style.display = '';
+    const autoInputs = document.getElementById('fs-autoregulation-inputs');
+    if (autoInputs) autoInputs.style.display = '';
+
+    // Highlight visuel
+    _highlightRpeBtn(value);
+
+    // Hint texte
+    const hint = document.getElementById('fs-rpe-quick-hint');
+    if (hint) {
+        hint.textContent = RPE_LABELS[value] || '';
+        hint.style.color = _rpeColor(value);
+    }
+
+    // Haptic feedback
+    if (window.HapticFeedback) {
+        value >= 9 ? HapticFeedback.error() : HapticFeedback.light();
+    }
+}
+
+function _highlightRpeBtn(value) {
+    document.querySelectorAll('.fs-rpe-btn').forEach(b => {
+        b.classList.toggle('selected', parseInt(b.dataset.rpe) === value);
+    });
+}
+
+function _rpeColor(value) {
+    const colors = { 6: '#22c55e', 7: '#84cc16', 8: '#f59e0b', 9: '#f97316', 10: '#ef4444' };
+    return colors[value] || 'var(--text-muted)';
+}
+
+window.selectQuickRpe = selectQuickRpe;
 
 // ==================== RPE SUGGESTION BANNER ====================
 

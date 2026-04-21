@@ -3222,6 +3222,19 @@
                 </div>
             </div>
 
+            <!-- RPE Quick Picker (dernière série uniquement) -->
+            <div class="fs-rpe-quick" id="fs-rpe-quick" style="display: none;">
+                <span class="fs-rpe-quick-label">Difficulté ressentie ?</span>
+                <div class="fs-rpe-quick-buttons">
+                    <button class="fs-rpe-btn" data-rpe="6" onclick="selectQuickRpe(6)">6</button>
+                    <button class="fs-rpe-btn" data-rpe="7" onclick="selectQuickRpe(7)">7</button>
+                    <button class="fs-rpe-btn" data-rpe="8" onclick="selectQuickRpe(8)">8</button>
+                    <button class="fs-rpe-btn" data-rpe="9" onclick="selectQuickRpe(9)">9</button>
+                    <button class="fs-rpe-btn" data-rpe="10" onclick="selectQuickRpe(10)">10</button>
+                </div>
+                <span class="fs-rpe-quick-hint" id="fs-rpe-quick-hint"></span>
+            </div>
+
             <!-- Validate Button -->
             <button class="fs-validate-btn" id="fs-validate-btn" onclick="validateCurrentSet()">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -3253,7 +3266,10 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                         Échauffement suggéré
                     </span>
-                    <svg class="fs-warmup-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    <div class="fs-warmup-header-right">
+                        <button class="fs-warmup-skip-btn" onclick="skipWarmupPanel(event)" title="Ignorer l'échauffement">Ignorer</button>
+                        <svg class="fs-warmup-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    </div>
                 </div>
                 <div class="fs-warmup-sets" id="fs-warmup-sets">
                     <!-- Rempli par renderWarmupSets() -->

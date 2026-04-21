@@ -5199,10 +5199,11 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 
 /* ── Warmup Panel (in-session) ──────────────────────────────────── */
 .fs-warmup-panel {
-    background: rgba(255, 160, 0, 0.05);
-    border: 1px solid rgba(255, 160, 0, 0.2);
+    background: rgba(245, 158, 11, 0.04);
+    border: 1px solid rgba(245, 158, 11, 0.22);
     border-radius: var(--radius-md);
     overflow: hidden;
+    animation: fadeIn 200ms ease both;
 }
 
 .fs-warmup-header {
@@ -5225,6 +5226,30 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     letter-spacing: 0.04em;
 }
 
+.fs-warmup-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fs-warmup-skip-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color var(--transition-fast), background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.fs-warmup-skip-btn:hover,
+.fs-warmup-skip-btn:active {
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+}
+
 .fs-warmup-chevron {
     color: #f59e0b;
     transition: transform 200ms ease;
@@ -5245,15 +5270,24 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     display: none;
 }
 
+/* Warmup row — grid: [badge][detail][pct][check] */
 .fs-warmup-row {
     display: grid;
-    grid-template-columns: 28px 1fr 50px;
-    gap: 10px;
+    grid-template-columns: 26px 1fr 36px 32px;
+    gap: 8px;
     align-items: center;
-    padding: 8px 10px;
-    background: rgba(255, 160, 0, 0.06);
+    padding: 9px 10px;
+    background: rgba(245, 158, 11, 0.07);
+    border: 1px solid rgba(245, 158, 11, 0.1);
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
+    transition: background 150ms ease, opacity 150ms ease;
+}
+
+.fs-warmup-row.done {
+    opacity: 0.45;
+    background: rgba(34, 197, 94, 0.05);
+    border-color: rgba(34, 197, 94, 0.12);
 }
 
 .fs-warmup-row-num {
@@ -5262,22 +5296,154 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 160, 0, 0.3);
+    background: rgba(245, 158, 11, 0.28);
     color: #f59e0b;
     border-radius: 50%;
     font-size: 0.7rem;
     font-weight: 700;
+    flex-shrink: 0;
+}
+
+.fs-warmup-row.done .fs-warmup-row-num {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--accent-success);
 }
 
 .fs-warmup-row-detail {
     color: var(--text-primary);
     font-weight: 500;
+    line-height: 1.2;
 }
 
 .fs-warmup-row-pct {
-    text-align: right;
+    text-align: center;
     color: var(--text-muted);
+    font-size: 0.72rem;
+}
+
+/* Bouton ✓ par warmup row */
+.fs-warmup-row-check {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1.5px solid rgba(245, 158, 11, 0.3);
+    border-radius: 50%;
+    cursor: pointer;
+    color: #f59e0b;
+    transition: all 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+}
+
+.fs-warmup-row-check:hover {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: #f59e0b;
+}
+
+.fs-warmup-row-check:active {
+    transform: scale(0.9);
+}
+
+.fs-warmup-row.done .fs-warmup-row-check {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: var(--accent-success);
+    color: var(--accent-success);
+}
+
+/* ── RPE Quick Picker ────────────────────────────────────────────── */
+.fs-rpe-quick {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    border-radius: var(--radius-md);
+    animation: fadeIn 200ms ease both;
+}
+
+.fs-rpe-quick-label {
     font-size: 0.75rem;
+    font-weight: 600;
+    color: #818cf8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.fs-rpe-quick-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.fs-rpe-btn {
+    flex: 1;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+}
+
+/* Codage couleur RPE : 6 vert → 10 rouge */
+.fs-rpe-btn[data-rpe="6"]  { --rpe-color: #22c55e; }
+.fs-rpe-btn[data-rpe="7"]  { --rpe-color: #84cc16; }
+.fs-rpe-btn[data-rpe="8"]  { --rpe-color: #f59e0b; }
+.fs-rpe-btn[data-rpe="9"]  { --rpe-color: #f97316; }
+.fs-rpe-btn[data-rpe="10"] { --rpe-color: #ef4444; }
+
+.fs-rpe-btn:hover {
+    border-color: var(--rpe-color);
+    color: var(--rpe-color);
+    background: color-mix(in srgb, var(--rpe-color) 8%, transparent);
+    transform: translateY(-2px);
+}
+
+.fs-rpe-btn.selected {
+    background: var(--rpe-color);
+    border-color: var(--rpe-color);
+    color: white;
+    transform: scale(1.06);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--rpe-color) 35%, transparent);
+}
+
+.fs-rpe-btn:active {
+    transform: scale(0.94);
+}
+
+.fs-rpe-quick-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    min-height: 16px;
+    transition: color 150ms ease;
+}
+
+/* ── Completed sets : warmup différencié ─────────────────────────── */
+.fs-completed-set.is-warmup {
+    opacity: 0.55;
+    border-color: rgba(245, 158, 11, 0.2) !important;
+}
+
+.fs-completed-set.is-warmup .fs-completed-set-num {
+    color: #f59e0b;
+}
+
+.fs-completed-set.is-warmup .fs-completed-set-num::before {
+    content: '🔥';
+    font-size: 0.7rem;
+    margin-right: 2px;
 }
 
 /* ── RPE Suggestion Banner ──────────────────────────────────────── */
