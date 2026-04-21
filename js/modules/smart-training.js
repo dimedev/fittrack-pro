@@ -1474,102 +1474,33 @@
     function renderPhaseTransitionWidget() {
         const suggestion = suggestPhaseTransition();
 
-        if (!suggestion.shouldTransition) {
-            // Pas de transition suggérée, afficher statut actuel
-            const phaseNames = {
-                hypertrophy: 'Hypertrophie',
-                strength: 'Force',
-                deload: 'Deload',
-                peak: 'Peak'
-            };
-            const phaseColors = {
-                hypertrophy: 'var(--success)',
-                strength: 'var(--warning)',
-                deload: 'var(--info)',
-                peak: 'var(--danger)'
-            };
+        // Pas de transition : ne rien afficher (la phase est déjà dans le phase-strip)
+        if (!suggestion.shouldTransition) return '';
 
-            return `
-                <div class="phase-status-widget" style="
-                    background: var(--bg-tertiary);
-                    border-radius: 12px;
-                    padding: 12px 16px;
-                    margin-bottom: 12px;
-                ">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <span style="
-                            width: 8px;
-                            height: 8px;
-                            border-radius: 50%;
-                            background: ${phaseColors[suggestion.currentPhase] || 'var(--text-muted)'};
-                        "></span>
-                        <span style="font-weight: 600; color: var(--text-primary);">
-                            Phase ${phaseNames[suggestion.currentPhase] || suggestion.currentPhase}
-                        </span>
-                        <span style="font-size: 12px; color: var(--text-muted); margin-left: auto;">
-                            Semaine ${suggestion.weeksInPhase + 1}
-                        </span>
-                    </div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">
-                        ${suggestion.performanceTrend.progressingCount > 0
-                            ? `📈 ${suggestion.performanceTrend.progressingCount} exercice(s) en progression`
-                            : '➡️ Continuez sur cette lancée'}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Transition suggérée
-        const confidenceIcons = {
-            high: '🔴',
-            medium: '🟡',
-            low: '🟢'
+        // Bannière inline Pit Lane — minimaliste, non-intrusive
+        const phaseNamesFr = {
+            hypertrophy: 'Hypertrophie',
+            strength: 'Force',
+            deload: 'Deload',
+            peak: 'Peak'
         };
-        const phaseEmojis = {
-            hypertrophy: '💪',
-            strength: '🏋️',
-            deload: '🧘',
-            peak: '🎯'
-        };
+        const targetName = phaseNamesFr[suggestion.suggestedPhase] || suggestion.suggestedPhase;
+        const reason = (suggestion.reason || '').replace(/"/g, '&quot;');
 
         return `
-            <div class="phase-transition-widget" style="
-                background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-                border-radius: 12px;
-                padding: 16px;
-                margin-bottom: 12px;
-                color: white;
-            ">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 20px;">${phaseEmojis[suggestion.suggestedPhase] || '🔄'}</span>
-                    <span style="font-weight: 700; font-size: 14px;">
-                        Transition suggérée
-                    </span>
-                    <span style="font-size: 12px; opacity: 0.8; margin-left: auto;">
-                        ${confidenceIcons[suggestion.confidence]} ${suggestion.confidence === 'high' ? 'Recommandé' : suggestion.confidence === 'medium' ? 'Suggéré' : 'Optionnel'}
-                    </span>
+            <div class="transition-banner" role="status" aria-live="polite">
+                <div class="transition-banner-dot"></div>
+                <div class="transition-banner-body">
+                    <span class="transition-banner-label">Transition suggérée</span>
+                    <span class="transition-banner-text">${reason}</span>
                 </div>
-                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 12px;">
-                    ${suggestion.reason}
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button onclick="SmartTraining.applyPhaseTransition('${suggestion.suggestedPhase}')" class="btn btn-sm" style="
-                        background: white;
-                        color: var(--accent-primary);
-                        border: none;
-                        flex: 1;
-                        font-weight: 600;
-                    ">
-                        Passer en ${suggestion.suggestedPhase}
-                    </button>
-                    <button onclick="SmartTraining.dismissPhaseTransition()" class="btn btn-sm" style="
-                        background: rgba(255,255,255,0.2);
-                        color: white;
-                        border: none;
-                    ">
-                        Plus tard
-                    </button>
-                </div>
+                <button class="transition-banner-apply" onclick="SmartTraining.applyPhaseTransition('${suggestion.suggestedPhase}')" aria-label="Passer en phase ${targetName}">
+                    <span>${targetName}</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <button class="transition-banner-dismiss" onclick="SmartTraining.dismissPhaseTransition()" aria-label="Ignorer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
             </div>
         `;
     }

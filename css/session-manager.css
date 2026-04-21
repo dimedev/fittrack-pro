@@ -50,7 +50,7 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     padding: 16px;
-    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(0, 255, 136, 0.05) 100%);
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(255, 0, 0, 0.05) 100%);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md, 12px);
     margin-bottom: 16px;
@@ -533,7 +533,7 @@
 .wizard-option.selected {
     border-color: var(--accent-primary);
     background: var(--accent-glow);
-    box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.1);
+    box-shadow: 0 0 0 4px rgba(255, 0, 0, 0.1);
 }
 
 .wizard-option-value {
@@ -566,7 +566,7 @@
     color: var(--accent-primary);
     margin-top: 6px;
     padding: 4px 8px;
-    background: rgba(0, 255, 136, 0.1);
+    background: rgba(255, 0, 0, 0.1);
     border-radius: 4px;
     font-weight: 500;
 }
@@ -756,8 +756,17 @@
 }
 
 .session-card-current {
-    border-color: var(--accent-primary);
-    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(0, 255, 136, 0.05) 100%);
+    border-color: color-mix(in srgb, var(--accent-brand) 45%, transparent);
+    background: var(--bg-card);
+    position: relative;
+    overflow: hidden;
+}
+.session-card-current::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--accent-brand) 14%, transparent) 0%, transparent 55%);
+    pointer-events: none;
 }
 
 .session-card-badge {
@@ -840,13 +849,13 @@
     margin-bottom: 0;
 }
 
-/* Training Periodization Card */
+/* Training Periodization Card — remplacée par .training-phase-strip (Pit Lane) */
 .training-period-card {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 14px 18px;
-    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(0, 255, 136, 0.05) 100%);
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md, 12px);
     margin-bottom: 16px;
@@ -1323,7 +1332,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 
 .fs-validate-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3);
+    box-shadow: 0 8px 20px rgba(255, 0, 0, 0.3);
 }
 
 .fs-validate-btn:active {
@@ -4188,11 +4197,11 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 
 /* Editing mode transitions */
 .session-detail-exercises.editing .session-exercise-card {
-    border-color: rgba(0, 255, 136, 0.2);
+    border-color: rgba(255, 0, 0, 0.2);
 }
 
 .session-detail-exercises.editing .session-exercise-header {
-    background: rgba(0, 255, 136, 0.05);
+    background: rgba(255, 0, 0, 0.05);
 }
 
 /* ==================== EXERCISE INFO PREMIUM ==================== */
@@ -5339,7 +5348,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 
 .period-cycle-option.selected {
     border-color: var(--accent-primary);
-    background: rgba(0, 255, 136, 0.05);
+    background: rgba(255, 0, 0, 0.05);
 }
 
 .period-cycle-option.selected .period-cycle-check {
@@ -5458,7 +5467,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .period-tag:last-child {
-    background: rgba(0, 255, 136, 0.15);
+    background: rgba(255, 0, 0, 0.15);
     color: var(--accent-primary);
 }
 
@@ -5772,7 +5781,7 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     }
 
     .session-card-current:hover {
-        box-shadow: 0 8px 24px rgba(0, 255, 136, 0.2),
+        box-shadow: 0 8px 24px rgba(255, 0, 0, 0.2),
                     0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
@@ -7580,4 +7589,220 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 #fs-set-indicator {
     font-family: var(--font-mono);
     letter-spacing: 0.02em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FULL-SCREEN SESSION — PIT LANE POLISH
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Exercise header upgrade ──────────────────────────── */
+.fs-exercise-header {
+    position: relative;
+    padding: 4px 0 0;
+}
+.fs-exercise-name {
+    font-family: var(--font-sans);
+    font-size: clamp(1.5rem, 6vw, 2rem);
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    line-height: 1.02;
+    color: var(--text-primary);
+}
+
+/* Set indicator prominent — "SET 2 / 4" en mono bold */
+.fs-exercise-meta {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+#fs-set-indicator {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+#fs-set-indicator::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent-brand);
+    margin-right: 8px;
+    vertical-align: middle;
+    animation: fs-set-dot-pulse 1.8s ease-in-out infinite;
+}
+@keyframes fs-set-dot-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px color-mix(in srgb, var(--accent-brand) 60%, transparent); }
+    50% { opacity: 0.35; box-shadow: 0 0 0 color-mix(in srgb, var(--accent-brand) 0%, transparent); }
+}
+
+/* Progress bar (série actuelle sur total) — plus visible + anim */
+.fs-progress-bar {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-muted);
+    border-radius: 999px;
+}
+.fs-progress-fill {
+    position: relative;
+    background: linear-gradient(90deg, var(--accent-brand) 0%, var(--accent-brand-hover) 100%);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-brand) 50%, transparent);
+    transition: width 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fs-progress-fill::after {
+    content: '';
+    position: absolute; top: 0; right: 0;
+    width: 24px; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5));
+}
+
+/* ── Rest timer ring — ambient glow ──────────────────── */
+.rest-timer-circle-container {
+    filter: drop-shadow(0 0 0 transparent);
+    transition: filter 300ms ease;
+}
+.rest-timer-circle-container.timer-green {
+    filter: drop-shadow(0 0 24px color-mix(in srgb, var(--success) 35%, transparent));
+}
+.rest-timer-circle-container.timer-yellow {
+    filter: drop-shadow(0 0 24px color-mix(in srgb, #f59e0b 40%, transparent));
+}
+.rest-timer-circle-container.timer-red {
+    filter: drop-shadow(0 0 28px color-mix(in srgb, var(--danger) 55%, transparent));
+}
+.rest-timer-circle-container.timer-overtime {
+    filter: drop-shadow(0 0 32px color-mix(in srgb, var(--danger) 75%, transparent));
+    animation: timer-overtime-shake 0.6s ease-in-out infinite;
+}
+@keyframes timer-overtime-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+.rest-timer-track { stroke: color-mix(in srgb, var(--text-primary) 6%, transparent); }
+
+/* Halo radial derrière le timer (ambient pulse) */
+.rest-timer-circle-container::before {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, color-mix(in srgb, var(--accent-brand) 20%, transparent) 0%, transparent 60%);
+    opacity: 0;
+    z-index: -1;
+    animation: timer-halo-pulse 3s ease-in-out infinite;
+}
+.rest-timer-circle-container.timer-green::before { background: radial-gradient(circle at center, color-mix(in srgb, var(--success) 18%, transparent) 0%, transparent 60%); opacity: 0.7; }
+.rest-timer-circle-container.timer-yellow::before { background: radial-gradient(circle at center, color-mix(in srgb, #f59e0b 22%, transparent) 0%, transparent 60%); opacity: 0.8; }
+.rest-timer-circle-container.timer-red::before,
+.rest-timer-circle-container.timer-overtime::before { background: radial-gradient(circle at center, color-mix(in srgb, var(--danger) 28%, transparent) 0%, transparent 60%); opacity: 1; }
+
+@keyframes timer-halo-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+/* Timer label "REPOS" — mono tracking */
+.rest-timer-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem !important;
+    letter-spacing: 0.2em !important;
+    font-weight: 700 !important;
+    color: var(--text-muted) !important;
+}
+.rest-timer-time {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+/* ── Advanced techniques buttons — Pit Lane ─────────── */
+.fs-advanced-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+}
+.fs-drop-btn,
+.fs-restpause-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 11px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 160ms ease;
+    position: relative;
+    overflow: hidden;
+}
+.fs-drop-btn {
+    --tech-color: #f59e0b;
+}
+.fs-restpause-btn {
+    --tech-color: #3b82f6;
+}
+.fs-drop-btn:hover,
+.fs-restpause-btn:hover {
+    border-color: var(--tech-color);
+    color: var(--tech-color);
+    background: color-mix(in srgb, var(--tech-color) 8%, var(--bg-card));
+}
+.fs-drop-btn:active,
+.fs-restpause-btn:active {
+    transform: scale(0.97);
+}
+.fs-drop-btn svg,
+.fs-restpause-btn svg {
+    color: var(--tech-color);
+}
+
+/* Validate button : pit-lane shine (déjà existe partiellement) */
+.fs-validate-btn {
+    position: relative;
+    overflow: hidden;
+}
+.fs-validate-btn::before {
+    content: '';
+    position: absolute; top: 0; left: -100%;
+    width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+    transform: skewX(-20deg);
+    transition: left 700ms ease;
+}
+.fs-validate-btn:hover::before { left: 150%; }
+
+/* Previous perf chip — mono on bg-muted */
+.fs-previous {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+}
+.fs-previous-label {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+}
+.fs-previous-value {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rest-timer-circle-container::before,
+    .fs-validate-btn::before,
+    #fs-set-indicator::before { animation: none; }
+    .rest-timer-circle-container.timer-overtime { animation: none; }
 }
