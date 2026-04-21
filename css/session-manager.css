@@ -2800,12 +2800,15 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .quantity-total {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent-brand, #ff0000) 90%, #000) 0%,
+        var(--accent-brand, #ff0000) 50%,
+        color-mix(in srgb, var(--accent-brand, #ff0000) 70%, #ffffff) 100%);
     border-radius: var(--radius-lg, 16px);
     padding: 24px;
     text-align: center;
     margin-bottom: 8px;
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--accent-brand, #ff0000) 30%, transparent);
 }
 
 .quantity-total-label {
@@ -6634,10 +6637,14 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     border-radius: 2px;
     flex-shrink: 0;
 }
-.heatmap-cell.i0 { background: rgba(255,255,255,0.06); }
-.heatmap-cell.i1 { background: rgba(52, 211, 153, 0.28); }
-.heatmap-cell.i2 { background: rgba(52, 211, 153, 0.60); }
-.heatmap-cell.i3 { background: rgba(52, 211, 153, 1.00); }
+/* Heatmap Pit Lane — 4 niveaux brand rouge (noir → rouge saturé) */
+.heatmap-cell.i0 { background: color-mix(in srgb, var(--accent-brand, #ff0000) 0%, #111); }
+.heatmap-cell.i1 { background: color-mix(in srgb, var(--accent-brand, #ff0000) 22%, #0a0a0a); }
+.heatmap-cell.i2 { background: color-mix(in srgb, var(--accent-brand, #ff0000) 55%, #0a0a0a); }
+.heatmap-cell.i3 {
+    background: var(--accent-brand, #ff0000);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent);
+}
 /* Aligner les mois sur la grille du heatmap : 53 colonnes 11px + gap 3px comme .heatmap-grid */
 .heatmap-months {
     display: grid;

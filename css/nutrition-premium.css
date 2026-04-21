@@ -512,11 +512,12 @@ body.modal-open {
 .cardio-calories {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #22c55e;
+    color: var(--macro-calories, #ff0000);
+    font-variant-numeric: tabular-nums;
 }
 
 .cardio-calories.has-sessions {
-    color: #22c55e;
+    color: var(--macro-calories, #ff0000);
 }
 
 .cardio-items {
@@ -566,7 +567,8 @@ body.modal-open {
 .cardio-item-calories {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #22c55e;
+    color: var(--macro-calories, #ff0000);
+    font-variant-numeric: tabular-nums;
 }
 
 .cardio-item-delete {
@@ -596,8 +598,8 @@ body.modal-open {
     align-items: center;
     gap: 12px;
     padding: 14px 16px;
-    background: rgba(249, 115, 22, 0.08);
-    border: 1px solid rgba(249, 115, 22, 0.2);
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 22%, transparent);
     border-radius: 12px;
     margin-bottom: 16px;
 }
@@ -622,18 +624,20 @@ body.modal-open {
 .suggestion-action {
     align-self: flex-start;
     padding: 6px 12px;
-    background: #f97316;
+    background: var(--accent-brand, #ff0000);
     color: white;
     border: none;
     border-radius: 6px;
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .suggestion-action:hover {
-    background: #ea580c;
+    background: var(--accent-brand-hover, #cc0000);
+    box-shadow: 0 2px 12px color-mix(in srgb, var(--accent-brand, #ff0000) 40%, transparent);
 }
 
 /* Bouton refresh suggestions */
@@ -1045,9 +1049,11 @@ body.modal-open {
 }
 
 .cardio-estimate-value {
+    font-family: var(--font-mono, monospace);
+    font-variant-numeric: tabular-nums;
     font-size: 1.8rem;
     font-weight: 700;
-    color: #22c55e;
+    color: var(--macro-calories, #ff0000);
 }
 
 .cardio-estimate-note {
@@ -1085,14 +1091,14 @@ body.modal-open {
 }
 
 .quantity-preset.selected {
-    background: rgba(249, 115, 22, 0.15);
-    border-color: #f97316;
-    color: #f97316;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 15%, transparent);
+    border-color: var(--accent-brand, #ff0000);
+    color: #fff;
 }
 
 /* Preset par défaut - légère mise en évidence */
 .quantity-preset-default {
-    border-color: var(--accent-secondary, #22c55e);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent);
     position: relative;
 }
 
@@ -1103,8 +1109,9 @@ body.modal-open {
     right: -2px;
     width: 8px;
     height: 8px;
-    background: var(--accent-secondary, #22c55e);
+    background: var(--accent-brand, #ff0000);
     border-radius: 50%;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--accent-brand, #ff0000) 60%, transparent);
 }
 
 /* Grille avec plus de presets */
@@ -1203,7 +1210,9 @@ body.modal-open {
 
 .meal-section.goal-reached {
     animation: pulseSuccess 0.8s ease-out;
-    border-color: #22c55e !important;
+    border-color: var(--accent-brand, #ff0000) !important;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-brand, #ff0000) 30%, transparent),
+                0 0 24px color-mix(in srgb, var(--accent-brand, #ff0000) 18%, transparent);
 }
 
 /* Swipe to delete hint */
@@ -1246,7 +1255,7 @@ body.modal-open {
     bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    background: linear-gradient(135deg, var(--accent-brand, #ff0000) 0%, color-mix(in srgb, var(--accent-brand, #ff0000) 70%, #000) 100%);
     color: white;
     padding: 12px 24px;
     border-radius: 30px;
@@ -1372,10 +1381,12 @@ body.modal-open {
     transition: padding-bottom 0.3s ease; /* Animation douce */
 }
 
-/* Padding augmenté quand input focus (clavier ouvert) */
+/* Padding augmenté quand input focus (clavier ouvert)
+   Utilise env(keyboard-inset-height) quand dispo (iOS 16.4+) sinon fallback.
+   Évite le reset de scroll causé par un padding fixe 380px. */
 .meal-sheet:has(input:focus) .meal-scrollable-content,
 .meal-sheet:has(select:focus) .meal-scrollable-content {
-    padding-bottom: 380px; /* Espace pour le clavier mobile */
+    padding-bottom: calc(env(keyboard-inset-height, 320px) + 60px);
 }
 
 /* Container principal */
@@ -1450,30 +1461,63 @@ body.modal-open {
     stroke-width: 8;
 }
 
+/* Track sous le ring (le cercle gris de fond) */
+.ring-track {
+    stroke: var(--ring-track, rgba(255, 0, 0, 0.08));
+}
+
 .ring-progress {
     fill: none;
-    stroke-width: 8;
+    stroke-width: 7;
     stroke-linecap: round;
     stroke-dasharray: 314; /* 2 * PI * 50 (rayon) */
     stroke-dashoffset: 314;
     transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Couleurs par macro - harmonisées avec les barres */
+/* Palette Pit Lane — brand red + blanc/gris monochrome.
+   Le "hero" macro (protéines) est en blanc pur pour dominer,
+   les autres sont des nuances du rouge brand. */
 .ring-progress.calories {
-    stroke: #22c55e; /* Vert - même que la barre calories */
+    stroke: var(--macro-calories, #ff0000);
 }
 
 .ring-progress.protein {
-    stroke: #ef4444; /* Rouge - même que la barre protéines */
+    stroke: var(--macro-protein, #ffffff);
 }
 
 .ring-progress.carbs {
-    stroke: #3b82f6; /* Bleu - même que la barre glucides */
+    stroke: var(--macro-carbs, #ff3355);
 }
 
 .ring-progress.fat {
-    stroke: #f59e0b; /* Orange/Jaune - même que la barre lipides */
+    stroke: var(--macro-fat, #7a1414);
+}
+
+.ring-progress.fiber {
+    stroke: var(--macro-fiber, #8c8c8c);
+}
+
+/* Halo quand complet (100%) — color-matched au stroke */
+.macro-ring.complete .ring-progress {
+    animation: ring-complete-pulse 1.4s ease-out;
+}
+.macro-ring.complete.calories .ring-progress {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--macro-calories) 70%, transparent));
+}
+.macro-ring.complete.protein .ring-progress {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--macro-protein) 55%, transparent));
+}
+.macro-ring.complete.carbs .ring-progress {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--macro-carbs) 70%, transparent));
+}
+.macro-ring.complete.fat .ring-progress {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--macro-fat) 70%, transparent));
+}
+@keyframes ring-complete-pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.04); }
+    100% { transform: scale(1); }
 }
 
 /* Contenu central du ring */

@@ -8,13 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=46">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=47">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=45">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=46">
     <!-- Deferred: loaded async, applied when ready -->
-    <link rel="stylesheet" href="css/session-manager.css?v=38" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/session-manager.css?v=39" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=23" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="css/nutrition-premium.css?v=5" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/nutrition-premium.css?v=6" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/micro-animations.css?v=1" media="print" onload="this.media='all'">
@@ -1101,7 +1101,7 @@
 
     <!-- Profile Modal -->
     <div class="modal-overlay" id="profile-modal">
-        <div class="modal">
+        <div class="modal modal--md">
             <div class="modal-header">
                 <div class="modal-title">Mon Profil</div>
                 <button class="modal-close" aria-label="Fermer" onclick="closeModal('profile-modal')">&times;</button>
@@ -1171,7 +1171,7 @@
 
     <!-- Add Food Modal -->
     <div class="modal-overlay" id="add-food-modal">
-        <div class="modal">
+        <div class="modal modal--md">
             <div class="modal-header">
                 <div class="modal-title">Ajouter un Aliment</div>
                 <button class="modal-close" aria-label="Fermer" onclick="closeModal('add-food-modal')">&times;</button>
@@ -1403,7 +1403,7 @@
 
     <!-- Create Favorite Modal -->
     <div class="modal-overlay" id="create-favorite-modal">
-        <div class="modal" style="max-width: 600px;">
+        <div class="modal modal--md">
             <div class="modal-header">
                 <div class="modal-title">Créer un Repas Favori</div>
                 <button class="modal-close" aria-label="Fermer" onclick="closeModal('create-favorite-modal')">&times;</button>
@@ -1507,7 +1507,7 @@
 
     <!-- Swap Exercise Modal -->
     <div class="modal-overlay" id="swap-exercise-modal">
-        <div class="modal" style="max-width: 600px;">
+        <div class="modal modal--md">
             <div class="modal-header">
                 <div class="modal-title">Changer l'Exercice</div>
                 <button class="modal-close" aria-label="Fermer" onclick="closeModal('swap-exercise-modal')">&times;</button>
@@ -1668,7 +1668,7 @@
 
     <!-- Open Food Facts Search Modal -->
     <div class="modal-overlay" id="off-search-modal">
-        <div class="modal" style="max-width: 550px;">
+        <div class="modal modal--md">
             <div class="modal-header">
                 <div class="modal-title">🔍 Rechercher un Aliment</div>
                 <button class="modal-close" aria-label="Fermer" onclick="closeOFFSearchModal()">&times;</button>
@@ -1778,7 +1778,7 @@
 
     <!-- Photo Viewer Modal -->
     <div class="modal-overlay" id="photo-viewer-modal">
-        <div class="modal" style="max-width: 600px;">
+        <div class="modal modal--md">
             <div class="modal-header">
                 <div class="modal-title">📸 Détails</div>
                 <button class="modal-close" aria-label="Fermer" onclick="closeModal('photo-viewer-modal')">&times;</button>
@@ -1815,7 +1815,7 @@
 
     <!-- Compare Photos Modal -->
     <div class="modal-overlay" id="compare-modal">
-        <div class="modal" style="max-width: 800px;">
+        <div class="modal modal--lg">
             <div class="modal-header">
                 <div class="modal-title">🔄 Comparaison Avant/Après</div>
                 <button class="modal-close" aria-label="Fermer" onclick="closeModal('compare-modal')">&times;</button>
@@ -1862,7 +1862,7 @@
 
     <!-- Program Wizard Modal - Coach Edition -->
     <div class="modal-overlay" id="program-wizard-modal">
-        <div class="modal" style="max-width: 500px;">
+        <div class="modal modal--md">
             <div class="modal-header">
                 <div class="modal-title">🎯 Configurer mon Programme</div>
                 <button class="modal-close" aria-label="Fermer" onclick="closeModal('program-wizard-modal')">&times;</button>
@@ -3409,7 +3409,7 @@
 
     <!-- Modal Export CSV -->
     <div class="modal-overlay" id="export-csv-modal" style="display: none;">
-        <div class="modal">
+        <div class="modal modal--md">
             <div class="modal-header">
                 <h2>Exporter en CSV</h2>
                 <button class="modal-close" onclick="closeModal('export-csv-modal')">&times;</button>

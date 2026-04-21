@@ -907,108 +907,94 @@ html, body, main {
 }
 
 /* ==================== FIX 4: MODALES MOBILE (BOTTOM SHEET) ==================== */
+/* NOTE: règles de base gérées par Pit Lane Dialog dans style-nike-shadcn.css.
+   Ici on ne garde que les specs mobile: bottom-sheet, handle bar, min-height tap,
+   grid collapse. Pas de duplication de max-width/backdrop/animation. */
 
 @media (max-width: 768px) {
-    /* Overlay */
+    /* Overlay: ancrage en bas de l'écran pour effet bottom-sheet */
     .modal-overlay {
-        align-items: flex-end !important;
-        padding: 0 !important;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
+        align-items: flex-end;
+        padding: 0;
     }
 
-    .modal-overlay.active {
-        display: flex !important;
-    }
-
-    /* Modal en bottom sheet */
+    /* Modal = bottom-sheet full-width */
     .modal {
-        width: 100% !important;
         max-width: 100% !important;
-        max-height: calc(100vh - 60px) !important;
-        max-height: calc(100dvh - 60px) !important; /* Dynamic viewport */
-        margin: 0 !important;
-        border-radius: 20px 20px 0 0 !important;
-        animation: bottomSheetIn 0.3s cubic-bezier(0.32, 0.72, 0, 1) !important;
-        overflow: hidden;
+        width: 100%;
+        margin: 0;
+        border-radius: 22px 22px 0 0;
+        max-height: 92vh;
+        max-height: 92dvh;
+        animation: pl-bottom-sheet-up 300ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
-    @keyframes bottomSheetIn {
-        from {
-            transform: translateY(100%);
-            opacity: 0.8;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
+    @keyframes pl-bottom-sheet-up {
+        from { transform: translateY(100%); opacity: 0.85; }
+        to   { transform: translateY(0);    opacity: 1; }
     }
 
-    /* Handle de drag en haut */
-    .modal-header {
-        position: relative;
-        padding: 28px 20px 16px !important;
-        border-bottom: 1px solid var(--border-color);
+    /* Handle de drag (bottom-sheet look) — s'applique aussi aux propriétaires */
+    .modal,
+    .recipe-modal,
+    .meal-history-modal,
+    .barcode-scanner-modal {
+        padding-top: 14px;
     }
-
-    .modal-header::before {
+    .modal::before,
+    .recipe-modal::before,
+    .meal-history-modal::before,
+    .barcode-scanner-modal::before,
+    .bottom-sheet::before,
+    .cardio-sheet::before {
         content: '';
         position: absolute;
-        top: 10px;
-        left: 50%;
+        top: 8px; left: 50%;
         transform: translateX(-50%);
-        width: 40px;
-        height: 5px;
-        background: var(--border-hover);
+        width: 40px; height: 4px;
+        background: rgba(255, 255, 255, 0.28);
         border-radius: 3px;
+        z-index: 5;
+        pointer-events: none;
+    }
+    /* Handle s'élargit + rougit quand on drag */
+    .modal.dragging::before,
+    .modal:active::before {
+        width: 48px;
+        background: var(--accent-brand, #ff0000);
+    }
+    .modal-header {
+        padding-top: 20px !important;
     }
 
-    /* Bouton close accessible - SUPPRIMÉ, géré par Phase 4 unified modal system */
-    /* Voir section "BOUTON CLOSE UNIFIÉ - ROND STYLE iOS" plus bas */
+    /* Title: laisser respirer le close button */
+    .modal-title { padding-right: 50px; }
 
-    /* Modal title */
-    .modal-title {
-        font-size: 1.1rem;
-        padding-right: 50px; /* Espace pour bouton close */
-    }
-
-    /* Body scrollable avec safe area */
+    /* Body: scroll interne avec safe-area */
     .modal-body {
-        padding: 20px !important;
-        max-height: calc(100vh - 200px);
-        max-height: calc(100dvh - 200px);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
+        max-height: 70vh;
+        max-height: 70dvh;
     }
 
-    /* Footer sticky avec safe area */
+    /* Footer sticky (bouton toujours accessible au pouce) */
     .modal-footer {
         position: sticky;
         bottom: 0;
-        padding: 16px 20px !important;
-        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-        background: var(--bg-card);
-        border-top: 1px solid var(--border-color);
-        display: flex;
-        gap: 12px;
     }
-
     .modal-footer .btn {
         flex: 1;
         min-height: 48px;
         justify-content: center;
     }
 
-    /* Inputs dans modales */
+    /* Inputs au minimum 16px (anti-zoom iOS) */
     .modal .form-input,
     .modal .form-select {
         font-size: 16px !important;
         min-height: 48px !important;
     }
 
-    /* Grid dans modales */
+    /* Grid collapse en 1 colonne */
     .modal .grid-2 {
         grid-template-columns: 1fr !important;
         gap: 12px;
@@ -1479,14 +1465,11 @@ html, body, main {
     100% { background-position: -200% 0; }
 }
 
-/* Optimiser backdrop-filter coûteux */
+/* Optimiser backdrop-filter coûteux sur mobile */
 @media (max-width: 768px) {
-    .modal-overlay {
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-    }
-    
+    /* Modal overlay: on garde le blur Pit Lane (8px) géré par style-nike-shadcn.css
+       — sur mobile on peut conserver ce blur, c'est un effet signature premium */
+
     .mobile-nav {
         background: rgba(0, 0, 0, 0.97);
         backdrop-filter: none;
@@ -2216,164 +2199,13 @@ textarea:focus-visible {
     right: auto !important;
 }
 
-/* ==================== MODAL OVERLAY UNIFIÉ ==================== */
-
-.modal-overlay {
-    position: fixed !important;
-    inset: 0 !important;
-    background: rgba(0, 0, 0, 0.6) !important;
-    backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
-    z-index: 200 !important;
-    display: none;
-    transition: background-color 0.3s ease !important;
-}
-
-.modal-overlay.active {
-    display: flex !important;
-}
-
-/* ==================== MODAL BOTTOM SHEET MOBILE ==================== */
-
-@media (max-width: 768px) {
-    /* Overlay aligné en bas */
-    .modal-overlay {
-        align-items: flex-end !important;
-        padding: 0 !important;
-    }
-
-    /* Modal devient bottom sheet */
-    .modal,
-    .recipe-modal,
-    .meal-history-modal,
-    .barcode-scanner-modal {
-        width: 100% !important;
-        max-width: 100% !important;
-        max-height: calc(100vh - 60px) !important;
-        max-height: calc(100dvh - 60px) !important;
-        margin: 0 !important;
-        border-radius: var(--modal-radius, 20px) var(--modal-radius, 20px) 0 0 !important;
-        animation: modalSlideUp var(--modal-animation-duration, 300ms) var(--modal-animation-easing, cubic-bezier(0.32, 0.72, 0, 1)) !important;
-        overflow: visible !important;  /* Permet le scroll interne */
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        overscroll-behavior: contain !important;
-        position: relative !important;
-    }
-
-    /* Animation fermeture */
-    .modal.closing {
-        animation: modalSlideDown var(--modal-animation-duration, 300ms) var(--modal-animation-easing) forwards !important;
-    }
-
-    /* Animations */
-    @keyframes modalSlideUp {
-        from {
-            transform: translateY(100%);
-            opacity: 0.8;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes modalSlideDown {
-        from {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateY(100%);
-            opacity: 0;
-        }
-    }
-}
-
-/* ==================== DRAG HANDLE PREMIUM ==================== */
-
-@media (max-width: 768px) {
-    /* Handle de drag visible en haut de toutes les modales */
-    .modal::before,
-    .recipe-modal::before,
-    .meal-history-modal::before,
-    .barcode-scanner-modal::before,
-    .bottom-sheet::before,
-    .cardio-sheet::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 8px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: var(--modal-drag-handle-width, 36px) !important;
-        height: var(--modal-drag-handle-height, 5px) !important;
-        background: var(--text-muted) !important;
-        border-radius: 3px !important;
-        opacity: 0.5 !important;
-        transition: all 150ms ease !important;
-        z-index: 5 !important;
-        pointer-events: none !important;
-    }
-
-    /* Handle s'élargit quand on drag */
-    .modal.dragging::before,
-    .modal:active::before {
-        width: 48px !important;
-        opacity: 0.8 !important;
-        background: var(--accent-brand) !important;
-    }
-}
-
-/* ==================== MODAL HEADER UNIFIÉ ==================== */
-
-@media (max-width: 768px) {
-    .modal-header {
-        position: relative !important;
-        padding: 28px 20px 16px !important;
-        min-height: 60px !important;
-        border-bottom: 1px solid var(--border-color) !important;
-    }
-
-    .modal-title {
-        padding-right: 56px !important;
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-    }
-}
-
-/* ==================== MODAL BODY SCROLLABLE ==================== */
-
-@media (max-width: 768px) {
-    .modal-body {
-        padding: 20px !important;
-        max-height: calc(100vh - 200px) !important;
-        max-height: calc(100dvh - 200px) !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        overscroll-behavior: contain !important;
-    }
-}
-
-/* ==================== MODAL FOOTER STICKY ==================== */
-
-@media (max-width: 768px) {
-    .modal-footer {
-        position: sticky !important;
-        bottom: 0 !important;
-        padding: 16px 20px !important;
-        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-        background: var(--bg-card) !important;
-        border-top: 1px solid var(--border-color) !important;
-        display: flex !important;
-        gap: 12px !important;
-    }
-
-    .modal-footer .btn {
-        flex: 1 !important;
-        min-height: 48px !important;
-        justify-content: center !important;
-    }
-}
+/* ==================== MODAL SYSTEM NOTE ====================
+   Les règles de base .modal-overlay / .modal / .modal-header / .modal-body /
+   .modal-footer sont définies dans style-nike-shadcn.css (Pit Lane Dialog).
+   Les specs mobile (bottom-sheet, handle bar, sticky footer safe-area) sont
+   dans le bloc "FIX 4: MODALES MOBILE (BOTTOM SHEET)" plus haut. Pas de
+   duplication ici. Ce fichier ne contient plus que les fixes spécifiques
+   aux modales propriétaires (recipe/meal-history/barcode) ci-dessous. */
 
 /* ==================== FIX RECIPE/MEAL HISTORY MODALES ==================== */
 /* Ces modales ont une structure différente: wrapper > overlay + container */

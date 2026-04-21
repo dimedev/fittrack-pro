@@ -271,21 +271,30 @@
             return indicator;
         }
         
+        isAtTop() {
+            // Le container est une <section> non-scrollable (scrollTop toujours 0).
+            // On doit détecter si la fenêtre réelle est au top, sinon on prevent-default
+            // par erreur le scroll remontant de l'utilisateur.
+            const containerScroll = typeof this.container.scrollTop === 'number' ? this.container.scrollTop : 0;
+            const windowScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+            return containerScroll === 0 && windowScroll <= 0;
+        }
+
         onTouchStart(e) {
             if (this.refreshing) return;
-            if (this.container.scrollTop === 0) {
+            if (this.isAtTop()) {
                 this.startY = e.touches[0].clientY;
                 this.pulling = true;
             }
         }
-        
+
         onTouchMove(e) {
             if (!this.pulling || this.refreshing) return;
 
             const currentY = e.touches[0].clientY;
             const pull = currentY - this.startY;
 
-            if (pull > 0 && this.container.scrollTop === 0) {
+            if (pull > 0 && this.isAtTop()) {
                 e.preventDefault();
 
                 const resistance = 0.5;

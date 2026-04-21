@@ -41,6 +41,15 @@
     --warning: #f59e0b;
     --info: #3b82f6;
     --success: #22c55e;
+
+    /* ========== MACROS — Pit Lane brand palette ==========
+       Rouge brand + blanc + nuances. Zéro vert/bleu/orange hardcodés. */
+    --macro-protein:  #ffffff;                                            /* hero : blanc pur */
+    --macro-carbs:    color-mix(in srgb, #ff0000 85%, #ffffff);            /* red-rose attenué */
+    --macro-fat:      color-mix(in srgb, #ff0000 55%, #1a1a1a);            /* red-ember sombre */
+    --macro-fiber:    color-mix(in srgb, #ffffff 55%, #111111);            /* gris clair */
+    --macro-calories: #ff0000;                                             /* rouge pur */
+    --ring-track:     color-mix(in srgb, #ff0000 7%, #0a0a0a);
     
     /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -67,6 +76,105 @@
     --text-2xl: clamp(1.25rem, 5vw, 1.5rem);
     --text-3xl: clamp(1.5rem, 6vw, 2rem);
     --text-4xl: clamp(2rem, 8vw, 3rem);
+
+    /* ========== SPACING SYSTEM — Pit Lane scale (4/8/12/16/20/24/32) ========== */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-7: 28px;
+    --space-8: 32px;
+
+    /* ========== CARDS SYSTEM — baseline unifiée ========== */
+    --card-radius: 18px;
+    --card-radius-sm: 14px;
+    --card-padding: var(--space-5);
+    --card-padding-mobile: var(--space-4);
+    --card-border: 1px solid color-mix(in srgb, #fff 6%, transparent);
+    --card-border-hover: 1px solid color-mix(in srgb, #fff 10%, transparent);
+    --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    --card-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* ==================== PIT LANE CARDS BASELINE ====================
+   Système unifié pour toutes les cartes de l'app. Variantes opt-in :
+   .card--hero (radial-gradient + corner accent), .card--compact (tight),
+   .card--accent (brand border). Désormais, tous les styles ci-dessous
+   se composent sur cette base plutôt que d'être réinventés module par module. */
+
+.card,
+.stat-card,
+.pr-card,
+.upcoming-card,
+.photo-card {
+    background: var(--bg-card);
+    border-radius: var(--card-radius);
+    border: var(--card-border);
+    padding: var(--card-padding);
+    transition: border-color 180ms ease, transform 180ms ease, box-shadow 220ms ease;
+}
+
+@media (max-width: 768px) {
+    .card,
+    .stat-card,
+    .pr-card,
+    .upcoming-card,
+    .photo-card {
+        padding: var(--card-padding-mobile);
+        border-radius: var(--card-radius-sm);
+    }
+}
+
+/* Variantes */
+.card--hero {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(120% 80% at 0% 0%,
+            color-mix(in srgb, var(--accent-brand, #ff0000) 10%, transparent) 0%,
+            transparent 55%),
+        var(--bg-card);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 22%, transparent);
+    padding: var(--space-6) var(--space-5);
+}
+.card--hero::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 88px; height: 88px;
+    background:
+        linear-gradient(135deg,
+            transparent 50%,
+            color-mix(in srgb, var(--accent-brand, #ff0000) 38%, transparent) 100%);
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.card--compact {
+    padding: var(--space-3);
+    border-radius: var(--card-radius-sm);
+}
+
+.card--accent {
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 22%, transparent);
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent-brand, #ff0000) 6%, transparent),
+            transparent 55%),
+        var(--bg-card);
+}
+
+/* Hover subtil (non invasif, pas de scale global) */
+@media (hover: hover) {
+    .card:hover,
+    .stat-card:hover,
+    .pr-card:hover,
+    .upcoming-card:hover,
+    .photo-card:hover {
+        border-color: color-mix(in srgb, #fff 12%, transparent);
+    }
 }
 
 /* ==================== RESET ==================== */
@@ -1545,61 +1653,116 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     animation: fadeIn var(--transition-base) ease-out;
 }
 
-/* ==================== FORMS ==================== */
+/* ==================== FORMS — Pit Lane ==================== */
 .form-group {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-4, 16px);
 }
 
 .form-label {
     display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2, 8px);
 }
 
 .form-input,
-.form-select {
+.form-select,
+.form-textarea {
     width: 100%;
-    padding: 10px 14px;
-    font-family: inherit;
-    font-size: 0.875rem;
+    min-height: 44px;
+    padding: 12px 14px;
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
     color: var(--text-primary);
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
+    background: #0a0a0a;
+    border: 1px solid color-mix(in srgb, #fff 10%, transparent);
+    border-radius: var(--space-3, 12px);
+    transition: border-color 160ms ease,
+                box-shadow 160ms ease,
+                background-color 160ms ease;
     outline: none;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-.form-input::placeholder {
-    color: var(--text-muted);
+/* Tabular nums pour les inputs numériques */
+.form-input[type="number"],
+.form-input.num,
+.form-select[data-numeric] {
+    font-family: var(--font-mono, monospace);
+    font-variant-numeric: tabular-nums;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: color-mix(in srgb, var(--text-muted) 80%, transparent);
+}
+
+.form-input:hover,
+.form-select:hover,
+.form-textarea:hover {
+    border-color: color-mix(in srgb, #fff 16%, transparent);
 }
 
 .form-input:focus,
-.form-select:focus {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px var(--ring-color);
+.form-select:focus,
+.form-textarea:focus,
+.form-input:focus-visible,
+.form-select:focus-visible,
+.form-textarea:focus-visible {
+    border-color: var(--accent-brand, #ff0000);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-brand, #ff0000) 25%, transparent),
+                0 0 22px color-mix(in srgb, var(--accent-brand, #ff0000) 18%, transparent);
+    background: #0d0d0d;
 }
 
+.form-input:disabled,
+.form-select:disabled,
+.form-textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Chevron custom rouge brand */
 .form-select {
     cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1a1' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ff3344' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     padding-right: 40px;
 }
 
-/* ==================== MODALS ==================== */
+/* Textarea spécifique */
+.form-textarea {
+    min-height: 96px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+/* ==================== PIT LANE DIALOG (modales unifiées) ==================== */
+/* Système unique pour toutes les modales. Tokens + variants small/md/lg.
+   Mobile = bottom-sheet full-width auto. Desktop = centré.
+   Plus de styles inline max-width — utiliser .modal--md / .modal--lg. */
+
+:root {
+    --dialog-width-sm: 440px;   /* auth, Profil, confirmations */
+    --dialog-width-md: 560px;   /* add-food, swap-exercise, recipe, meal-history, export-csv */
+    --dialog-width-lg: 720px;   /* compare photos, barcode scanner */
+    --dialog-padding-x: clamp(18px, 5vw, 26px);
+    --dialog-padding-y: 20px;
+    --dialog-radius: 20px;
+}
+
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.64);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    backdrop-filter: blur(8px) saturate(140%);
     display: none;
     align-items: center;
     justify-content: center;
@@ -1612,70 +1775,100 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 }
 
 .modal {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-xl);
+    position: relative;
+    background: var(--bg-card, #0a0a0a);
+    border: 1px solid color-mix(in srgb, #fff 7%, transparent);
+    border-radius: var(--dialog-radius);
     width: 100%;
-    max-width: 480px;
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: modalSlideIn var(--transition-slow) ease-out;
+    max-width: var(--dialog-width-sm);
+    max-height: 92vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6),
+                0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    animation: pl-dialog-up 260ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@keyframes modalSlideIn {
+.modal.modal--md { max-width: var(--dialog-width-md); }
+.modal.modal--lg { max-width: var(--dialog-width-lg); }
+
+@keyframes pl-dialog-up {
     from {
         opacity: 0;
-        transform: scale(0.95) translateY(10px);
+        transform: translateY(24px) scale(0.98);
     }
     to {
         opacity: 1;
-        transform: scale(1) translateY(0);
+        transform: translateY(0) scale(1);
     }
+}
+@media (prefers-reduced-motion: reduce) {
+    .modal { animation: none !important; }
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color);
+    padding: var(--dialog-padding-y) var(--dialog-padding-x);
+    border-bottom: 1px solid color-mix(in srgb, #fff 5%, transparent);
+    flex-shrink: 0;
 }
 
+.modal-header h2,
+.modal-header h3,
 .modal-title {
-    font-size: 1.125rem;
-    font-weight: 600;
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: clamp(1.05rem, 4vw, 1.2rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--text-primary, #fff);
 }
 
 .modal-close {
     width: 36px;
     height: 36px;
+    min-width: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
+    background: color-mix(in srgb, #fff 5%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 8%, transparent);
     color: var(--text-muted);
     font-size: 1.2rem;
+    line-height: 1;
     cursor: pointer;
     border-radius: 50%;
-    transition: all var(--transition-fast);
+    transition: all 160ms ease;
 }
 
 .modal-close:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 22%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent);
+    color: #fff;
 }
 
 .modal-body {
-    padding: 24px;
+    padding: var(--dialog-padding-y) var(--dialog-padding-x);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    padding: 16px 24px;
-    border-top: 1px solid var(--border-color);
+    gap: 10px;
+    padding: var(--dialog-padding-y) var(--dialog-padding-x);
+    padding-bottom: max(var(--dialog-padding-y), env(safe-area-inset-bottom, 20px));
+    border-top: 1px solid color-mix(in srgb, #fff 5%, transparent);
+    flex-shrink: 0;
+    background: var(--bg-card, #0a0a0a);
 }
 
 /* ==================== MACRO BARS ==================== */
@@ -1719,16 +1912,21 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     transition: width var(--transition-slow);
 }
 
+/* Macro bars — palette Pit Lane brand (blanc hero + nuances rouge) */
 .macro-bar-fill.protein {
-    background: linear-gradient(90deg, #ef4444, #f87171);
+    background: linear-gradient(90deg, var(--macro-protein, #fff), color-mix(in srgb, var(--macro-protein, #fff) 80%, transparent));
 }
 
 .macro-bar-fill.carbs {
-    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    background: linear-gradient(90deg, var(--macro-carbs, #ff3355), color-mix(in srgb, var(--macro-carbs, #ff3355) 75%, transparent));
 }
 
 .macro-bar-fill.fat {
-    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    background: linear-gradient(90deg, var(--macro-fat, #7a1414), color-mix(in srgb, var(--macro-fat, #7a1414) 80%, transparent));
+}
+
+.macro-bar-fill.calories {
+    background: linear-gradient(90deg, var(--macro-calories, #ff0000), color-mix(in srgb, var(--macro-calories, #ff0000) 70%, transparent));
 }
 
 /* ==================== PROGRAM CARDS - PRO DESIGN ==================== */
@@ -2835,15 +3033,17 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     position: relative;
 }
 
-/* Indicateur actif anime */
+/* Indicateur actif - barre fine rouge brand avec halo */
 .mobile-nav-indicator {
     position: absolute;
-    bottom: 0;
+    top: -1px;
     left: 0;
-    height: 3px;
-    background: var(--accent-primary);
-    border-radius: 3px 3px 0 0;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 2px;
+    background: var(--accent-brand, #ff0000);
+    border-radius: 0 0 2px 2px;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-brand, #ff0000) 65%, transparent);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+                width 0.28s cubic-bezier(0.32, 0.72, 0, 1);
     width: 25%;
 }
 
@@ -2851,14 +3051,23 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 8px 12px;
+    justify-content: center;
+    gap: var(--space-1, 4px);
+    min-height: 48px;         /* WCAG tap target */
+    padding: 6px 8px;
     background: none;
     border: none;
     color: var(--text-muted);
-    font-size: 0.6875rem;
+    font-family: var(--font-sans);
+    font-size: 0.64rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     cursor: pointer;
-    transition: color var(--transition-fast);
+    border-radius: 14px;
+    transition: background-color 180ms cubic-bezier(0.32, 0.72, 0, 1),
+                color 180ms ease,
+                transform 180ms ease;
     flex: 1;
     position: relative;
 }
@@ -2866,10 +3075,39 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 .mobile-nav-item svg {
     width: 22px;
     height: 22px;
+    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+                color 180ms ease;
 }
 
+/* Active state — fond teinté brand + scale icône + label blanc */
 .mobile-nav-item.active {
-    color: var(--accent-primary);
+    color: #fff;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 14%, transparent);
+}
+.mobile-nav-item.active svg {
+    color: #fff;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-brand, #ff0000) 45%, transparent));
+}
+
+/* Press feedback */
+.mobile-nav-item:active {
+    transform: scale(0.96);
+}
+
+/* Focus visible pour accessibilité clavier */
+.mobile-nav-item:focus-visible {
+    outline: 2px solid var(--accent-brand, #ff0000);
+    outline-offset: -4px;
+    border-radius: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-nav-item,
+    .mobile-nav-item svg,
+    .mobile-nav-indicator {
+        transition: none !important;
+    }
 }
 
 @media (max-width: 768px) {
@@ -3660,14 +3898,27 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
-/* Card PR récent - gradient subtil */
+/* Card PR récent - gradient brand subtil (Pit Lane) */
 .pr-card--recent {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, var(--bg-secondary) 50%);
-    border-color: rgba(34, 197, 94, 0.3);
+    position: relative;
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent-brand, #ff0000) 18%, transparent) 0%,
+        var(--bg-card) 55%);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 30%, transparent);
+    overflow: hidden;
+}
+.pr-card--recent::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, transparent 50%,
+        color-mix(in srgb, var(--accent-brand, #ff0000) 40%, transparent) 100%);
+    pointer-events: none;
 }
 
 .pr-card--recent:hover {
-    border-color: rgba(34, 197, 94, 0.5);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent);
 }
 
 .pr-card-header {
