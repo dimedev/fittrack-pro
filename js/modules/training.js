@@ -548,9 +548,12 @@ function renderCurrentExercise() {
         }
     }
 
-    // [S3.2] Autorégulation COACH — override du prefill si RPE/progression suggère autre chose
-    // (RPE 10 → -2.5kg, reps max → +2.5kg, etc.)
-    // Seulement pour la première série (currentSetIndex === 0), sinon on suit la session en cours.
+    // [S3.2] Coach autorégulation — affiche TOUJOURS un conseil pour la première série
+    // d'un exercice qui a de l'historique, même si le poids suggéré est identique.
+    // Deux cas :
+    //   a) Le coach suggère un poids différent → on override le prefill ET on affiche le coach
+    //   b) Le coach confirme le même poids (action reps_up / maintain / plateau) → on n'override
+    //      pas mais on affiche quand même le conseil (ex: "VISER +1 REP")
     let coachSuggestion = null;
     let coachPrevWeight = suggestedWeight;
     if (fsSession.currentSetIndex === 0 &&
@@ -559,15 +562,19 @@ function renderCurrentExercise() {
         typeof window.SmartTraining.calculateSuggestedWeight === 'function') {
         try {
             const smart = window.SmartTraining.calculateSuggestedWeight(exercise.effectiveName);
-            if (smart && smart.suggested > 0 && smart.suggested !== suggestedWeight) {
-                // Actions qui justifient de surclasser le prefill brut
-                const autoregActions = ['rpe_reduce', 'rpe_maintain', 'rpe_boost',
-                                        'weight_up', 'weight_down', 'range_change'];
-                if (autoregActions.includes(smart.action)) {
-                    coachPrevWeight = suggestedWeight;
-                    suggestedWeight = smart.suggested;
+            if (smart && smart.suggested > 0) {
+                // Actions qui déclenchent le mode coach (affichage visuel)
+                const coachShowActions = ['rpe_reduce', 'rpe_maintain', 'rpe_boost',
+                                          'weight_up', 'weight_down', 'range_change',
+                                          'reps_up', 'plateau', 'deload', 'maintain'];
+                if (coachShowActions.includes(smart.action)) {
                     coachSuggestion = smart;
-                    dataSource = dataSource + '+coach';
+                    // On override le prefill seulement si le poids diffère
+                    if (smart.suggested !== suggestedWeight) {
+                        coachPrevWeight = suggestedWeight;
+                        suggestedWeight = smart.suggested;
+                        dataSource = dataSource + '+coach';
+                    }
                 }
             }
         } catch (e) {
@@ -583,9 +590,9 @@ function renderCurrentExercise() {
         }
     }
 
-    // [S3.2] Mode COACH visuel : transforme .fs-previous en display "Coach suggère X kg"
-    // quand l'autorégulation override le prefill brut.
-    // Note : la structure native a déjà été restaurée en début de fonction si nécessaire.
+    // [S3.2] Mode COACH visuel : transforme .fs-previous en carte coach
+    // Affiche un conseil actionnable pour la première série de chaque exercice
+    // avec historique. Note : la structure native a été restaurée en début de fonction.
     if (coachSuggestion && previousEl && suggestedWeight > 0) {
         const delta = suggestedWeight - coachPrevWeight;
         const deltaSign = delta > 0 ? '+' : (delta < 0 ? '' : '');
@@ -597,16 +604,35 @@ function renderCurrentExercise() {
             rpe_boost:    'RPE FAIBLE + REPS MAX — ON POUSSE',
             weight_up:    'REPS MAX ATTEINT — PROGRESSION',
             weight_down:  'REPS MIN — DECHARGE',
-            range_change: 'NOUVELLE PLAGE REPS'
+            range_change: 'NOUVELLE PLAGE REPS',
+            reps_up:      'MAINTIENT — VISE +1 REP',
+            plateau:      'PLATEAU — VARIE OU DELOAD',
+            deload:       'REPRISE APRES PAUSE',
+            maintain:     'ON MAINTIENT LE CAP'
         };
         const kickerText = kickerMap[coachSuggestion.action] || 'COACH AUTOREG';
+
+        // Déterminer la ligne "target" selon l'action :
+        // - Changements de poids (delta !== 0) → "152.5kg +2.5kg"
+        // - reps_up → "150kg → viser N+1 reps" (cible reps explicite)
+        // - Autres actions à delta 0 → "150kg · MAINTIEN"
+        let targetHtml = `${suggestedWeight}kg`;
+        if (delta !== 0) {
+            targetHtml += ` <span class="delta ${deltaDirClass}">${deltaStr}</span>`;
+        } else if (coachSuggestion.action === 'reps_up' && coachSuggestion.lastReps) {
+            const nextRepsTarget = coachSuggestion.lastReps + 1;
+            targetHtml += ` <span class="delta reps-target">→ ${nextRepsTarget} reps</span>`;
+        } else {
+            targetHtml += ` <span class="delta hold">MAINTIEN</span>`;
+        }
+
         previousEl.classList.add('is-coach');
         previousEl.style.display = 'flex';
         previousEl.innerHTML = `
             <span class="fs-coach-chip">Coach</span>
             <div class="fs-coach-body">
                 <span class="fs-coach-kicker">${kickerText}</span>
-                <span class="fs-coach-target">${suggestedWeight}kg${deltaStr ? ` <span class="delta ${deltaDirClass}">${deltaStr}</span>` : ''}</span>
+                <span class="fs-coach-target">${targetHtml}</span>
             </div>
         `;
     }
