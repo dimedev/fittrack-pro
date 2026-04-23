@@ -5482,33 +5482,70 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     color: var(--success);
 }
 
-/* ── Warmup Panel (in-session) ──────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE — WARMUP PANEL (S3.1)
+   Palette : noir brut × brand rouge. DM Mono pour les chiffres.
+   ════════════════════════════════════════════════════════════════════ */
 .fs-warmup-panel {
-    background: rgba(245, 158, 11, 0.04);
-    border: 1px solid rgba(245, 158, 11, 0.22);
-    border-radius: var(--radius-md);
+    position: relative;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent-brand) 8%, transparent) 0%,
+            color-mix(in srgb, var(--accent-brand) 2%, transparent) 55%,
+            transparent 100%),
+        rgba(0, 0, 0, 0.38);
+    border: 1px solid color-mix(in srgb, var(--accent-brand) 24%, transparent);
+    border-radius: 14px;
     overflow: hidden;
-    animation: fadeIn 200ms ease both;
+    animation: fs-pl-panel-in 280ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes fs-pl-panel-in {
+    0%   { opacity: 0; transform: translateY(-6px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Corner accent rouge (halo diagonal) */
+.fs-warmup-panel::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle at top right,
+        color-mix(in srgb, var(--accent-brand) 32%, transparent) 0%,
+        transparent 65%);
+    pointer-events: none;
+    z-index: 0;
 }
 
 .fs-warmup-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
+    padding: 12px 14px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 1;
 }
 
 .fs-warmup-title {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #f59e0b;
+    gap: 9px;
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.14em;
+}
+
+.fs-warmup-title svg {
+    color: var(--accent-brand);
+    filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent-brand) 65%, transparent));
 }
 
 .fs-warmup-header-right {
@@ -5518,26 +5555,31 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 }
 
 .fs-warmup-skip-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 0.72rem;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, #fff 11%, transparent);
+    color: rgba(255, 255, 255, 0.6);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
     cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 4px;
-    transition: color var(--transition-fast), background var(--transition-fast);
+    transition: all 180ms ease;
     -webkit-tap-highlight-color: transparent;
 }
 
 .fs-warmup-skip-btn:hover,
 .fs-warmup-skip-btn:active {
-    color: var(--text-secondary);
-    background: var(--bg-hover);
+    color: #fff;
+    border-color: color-mix(in srgb, #fff 26%, transparent);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .fs-warmup-chevron {
-    color: #f59e0b;
-    transition: transform 200ms ease;
+    color: rgba(255, 255, 255, 0.72);
+    transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .fs-warmup-panel.collapsed .fs-warmup-chevron {
@@ -5549,213 +5591,479 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    position: relative;
+    z-index: 1;
+    max-height: 400px;
+    opacity: 1;
+    transition: max-height 260ms ease, opacity 200ms ease, padding 200ms ease;
 }
 
 .fs-warmup-panel.collapsed .fs-warmup-sets {
-    display: none;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    overflow: hidden;
 }
 
-/* Warmup row — grid: [badge][detail][pct][check] */
+/* Row warmup : [num][detail][pct][check] */
 .fs-warmup-row {
     display: grid;
-    grid-template-columns: 26px 1fr 36px 32px;
-    gap: 8px;
+    grid-template-columns: 18px 1fr auto 32px;
+    gap: 12px;
     align-items: center;
-    padding: 9px 10px;
-    background: rgba(245, 158, 11, 0.07);
-    border: 1px solid rgba(245, 158, 11, 0.1);
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    transition: background 150ms ease, opacity 150ms ease;
+    padding: 11px 12px;
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid color-mix(in srgb, #fff 6%, transparent);
+    border-radius: 10px;
+    transition: border-color 180ms ease, opacity 180ms ease, background 180ms ease;
+}
+
+.fs-warmup-row:hover {
+    border-color: color-mix(in srgb, var(--accent-brand) 28%, transparent);
 }
 
 .fs-warmup-row.done {
-    opacity: 0.45;
-    background: rgba(34, 197, 94, 0.05);
-    border-color: rgba(34, 197, 94, 0.12);
+    opacity: 0.4;
+    background: rgba(0, 0, 0, 0.22);
 }
 
 .fs-warmup-row-num {
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(245, 158, 11, 0.28);
-    color: #f59e0b;
-    border-radius: 50%;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
     font-size: 0.7rem;
     font-weight: 700;
-    flex-shrink: 0;
-}
-
-.fs-warmup-row.done .fs-warmup-row-num {
-    background: rgba(34, 197, 94, 0.2);
-    color: var(--accent-success);
+    color: rgba(255, 255, 255, 0.38);
+    letter-spacing: 0.06em;
+    text-align: center;
 }
 
 .fs-warmup-row-detail {
-    color: var(--text-primary);
-    font-weight: 500;
-    line-height: 1.2;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    line-height: 1;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.82rem;
+}
+
+.fs-warmup-row-detail strong {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #fff;
+    letter-spacing: -0.02em;
 }
 
 .fs-warmup-row-pct {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--accent-brand);
+    letter-spacing: 0.04em;
+    padding: 4px 8px;
+    background: color-mix(in srgb, var(--accent-brand) 12%, transparent);
+    border-radius: 5px;
     text-align: center;
-    color: var(--text-muted);
-    font-size: 0.72rem;
 }
 
-/* Bouton ✓ par warmup row */
+.fs-warmup-row.done .fs-warmup-row-pct {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Bouton check (coche) */
 .fs-warmup-row-check {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
-    border: 1.5px solid rgba(245, 158, 11, 0.3);
+    border: 1.5px solid color-mix(in srgb, var(--accent-brand) 42%, transparent);
     border-radius: 50%;
     cursor: pointer;
-    color: #f59e0b;
-    transition: all 150ms ease;
+    color: var(--accent-brand);
+    transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
     -webkit-tap-highlight-color: transparent;
     flex-shrink: 0;
 }
 
 .fs-warmup-row-check:hover {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: #f59e0b;
+    background: color-mix(in srgb, var(--accent-brand) 14%, transparent);
+    border-color: var(--accent-brand);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-brand) 40%, transparent);
 }
 
 .fs-warmup-row-check:active {
-    transform: scale(0.9);
+    transform: scale(0.88);
 }
 
 .fs-warmup-row.done .fs-warmup-row-check {
-    background: rgba(34, 197, 94, 0.15);
-    border-color: var(--accent-success);
-    color: var(--accent-success);
+    background: var(--accent-brand);
+    border-color: var(--accent-brand);
+    color: #fff;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-brand) 55%, transparent);
 }
 
-/* ── RPE Quick Picker ────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE — RPE QUICK PICKER (S3.2)
+   5 boutons monochromes : intensité croissante du rouge selon RPE.
+   ════════════════════════════════════════════════════════════════════ */
 .fs-rpe-quick {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px 16px;
-    background: rgba(99, 102, 241, 0.06);
-    border: 1px solid rgba(99, 102, 241, 0.18);
-    border-radius: var(--radius-md);
-    animation: fadeIn 200ms ease both;
+    gap: 10px;
+    padding: 14px 16px;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent-brand) 8%, transparent) 0%,
+            color-mix(in srgb, var(--accent-brand) 2%, transparent) 60%,
+            transparent 100%),
+        rgba(0, 0, 0, 0.32);
+    border: 1px solid color-mix(in srgb, var(--accent-brand) 22%, transparent);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: fs-pl-panel-in 280ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.fs-rpe-quick::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle at top right,
+        color-mix(in srgb, var(--accent-brand) 30%, transparent) 0%,
+        transparent 65%);
+    pointer-events: none;
+    z-index: 0;
 }
 
 .fs-rpe-quick-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #818cf8;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.fs-rpe-quick-buttons {
-    display: flex;
-    gap: 6px;
-}
-
-.fs-rpe-btn {
-    flex: 1;
-    height: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-tertiary);
-    border: 1.5px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
-    -webkit-tap-highlight-color: transparent;
-    position: relative;
-}
-
-/* Codage couleur RPE : 6 vert → 10 rouge */
-.fs-rpe-btn[data-rpe="6"]  { --rpe-color: #22c55e; }
-.fs-rpe-btn[data-rpe="7"]  { --rpe-color: #84cc16; }
-.fs-rpe-btn[data-rpe="8"]  { --rpe-color: #f59e0b; }
-.fs-rpe-btn[data-rpe="9"]  { --rpe-color: #f97316; }
-.fs-rpe-btn[data-rpe="10"] { --rpe-color: #ef4444; }
-
-.fs-rpe-btn:hover {
-    border-color: var(--rpe-color);
-    color: var(--rpe-color);
-    background: color-mix(in srgb, var(--rpe-color) 8%, transparent);
-    transform: translateY(-2px);
-}
-
-.fs-rpe-btn.selected {
-    background: var(--rpe-color);
-    border-color: var(--rpe-color);
-    color: white;
-    transform: scale(1.06);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--rpe-color) 35%, transparent);
-}
-
-.fs-rpe-btn:active {
-    transform: scale(0.94);
-}
-
-.fs-rpe-quick-hint {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-align: center;
-    min-height: 16px;
-    transition: color 150ms ease;
-}
-
-/* ── Completed sets : warmup différencié ─────────────────────────── */
-.fs-completed-set.is-warmup {
-    opacity: 0.55;
-    border-color: rgba(245, 158, 11, 0.2) !important;
-}
-
-.fs-completed-set.is-warmup .fs-completed-set-num {
-    color: #f59e0b;
-}
-
-.fs-completed-set.is-warmup .fs-completed-set-num::before {
-    content: '🔥';
-    font-size: 0.7rem;
-    margin-right: 2px;
-}
-
-/* ── RPE Suggestion Banner ──────────────────────────────────────── */
-.fs-rpe-suggestion {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 9px 12px;
-    background: rgba(99, 102, 241, 0.08);
-    border: 1px solid rgba(99, 102, 241, 0.2);
-    border-radius: var(--radius-sm);
-    font-size: 0.82rem;
-    color: #818cf8;
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    position: relative;
+    z-index: 1;
+}
+
+.fs-rpe-quick-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-brand);
+    box-shadow: 0 0 8px var(--accent-brand);
+    animation: fs-pl-beacon 1.8s ease-in-out infinite;
+}
+
+@keyframes fs-pl-beacon {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.5; transform: scale(0.75); }
+}
+
+.fs-rpe-quick-buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+}
+
+.fs-rpe-btn {
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.42);
+    border: 1.5px solid color-mix(in srgb, #fff 10%, transparent);
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.68);
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: -0.01em;
+}
+
+/* Intensité croissante du rouge : 6 → 10 (plus dur = plus rouge) */
+.fs-rpe-btn[data-rpe="6"]  { --rpe-intensity: 20%; }
+.fs-rpe-btn[data-rpe="7"]  { --rpe-intensity: 38%; }
+.fs-rpe-btn[data-rpe="8"]  { --rpe-intensity: 58%; }
+.fs-rpe-btn[data-rpe="9"]  { --rpe-intensity: 78%; }
+.fs-rpe-btn[data-rpe="10"] { --rpe-intensity: 100%; }
+
+.fs-rpe-btn:hover {
+    border-color: color-mix(in srgb, var(--accent-brand) var(--rpe-intensity), transparent);
+    color: #fff;
+    transform: translateY(-2px);
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.fs-rpe-btn.selected {
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent-brand) var(--rpe-intensity), #140000) 0%,
+        color-mix(in srgb, var(--accent-brand) calc(var(--rpe-intensity) * 0.75), #000) 100%);
+    border-color: color-mix(in srgb, var(--accent-brand) var(--rpe-intensity), transparent);
+    color: #fff;
+    transform: scale(1.06);
+    box-shadow:
+        0 6px 18px color-mix(in srgb, var(--accent-brand) calc(var(--rpe-intensity) * 0.55), transparent),
+        0 0 28px color-mix(in srgb, var(--accent-brand) calc(var(--rpe-intensity) * 0.4), transparent);
+}
+
+.fs-rpe-btn:active {
+    transform: scale(0.93);
+}
+
+.fs-rpe-quick-hint {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.62) !important;
+    text-align: center;
+    min-height: 16px;
+    letter-spacing: 0.02em;
+    transition: opacity 200ms ease;
+    position: relative;
+    z-index: 1;
+}
+
+.fs-rpe-quick-hint:empty { opacity: 0; }
+
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE — Completed sets : warmup différencié (flame SVG)
+   ════════════════════════════════════════════════════════════════════ */
+.fs-completed-set.is-warmup {
+    opacity: 0.55;
+    border-color: color-mix(in srgb, var(--accent-brand) 18%, transparent) !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+}
+
+.fs-completed-set.is-warmup .fs-completed-set-num {
+    color: var(--accent-brand);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Flame SVG injecté via CSS mask (remplace l'emoji 🔥) */
+.fs-completed-set.is-warmup .fs-completed-set-num::before {
+    content: '';
+    display: inline-block;
+    width: 9px;
+    height: 11px;
+    background-color: var(--accent-brand);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 2L3 14h9l-1 8 10-12h-9l1-8z' fill='%23000'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 2L3 14h9l-1 8 10-12h-9l1-8z' fill='%23000'/%3E%3C/svg%3E") center/contain no-repeat;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent-brand) 65%, transparent));
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE — RPE SUGGESTION BANNER (Coach d'autorégulation)
+   Strip rouge brand subtle avec kicker DM Mono + delta tabular-nums.
+   ════════════════════════════════════════════════════════════════════ */
+.fs-rpe-suggestion {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px 11px 16px;
+    background:
+        linear-gradient(90deg,
+            color-mix(in srgb, var(--accent-brand) 14%, transparent) 0%,
+            color-mix(in srgb, var(--accent-brand) 3%, transparent) 100%),
+        rgba(0, 0, 0, 0.32);
+    border: 1px solid color-mix(in srgb, var(--accent-brand) 26%, transparent);
+    border-left: 3px solid var(--accent-brand);
+    border-radius: 10px;
+    animation: fs-rpe-suggest-in 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    overflow: hidden;
+}
+
+@keyframes fs-rpe-suggest-in {
+    0%   { opacity: 0; transform: translateX(-10px); }
+    100% { opacity: 1; transform: translateX(0); }
 }
 
 .fs-rpe-suggestion-icon {
-    font-size: 1rem;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    color: var(--accent-brand);
+    filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent-brand) 55%, transparent));
+}
+
+.fs-rpe-suggestion-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.fs-rpe-suggestion-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: var(--accent-brand);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    line-height: 1;
 }
 
 .fs-rpe-suggestion-text {
-    flex: 1;
-    line-height: 1.4;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
 }
 
-.fs-rpe-suggestion-text strong {
-    color: var(--text-primary);
+.fs-rpe-suggestion-text strong,
+.fs-rpe-suggestion-text .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--accent-brand);
+    letter-spacing: -0.01em;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE — "Dernière fois" → mode COACH (prefill S3.2 override)
+   Transforme .fs-previous en display coach quand autoreg active.
+   ════════════════════════════════════════════════════════════════════ */
+.fs-previous.is-coach {
+    position: relative;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent-brand) 12%, transparent) 0%,
+            color-mix(in srgb, var(--accent-brand) 3%, transparent) 60%,
+            transparent 100%),
+        rgba(0, 0, 0, 0.38) !important;
+    border: 1px solid color-mix(in srgb, var(--accent-brand) 30%, transparent);
+    overflow: hidden;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding: 11px 14px !important;
+}
+
+.fs-previous.is-coach::after {
+    content: '';
+    position: absolute;
+    top: -10px; right: -10px;
+    width: 60px; height: 60px;
+    background: radial-gradient(circle at top right,
+        color-mix(in srgb, var(--accent-brand) 28%, transparent) 0%,
+        transparent 65%);
+    pointer-events: none;
+}
+
+.fs-previous.is-coach .fs-coach-chip {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    background: linear-gradient(135deg, var(--accent-brand) 0%, color-mix(in srgb, var(--accent-brand) 70%, #000) 100%);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-brand) 55%, transparent);
+    flex-shrink: 0;
+}
+
+.fs-previous.is-coach .fs-coach-chip::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 5px #fff;
+    animation: fs-pl-beacon 1.6s ease-in-out infinite;
+}
+
+.fs-previous.is-coach .fs-coach-body {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+
+.fs-previous.is-coach .fs-coach-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    line-height: 1;
+}
+
+.fs-previous.is-coach .fs-coach-target {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.fs-previous.is-coach .fs-coach-target .delta {
+    color: var(--accent-brand);
+    font-size: 0.78rem;
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+.fs-previous.is-coach .fs-coach-target .delta.down { color: rgba(255, 255, 255, 0.5); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .fs-warmup-panel,
+    .fs-rpe-quick,
+    .fs-rpe-suggestion,
+    .fs-rpe-quick-label::before,
+    .fs-previous.is-coach .fs-coach-chip::before,
+    .fs-warmup-chevron,
+    .fs-warmup-sets,
+    .fs-warmup-row,
+    .fs-warmup-row-check,
+    .fs-rpe-btn {
+        animation: none !important;
+        transition: none !important;
+    }
 }
 
 /* ─────────────────────────────────────────────────────────────────── */

@@ -436,6 +436,16 @@ function renderCurrentExercise() {
     // Get last log for this exercise
     const lastLog = getLastLog(exercise.effectiveName);
     const previousEl = document.getElementById('fs-previous');
+
+    // [S3.2] Si le dernier render avait muté .fs-previous en mode COACH,
+    // on restaure la structure native pour que la cascade ait des refs fraîches.
+    if (previousEl && previousEl.classList.contains('is-coach')) {
+        previousEl.classList.remove('is-coach');
+        previousEl.innerHTML = `
+            <span class="fs-previous-label">Dernière fois :</span>
+            <span class="fs-previous-value" id="fs-previous-value">—</span>
+        `;
+    }
     const previousValueEl = document.getElementById('fs-previous-value');
 
     // Plage de reps selon la phase (targetReps) ou reps original
@@ -509,12 +519,67 @@ function renderCurrentExercise() {
         }
     }
 
+    // [S3.2] Autorégulation COACH — override du prefill si RPE/progression suggère autre chose
+    // (RPE 10 → -2.5kg, reps max → +2.5kg, etc.)
+    // Seulement pour la première série (currentSetIndex === 0), sinon on suit la session en cours.
+    let coachSuggestion = null;
+    let coachPrevWeight = suggestedWeight;
+    if (fsSession.currentSetIndex === 0 &&
+        ['setsDetail', 'aggregated-log'].includes(dataSource) &&
+        window.SmartTraining &&
+        typeof window.SmartTraining.calculateSuggestedWeight === 'function') {
+        try {
+            const smart = window.SmartTraining.calculateSuggestedWeight(exercise.effectiveName);
+            if (smart && smart.suggested > 0 && smart.suggested !== suggestedWeight) {
+                // Actions qui justifient de surclasser le prefill brut
+                const autoregActions = ['rpe_reduce', 'rpe_maintain', 'rpe_boost',
+                                        'weight_up', 'weight_down', 'range_change'];
+                if (autoregActions.includes(smart.action)) {
+                    coachPrevWeight = suggestedWeight;
+                    suggestedWeight = smart.suggested;
+                    coachSuggestion = smart;
+                    dataSource = dataSource + '+coach';
+                }
+            }
+        } catch (e) {
+            console.warn('[S3.2] Coach suggestion échouée:', e?.message);
+        }
+    }
+
     // Appliquer multiplicateur de phase au poids si défini
     if (suggestedWeight > 0) {
         const phaseAdjustments = getPhaseAdjustments();
         if (phaseAdjustments.weightMultiplier !== 1.0) {
             suggestedWeight = Math.round(suggestedWeight * phaseAdjustments.weightMultiplier * 4) / 4;
         }
+    }
+
+    // [S3.2] Mode COACH visuel : transforme .fs-previous en display "Coach suggère X kg"
+    // quand l'autorégulation override le prefill brut.
+    // Note : la structure native a déjà été restaurée en début de fonction si nécessaire.
+    if (coachSuggestion && previousEl && suggestedWeight > 0) {
+        const delta = suggestedWeight - coachPrevWeight;
+        const deltaSign = delta > 0 ? '+' : (delta < 0 ? '' : '');
+        const deltaStr = delta !== 0 ? `${deltaSign}${delta}kg` : '';
+        const deltaDirClass = delta > 0 ? '' : (delta < 0 ? 'down' : '');
+        const kickerMap = {
+            rpe_reduce:   'DERNIER RPE 10 — ON REDUIT',
+            rpe_maintain: 'DERNIER RPE 9 — ON MAINTIENT',
+            rpe_boost:    'RPE FAIBLE + REPS MAX — ON POUSSE',
+            weight_up:    'REPS MAX ATTEINT — PROGRESSION',
+            weight_down:  'REPS MIN — DECHARGE',
+            range_change: 'NOUVELLE PLAGE REPS'
+        };
+        const kickerText = kickerMap[coachSuggestion.action] || 'COACH AUTOREG';
+        previousEl.classList.add('is-coach');
+        previousEl.style.display = 'flex';
+        previousEl.innerHTML = `
+            <span class="fs-coach-chip">Coach</span>
+            <div class="fs-coach-body">
+                <span class="fs-coach-kicker">${kickerText}</span>
+                <span class="fs-coach-target">${suggestedWeight}kg${deltaStr ? ` <span class="delta ${deltaDirClass}">${deltaStr}</span>` : ''}</span>
+            </div>
+        `;
     }
 
     // Remplir les inputs
@@ -928,13 +993,22 @@ window.selectQuickRpe = selectQuickRpe;
 // ==================== RPE SUGGESTION BANNER ====================
 
 /**
- * Affiche une bannière de suggestion de poids basée sur le RPE de la dernière session.
+ * Affiche une bannière de suggestion coach (autorégulation + progression).
+ * Structure Pit Lane : kicker rouge + message blanc + delta DM Mono.
+ * Masquée si .fs-previous est déjà en mode COACH (évite la redondance).
  */
 function renderRpeSuggestion(exerciseName) {
     const banner = document.getElementById('fs-rpe-suggestion');
     if (!banner) return;
 
     if (!window.SmartTraining || typeof window.SmartTraining.calculateSuggestedWeight !== 'function') {
+        banner.style.display = 'none';
+        return;
+    }
+
+    // Éviter la redondance : si .fs-previous affiche déjà le mode COACH, on masque la bannière
+    const prev = document.getElementById('fs-previous');
+    if (prev && prev.classList.contains('is-coach')) {
         banner.style.display = 'none';
         return;
     }
@@ -946,15 +1020,38 @@ function renderRpeSuggestion(exerciseName) {
             return;
         }
 
-        // Afficher uniquement si la source est RPE
-        if (!suggestion.action || !suggestion.action.startsWith('rpe_')) {
+        const action = suggestion.action || '';
+        const kickerMap = {
+            rpe_reduce:   'DERNIER RPE 10',
+            rpe_maintain: 'DERNIER RPE 9',
+            rpe_boost:    'RPE FAIBLE + REPS MAX',
+            weight_up:    'REPS MAX ATTEINT',
+            weight_down:  'REPS MIN — DECHARGE',
+            range_change: 'NOUVELLE PLAGE',
+            plateau:      'PLATEAU DETECTE',
+            maintain:     'MAINTIEN',
+            reps_up:      'REPS EN HAUSSE',
+            new:          'NOUVEL EXERCICE'
+        };
+
+        // On n'affiche que pour les actions significatives (coach)
+        const meaningfulActions = ['rpe_reduce', 'rpe_maintain', 'rpe_boost',
+                                   'weight_up', 'weight_down', 'range_change', 'plateau'];
+        if (!meaningfulActions.includes(action)) {
             banner.style.display = 'none';
             return;
         }
 
+        const kickerText = kickerMap[action] || 'COACH';
+        // SVG flèche ascendante (remplace 📈)
+        const arrowSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
+
         banner.innerHTML = `
-            <span class="fs-rpe-suggestion-icon">📈</span>
-            <span class="fs-rpe-suggestion-text">${suggestion.message}</span>
+            <span class="fs-rpe-suggestion-icon">${arrowSvg}</span>
+            <div class="fs-rpe-suggestion-body">
+                <span class="fs-rpe-suggestion-kicker">${kickerText}</span>
+                <span class="fs-rpe-suggestion-text">${suggestion.message}</span>
+            </div>
         `;
         banner.style.display = 'flex';
     } catch (_) {
@@ -1534,12 +1631,14 @@ function renderSessionCompleteState() {
     const totalExercises = new Set(fsSession.completedSets.map(s => s.exerciseIndex)).size;
     
     // Calculer le volume total (kg soulevés) — poids effectif pour bodyweight
+    // [S3.1] Exclure les warmup sets du volume (effort véritable uniquement)
     const totalVolume = fsSession.completedSets.reduce((sum, set) => {
+        if (set.isWarmup) return sum;
         const exName = fsSession.exercises[set.exerciseIndex]?.effectiveName || '';
         return sum + (getEffectiveWeight(exName, set.weight) * set.reps);
     }, 0);
     const volumeTonnes = (totalVolume / 1000).toFixed(1);
-    
+
     const statsEl = document.getElementById('fs-complete-stats');
     if (statsEl) {
         statsEl.innerHTML = `
@@ -2349,8 +2448,10 @@ async function finishSession() {
     const newPRs = [];
 
     // Group sets by exercise
+    // [S3.1] Exclure les warmup sets : ils ne doivent polluer ni les PRs ni le progressLog
     const setsByExercise = {};
     fsSession.completedSets.forEach(set => {
+        if (set.isWarmup) return;
         if (!setsByExercise[set.exerciseIndex]) {
             setsByExercise[set.exerciseIndex] = [];
         }
@@ -2421,11 +2522,13 @@ async function finishSession() {
     });
 
     // Calculer le volume total et les calories brûlées — poids effectif pour bodyweight
+    // [S3.1] Exclure les warmup sets (effort véritable uniquement)
     const totalVolume = fsSession.completedSets.reduce((sum, set) => {
+        if (set.isWarmup) return sum;
         const exName = fsSession.exercises[set.exerciseIndex]?.effectiveName || '';
         return sum + (getEffectiveWeight(exName, set.weight) * set.reps);
     }, 0);
-    
+
     const durationMinutes = Math.round((Date.now() - fsSession.startTime) / 1000 / 60);
     
     // Calculer les calories brûlées (MET musculation)
