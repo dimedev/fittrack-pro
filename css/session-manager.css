@@ -8234,3 +8234,451 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     #fs-set-indicator::before { animation: none; }
     .rest-timer-circle-container.timer-overtime { animation: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MULTI-GYM (PIT LANE)
+   Chip FS header · switcher sheet · form add · manager (profil)
+   Identité : DM Mono uppercase tracking 0.15em + brand tinted borders,
+   ghost → solid au hover, stripe brand gauche sur items actifs.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── FS HEADER CHIP ──────────────────────────────────────────────────────── */
+.fs-gym-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px 5px 9px;
+    margin-right: 6px;
+    border-radius: 999px;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent-brand, #ff0000) 10%, transparent) 0%,
+            transparent 70%),
+        rgba(0, 0, 0, 0.35);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 28%, transparent);
+    color: #fff;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.56rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+    position: relative;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.fs-gym-chip::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    width: 2px; height: 0;
+    background: var(--accent-brand, #ff0000);
+    transition: height 200ms cubic-bezier(0.32, 0.72, 0, 1), top 200ms;
+}
+.fs-gym-chip:hover {
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-brand, #ff0000) 30%, transparent);
+    transform: translateY(-1px);
+}
+.fs-gym-chip:hover::before { height: 60%; top: 20%; }
+.fs-gym-chip:active { transform: translateY(0) scale(0.97); }
+.fs-gym-chip-icon {
+    flex: 0 0 12px;
+    color: var(--accent-brand, #ff0000);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent));
+}
+.fs-gym-chip-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+    .fs-gym-chip { padding: 5px 8px; max-width: 110px; font-size: 0.52rem; }
+}
+
+/* ── GYM SHEETS (switcher + add form) — bottom sheet feel ─────────────────── */
+.gym-sheet-overlay .modal.gym-sheet {
+    overflow: hidden;
+}
+.gym-sheet-kicker {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.58rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent-brand, #ff0000);
+    margin-bottom: 4px;
+    line-height: 1;
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent));
+}
+
+/* ── GYM SWITCHER LIST (bottom sheet) ─────────────────────────────────────── */
+.gym-switcher-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.gym-switcher-empty {
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--text-muted, rgba(255, 255, 255, 0.6));
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+/* Item : équivalent visuel des swap-option-item mais avec pill "EN COURS" */
+.gym-item {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid color-mix(in srgb, #ffffff 6%, transparent);
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    animation: gym-item-in 220ms cubic-bezier(0.25, 0.8, 0.25, 1) both;
+    animation-delay: calc(var(--i, 0) * 30ms + 40ms);
+}
+@keyframes gym-item-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.gym-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    width: 2px; height: 0;
+    background: var(--accent-brand, #ff0000);
+    transition: height 200ms cubic-bezier(0.32, 0.72, 0, 1), top 200ms;
+}
+.gym-item:hover {
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 28%, transparent);
+    background: rgba(255, 255, 255, 0.035);
+    transform: translateX(2px);
+}
+.gym-item:hover::before { height: 60%; top: 20%; }
+.gym-item:active { transform: translateX(2px) scale(0.99); }
+
+.gym-item.is-active {
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent-brand, #ff0000) 10%, transparent) 0%,
+            transparent 55%),
+        rgba(0, 0, 0, 0.25);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 35%, transparent);
+}
+.gym-item.is-active::before { height: 70%; top: 15%; }
+
+/* Radio indicator custom */
+.gym-item-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, #ffffff 22%, transparent);
+    position: relative;
+    transition: all 180ms ease;
+    flex: 0 0 18px;
+    justify-self: center;
+}
+.gym-item.is-active .gym-item-radio {
+    border-color: var(--accent-brand, #ff0000);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent);
+}
+.gym-item.is-active .gym-item-radio::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--accent-brand, #ff0000);
+}
+
+.gym-item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.gym-item-name {
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 0.97rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.gym-item-brand {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.64rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.52);
+    line-height: 1;
+}
+
+.gym-item-active-pill {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--accent-brand, #ff0000);
+    padding: 4px 8px;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 32%, transparent);
+    border-radius: 4px;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* ── Bouton "Ajouter une salle" — ghost dashed ──────────────────────────── */
+.gym-switcher-add,
+.gyms-manager-add {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1.5px dashed color-mix(in srgb, var(--accent-brand, #ff0000) 35%, transparent);
+    border-radius: 12px;
+    color: var(--accent-brand, #ff0000);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+    margin-top: 10px;
+}
+.gym-switcher-add:hover,
+.gyms-manager-add:hover {
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 8%, transparent);
+    border-color: var(--accent-brand, #ff0000);
+    border-style: solid;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-brand, #ff0000) 28%, transparent);
+}
+.gym-switcher-add:active,
+.gyms-manager-add:active { transform: scale(0.98); }
+
+/* ── PROFIL : SECTION MES SALLES ─────────────────────────────────────────── */
+.profile-gyms-section {
+    padding-top: 14px;
+    border-top: 1px solid color-mix(in srgb, #ffffff 6%, transparent);
+    margin-top: 14px;
+}
+.profile-section-head {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.profile-section-num {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--accent-brand, #ff0000);
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 32%, transparent);
+    padding: 3px 7px;
+    border-radius: 4px;
+    line-height: 1;
+}
+.profile-section-label {
+    margin-bottom: 0 !important;
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.95rem;
+    color: #fff;
+}
+.profile-section-hint {
+    grid-column: 1 / -1;
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 0.78rem;
+    color: var(--text-muted, rgba(255, 255, 255, 0.55));
+    line-height: 1.4;
+    margin-top: 2px;
+}
+
+.gyms-manager-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.gyms-manager-empty {
+    padding: 16px 10px;
+    text-align: center;
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 0.85rem;
+    color: var(--text-muted, rgba(255, 255, 255, 0.5));
+}
+
+.gyms-manager-item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid color-mix(in srgb, #ffffff 6%, transparent);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    animation: gym-item-in 220ms cubic-bezier(0.25, 0.8, 0.25, 1) both;
+    animation-delay: calc(var(--i, 0) * 35ms + 40ms);
+    transition: border-color 180ms ease, background 180ms ease;
+}
+.gyms-manager-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: transparent;
+    transition: background 180ms ease;
+}
+.gyms-manager-item.is-active {
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent-brand, #ff0000) 8%, transparent) 0%,
+            transparent 55%),
+        rgba(0, 0, 0, 0.2);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 30%, transparent);
+}
+.gyms-manager-item.is-active::before { background: var(--accent-brand, #ff0000); }
+
+.gyms-manager-item-main {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+}
+.gyms-manager-item-info { min-width: 0; }
+.gyms-manager-item-name {
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 3px;
+}
+.gyms-manager-item-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.64rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.52);
+    line-height: 1;
+}
+.gyms-manager-item-sep { opacity: 0.5; }
+
+.gyms-manager-active-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent-brand, #ff0000);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-brand, #ff0000) 70%, transparent);
+    animation: gym-active-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    flex: 0 0 9px;
+}
+@keyframes gym-active-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.25); opacity: 0.85; }
+}
+
+.gyms-manager-item-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.gyms-manager-btn {
+    all: unset;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid color-mix(in srgb, #ffffff 8%, transparent);
+    color: rgba(255, 255, 255, 0.72);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 160ms ease;
+}
+.gyms-manager-btn svg { flex: 0 0 14px; }
+.gyms-manager-btn:hover {
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 30%, transparent);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+.gyms-manager-btn.activate {
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 35%, transparent);
+    color: var(--accent-brand, #ff0000);
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 5%, transparent);
+}
+.gyms-manager-btn.activate:hover {
+    background: var(--accent-brand, #ff0000);
+    color: #fff;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-brand, #ff0000) 45%, transparent);
+}
+.gyms-manager-btn.delete:hover {
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 40%, transparent);
+    color: var(--accent-brand, #ff0000);
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 8%, transparent);
+}
+.gyms-manager-btn.edit svg,
+.gyms-manager-btn.delete svg { width: 14px; height: 14px; }
+.gyms-manager-btn.edit,
+.gyms-manager-btn.delete {
+    width: 30px;
+    padding: 0;
+    justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gym-item, .gyms-manager-item { animation: none !important; }
+    .gym-item:hover { transform: none !important; }
+    .gyms-manager-active-dot { animation: none !important; }
+}

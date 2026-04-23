@@ -68,6 +68,10 @@ function openProfileModal() {
         document.getElementById('profile-activity').value = state.profile.activity || '1.55';
         document.getElementById('profile-goal').value = state.profile.goal || 'maintain';
     }
+    // Rendre la section "Mes salles" (multi-gym)
+    if (window.FitGyms?.renderGymsManagerInto) {
+        window.FitGyms.renderGymsManagerInto(document.getElementById('gyms-manager-list'));
+    }
     openModal('profile-modal');
 }
 

@@ -75,10 +75,13 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
             currentExerciseIndex: 0,
             currentSetIndex: 0,
             completedSets: [],
-            startTime: Date.now()
+            startTime: Date.now(),
+            gymId: state.activeGymId || null // Snapshot de la salle active au démarrage
         };
         console.log('🆕 Nouvelle session créée:', fsSession.sessionId);
     }
+    // Si on reprend une session existante sans gymId (ancien code), on tag avec la salle active actuelle
+    if (fsSession && !fsSession.gymId) fsSession.gymId = state.activeGymId || null;
 
     // ── Multi-device lock ──────────────────────────────────────────────────
     // Acquérir le lock en arrière-plan (ne bloque pas le démarrage local)
@@ -135,6 +138,9 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
     void fsElement.offsetWidth; // Force reflow
     fsElement.classList.add('animate-in');
     OverflowManager.lock();
+
+    // Refresh gym chip (multi-gym)
+    if (window.FitGyms?._refreshFsGymChip) window.FitGyms._refreshFsGymChip();
 
     // Push state pour le bouton back (permet de revenir via le bouton retour)
     if (typeof updateHash === 'function') {
@@ -2567,7 +2573,8 @@ async function finishSession() {
             weight: Math.round(avgWeight * 10) / 10,
             achievedReps: totalReps,
             achievedSets: setsData.length,
-            setsDetail: setsData
+            setsDetail: setsData,
+            gymId: fsSession.gymId || state.activeGymId || null
         });
 
         sessionData.push({
@@ -2612,7 +2619,8 @@ async function finishSession() {
         duration: durationMinutes,
         totalVolume: Math.round(totalVolume),
         caloriesBurned: caloriesBurned,
-        prsCount: newPRs.length // Nombre de PRs battus pendant la séance
+        prsCount: newPRs.length, // Nombre de PRs battus pendant la séance
+        gymId: fsSession.gymId || state.activeGymId || null // Salle active au moment de la séance
     };
     
     state.sessionHistory.unshift(newSession);
@@ -2956,9 +2964,12 @@ async function quitSession() {
 function checkForRealtimePR(exerciseName, weight, reps) {
     if (!state.progressLog || weight <= 0 || reps <= 0) return;
 
+    // Multi-gym : les PR se comparent dans la MÊME salle pour éviter les faux
+    // "PR" quand tu changes de machine (levier différent).
+    const _prGymId = state.activeGymId || null;
     const logs = typeof findProgressLogs === 'function'
-        ? findProgressLogs(exerciseName)
-        : (state.progressLog[exerciseName] || []);
+        ? findProgressLogs(exerciseName, _prGymId)
+        : (state.progressLog[exerciseName] || []).filter(l => (l.gymId ?? null) === _prGymId);
     if (!logs || logs.length === 0) {
         // Premier log = toujours un PR implicite mais pas de notif
         return;

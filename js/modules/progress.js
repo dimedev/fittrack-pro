@@ -13,42 +13,55 @@ let monthlyComparisonChart = null;
  * Cherche les logs dans progressLog avec fallback : nom exact → nom de base (sans variante)
  * Ex: "Tirage Verticale Poulie Basse - Prise Large" → fallback vers "Tirage Verticale Poulie Basse"
  * @param {string} exerciseName - Nom de l'exercice (peut être une variante)
+ * @param {string|undefined} gymId - (optionnel) ID de salle à filtrer. Si fourni, retourne
+ *                                   uniquement les entrées taguées à cette salle.
+ *                                   Si `undefined` (défaut), retourne tout l'historique (compat).
  * @returns {Array} - Logs trouvés (peut être vide)
  */
-function findProgressLogs(exerciseName) {
+function findProgressLogs(exerciseName, gymId) {
     if (!state.progressLog) return [];
 
+    let logs = null;
+
     // 1. Nom exact
-    let logs = state.progressLog[exerciseName];
-    if (logs && logs.length > 0) return logs;
+    logs = state.progressLog[exerciseName];
 
     // 2. Nom de base (enlever le suffixe " - variante")
     const dashIdx = exerciseName.lastIndexOf(' - ');
-    if (dashIdx > 0) {
+    if ((!logs || logs.length === 0) && dashIdx > 0) {
         const baseName = exerciseName.substring(0, dashIdx);
         logs = state.progressLog[baseName];
-        if (logs && logs.length > 0) return logs;
     }
 
-    // 3. Case-insensitive
-    const normalizedName = exerciseName.toLowerCase().trim();
-    for (const [logName, logData] of Object.entries(state.progressLog)) {
-        if (logName.toLowerCase().trim() === normalizedName) {
-            return logData;
-        }
-    }
-
-    // 4. Le nom de base est contenu dans une clé existante
-    if (dashIdx > 0) {
-        const baseName = exerciseName.substring(0, dashIdx).toLowerCase().trim();
+    // 3. Case-insensitive (nom exact)
+    if (!logs || logs.length === 0) {
+        const normalizedName = exerciseName.toLowerCase().trim();
         for (const [logName, logData] of Object.entries(state.progressLog)) {
-            if (logName.toLowerCase().trim() === baseName) {
-                return logData;
+            if (logName.toLowerCase().trim() === normalizedName) {
+                logs = logData;
+                break;
             }
         }
     }
 
-    return [];
+    // 4. Nom de base case-insensitive
+    if ((!logs || logs.length === 0) && dashIdx > 0) {
+        const baseName = exerciseName.substring(0, dashIdx).toLowerCase().trim();
+        for (const [logName, logData] of Object.entries(state.progressLog)) {
+            if (logName.toLowerCase().trim() === baseName) {
+                logs = logData;
+                break;
+            }
+        }
+    }
+
+    if (!logs || logs.length === 0) return [];
+
+    // Filtrage optionnel par salle (si gymId fourni — même null est une valeur explicite)
+    if (arguments.length >= 2) {
+        return logs.filter(l => (l.gymId ?? null) === (gymId ?? null));
+    }
+    return logs;
 }
 
 window.findProgressLogs = findProgressLogs;

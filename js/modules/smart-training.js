@@ -24,9 +24,12 @@
      */
     function calculateSuggestedWeight(exerciseName, targetReps = 10) {
         // Utiliser le helper centralisé (fallback variante → nom de base)
+        // Multi-gym : on filtre par la salle active pour que les suggestions
+        // ne mélangent pas Fitness Park et On Air (machines différentes).
+        const _activeGymId = state.activeGymId || null;
         let logs = typeof findProgressLogs === 'function'
-            ? findProgressLogs(exerciseName)
-            : (state.progressLog?.[exerciseName] || []);
+            ? findProgressLogs(exerciseName, _activeGymId)
+            : (state.progressLog?.[exerciseName] || []).filter(l => (l.gymId ?? null) === _activeGymId);
 
         // Si toujours pas trouvé, chercher avec nom normalisé
         if (logs.length === 0) {

@@ -337,7 +337,13 @@ let state = {
     bodyWeightLog: [], // [{ date, weight }]
     
     // Achievements débloqués (SYNCED avec Supabase)
-    unlockedAchievements: [] // [achievementId, ...]
+    unlockedAchievements: [], // [achievementId, ...]
+
+    // Salles de sport (multi-gym weights)
+    // [{ id, name, brand, createdAt }]
+    gyms: [],
+    // ID de la salle active (null = pas de gym set → filtres inactifs)
+    activeGymId: null
 };
 
 // Charger l'état depuis IndexedDB ou localStorage (avec validation)
@@ -533,6 +539,13 @@ function applyParsedState(parsed) {
 
         // Migration: lier progressLog aux sessions via sessionId
         migrateProgressLogSessionIds();
+
+        // Migration: init gyms + tag legacy (idempotent via _gymsMigrated)
+        if (!state.gyms) state.gyms = [];
+        if (state.activeGymId === undefined) state.activeGymId = null;
+        if (window.FitGyms && typeof window.FitGyms.migrateLegacyData === 'function') {
+            window.FitGyms.migrateLegacyData();
+        }
 
         // Nouveaux champs pour la refonte Training
         if (!state.wizardResults) state.wizardResults = null;

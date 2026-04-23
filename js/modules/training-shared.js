@@ -306,10 +306,11 @@ function getEffectiveExerciseName(originalName, muscle) {
 function getLastLog(exerciseName) {
     if (!state.progressLog) return null;
 
-    // Utiliser le helper centralisé (avec fallback nom de base / variante)
+    // Multi-gym : on filtre par la salle active pour "dernière fois ici"
+    var activeGymId = state.activeGymId || null;
     var logs = typeof findProgressLogs === 'function'
-        ? findProgressLogs(exerciseName)
-        : (state.progressLog[exerciseName] || []);
+        ? findProgressLogs(exerciseName, activeGymId)
+        : (state.progressLog[exerciseName] || []).filter(function (l) { return (l.gymId == null ? null : l.gymId) === activeGymId; });
 
     if (!logs || logs.length === 0) return null;
 

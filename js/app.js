@@ -237,7 +237,12 @@ function init() {
     
     // Charger l'état local d'abord
     loadState();
-    
+
+    // Migration gyms (post-loadState, une fois le module gyms.js chargé)
+    if (window.FitGyms && typeof window.FitGyms.migrateLegacyData === 'function') {
+        try { window.FitGyms.migrateLegacyData(); } catch (e) { console.warn('Gyms migration échoué', e); }
+    }
+
     // Initialiser le système d'objectifs
     if (typeof initGoalsTracking === 'function') {
         initGoalsTracking();

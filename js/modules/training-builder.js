@@ -1145,10 +1145,12 @@ function startFreeSessionDirect(exercises, sessionName) {
             currentExerciseIndex: 0,
             currentSetIndex: 0,
             completedSets: [],
-            startTime: Date.now()
+            startTime: Date.now(),
+            gymId: state.activeGymId || null // Snapshot salle active
         };
         console.log('🆕 Session libre créée:', fsSession.sessionId);
     }
+    if (fsSession && !fsSession.gymId) fsSession.gymId = state.activeGymId || null;
 
     startAutoSaveFsSession();
 
