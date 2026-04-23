@@ -186,6 +186,66 @@
     z-index: 9998;
 }
 
+/* ── Floating Check Overlay (validation série) ────────────────────── */
+/* Cercle blanc avec tick SVG qui monte depuis le bouton de validation  */
+
+.fs-validation-check-overlay {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.35);
+    transition: opacity 120ms ease, transform 440ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 0 18px rgba(255, 0, 0, 0.7)) drop-shadow(0 4px 14px rgba(0, 0, 0, 0.5));
+    will-change: transform, opacity;
+}
+
+.fs-validation-check-overlay.active {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 44px)) scale(1);
+}
+
+.fs-validation-check-overlay .fvco-ring-bg {
+    fill: var(--accent-brand, #ff0000);
+    opacity: 0;
+    transition: opacity 180ms ease 60ms;
+}
+
+.fs-validation-check-overlay.active .fvco-ring-bg {
+    opacity: 1;
+}
+
+.fs-validation-check-overlay .fvco-ring {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.35);
+    stroke-width: 2.5;
+    stroke-dasharray: 160;
+    stroke-dashoffset: 160;
+    transition: stroke-dashoffset 320ms cubic-bezier(0.4, 0, 0.2, 1) 40ms;
+}
+
+.fs-validation-check-overlay.active .fvco-ring {
+    stroke-dashoffset: 0;
+}
+
+.fs-validation-check-overlay .fvco-check {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 3.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 36;
+    stroke-dashoffset: 36;
+    transition: stroke-dashoffset 280ms cubic-bezier(0.4, 0, 0.2, 1) 240ms;
+}
+
+.fs-validation-check-overlay.active .fvco-check {
+    stroke-dashoffset: 0;
+}
+
+.fs-validation-check-overlay.fading {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 88px)) scale(1.05);
+    transition: opacity 300ms ease-in, transform 400ms ease-in;
+}
+
 /* ── prefers-reduced-motion ────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -194,7 +254,10 @@
     .ring-burst-particle,
     .ring-complete,
     .pr-notification-v2,
-    .pr-notification-v2.hiding {
+    .pr-notification-v2.hiding,
+    .fs-validation-check-overlay,
+    .fs-validation-check-overlay.active,
+    .fs-validation-check-overlay.fading {
         animation: none !important;
         transition: none !important;
     }

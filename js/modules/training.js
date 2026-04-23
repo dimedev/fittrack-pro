@@ -1000,6 +1000,42 @@ function adjustReps(delta) {
     }
 }
 
+/**
+ * [S2.3] Spawn un check ✓ circulaire flottant depuis un élément ancre.
+ * Le check monte, le ring se dessine, le check se dessine, puis tout fade.
+ * Respecte prefers-reduced-motion.
+ */
+function _spawnValidationCheckOverlay(anchor) {
+    if (!anchor) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const rect = anchor.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'fs-validation-check-overlay';
+    overlay.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;pointer-events:none;z-index:10050;`;
+    overlay.innerHTML = `
+        <svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true">
+            <circle class="fvco-ring-bg" cx="29" cy="29" r="24"/>
+            <circle class="fvco-ring" cx="29" cy="29" r="24"/>
+            <polyline class="fvco-check" points="18 30 26 37 40 22"/>
+        </svg>
+    `;
+    document.body.appendChild(overlay);
+
+    // Trigger la transition au frame suivant
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => overlay.classList.add('active'));
+    });
+
+    // Fade-out après la séquence
+    setTimeout(() => overlay.classList.add('fading'), 780);
+    setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 1200);
+}
+
 function validateCurrentSet() {
     // Protection double-submit par clé d'état (exerciceIndex-setIndex)
     // Immunise contre les double-clics même après 500ms+ sur le même set
@@ -1099,6 +1135,9 @@ function validateCurrentSet() {
         void validateBtn.offsetWidth;
         validateBtn.classList.add('set-validated-pulse');
     }
+
+    // [S2.3] Floating check ✓ overlay qui monte depuis le bouton
+    _spawnValidationCheckOverlay(validateBtn);
 
     // Move to next set or exercise
     const totalSets = exercise.sets;
