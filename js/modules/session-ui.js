@@ -63,7 +63,9 @@ function loadSessionDayV2() {
     container.innerHTML = session.exercises.map((exercise, exIdx) => {
         const prBadge = typeof getPRBadgeHTML === 'function' ? getPRBadgeHTML(exercise.effectiveName) : '';
         const lastLog = getLastLog(exercise.effectiveName);
-        const imageUrl = typeof getExerciseImageUrl === 'function' ? getExerciseImageUrl(exercise.id) : null;
+        const thumbHTML = (typeof FitMedia !== 'undefined' && FitMedia.renderThumb)
+            ? FitMedia.renderThumb({ id: exercise.id, name: exercise.effectiveName, muscle: exercise.muscle })
+            : '';
 
         return `
             <div class="exercise-card"
@@ -75,7 +77,7 @@ function loadSessionDayV2() {
                 <div class="exercise-card-header" onclick="toggleExerciseAccordion(${exIdx})">
                     <div class="exercise-card-header-left">
                         <button class="exercise-drag-handle" title="Réordonner">⋮⋮</button>
-                        ${imageUrl ? `<img src="${imageUrl}" alt="${exercise.effectiveName}" class="exercise-card-thumb" loading="lazy" onerror="this.style.display='none'">` : ''}
+                        ${thumbHTML}
                         <span class="exercise-card-toggle">▶</span>
                         <div class="exercise-card-title" onclick="event.stopPropagation(); openExerciseSwapModal('${exercise.originalName}', '${exercise.muscle}', ${exercise.targetSets}, '${exercise.targetReps}')">
                             <span class="exercise-card-name">${exercise.effectiveName}</span>

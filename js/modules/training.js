@@ -3325,7 +3325,23 @@ function openExerciseTips(exerciseName) {
     
     // Remplir le nom
     document.getElementById('info-exercise-name').textContent = exercise.name;
-    
+
+    // Carousel photos Free-Exercise-DB (Pit Lane)
+    const mediaSection = document.getElementById('info-media-section');
+    const mediaSlot = document.getElementById('info-media-slot');
+    if (mediaSection && mediaSlot && typeof FitMedia !== 'undefined') {
+        const imgs = FitMedia.resolveImages(exercise);
+        // N'affiche la section que si on a au moins une photo Free-DB
+        // (pas la peine de doublonner l'image locale déjà dans le hero)
+        const freedbImgs = imgs.filter(i => i.type === 'freedb');
+        if (freedbImgs.length > 0) {
+            FitMedia.renderSlot(mediaSlot, exercise, { variant: 'detail' });
+            mediaSection.style.display = 'block';
+        } else {
+            mediaSection.style.display = 'none';
+        }
+    }
+
     // Remplir les muscles ciblés avec icônes SVG
     const muscleTagsContainer = document.getElementById('info-muscle-tags');
     if (exercise.muscleTargets && exercise.muscleTargets.length > 0) {

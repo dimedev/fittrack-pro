@@ -9639,3 +9639,242 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     vertical-align: -0.15em;
     margin-right: 2px;
 }
+
+/* ==================== P1 — FitMedia : Images exercices Pit Lane ==================== */
+
+/* --- Thumbs dans la liste des exercices (card header) --- */
+.ex-media-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: #0a0a0a;
+    border: 1px solid color-mix(in srgb, #fff 7%, transparent);
+    flex-shrink: 0;
+    transition: transform 180ms cubic-bezier(0.32, 0.72, 0, 1),
+                border-color 180ms, box-shadow 180ms;
+}
+.ex-media-thumb--fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--accent-brand, #ff0000) 75%, #fff);
+}
+.exercise-card:hover .ex-media-thumb,
+.exercise-card:focus-within .ex-media-thumb {
+    transform: scale(1.04);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 45%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-brand, #ff0000) 28%, transparent);
+}
+
+/* --- Slot carousel (panneau détail exo) --- */
+.ex-media-slot-host {
+    display: block;
+    width: 100%;
+}
+.ex-media-slot {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
+    overflow: hidden;
+    background: radial-gradient(circle at 30% 20%,
+        color-mix(in srgb, var(--accent-brand, #ff0000) 14%, #0a0a0a),
+        #050505 65%);
+    border: 1px solid color-mix(in srgb, #fff 8%, transparent);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55),
+                0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    outline: none;
+    touch-action: pan-y;
+}
+.ex-media-slot:focus-visible {
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 60%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-brand, #ff0000) 25%, transparent),
+                0 8px 28px rgba(0, 0, 0, 0.55);
+}
+.ex-media-slot--compact {
+    aspect-ratio: 16 / 10;
+    border-radius: 14px;
+}
+.ex-media-slot--fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Corner accent brand (signature Pit Lane) */
+.ex-media-slot::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 58px;
+    height: 58px;
+    background: linear-gradient(225deg,
+        color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent) 0%,
+        transparent 60%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* --- Track + slides --- */
+.ex-media-track {
+    display: flex;
+    height: 100%;
+    transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+}
+.ex-media-slide {
+    position: relative;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #050505;
+}
+.ex-media-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: contrast(1.04) saturate(1.05);
+    animation: pl-media-fadein 400ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes pl-media-fadein {
+    from { opacity: 0; transform: scale(1.02); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* Fallback emoji/svg */
+.ex-media-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: clamp(2.4rem, 10vw, 3.4rem);
+    color: color-mix(in srgb, var(--accent-brand, #ff0000) 75%, #fff);
+    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent-brand, #ff0000) 35%, transparent));
+}
+
+/* --- Source tag (HQ / REF) en haut-gauche --- */
+.ex-media-source-tag {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 4px 8px;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    border-radius: 4px;
+    z-index: 3;
+    font-variant-numeric: tabular-nums;
+}
+.ex-media-source-tag--local {
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 65%, #000);
+    color: #fff;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-brand, #ff0000) 40%, transparent);
+}
+
+/* --- Kicker "01 / Technique" en bas-gauche --- */
+.ex-media-kicker {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    border-radius: 6px;
+    border-left: 2px solid var(--accent-brand, #ff0000);
+}
+.ex-media-kicker-num {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--accent-brand, #ff0000);
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 10px color-mix(in srgb, var(--accent-brand, #ff0000) 60%, transparent);
+}
+.ex-media-kicker-label {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* --- Dots --- */
+.ex-media-dots {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    z-index: 3;
+    display: flex;
+    gap: 6px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    border-radius: 999px;
+}
+.ex-media-dot {
+    width: 22px;
+    height: 4px;
+    border: none;
+    background: rgba(255, 255, 255, 0.32);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 220ms, width 220ms, box-shadow 220ms;
+    padding: 0;
+}
+.ex-media-dot:hover {
+    background: rgba(255, 255, 255, 0.55);
+}
+.ex-media-dot.is-active {
+    background: var(--accent-brand, #ff0000);
+    width: 32px;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-brand, #ff0000) 70%, transparent);
+}
+.ex-media-dot:focus-visible {
+    outline: 2px solid var(--accent-brand, #ff0000);
+    outline-offset: 2px;
+}
+
+/* --- Tablet / desktop --- */
+@media (min-width: 768px) {
+    .ex-media-slot--detail {
+        aspect-ratio: 16 / 10;
+    }
+    .ex-media-thumb {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+    .ex-media-track,
+    .ex-media-img,
+    .ex-media-thumb,
+    .ex-media-dot {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
