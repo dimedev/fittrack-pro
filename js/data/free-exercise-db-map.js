@@ -18,8 +18,8 @@ const FREE_EXERCISE_DB_MAP = {
     'incline-bench-db':           'Incline_Dumbbell_Press',
     'decline-bench':              'Decline_Barbell_Bench_Press',
     'decline-bench-db':           'Decline_Dumbbell_Bench_Press',
-    'chest-press-machine':        'Butterfly',
-    'chest-press-incline-machine':'Smith_Machine_Incline_Bench_Press',
+    // 'chest-press-machine' : pas d'équivalent Free-DB (machine convergente propriétaire)
+    // 'chest-press-incline-machine' : idem
     'smith-bench':                'Smith_Machine_Bench_Press',
     'smith-incline':              'Smith_Machine_Incline_Bench_Press',
     'dips-chest':                 'Chest_Dip',
@@ -40,8 +40,8 @@ const FREE_EXERCISE_DB_MAP = {
     'diamond-pushups':            'Close-Grip_Push-Up',
     'floor-press':                'Bench_Press_-_Powerlifting',
     'floor-press-db':             'Dumbbell_Floor_Press',
-    'landmine-press':             'One-Arm_Incline_Lateral_Raise',
-    'hex-press':                  'Dumbbell_Bench_Press',
+    // 'landmine-press' : pas d'équivalent Free-DB fiable
+    // 'hex-press' : pas d'équivalent Free-DB fiable
 
     // ================= DOS =================
     'deadlift':                   'Barbell_Deadlift',
@@ -68,8 +68,8 @@ const FREE_EXERCISE_DB_MAP = {
     'seated-cable-row':           'Seated_Cable_Rows',
     'chest-supported-row':        'Seated_Cable_Rows',
     'single-arm-cable-row':       'One-Arm_Kettlebell_Row',
-    'meadows-row':                'One-Arm_Side_Deadlift',
-    'kroc-row':                   'One-Arm_Kettlebell_Row',
+    // 'meadows-row' : pas d'équivalent Free-DB
+    // 'kroc-row' : pas d'équivalent Free-DB exact (approx. One-Arm_Dumbbell_Row)
     'seal-row':                   'Bent_Over_Barbell_Row',
     'helms-row':                  'One-Arm_Dumbbell_Row',
     'straight-arm-pulldown':      'Straight-Arm_Pulldown',
@@ -91,8 +91,8 @@ const FREE_EXERCISE_DB_MAP = {
     'lateral-raise-cable':        'Low_Pulley_Side_Lateral',
     'lateral-raise-machine':      'Side_Lateral_Raise',
     'cable-lateral-raise':        'Low_Pulley_Side_Lateral',
-    'leaning-lateral-raise':      'Leverage_Iso_Row',
-    'lu-raise':                   'Side_Lateral_Raise',
+    // 'leaning-lateral-raise' : pas d'équivalent Free-DB fiable
+    // 'lu-raise' : pas d'équivalent exact (variante de side lateral raise)
     'front-raise':                'Front_Dumbbell_Raise',
     'front-raise-cable':          'Front_Cable_Raise',
     'front-raise-plate':          'Plate_Front_Raise',
@@ -162,31 +162,31 @@ const FREE_EXERCISE_DB_MAP = {
     'leg-extension':               'Leg_Extensions',
     'lunge':                       'Dumbbell_Lunges',
     'walking-lunge':               'Barbell_Walking_Lunge',
-    'bulgarian-split-squat':       'Dumbbell_Rear_Lunge',
+    // 'bulgarian-split-squat' : pas d'équivalent Free-DB direct
     'step-up':                     'Step-up_with_knee_raise',
     'sissy-squat':                 'Sissy_Squat',
-    'pendulum-squat':              'Barbell_Hack_Squat',
-    'v-squat':                     'Barbell_Hack_Squat',
+    // 'pendulum-squat' : pas d'équivalent (machine propriétaire)
+    // 'v-squat' : idem
 
     // ================= ISCHIOS / POSTÉRIEURS =================
-    'rdl':                         'Romanian_Deadlift',
-    'rdl-db':                      'Dumbbell_Romanian_Deadlift',
+    'rdl':                         'Romanian_Deadlift_from_Deficit',
+    // 'rdl-db' : pas d'équivalent exact Free-DB
     'good-morning':                'Good_Morning',
     'leg-curl-lying':              'Lying_Leg_Curls',
     'leg-curl-seated':             'Seated_Leg_Curl',
-    'leg-curl-standing':           'Standing_Leg_Curl',
+    // 'leg-curl-standing' : pas d'équivalent Free-DB exact
     'nordic-curl':                 'Natural_Glute_Ham_Raise',
     'cable-pull-through':          'Pull_Through',
 
     // ================= FESSIERS =================
     'hip-thrust':                  'Barbell_Hip_Thrust',
-    'hip-thrust-machine':          'Barbell_Hip_Thrust',
+    // 'hip-thrust-machine' : pas d'équivalent (machine propriétaire)
     'glute-bridge':                'Barbell_Glute_Bridge',
-    'cable-kickback':              'Cable_Hip_Adduction',
-    'glute-kickback-machine':      'Cable_Hip_Adduction',
-    'sumo-squat':                  'Sumo_Deadlift',
-    'abductor-machine':            'Cable_Hip_Adduction',
-    'frog-pump':                   'Glute_Ham_Raise',
+    // 'cable-kickback' : pas d'équivalent Free-DB exact
+    // 'glute-kickback-machine' : idem
+    // 'sumo-squat' : pas d'équivalent Free-DB
+    // 'abductor-machine' : pas d'équivalent Free-DB
+    // 'frog-pump' : pas d'équivalent Free-DB
 
     // ================= MOLLETS =================
     'standing-calf':               'Standing_Calf_Raises',

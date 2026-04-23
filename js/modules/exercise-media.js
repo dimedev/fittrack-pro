@@ -96,13 +96,14 @@
         }
 
         // Source 2 : Free-Exercise-DB via jsDelivr (2 photos)
+        // NB: structure réelle du repo = exercises/<slug>/<n>.jpg (pas de sous-dossier images/)
         const slug = _getFreeDbSlug(exercise.id);
         if (slug) {
             const base = window.FREE_DB_BASE || 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises';
             const count = window.FREE_DB_COUNT || 2;
             for (let i = 0; i < count; i++) {
                 out.push({
-                    src: `${base}/${slug}/images/${i}.jpg`,
+                    src: `${base}/${slug}/${i}.jpg`,
                     type: 'freedb',
                     index: i,
                     alt: `${exercise.name || exercise.id} — image ${i + 1}`
@@ -111,6 +112,20 @@
         }
 
         return out;
+    }
+
+    /**
+     * Variante filtrée par types (ex: excludeTypes: ['local'] pour éviter le doublon
+     * avec un hero qui affiche déjà l'image locale).
+     */
+    function resolveImagesFiltered(ex, opts = {}) {
+        let imgs = resolveImages(ex);
+        if (Array.isArray(opts.excludeTypes) && opts.excludeTypes.length > 0) {
+            imgs = imgs.filter(i => !opts.excludeTypes.includes(i.type));
+        }
+        // Ré-indexation pour rester cohérent avec le kicker 01/02
+        imgs.forEach((img, i) => { img.index = i; });
+        return imgs;
     }
 
     function resolvePrimary(ex) {
@@ -178,7 +193,7 @@
      */
     function renderSlot(container, ex, opts = {}) {
         if (!container) return;
-        const images = resolveImages(ex);
+        const images = resolveImagesFiltered(ex, opts);
         const variant = opts.variant || 'detail'; // 'detail' | 'compact'
         const emoji = getFallbackEmoji(ex);
         const exerciseName = (typeof ex === 'object' ? ex.name : ex) || 'Exercice';
@@ -331,6 +346,7 @@
 
     window.FitMedia = {
         resolveImages,
+        resolveImagesFiltered,
         resolvePrimary,
         getFallbackEmoji,
         renderThumb,

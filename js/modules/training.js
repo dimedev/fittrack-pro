@@ -3327,15 +3327,14 @@ function openExerciseTips(exerciseName) {
     document.getElementById('info-exercise-name').textContent = exercise.name;
 
     // Carousel photos Free-Exercise-DB (Pit Lane)
+    // Le hero affiche déjà l'image locale Supabase — ici on ne montre QUE
+    // les photos de référence Free-DB pour enrichir, pas doublonner.
     const mediaSection = document.getElementById('info-media-section');
     const mediaSlot = document.getElementById('info-media-slot');
     if (mediaSection && mediaSlot && typeof FitMedia !== 'undefined') {
-        const imgs = FitMedia.resolveImages(exercise);
-        // N'affiche la section que si on a au moins une photo Free-DB
-        // (pas la peine de doublonner l'image locale déjà dans le hero)
-        const freedbImgs = imgs.filter(i => i.type === 'freedb');
+        const freedbImgs = FitMedia.resolveImagesFiltered(exercise, { excludeTypes: ['local'] });
         if (freedbImgs.length > 0) {
-            FitMedia.renderSlot(mediaSlot, exercise, { variant: 'detail' });
+            FitMedia.renderSlot(mediaSlot, exercise, { variant: 'detail', excludeTypes: ['local'] });
             mediaSection.style.display = 'block';
         } else {
             mediaSection.style.display = 'none';
