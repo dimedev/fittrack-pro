@@ -2552,7 +2552,35 @@ async function finishSession() {
 
         // ── FALLBACK CLASSIQUE (si la RPC n'est pas déployée ou a échoué) ──
         if (!atomicSuccess) {
-            if (typeof saveWorkoutSessionToSupabase === 'function') {
+            // [S1.5] Pre-check idempotence : protéger contre race-condition RPC timeout
+            // Si le RPC a timeout côté client mais réussi côté serveur, la ligne existe déjà.
+            // On évite alors de relancer le fallback (qui dédoublerait les progress_logs).
+            let sessionAlreadyInDB = false;
+            if (typeof supabaseClient !== 'undefined' && supabaseClient && currentUser && isOnline) {
+                try {
+                    const { data: existing } = await supabaseClient
+                        .from('workout_sessions')
+                        .select('id')
+                        .eq('user_id', currentUser.id)
+                        .eq('session_id', sessionToSave.sessionId)
+                        .maybeSingle();
+                    if (existing && existing.id) {
+                        sessionAlreadyInDB = true;
+                        console.warn('⚠️ [S1.5] Session déjà présente en BD (race RPC timeout), skip fallback — session préservée');
+                        newSession.synced = true;
+                        sessionData.forEach(exData => {
+                            const logs = state.progressLog[exData.exercise];
+                            if (logs && logs.length > 0) logs[logs.length - 1].synced = true;
+                        });
+                        saveState();
+                        if (typeof updateSyncIndicator === 'function') updateSyncIndicator();
+                    }
+                } catch (e) {
+                    console.warn('[S1.5] Check existence session échoué, fallback tenté:', e?.message);
+                }
+            }
+
+            if (!sessionAlreadyInDB && typeof saveWorkoutSessionToSupabase === 'function') {
                 try {
                     const ok = await saveWorkoutSessionToSupabase(sessionToSave);
                     if (ok) {
@@ -2566,13 +2594,15 @@ async function finishSession() {
                 }
             }
 
-            for (const exData of sessionData) {
-                const logs = state.progressLog[exData.exercise];
-                if (logs && logs.length > 0) {
-                    const lastLog = logs[logs.length - 1];
-                    if (typeof saveProgressLogToSupabase === 'function') {
-                        try { await saveProgressLogToSupabase(exData.exercise, lastLog); }
-                        catch (err) { console.warn('Sync progression en attente:', exData.exercise); }
+            if (!sessionAlreadyInDB) {
+                for (const exData of sessionData) {
+                    const logs = state.progressLog[exData.exercise];
+                    if (logs && logs.length > 0) {
+                        const lastLog = logs[logs.length - 1];
+                        if (typeof saveProgressLogToSupabase === 'function') {
+                            try { await saveProgressLogToSupabase(exData.exercise, lastLog); }
+                            catch (err) { console.warn('Sync progression en attente:', exData.exercise); }
+                        }
                     }
                 }
             }
