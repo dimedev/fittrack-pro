@@ -460,6 +460,33 @@ function renderCurrentExercise() {
     // Référence au label (pour le mettre à jour dynamiquement)
     const previousLabelEl = previousEl?.querySelector('.fs-previous-label');
 
+    // [fix] Détection bodyweight pour formatter correctement le display
+    // "0kg × 13" n'est pas parlant — on préfère "PDC × 13" (Poids du corps)
+    // ou "PDC +5kg × 13" si lest additionnel.
+    const _exData = findExerciseByName(exercise.effectiveName);
+    const isBodyweightEx = !!(_exData && _exData.equipment === 'bodyweight');
+    const fmtPrev = (weight, reps) => {
+        const w = parseFloat(weight) || 0;
+        if (isBodyweightEx) {
+            if (w === 0) return `PDC × ${reps}`;
+            if (w > 0)   return `PDC +${w}kg × ${reps}`;
+            return `PDC −${Math.abs(w)}kg × ${reps}`;
+        }
+        return `${w}kg × ${reps}`;
+    };
+
+    // [fix] Label du poids + bouton plate calc adaptés pour bodyweight
+    // - Exercice classique : "Poids (kg)" + bouton calculateur de disques visible
+    // - Exercice bodyweight : "Lest (kg)" + bouton masqué (pas de disques au PDC)
+    const weightLabelTextEl = document.getElementById('fs-weight-label-text');
+    const plateCalcBtn = document.getElementById('fs-plate-calc-btn');
+    if (weightLabelTextEl) {
+        weightLabelTextEl.textContent = isBodyweightEx ? 'Lest (kg)' : 'Poids (kg)';
+    }
+    if (plateCalcBtn) {
+        plateCalcBtn.style.display = isBodyweightEx ? 'none' : '';
+    }
+
     // 0. D'abord vérifier si on a déjà des sets complétés pour cet exercice DANS cette session
     const currentSessionSets = fsSession.completedSets?.filter(
         s => s.exerciseIndex === fsSession.currentExerciseIndex
@@ -468,9 +495,10 @@ function renderCurrentExercise() {
     if (currentSessionSets.length > 0) {
         // Utiliser le dernier set de cette session comme référence
         const lastSessionSet = currentSessionSets[currentSessionSets.length - 1];
-        if (lastSessionSet.weight > 0) {
+        // Pour bodyweight, on accepte weight = 0 (PDC sans lest)
+        if (lastSessionSet.weight > 0 || (isBodyweightEx && lastSessionSet.reps > 0)) {
             if (previousLabelEl) previousLabelEl.textContent = 'Cette session :';
-            previousValueEl.textContent = `${lastSessionSet.weight}kg × ${lastSessionSet.reps}`;
+            previousValueEl.textContent = fmtPrev(lastSessionSet.weight, lastSessionSet.reps);
             previousEl.style.display = 'flex';
             suggestedWeight = lastSessionSet.weight;
             hasPreviousData = true;
@@ -482,14 +510,15 @@ function renderCurrentExercise() {
     if (!hasPreviousData && lastLog && lastLog.setsDetail && lastLog.setsDetail.length > 0) {
         const lastSet = lastLog.setsDetail[Math.min(fsSession.currentSetIndex, lastLog.setsDetail.length - 1)];
         if (previousLabelEl) previousLabelEl.textContent = 'Dernière fois :';
-        previousValueEl.textContent = `${lastSet.weight}kg × ${lastSet.reps}`;
+        previousValueEl.textContent = fmtPrev(lastSet.weight, lastSet.reps);
         previousEl.style.display = 'flex';
         suggestedWeight = lastSet.weight || 0;
         hasPreviousData = true;
         dataSource = 'setsDetail';
     }
     // 2. Sinon essayer avec les données agrégées du log
-    else if (!hasPreviousData && lastLog && lastLog.weight > 0) {
+    // Pour bodyweight, on accepte lastLog.weight = 0 (tant qu'il y a des reps)
+    else if (!hasPreviousData && lastLog && (lastLog.weight > 0 || (isBodyweightEx && lastLog.achievedReps > 0))) {
         // achievedReps est le TOTAL des reps, pas par série !
         // Il faut calculer les reps moyennes par série
         let displayReps = '?';
@@ -500,9 +529,9 @@ function renderCurrentExercise() {
             displayReps = lastLog.reps;
         }
         if (previousLabelEl) previousLabelEl.textContent = 'Dernière fois :';
-        previousValueEl.textContent = `${lastLog.weight}kg × ${displayReps}`;
+        previousValueEl.textContent = fmtPrev(lastLog.weight, displayReps);
         previousEl.style.display = 'flex';
-        suggestedWeight = lastLog.weight;
+        suggestedWeight = lastLog.weight || 0;
         hasPreviousData = true;
         dataSource = 'aggregated-log';
     }

@@ -8,11 +8,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=50">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=51">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=47">
     <!-- Deferred: loaded async, applied when ready -->
-    <link rel="stylesheet" href="css/session-manager.css?v=40" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/session-manager.css?v=41" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=24" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=6" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
@@ -3171,7 +3171,15 @@
             <!-- Main Input -->
             <div class="fs-input-section">
                 <div class="fs-input-group">
-                    <label class="fs-input-label">Poids (kg) <button class="fs-plate-calc-btn" onclick="window.PlateCalculator.show(parseFloat(document.getElementById('fs-weight-input').value))" title="Calculateur de disques">🏋️</button></label>
+                    <label class="fs-input-label" id="fs-weight-label"><span id="fs-weight-label-text">Poids (kg)</span> <button class="fs-plate-calc-btn" id="fs-plate-calc-btn" onclick="window.PlateCalculator.show(parseFloat(document.getElementById('fs-weight-input').value))" title="Calculateur de disques" aria-label="Calculateur de disques">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="6.5" y1="6.5" x2="6.5" y2="17.5"></line>
+                            <line x1="17.5" y1="6.5" x2="17.5" y2="17.5"></line>
+                            <rect x="3" y="8" width="2" height="8" rx="0.5"></rect>
+                            <rect x="19" y="8" width="2" height="8" rx="0.5"></rect>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                    </button></label>
                     <div class="fs-input-wrapper">
                         <button class="fs-input-btn minus" onclick="adjustWeight(-2.5)">−</button>
                         <input type="number" class="fs-input" id="fs-weight-input" value="80" step="2.5">
@@ -3765,7 +3773,7 @@
     <script src="js/modules/training-wizard.js?v=1"></script>
     <script src="js/modules/training-swap.js?v=1"></script>
     <script src="js/modules/training-builder.js?v=1"></script>
-    <script src="js/modules/training.js?v=46"></script>
+    <script src="js/modules/training.js?v=47"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=9"></script>
     <script src="js/modules/progress.js?v=29"></script>
