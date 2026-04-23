@@ -1026,30 +1026,44 @@ function openExercisePickerForFreeSession() {
     const searchResults = document.getElementById('swap-search-results');
     if (searchResults) searchResults.style.display = 'none';
 
-    // Musclees les plus utilisés en séance libre
-    const popularMuscles = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'biceps', 'triceps'];
+    // Muscles les plus utilisés en séance libre — Pit Lane: SVG + labels clean (pas d'emojis)
+    const popularMuscles = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'biceps', 'triceps', 'glutes', 'abs'];
     const muscleLabels = {
-        chest: '💪 Pectoraux', back: '🏋️ Dos', shoulders: '🦾 Épaules',
-        quads: '🦵 Quadriceps', hamstrings: '🦵 Ischio', biceps: '💪 Biceps',
-        triceps: '💪 Triceps', glutes: '🍑 Fessiers', abs: '🎯 Abdos'
+        chest: 'Pectoraux', back: 'Dos', shoulders: 'Épaules',
+        quads: 'Quadriceps', hamstrings: 'Ischio-jambiers', biceps: 'Biceps',
+        triceps: 'Triceps', glutes: 'Fessiers', abs: 'Abdominaux'
     };
+    // Icône SVG muscle Pit Lane — même que renderSwapSections()
+    const SVG_MUSCLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5C6.5 4 8 2.5 10 2.5s3.5 1.5 3.5 4c0 1-.5 2-1 3"/><path d="M12 8.5c2-.5 4 1 4.5 3 .5 2-.5 4-2 5"/><path d="M14 16c1 2 0 4-2 4.5-2 .5-4-.5-4.5-2"/><path d="M8 14c-2 0-4-1-4.5-3"/></svg>';
+
     if (sections) {
         sections.innerHTML = popularMuscles.map(muscle => {
             const exercises = state.exercises
                 .filter(e => e.muscle === muscle)
                 .slice(0, 5);
             if (exercises.length === 0) return '';
+            const label = muscleLabels[muscle] || muscle;
+            const itemsHtml = (typeof renderSwapItems === 'function')
+                ? renderSwapItems(exercises)
+                : exercises.map((ex, i) => `
+                    <button type="button" class="swap-option-item" style="--i:${i}" onclick="swapExerciseInPreview('${ex.id}')">
+                        <span class="swap-option-equip-icon" aria-hidden="true"></span>
+                        <div class="swap-option-info">
+                            <span class="swap-option-name">${ex.name}</span>
+                            <span class="swap-option-meta"><span class="swap-option-equip">${ex.equipment || ''}</span></span>
+                        </div>
+                        <span class="swap-option-cta" aria-hidden="true">+</span>
+                    </button>`).join('');
             return `
                 <div class="swap-section">
-                    <div class="swap-section-title">${muscleLabels[muscle] || muscle}</div>
-                    ${exercises.map(ex => `
-                        <div class="swap-option-item" onclick="swapExerciseInPreview('${ex.id}')">
-                            <div class="swap-option-info">
-                                <span class="swap-option-name">${ex.name}</span>
-                                <span class="swap-option-muscle">${ex.equipment}</span>
-                            </div>
-                        </div>
-                    `).join('')}
+                    <div class="swap-section-header">
+                        <span class="swap-section-icon">${SVG_MUSCLE}</span>
+                        <span class="swap-section-title">${label}</span>
+                        <span class="swap-section-count">${exercises.length}</span>
+                    </div>
+                    <div class="swap-section-list">
+                        ${itemsHtml}
+                    </div>
                 </div>`;
         }).join('');
     }
