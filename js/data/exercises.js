@@ -649,7 +649,7 @@ const defaultExercises = [
         secondaryMuscles: ['Ischio-jambiers'],
         muscleTargets: ['Quadriceps', 'Fessiers'],
         execution: 'Assis, pieds largeur épaules sur la plateforme. Descends en contrôlant jusqu\'à 90°, remonte en poussant avec les talons.',
-        cues: ['Pieds largeur épaules', 'Descendez jusqu\'à 90° (pas plus bas)', 'NE décoll ez PAS les fesses', 'Poussez avec les talons, pas les orteils'],
+        cues: ['Pieds largeur épaules', 'Descendez jusqu\'à 90° (pas plus bas)', 'NE décollez PAS les fesses', 'Poussez avec les talons, pas les orteils'],
         commonMistakes: ['Fesses qui décollent (risque lombaire majeur)', 'Descente trop basse', 'Genoux qui rentrent (valgus)', 'Amplitude incomplète'],
         alternatives: ['squat', 'hack-squat', 'goblet-squat'],
         contraindications: ['knee'],

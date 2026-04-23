@@ -3345,24 +3345,26 @@ function openExerciseTips(exerciseName) {
         executionSection.style.display = 'none';
     }
     
-    // Cues (Points clés)
+    // Cues (Points clés) — bullets SVG brand Pit Lane
     const cuesSection = document.getElementById('info-cues-section');
     const cuesList = document.getElementById('info-cues-list');
     if (exercise.cues && exercise.cues.length > 0 && cuesSection && cuesList) {
-        cuesList.innerHTML = exercise.cues.map(cue => 
-            `<li class="info-cue-item"><span class="cue-bullet">✓</span> ${cue}</li>`
+        const cueBulletSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+        cuesList.innerHTML = exercise.cues.map((cue, i) =>
+            `<li class="info-cue-item" style="--i:${i}"><span class="cue-bullet">${cueBulletSvg}</span><span class="info-item-text">${cue}</span></li>`
         ).join('');
         cuesSection.style.display = 'block';
     } else if (cuesSection) {
         cuesSection.style.display = 'none';
     }
-    
-    // Common Mistakes (Erreurs)
+
+    // Common Mistakes (Erreurs) — bullets ghost avec × SVG brand
     const mistakesSection = document.getElementById('info-mistakes-section');
     const mistakesList = document.getElementById('info-mistakes-list');
     if (exercise.commonMistakes && exercise.commonMistakes.length > 0 && mistakesSection && mistakesList) {
-        mistakesList.innerHTML = exercise.commonMistakes.map(mistake => 
-            `<li class="info-mistake-item"><span class="mistake-bullet">✗</span> ${mistake}</li>`
+        const mistakeBulletSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+        mistakesList.innerHTML = exercise.commonMistakes.map((mistake, i) =>
+            `<li class="info-mistake-item" style="--i:${i}"><span class="mistake-bullet">${mistakeBulletSvg}</span><span class="info-item-text">${mistake}</span></li>`
         ).join('');
         mistakesSection.style.display = 'block';
     } else if (mistakesSection) {

@@ -1,0 +1,17 @@
+fix(S3.2): coach visible meme sans override du poids
+
+Avant : le coach ne s'affichait que si smart.suggested != suggestedWeight
+ET si action dans [rpe_*, weight_up/down, range_change].
+
+Pour un exercice a 150kg x 12 sans RPE, SmartTraining peut renvoyer
+reps_up (avec suggested == lastWeight) -> coach cache alors meme qu'il y
+a un conseil actionnable (vise 13 reps). Meme chose pour maintain,
+plateau, deload.
+
+Changements :
+- Decouplage de l affichage coach (toutes actions significatives)
+  et de l override de poids (seulement si suggested != prefill).
+- Ajout des actions reps_up, plateau, deload, maintain dans le kickerMap
+  avec libelles FR explicites.
+- Nouvelles pilules target : .delta.reps-target (rouge) pour
+  viser N+1 reps et .delta.hold (ghost) pour MAINTIEN.

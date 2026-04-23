@@ -60,6 +60,11 @@ function renderSwapSections(equivalents, sameMuscle, searchResults) {
     const searchResultsSection = document.getElementById('swap-search-results');
     const sectionsContainer = document.getElementById('swap-sections');
 
+    // Icônes SVG monochromes Pit Lane (remplace emojis 🔍 ⚡ 💪)
+    const SVG_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+    const SVG_BOLT   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+    const SVG_MUSCLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5C6.5 4 8 2.5 10 2.5s3.5 1.5 3.5 4c0 1-.5 2-1 3"/><path d="M12 8.5c2-.5 4 1 4.5 3 .5 2-.5 4-2 5"/><path d="M14 16c1 2 0 4-2 4.5-2 .5-4-.5-4.5-2"/><path d="M8 14c-2 0-4-1-4.5-3"/></svg>';
+
     // Si on a des résultats de recherche, les afficher
     if (searchResults && searchResults.length > 0) {
         if (searchResultsSection) searchResultsSection.style.display = 'block';
@@ -69,7 +74,7 @@ function renderSwapSections(equivalents, sameMuscle, searchResults) {
             searchResultsSection.innerHTML = `
                 <div class="swap-section">
                     <div class="swap-section-header">
-                        <span class="swap-section-icon">🔍</span>
+                        <span class="swap-section-icon">${SVG_SEARCH}</span>
                         <span class="swap-section-title">Résultats de recherche</span>
                         <span class="swap-section-count">${searchResults.length}</span>
                     </div>
@@ -93,7 +98,7 @@ function renderSwapSections(equivalents, sameMuscle, searchResults) {
         html += `
             <div class="swap-section">
                 <div class="swap-section-header">
-                    <span class="swap-section-icon">⚡</span>
+                    <span class="swap-section-icon">${SVG_BOLT}</span>
                     <span class="swap-section-title">Exercices équivalents</span>
                     <span class="swap-section-count">${equivalents.length}</span>
                 </div>
@@ -113,7 +118,7 @@ function renderSwapSections(equivalents, sameMuscle, searchResults) {
         html += `
             <div class="swap-section">
                 <div class="swap-section-header">
-                    <span class="swap-section-icon">💪</span>
+                    <span class="swap-section-icon">${SVG_MUSCLE}</span>
                     <span class="swap-section-title">Autres exercices ${muscleName}</span>
                     <span class="swap-section-count">${sameMuscle.length}</span>
                 </div>
@@ -140,24 +145,52 @@ function renderSwapSections(equivalents, sameMuscle, searchResults) {
 }
 
 /**
- * Render les items d'une section de swap
+ * Pictogrammes SVG par équipement (monochrome Pit Lane)
+ */
+function _swapEquipIcon(type) {
+    const ICONS = {
+        barbell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6.5" y1="6.5" x2="6.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="17.5" y2="17.5"/><rect x="3" y="8" width="2" height="8" rx="0.5"/><rect x="19" y="8" width="2" height="8" rx="0.5"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+        dumbbell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="8" width="3" height="8" rx="0.5"/><rect x="5" y="10" width="2" height="4"/><rect x="7" y="11" width="10" height="2"/><rect x="17" y="10" width="2" height="4"/><rect x="19" y="8" width="3" height="8" rx="0.5"/></svg>',
+        machine: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg>',
+        cable: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><path d="M7 11h10l-1 9H8z"/></svg>',
+        bodyweight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.2"/><path d="M8 22V12l4-3 4 3v10"/><path d="M6 13l6-4 6 4"/></svg>',
+        kettlebell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l1 2v1a3 3 0 0 1-1 2 6 6 0 1 1-6 0 3 3 0 0 1-1-2V6z"/></svg>',
+        band: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12c0-4 2-7 8-7s8 3 8 7-2 7-8 7-8-3-8-7z"/><path d="M8 12h8"/></svg>'
+    };
+    return ICONS[type] || ICONS.machine;
+}
+
+/**
+ * Render les items d'une section de swap — Pit Lane avec picto équipement + CTA rond
  */
 function renderSwapItems(exercises) {
     if (!exercises || exercises.length === 0) return '';
 
-    return exercises.map(eq => `
-        <div class="swap-option-item ${eq.isFavorite ? 'is-favorite' : ''}"
+    const SVG_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+
+    return exercises.map((eq, i) => {
+        const equipLabel = equipmentTypes[eq.equipment] || eq.equipment || '';
+        const muscleLabel = muscleGroups[eq.muscle]?.name || eq.muscle || '';
+        const equipIcon = _swapEquipIcon(eq.equipment);
+        const favStar = eq.isFavorite
+            ? '<svg class="swap-option-favorite-badge" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15 9 22 10 17 15 18 22 12 19 6 22 7 15 2 10 9 9 12 2"/></svg>'
+            : '';
+        return `
+        <button type="button" class="swap-option-item ${eq.isFavorite ? 'is-favorite' : ''}"
+             style="--i:${i}"
              onclick="swapExerciseInPreview('${eq.id}')">
+            <span class="swap-option-equip-icon" aria-hidden="true">${equipIcon}</span>
             <div class="swap-option-info">
-                <span class="swap-option-name">
-                    ${eq.name}
-                    ${eq.isFavorite ? '<span class="swap-option-favorite-badge">★</span>' : ''}
+                <span class="swap-option-name">${eq.name}${favStar}</span>
+                <span class="swap-option-meta">
+                    ${muscleLabel ? `<span class="swap-option-muscle">${muscleLabel}</span>` : ''}
+                    ${equipLabel ? `<span class="swap-option-sep" aria-hidden="true">·</span><span class="swap-option-equip">${equipLabel}</span>` : ''}
                 </span>
-                <span class="swap-option-muscle">${muscleGroups[eq.muscle]?.name || eq.muscle}</span>
             </div>
-            <span class="swap-option-equip">${equipmentTypes[eq.equipment] || eq.equipment}</span>
-        </div>
-    `).join('');
+            <span class="swap-option-cta" aria-hidden="true">${SVG_PLUS}</span>
+        </button>
+        `;
+    }).join('');
 }
 
 /**

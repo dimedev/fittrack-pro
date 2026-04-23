@@ -30,7 +30,21 @@
       "Bash(sed:*)",
       "Bash(/c/Windows/System32/wsl.exe bash:*)",
       "Bash(echo:*)",
-      "mcp__jetbrains__get_file_problems"
+      "mcp__jetbrains__get_file_problems",
+      "mcp__5fdff915-094d-4778-ba6f-354bf9642a46__apply_migration",
+      "mcp__736ae563-5fb9-444a-a1dd-2165df11c823__list_teams",
+      "mcp__736ae563-5fb9-444a-a1dd-2165df11c823__list_deployments",
+      "PowerShell(wsl -e git -C /home/dim/projets/fittrack-pro push origin main)",
+      "Bash(cmd /c \"cd C:\\\\Users\\\\DimAvent && git -C \\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\dim\\\\projets\\\\fittrack-pro push origin main 2>&1\")",
+      "mcp__Shadcn_UI__get_component",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__736ae563-5fb9-444a-a1dd-2165df11c823__list_projects",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__resize_window",
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(env)",
+      "Bash(wsl.exe -d Ubuntu -- node --check /home/dim/projets/fittrack-pro/js/modules/training.js)",
+      "Bash(wsl.exe -d Ubuntu -- bash -lc \"which node || command -v nodejs || ls /usr/local/bin | grep -i node\")"
     ]
   }
 }
