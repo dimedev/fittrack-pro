@@ -2339,11 +2339,12 @@ function onCardioBpmChange() {
     if (bpm > 0) {
         const pct = bpm / hrMax;
         let zone, label, color;
-        if (pct < 0.6)       { zone = 1; label = 'Récupération';  color = '#94a3b8'; }
-        else if (pct < 0.7)  { zone = 2; label = 'Endurance';     color = '#22c55e'; }
-        else if (pct < 0.8)  { zone = 3; label = 'Aérobie';       color = '#eab308'; }
-        else if (pct < 0.9)  { zone = 4; label = 'Anaérobie';     color = '#f97316'; }
-        else                 { zone = 5; label = 'Max';            color = '#ef4444'; }
+        // Pit Lane : 5 zones HR en gradient brand (gris neutre → brand pur)
+        if (pct < 0.6)       { zone = 1; label = 'Récupération';  color = '#8c8c8c'; }
+        else if (pct < 0.7)  { zone = 2; label = 'Endurance';     color = 'color-mix(in srgb, #ff0000 35%, #8c8c8c)'; }
+        else if (pct < 0.8)  { zone = 3; label = 'Aérobie';       color = 'color-mix(in srgb, #ff0000 60%, #444)'; }
+        else if (pct < 0.9)  { zone = 4; label = 'Anaérobie';     color = 'color-mix(in srgb, #ff0000 85%, #000)'; }
+        else                 { zone = 5; label = 'Max';            color = '#ff0000'; }
         if (zoneValue) { zoneValue.textContent = zone; zoneValue.style.color = color; }
         if (zoneLabel) { zoneLabel.textContent = label; zoneLabel.style.color = color; }
         if (zoneDisplay) zoneDisplay.style.display = 'flex';
