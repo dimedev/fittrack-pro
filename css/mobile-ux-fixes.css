@@ -938,17 +938,15 @@ html, body, main {
         to   { transform: translateY(0);    opacity: 1; }
     }
 
-    /* Handle de drag (bottom-sheet look) — s'applique aussi aux propriétaires */
-    .modal,
-    .recipe-modal,
-    .meal-history-modal,
-    .barcode-scanner-modal {
+    /* Handle de drag (bottom-sheet look) — sur le .modal interne uniquement.
+       Les anciens sélecteurs .recipe-modal/.meal-history-modal/.barcode-scanner-modal
+       ciblaient le wrapper .modal-overlay (puisque ces classes sont posées sur l'overlay)
+       et créaient des ::before fantômes en haut de l'écran. Retiré au profit du
+       seul .modal qui est l'élément à arrondir. */
+    .modal {
         padding-top: 14px;
     }
     .modal::before,
-    .recipe-modal::before,
-    .meal-history-modal::before,
-    .barcode-scanner-modal::before,
     .bottom-sheet::before,
     .cardio-sheet::before {
         content: '';
@@ -2231,86 +2229,18 @@ textarea:focus-visible {
    duplication ici. Ce fichier ne contient plus que les fixes spécifiques
    aux modales propriétaires (recipe/meal-history/barcode) ci-dessous. */
 
-/* ==================== FIX RECIPE/MEAL HISTORY MODALES ==================== */
-/* Ces modales ont une structure différente: wrapper > overlay + container */
+/* ==================== RECIPE / MEAL-HISTORY MODALES — Pit Lane (S4.1 v2) ====================
+   ANCIEN BLOC NEUTRALISÉ : il imposait `#recipe-modal { display: none }` (ID,
+   très haute spécificité) et n'affichait la modale que via `style*="display: block"`
+   inline — ancienne API. Le nouveau système utilise `classList.add('active')`
+   et `.modal-overlay.recipe-modal.active { display: flex }` (cf. style-nike-shadcn.css
+   bloc PIT LANE V2 ~ligne 9930).
 
-/* Wrapper doit être fixed et couvrir l'écran */
-#recipe-modal,
-#meal-history-modal,
-#recipe-ingredient-selector {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 200 !important;
-    display: none;
-}
+   Comme le sélecteur ID battait les classes, les modales Recipe / Meal-History /
+   Recipe-Ingredient-Selector restaient invisibles malgré `.active`. Tous les
+   overrides ci-dessous étaient également conçus pour une structure HTML
+   différente (wrapper > overlay > container) qui n'existe plus depuis la
+   migration vers `.modal-overlay > .modal.modal--md`.
 
-#recipe-modal[style*="display: block"],
-#recipe-modal[style*="display:block"],
-#meal-history-modal[style*="display: block"],
-#meal-history-modal[style*="display:block"],
-#recipe-ingredient-selector[style*="display: block"],
-#recipe-ingredient-selector[style*="display:block"] {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-}
-
-/* L'overlay à l'intérieur */
-#recipe-modal > .modal-overlay,
-#meal-history-modal > .modal-overlay,
-#recipe-ingredient-selector > .modal-overlay {
-    position: absolute !important;
-    inset: 0 !important;
-    background: rgba(0, 0, 0, 0.6) !important;
-    backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
-}
-
-/* Le container de contenu */
-.recipe-container,
-.meal-history-container,
-.ingredient-selector-container {
-    position: relative !important;
-    z-index: 1 !important;
-    width: 100% !important;
-    max-height: calc(100vh - 60px) !important;
-    max-height: calc(100dvh - 60px) !important;
-    background: var(--bg-card) !important;
-    border-radius: 20px 20px 0 0 !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior: contain !important;
-    animation: modalSlideUp 300ms cubic-bezier(0.32, 0.72, 0, 1) !important;
-}
-
-/* Header de ces modales */
-.recipe-header,
-.meal-history-header {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 10 !important;
-    background: var(--bg-card) !important;
-    padding: 24px 20px 16px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    border-bottom: 1px solid var(--border-color) !important;
-}
-
-/* Drag handle pour ces modales */
-.recipe-container::before,
-.meal-history-container::before,
-.ingredient-selector-container::before {
-    content: '' !important;
-    position: absolute !important;
-    top: 8px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 36px !important;
-    height: 5px !important;
-    background: var(--text-muted) !important;
-    border-radius: 3px !important;
-    opacity: 0.5 !important;
-    z-index: 20 !important;
-}
+   Le drag-handle, le radius, le scroll body et le sticky header sont désormais
+   gérés nativement par `.modal` et `.modal-body` Pit Lane. Plus rien à fixer ici. */

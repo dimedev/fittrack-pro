@@ -363,75 +363,87 @@ function generateSmartSuggestions(mealType, excludeIds = []) {
 
 // ==================== MESSAGE QUOTIDIEN ====================
 
+// Icônes SVG canon Pit Lane (zéro emoji). 18px stroke 2.2 pour le suggestion-icon.
+const SUGGEST_ICONS = {
+    success: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+    workout: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5h11v11h-11z" transform="rotate(45 12 12)"/><path d="M2 12h3M19 12h3"/></svg>',
+    cardio: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+    protein: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg>',
+    breakfast: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
+    rest: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+    chart: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="20" x2="21" y2="20"/><polyline points="4 16 9 11 13 15 20 7"/></svg>',
+    bulb: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.7.7 1 1.5 1 2.3v1h6v-1c0-.8.3-1.6 1-2.3A7 7 0 0 0 12 2z"/></svg>'
+};
+
 function generateDailySuggestionMessage() {
     const nutrition = getNutritionContext();
     const training = getTrainingContext();
     const time = getTimeContext();
-    
+
     // Priorité 1: Succès !
     if (nutrition.percentages.calories >= 90 && nutrition.percentages.protein >= 90) {
         return {
             text: 'Super journée ! Tes objectifs sont atteints',
             type: 'success',
-            icon: '🎉'
+            icon: SUGGEST_ICONS.success
         };
     }
-    
+
     // Priorité 2: Post-workout
     if (training.hasWorkoutToday && nutrition.needsProtein) {
         return {
             text: `Après ta séance, ajoute des protéines`,
             type: 'tip',
-            icon: '💪'
+            icon: SUGGEST_ICONS.workout
         };
     }
-    
+
     // Priorité 3: Cardio effectué
     if (training.totalCardioCalories > 0) {
         return {
             text: `+${training.totalCardioCalories} kcal disponibles grâce à ton cardio`,
             type: 'info',
-            icon: '🏃'
+            icon: SUGGEST_ICONS.cardio
         };
     }
-    
+
     // Priorité 4: Manque de protéines l'après-midi
     if (nutrition.needsProtein && time.hour >= 14) {
         const missing = nutrition.remaining.protein;
         return {
             text: `Il te manque ~${missing}g de protéines`,
             type: 'tip',
-            icon: '🥩'
+            icon: SUGGEST_ICONS.protein
         };
     }
-    
+
     // Priorité 5: Peu mangé le matin
     if (nutrition.percentages.calories < 30 && time.hour >= 11 && time.hour <= 14) {
         return {
             text: `N'oublie pas de bien déjeuner`,
             type: 'reminder',
-            icon: '☀️'
+            icon: SUGGEST_ICONS.breakfast
         };
     }
-    
+
     // Priorité 6: Jour de repos
     if (training.isRestDay && time.hour >= 12) {
         return {
             text: `Jour de repos : privilégie les repas légers`,
             type: 'tip',
-            icon: '🧘'
+            icon: SUGGEST_ICONS.rest
         };
     }
-    
+
     // Default: Calories restantes
     if (nutrition.remaining.calories > 0) {
         return {
             text: `Il te reste ~${nutrition.remaining.calories} kcal`,
             type: 'info',
-            icon: '📊'
+            icon: SUGGEST_ICONS.chart
         };
     }
-    
+
     return null;
 }
 
@@ -479,14 +491,27 @@ function renderNutritionGoalCard() {
 
     if (scored.length === 0) { container.innerHTML = ''; return; }
 
+    // Helper : escape HTML (texte affiché)
+    const esc = (s) => String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     const items = scored.map(item => `
         <div class="ngc-item">
             <div class="ngc-item-info">
-                <span class="ngc-item-name">${item.food.name}</span>
+                <span class="ngc-item-name">${esc(item.food.name)}</span>
                 <span class="ngc-item-detail">${item.qty}g · +${item.prot}g prot · ${item.cals} kcal</span>
             </div>
-            <button class="ngc-item-add" onclick="quickAddNutritionGoalFood(${item.food.id || JSON.stringify(item.food.id)}, ${item.qty})" title="Ajouter">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <button class="ngc-item-add"
+                    type="button"
+                    data-food-id="${esc(item.food.id)}"
+                    data-food-qty="${item.qty}"
+                    title="Ajouter ${esc(item.food.name)}"
+                    aria-label="Ajouter ${esc(item.food.name)} (${item.qty}g)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
         </div>
     `).join('');
@@ -494,7 +519,13 @@ function renderNutritionGoalCard() {
     container.innerHTML = `
         <div class="nutrition-goal-card card">
             <div class="ngc-header">
-                <span class="ngc-icon">🎯</span>
+                <span class="ngc-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <circle cx="12" cy="12" r="6"/>
+                        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                    </svg>
+                </span>
                 <div class="ngc-title">
                     <span class="ngc-heading">Il te manque ${remainingProtein}g de protéines</span>
                     <span class="ngc-sub">Ajoute l'un de ces aliments</span>
@@ -503,6 +534,23 @@ function renderNutritionGoalCard() {
             <div class="ngc-list">${items}</div>
         </div>
     `;
+
+    // Event delegation : un seul listener par render, pas d'injection inline
+    // (évite les ReferenceError type "whey is not defined" quand food.id est une string non-quotée)
+    const list = container.querySelector('.ngc-list');
+    if (list && !list.dataset.bound) {
+        list.dataset.bound = '1';
+        list.addEventListener('click', (e) => {
+            const btn = e.target.closest('.ngc-item-add');
+            if (!btn) return;
+            const id = btn.dataset.foodId;
+            const qty = parseFloat(btn.dataset.foodQty) || 100;
+            // food.id peut être numeric ou string : tenter cast number, fallback string
+            const numId = Number(id);
+            const finalId = (!isNaN(numId) && String(numId) === id) ? numId : id;
+            quickAddNutritionGoalFood(finalId, qty);
+        });
+    }
 }
 
 /**

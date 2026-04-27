@@ -2,6 +2,21 @@
 // Rendering, affichage, interactions UI
 // Dépend de : nutrition-core.js (constants, calculs, CRUD)
 
+// ==================== ICÔNES PIT LANE (SVG inline) ====================
+// stroke-width 2.2, currentColor — alignées avec le canon Pit Lane (brand red, no emoji)
+const NUI_ICONS = {
+    edit:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>',
+    trash:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>',
+    flame:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c1.38 0 2.5-1 2.5-2.5 0-1.38-.5-2-1-3-.42-.84-1-1.5-1-2.5 0-1.5 1-2.5 1-2.5s-2.5 0-4 2.5c-1 1.67-.5 3.5-.5 4.5 0 0-.5 0-.5 1z"/><path d="M16 14a4 4 0 0 1-4 4 4 4 0 0 1-4-4c0-1.95.85-3 1.6-4 .76-1 1.15-1.97 1.4-3.4 1 1 2 2 2 4 0 1 .5 2 1.5 2.5 1 .5 1.5-.5 1.5-2"/></svg>',
+    chart:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+    clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>',
+    target:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    trophy:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M17 4h3v3a3 3 0 0 1-3 3"/><path d="M7 4H4v3a3 3 0 0 0 3 3"/></svg>',
+    droplet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 2.5s6.5 6.5 6.5 11.5a6.5 6.5 0 1 1-13 0c0-5 6.5-11.5 6.5-11.5z"/></svg>'
+};
+// Expose pour autres modules (ex: nutrition.js consume)
+window.NUI_ICONS = NUI_ICONS;
+
 // ==================== ALIMENTS RÉCENTS ====================
 
 function renderRecentFoodsSection() {
@@ -223,17 +238,17 @@ function renderFoodsList() {
                                 <div class="food-select-info" onclick="quickAddFromSearch('${food.id}')" style="flex: 1; cursor: pointer;">
                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                         <strong>${food.name}</strong>
-                                        ${hasUnit ? '<span style="font-size: 0.8rem; color: var(--text-secondary);">📊</span>' : ''}
+                                        ${hasUnit ? `<span class="food-unit-icon" style="display:inline-flex; align-items:center; color: var(--text-secondary);" title="Unité personnalisée">${NUI_ICONS.chart}</span>` : ''}
                                     </div>
                                     <div class="food-search-macros">
-                                        <span>🔥 ${food.calories} kcal</span>
+                                        <span class="kcal-pill" style="display:inline-flex; align-items:center; gap:4px;">${NUI_ICONS.flame} ${food.calories} kcal</span>
                                         <span>P: ${food.protein}g</span>
                                         <span>G: ${food.carbs}g</span>
                                         <span>L: ${food.fat}g</span>
                                     </div>
                                     ${hasUnit ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">${unitInfo}</div>` : ''}
                                 </div>
-                                <button class="food-btn" onclick="event.stopPropagation(); deleteCustomFood('${food.id}')" title="Supprimer">🗑️</button>
+                                <button class="food-btn icon-btn" onclick="event.stopPropagation(); deleteCustomFood('${food.id}')" title="Supprimer" aria-label="Supprimer">${NUI_ICONS.trash}</button>
                             </div>
                         `;
                     }).join('')}
@@ -371,7 +386,7 @@ function renderJournalEntries() {
     if (entries.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="padding: 30px;">
-                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-icon" style="display:inline-flex; align-items:center; justify-content:center; color: var(--text-muted);">${NUI_ICONS.clipboard}</div>
                 <div class="empty-state-title">Journal vide</div>
                 <p>Recherchez et ajoutez ce que vous avez mangé aujourd'hui</p>
             </div>
@@ -410,8 +425,8 @@ function renderJournalEntries() {
                                onchange="updateJournalQuantity(${idx}, this.value)">
                         <span>g</span>
                     </div>
-                    <button class="journal-entry-delete" onclick="removeFromJournal(${idx})" title="Supprimer">
-                        🗑️
+                    <button class="journal-entry-delete icon-btn" onclick="removeFromJournal(${idx})" title="Supprimer" aria-label="Supprimer">
+                        ${NUI_ICONS.trash}
                     </button>
                 </div>
             </div>
@@ -580,7 +595,7 @@ function updateJournalSummary() {
             const remaining = targets.calories - netCalories;
             netDeficitEl.innerHTML = `
                 <div class="net-deficit-card">
-                    <span class="deficit-icon">🔥</span>
+                    <span class="deficit-icon" style="display:inline-flex; align-items:center; color: var(--accent-brand);">${NUI_ICONS.flame}</span>
                     <div class="deficit-details">
                         <span class="deficit-label">Déficit net</span>
                         <span class="deficit-value">${netCalories} kcal consommées - ${cardioCalories} kcal brûlées = <strong>${remaining} kcal restantes</strong></span>
@@ -1011,8 +1026,8 @@ function renderMealItems(mealType, entries) {
                     <div class="meal-item-details">${qtyDisplay} · ${cals} kcal</div>
                 </div>
                 <div class="meal-item-actions">
-                    <button class="meal-item-edit" onclick="editMealItemQuantity('${mealType}', ${idx})">✏️</button>
-                    <button class="meal-item-delete" onclick="removeMealItem('${mealType}', ${idx})">🗑️</button>
+                    <button class="meal-item-edit icon-btn" onclick="editMealItemQuantity('${mealType}', ${idx})" title="Modifier" aria-label="Modifier">${NUI_ICONS.edit}</button>
+                    <button class="meal-item-delete icon-btn" onclick="removeMealItem('${mealType}', ${idx})" title="Supprimer" aria-label="Supprimer">${NUI_ICONS.trash}</button>
                 </div>
             </div>
         `;
@@ -1153,7 +1168,7 @@ function renderCardioItems() {
                     </div>
                 </div>
                 <span class="cardio-item-calories">-${session.calories} kcal</span>
-                <button class="cardio-item-delete" onclick="removeCardioSession(${idx})">🗑️</button>
+                <button class="cardio-item-delete icon-btn" onclick="removeCardioSession(${idx})" title="Supprimer" aria-label="Supprimer">${NUI_ICONS.trash}</button>
             </div>
         `;
     }).join('');
@@ -1215,7 +1230,7 @@ function checkGoalReached() {
         const key = `protein_goal_${new Date().toISOString().split('T')[0]}`;
         if (!sessionStorage.getItem(key)) {
             sessionStorage.setItem(key, 'true');
-            showGoalCelebration('🎯 Objectif protéines atteint !');
+            showGoalCelebration('Objectif protéines atteint !', 'target');
         }
     }
 
@@ -1224,19 +1239,23 @@ function checkGoalReached() {
         const key = `calories_goal_${new Date().toISOString().split('T')[0]}`;
         if (!sessionStorage.getItem(key)) {
             sessionStorage.setItem(key, 'true');
-            showGoalCelebration('🎉 Objectif calories atteint !');
+            showGoalCelebration('Objectif calories atteint !', 'trophy');
         }
     }
 }
 
 // Afficher une célébration
-function showGoalCelebration(message) {
+function showGoalCelebration(message, iconKey = 'trophy') {
     // Ne pas montrer si on a déjà célébré récemment
     if (document.querySelector('.goal-celebration')) return;
 
     const celebration = document.createElement('div');
     celebration.className = 'goal-celebration';
-    celebration.textContent = message;
+    const iconSvg = NUI_ICONS[iconKey] || NUI_ICONS.trophy;
+    // Sécurité : le texte vient d'un appelant interne uniquement, mais on échappe par prudence
+    const safeMsg = String(message)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    celebration.innerHTML = `<span class="goal-celebration-icon" style="display:inline-flex; vertical-align:middle; margin-right:8px; color: var(--accent-brand);">${iconSvg}</span><span class="goal-celebration-text">${safeMsg}</span>`;
     document.body.appendChild(celebration);
 
     // Vibration si supportée
@@ -1509,7 +1528,7 @@ function renderHydrationWidget() {
     container.innerHTML = `
         <div class="hydration-header">
             <div class="hydration-title">
-                <span class="icon">💧</span>
+                <span class="icon" style="display:inline-flex; align-items:center; color: var(--accent-brand); margin-right:6px;">${NUI_ICONS.droplet}</span>
                 Hydratation
             </div>
             <div class="hydration-value">${consumed} / ${goal}ml</div>

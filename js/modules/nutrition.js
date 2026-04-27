@@ -1692,6 +1692,10 @@ function updateNutritionSuggestion() {
         message = NutritionSuggestions.getDailyMessage();
     }
 
+    // SVG fallback canon Pit Lane (ampoule = bulb)
+    const FALLBACK_BULB = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.7.7 1 1.5 1 2.3v1h6v-1c0-.8.3-1.6 1-2.3A7 7 0 0 0 12 2z"/></svg>';
+    const FALLBACK_CHART = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="20" x2="21" y2="20"/><polyline points="4 16 9 11 13 15 20 7"/></svg>';
+
     if (!message) {
         // Fallback simple
         const consumed = typeof calculateConsumedMacros === 'function'
@@ -1707,14 +1711,15 @@ function updateNutritionSuggestion() {
             message = {
                 text: `Il te reste ~${remaining} kcal pour aujourd'hui`,
                 type: 'info',
-                icon: '📊'
+                icon: FALLBACK_CHART
             };
         }
     }
 
     if (message) {
         textEl.textContent = message.text;
-        if (iconEl) iconEl.textContent = message.icon || '💡';
+        // L'icône est désormais une string SVG (canon Pit Lane). innerHTML pour rendre.
+        if (iconEl) iconEl.innerHTML = message.icon || FALLBACK_BULB;
 
         // Style selon le type
         container.className = 'nutrition-suggestion';
