@@ -2784,3 +2784,171 @@ body:has(.bottom-sheet-overlay[style*="display: flex"]) .quicklog-bar {
 @media (prefers-reduced-motion: reduce) {
     .nutrition-page-title-kicker-dot { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE V3 · NUTRITION HEADER ACTIONS — REPAINT MONOCHROME
+   Override des couleurs legacy (purple/gray/red/green) :
+   tous les boutons d'action en ghost noir + brand red, sauf le bouton
+   destructif (trash) qui prend la surface brand red full pour signaler.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Force layout du header pour qu'il respire sur mobile */
+.nutrition-page-header {
+    /* Desktop : kicker à gauche, actions à droite, sur 1 ligne */
+    align-items: flex-start;
+}
+
+.nutrition-page-header .nutrition-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.nutrition-page-header .nutrition-header-actions .form-input[type="date"] {
+    background: color-mix(in srgb, #000 60%, var(--bg-card));
+    border: 1px solid color-mix(in srgb, #fff 8%, transparent);
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    min-height: 40px;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.nutrition-page-header .nutrition-header-actions .form-input[type="date"]:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 65%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-brand, #ff0000) 20%, transparent);
+}
+
+.nutrition-page-header .nutrition-buttons-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+/* ──── BOUTONS UNIFIÉS : tous monochrome ghost (override les variantes legacy) ──── */
+.nutrition-page-header .nutrition-buttons-row .btn-icon,
+.nutrition-page-header .nutrition-buttons-row .btn-icon.btn-accent-icon,
+.nutrition-page-header .nutrition-buttons-row .btn-icon.btn-secondary-icon,
+.nutrition-page-header .nutrition-buttons-row .btn-icon.btn-success-icon {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    border-radius: 12px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    /* Reset palette legacy */
+    background: color-mix(in srgb, #fff 4%, transparent) !important;
+    border: 1px solid color-mix(in srgb, #fff 10%, transparent) !important;
+    color: var(--text-primary) !important;
+    cursor: pointer;
+    transition: background 180ms ease, border-color 180ms ease, transform 140ms ease, box-shadow 180ms ease, color 180ms ease !important;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: none !important;
+}
+
+.nutrition-page-header .nutrition-buttons-row .btn-icon svg {
+    width: 18px;
+    height: 18px;
+    color: inherit;
+    stroke: currentColor;
+}
+
+@media (hover: hover) {
+    .nutrition-page-header .nutrition-buttons-row .btn-icon:hover,
+    .nutrition-page-header .nutrition-buttons-row .btn-icon.btn-accent-icon:hover,
+    .nutrition-page-header .nutrition-buttons-row .btn-icon.btn-secondary-icon:hover,
+    .nutrition-page-header .nutrition-buttons-row .btn-icon.btn-success-icon:hover {
+        background: color-mix(in srgb, var(--accent-brand, #ff0000) 18%, transparent) !important;
+        border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent) !important;
+        color: #fff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 0 16px color-mix(in srgb, var(--accent-brand, #ff0000) 30%, transparent) !important;
+    }
+}
+
+.nutrition-page-header .nutrition-buttons-row .btn-icon:active {
+    transform: scale(0.94) !important;
+}
+
+/* ──── BOUTON DESTRUCTIF (trash) : surface brand red pour le distinguer ──── */
+.nutrition-page-header .nutrition-buttons-row .btn-icon.btn-danger-icon {
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 18%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent) !important;
+    color: var(--accent-brand, #ff0000) !important;
+}
+
+@media (hover: hover) {
+    .nutrition-page-header .nutrition-buttons-row .btn-icon.btn-danger-icon:hover {
+        background: var(--accent-brand, #ff0000) !important;
+        border-color: var(--accent-brand, #ff0000) !important;
+        color: #fff !important;
+        box-shadow: 0 0 22px color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent) !important;
+    }
+}
+
+.nutrition-page-header .nutrition-buttons-row .btn-icon:focus-visible {
+    outline: 2px solid var(--accent-brand, #ff0000);
+    outline-offset: 2px;
+}
+
+/* ──── MOBILE : date en haut, boutons en bas, plus aucun débordement ──── */
+@media (max-width: 768px) {
+    .nutrition-page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        padding: 14px 16px;
+    }
+
+    .nutrition-page-header .nutrition-header-actions {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .nutrition-page-header .nutrition-header-actions .form-input[type="date"] {
+        width: 100%;
+        max-width: none;
+        text-align: center;
+        font-size: 0.95rem;
+        padding: 12px 14px;
+    }
+
+    .nutrition-page-header .nutrition-buttons-row {
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        flex-wrap: nowrap;
+    }
+}
+
+/* Très petits viewports : compacter encore */
+@media (max-width: 380px) {
+    .nutrition-page-header .nutrition-buttons-row .btn-icon,
+    .nutrition-page-header .nutrition-buttons-row .btn-icon.btn-accent-icon,
+    .nutrition-page-header .nutrition-buttons-row .btn-icon.btn-secondary-icon,
+    .nutrition-page-header .nutrition-buttons-row .btn-icon.btn-danger-icon,
+    .nutrition-page-header .nutrition-buttons-row .btn-icon.btn-success-icon {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        border-radius: 11px !important;
+    }
+    .nutrition-page-header .nutrition-buttons-row .btn-icon svg {
+        width: 17px;
+        height: 17px;
+    }
+}
