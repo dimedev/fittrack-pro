@@ -62,7 +62,8 @@ import './modules/session-ui.js';
 // ── Progress & stats ──────────────────────────────────────────────────────────
 import './modules/progress.js';
 import './modules/achievements.js';
-import './modules/smart-training.js';
+// coach-engine = fusion SmartTraining + AIInsights + façade (S3.5)
+import './modules/coach-engine.js';
 
 // ── Santé & intégrations ─────────────────────────────────────────────────────
 import './modules/health-integration.js';
