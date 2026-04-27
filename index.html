@@ -8,13 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=54">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=55">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=47">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=48">
     <!-- Deferred: loaded async, applied when ready -->
     <link rel="stylesheet" href="css/session-manager.css?v=43" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=24" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="css/nutrition-premium.css?v=7" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/nutrition-premium.css?v=8" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/micro-animations.css?v=2" media="print" onload="this.media='all'">
@@ -466,56 +466,51 @@
                     </div>
                 </div>
                 
-                <!-- Header avec date -->
-                <div class="card">
-                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
-                        <div class="card-title">
-                            <span class="icon">🍽️</span>
-                            Nutrition
-                        </div>
-                        <div class="nutrition-header-actions">
-                            <input type="date" class="form-input" id="journal-date" onchange="loadJournalDay()">
-                            <div class="nutrition-buttons-row">
-                                <button class="btn-icon btn-accent-icon" onclick="openMealHistoryModal()" title="Historique repas">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
-                                </button>
-                                <!-- Barcode scanner désactivé - feature non prête -->
-                                <!--
-                                <button class="btn-icon btn-primary-icon" onclick="openBarcodeScanner()" title="Scanner code-barres">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="2" y="6" width="2" height="12"></rect>
-                                        <rect x="6" y="6" width="2" height="12"></rect>
-                                        <rect x="10" y="6" width="1" height="12"></rect>
-                                        <rect x="13" y="6" width="2" height="12"></rect>
-                                        <rect x="17" y="6" width="1" height="12"></rect>
-                                        <rect x="20" y="6" width="2" height="12"></rect>
-                                    </svg>
-                                </button>
-                                -->
-                                <button class="btn-icon btn-secondary-icon" onclick="openCopyDayModal()" title="Copier un jour">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                    </svg>
-                                </button>
-                                <button class="btn-icon btn-danger-icon" onclick="clearJournalDay()" title="Vider le journal">🗑️</button>
-                                <button class="btn-icon btn-success-icon" onclick="openRecipeModal()" title="Créer une recette">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-                                        <path d="M7 2v20"></path>
-                                        <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
-                                    </svg>
-                                </button>
-                                <button class="btn-icon btn-primary-icon" onclick="openCustomFoodModal()" title="Ajouter aliment">+</button>
-                            </div>
+                <!-- ═════════ HEADER ACTIONS (carte plate, pas de hover lift) ═════════ -->
+                <div class="nutrition-page-header">
+                    <div class="nutrition-page-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M3 11h18M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M6 11v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-6"/>
+                        </svg>
+                        <span>Nutrition</span>
+                    </div>
+                    <div class="nutrition-header-actions">
+                        <input type="date" class="form-input" id="journal-date" onchange="loadJournalDay()">
+                        <div class="nutrition-buttons-row">
+                            <button class="btn-icon btn-accent-icon" onclick="openMealHistoryModal()" title="Historique repas">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </button>
+                            <button class="btn-icon btn-secondary-icon" onclick="openCopyDayModal()" title="Copier un jour">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                            <button class="btn-icon btn-danger-icon" onclick="clearJournalDay()" title="Vider le journal">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon btn-success-icon" onclick="openRecipeModal()" title="Créer une recette">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                                    <path d="M7 2v20"></path>
+                                    <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
+                                </svg>
+                            </button>
+                            <button class="btn-icon btn-primary-icon" onclick="openCustomFoodModal()" title="Ajouter aliment">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            </button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Macros du jour - EN PREMIER -->
-                    <div class="nutrition-macros-summary" style="margin-bottom: 20px;">
+                <!-- ═════════ MACROS DU JOUR (carte autonome) ═════════ -->
+                <div class="nutrition-macros-card">
+                    <div class="nutrition-macros-summary">
                         <!-- Progress Rings - Premium UI -->
                         <div class="nutrition-macros-rings" id="nutrition-macros-rings">
                             <div class="macro-ring-container" data-macro="calories" id="ring-container-cals">
@@ -607,133 +602,136 @@
                         <!-- Déficit net (calories - cardio) -->
                         <div id="net-deficit-summary" style="display: none;"></div>
                     </div>
+                </div>
+                <!-- /nutrition-macros-card -->
 
-                    <!-- Aliments récents (favoris rapides) -->
-                    <div id="recent-foods-section" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 12px;"></div>
+                <!-- Aliments récents (favoris rapides) -->
+                <div id="recent-foods-section" style="display: none;"></div>
 
-                    <!-- Repas du jour - 4 sections -->
-                    <div class="meals-container" id="meals-container">
-                        <!-- Petit-déjeuner -->
-                        <div class="meal-section" data-meal="breakfast">
-                            <div class="meal-header" onclick="toggleMealSection('breakfast')">
-                                <div class="meal-info">
-                                    <span class="meal-icon">🌅</span>
-                                    <span class="meal-name">Petit-déjeuner</span>
-                                </div>
-                                <div class="meal-meta">
-                                    <span class="meal-calories" id="meal-cals-breakfast">0 kcal</span>
-                                    <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('breakfast')" title="Ajouter">+</button>
-                                </div>
+                <!-- Repas du jour - 4 sections -->
+                <div class="meals-container" id="meals-container">
+                    <!-- Petit-déjeuner -->
+                    <div class="meal-section" data-meal="breakfast">
+                        <div class="meal-header" onclick="toggleMealSection('breakfast')">
+                            <div class="meal-info">
+                                <span class="meal-icon">🌅</span>
+                                <span class="meal-name">Petit-déjeuner</span>
                             </div>
-                            <div class="meal-content" id="meal-content-breakfast">
-                                <div class="meal-items" id="meal-items-breakfast"></div>
+                            <div class="meal-meta">
+                                <span class="meal-calories" id="meal-cals-breakfast">0 kcal</span>
+                                <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('breakfast')" title="Ajouter">+</button>
                             </div>
                         </div>
-                        
-                        <!-- Déjeuner -->
-                        <div class="meal-section" data-meal="lunch">
-                            <div class="meal-header" onclick="toggleMealSection('lunch')">
-                                <div class="meal-info">
-                                    <span class="meal-icon">☀️</span>
-                                    <span class="meal-name">Déjeuner</span>
-                                </div>
-                                <div class="meal-meta">
-                                    <span class="meal-calories" id="meal-cals-lunch">0 kcal</span>
-                                    <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('lunch')" title="Ajouter">+</button>
-                                </div>
-                            </div>
-                            <div class="meal-content" id="meal-content-lunch">
-                                <div class="meal-items" id="meal-items-lunch"></div>
-                            </div>
+                        <div class="meal-content" id="meal-content-breakfast">
+                            <div class="meal-items" id="meal-items-breakfast"></div>
                         </div>
-                        
-                        <!-- Collation -->
-                        <div class="meal-section" data-meal="snack">
-                            <div class="meal-header" onclick="toggleMealSection('snack')">
-                                <div class="meal-info">
-                                    <span class="meal-icon">🍎</span>
-                                    <span class="meal-name">Collation</span>
-                                </div>
-                                <div class="meal-meta">
-                                    <span class="meal-calories" id="meal-cals-snack">0 kcal</span>
-                                    <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('snack')" title="Ajouter">+</button>
-                                </div>
-                            </div>
-                            <div class="meal-content" id="meal-content-snack">
-                                <div class="meal-items" id="meal-items-snack"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Dîner -->
-                        <div class="meal-section" data-meal="dinner">
-                            <div class="meal-header" onclick="toggleMealSection('dinner')">
-                                <div class="meal-info">
-                                    <span class="meal-icon">🌙</span>
-                                    <span class="meal-name">Dîner</span>
-                                </div>
-                                <div class="meal-meta">
-                                    <span class="meal-calories" id="meal-cals-dinner">0 kcal</span>
-                                    <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('dinner')" title="Ajouter">+</button>
-                                </div>
-                            </div>
-                            <div class="meal-content" id="meal-content-dinner">
-                                <div class="meal-items" id="meal-items-dinner"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Section Cardio -->
-                    <div class="cardio-section" id="cardio-section">
-                        <div class="cardio-header">
-                            <div class="cardio-info">
-                                <span class="cardio-icon">🔥</span>
-                                <span class="cardio-title">Activité du jour</span>
-                            </div>
-                            <div class="cardio-meta">
-                                <span class="cardio-calories" id="cardio-total-calories">0 kcal</span>
-                                <button class="meal-add-btn" onclick="openCardioSheet()" title="Ajouter">+</button>
-                            </div>
-                        </div>
-                        <div class="cardio-items" id="cardio-items"></div>
-                    </div>
-                    
-                    <!-- Section Mes Aliments Personnalisés -->
-                    <div class="custom-foods-section" id="custom-foods-section" style="display: none;">
-                        <div class="custom-foods-header" onclick="toggleCustomFoods()">
-                            <div class="custom-foods-info">
-                                <span class="custom-foods-icon">⭐</span>
-                                <span class="custom-foods-title">Mes Aliments</span>
-                                <span class="custom-foods-count" id="custom-foods-count">0</span>
-                            </div>
-                            <button class="custom-foods-toggle" id="custom-foods-toggle">▼</button>
-                        </div>
-                        <div class="custom-foods-content" id="custom-foods-content">
-                            <div id="foods-list"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Suggestion intelligente quotidienne -->
-                    <div class="nutrition-suggestion" id="nutrition-suggestion" style="display: none;">
-                        <span id="suggestion-icon">💡</span>
-                        <span id="suggestion-text"></span>
                     </div>
 
-                    <!-- Calories Chart -->
-                    <div class="card" id="calories-chart-card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">📊</span>
-                                Calories sur 7 jours
+                    <!-- Déjeuner -->
+                    <div class="meal-section" data-meal="lunch">
+                        <div class="meal-header" onclick="toggleMealSection('lunch')">
+                            <div class="meal-info">
+                                <span class="meal-icon">☀️</span>
+                                <span class="meal-name">Déjeuner</span>
                             </div>
-                            <div class="chart-filters">
-                                <button class="filter-btn active" data-days="7" onclick="renderCaloriesChart(7)">7J</button>
-                                <button class="filter-btn" data-days="14" onclick="renderCaloriesChart(14)">14J</button>
-                                <button class="filter-btn" data-days="30" onclick="renderCaloriesChart(30)">30J</button>
+                            <div class="meal-meta">
+                                <span class="meal-calories" id="meal-cals-lunch">0 kcal</span>
+                                <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('lunch')" title="Ajouter">+</button>
                             </div>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="calories-chart"></canvas>
+                        <div class="meal-content" id="meal-content-lunch">
+                            <div class="meal-items" id="meal-items-lunch"></div>
                         </div>
+                    </div>
+
+                    <!-- Collation -->
+                    <div class="meal-section" data-meal="snack">
+                        <div class="meal-header" onclick="toggleMealSection('snack')">
+                            <div class="meal-info">
+                                <span class="meal-icon">🍎</span>
+                                <span class="meal-name">Collation</span>
+                            </div>
+                            <div class="meal-meta">
+                                <span class="meal-calories" id="meal-cals-snack">0 kcal</span>
+                                <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('snack')" title="Ajouter">+</button>
+                            </div>
+                        </div>
+                        <div class="meal-content" id="meal-content-snack">
+                            <div class="meal-items" id="meal-items-snack"></div>
+                        </div>
+                    </div>
+
+                    <!-- Dîner -->
+                    <div class="meal-section" data-meal="dinner">
+                        <div class="meal-header" onclick="toggleMealSection('dinner')">
+                            <div class="meal-info">
+                                <span class="meal-icon">🌙</span>
+                                <span class="meal-name">Dîner</span>
+                            </div>
+                            <div class="meal-meta">
+                                <span class="meal-calories" id="meal-cals-dinner">0 kcal</span>
+                                <button class="meal-add-btn" onclick="event.stopPropagation(); openMealSheet('dinner')" title="Ajouter">+</button>
+                            </div>
+                        </div>
+                        <div class="meal-content" id="meal-content-dinner">
+                            <div class="meal-items" id="meal-items-dinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Cardio -->
+                <div class="cardio-section" id="cardio-section">
+                    <div class="cardio-header">
+                        <div class="cardio-info">
+                            <span class="cardio-icon">🔥</span>
+                            <span class="cardio-title">Activité du jour</span>
+                        </div>
+                        <div class="cardio-meta">
+                            <span class="cardio-calories" id="cardio-total-calories">0 kcal</span>
+                            <button class="meal-add-btn" onclick="openCardioSheet()" title="Ajouter">+</button>
+                        </div>
+                    </div>
+                    <div class="cardio-items" id="cardio-items"></div>
+                </div>
+
+                <!-- Section Mes Aliments Personnalisés -->
+                <div class="custom-foods-section" id="custom-foods-section" style="display: none;">
+                    <div class="custom-foods-header" onclick="toggleCustomFoods()">
+                        <div class="custom-foods-info">
+                            <span class="custom-foods-icon">⭐</span>
+                            <span class="custom-foods-title">Mes Aliments</span>
+                            <span class="custom-foods-count" id="custom-foods-count">0</span>
+                        </div>
+                        <button class="custom-foods-toggle" id="custom-foods-toggle">▼</button>
+                    </div>
+                    <div class="custom-foods-content" id="custom-foods-content">
+                        <div id="foods-list"></div>
+                    </div>
+                </div>
+
+                <!-- Suggestion intelligente quotidienne -->
+                <div class="nutrition-suggestion" id="nutrition-suggestion" style="display: none;">
+                    <span id="suggestion-icon">💡</span>
+                    <span id="suggestion-text"></span>
+                </div>
+
+                <!-- Calories Chart -->
+                <div class="nutrition-chart-card" id="calories-chart-card">
+                    <div class="nutrition-chart-header">
+                        <div class="nutrition-chart-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="3" y1="20" x2="21" y2="20"/><polyline points="4 16 9 11 13 15 20 7"/>
+                            </svg>
+                            <span>Calories sur 7 jours</span>
+                        </div>
+                        <div class="chart-filters">
+                            <button class="filter-btn active" data-days="7" onclick="renderCaloriesChart(7)">7J</button>
+                            <button class="filter-btn" data-days="14" onclick="renderCaloriesChart(14)">14J</button>
+                            <button class="filter-btn" data-days="30" onclick="renderCaloriesChart(30)">30J</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="calories-chart"></canvas>
                     </div>
                 </div>
 

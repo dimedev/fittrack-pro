@@ -1502,15 +1502,36 @@ html, body, main {
     }
     
     /* S'assurer que tous les boutons ont des touch targets de 44px minimum */
-    .btn, 
-    .nav-btn, 
+    /* NOTE: .ngc-item-add et .suggestion-add-btn sont des boutons ronds 36px par design (Pit Lane) — tap zone étendue via ::before */
+    .btn,
+    .nav-btn,
     .tab-btn,
     .quantity-btn,
     .meal-item-edit,
-    .meal-item-delete,
-    .suggestion-add-btn {
+    .meal-item-delete {
         min-height: 44px;
         min-width: 44px;
+    }
+
+    /* Tap zone étendue pour les petits boutons ronds sans déformer le visuel */
+    .ngc-item-add,
+    .suggestion-add-btn,
+    .ngc-add-btn {
+        position: relative;
+    }
+    .ngc-item-add::before,
+    .suggestion-add-btn::before,
+    .ngc-add-btn::before {
+        content: '';
+        position: absolute;
+        inset: -6px;
+        z-index: 0;
+    }
+    .ngc-item-add > *,
+    .suggestion-add-btn > *,
+    .ngc-add-btn > * {
+        position: relative;
+        z-index: 1;
     }
 }
 
@@ -1950,9 +1971,8 @@ input[type="date"].form-input {
     .pose-btn,
     .meal-item-edit,
     .meal-item-delete,
-    .suggestion-add-btn,
     [role="button"]:not(.modal-close):not(.fs-close-btn):not(.fs-minimize-btn),
-    button:not(.btn):not(.nutrition-buttons-row .btn-icon):not(.modal-close):not(.btn-close):not(.fs-close-btn):not(.fs-minimize-btn):not(.exercise-info-btn):not(.fs-swap-btn) {
+    button:not(.btn):not(.nutrition-buttons-row .btn-icon):not(.modal-close):not(.btn-close):not(.fs-close-btn):not(.fs-minimize-btn):not(.exercise-info-btn):not(.fs-swap-btn):not(.ngc-item-add):not(.suggestion-add-btn):not(.ngc-add-btn) {
         min-height: 48px !important;
     }
 
