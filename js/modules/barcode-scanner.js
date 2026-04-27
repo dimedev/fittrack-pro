@@ -21,7 +21,8 @@ async function openBarcodeScanner() {
         return;
     }
 
-    scannerModal.style.display = 'flex';
+    // Pit Lane unified : .modal-overlay + .active = display:flex via CSS
+    scannerModal.classList.add('active');
     if (typeof ModalManager !== 'undefined') ModalManager.lock('barcode-scanner-modal');
 
     // Haptic feedback
@@ -260,7 +261,7 @@ function stopScanning() {
 function closeBarcodeScanner() {
     const scannerModal = document.getElementById('barcode-scanner-modal');
     if (scannerModal) {
-        scannerModal.style.display = 'none';
+        scannerModal.classList.remove('active');
         if (typeof ModalManager !== 'undefined') ModalManager.unlock('barcode-scanner-modal');
     }
 

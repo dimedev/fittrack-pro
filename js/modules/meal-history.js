@@ -79,19 +79,21 @@ function openMealHistoryModal(targetMealType = null) {
     // Charger la première page
     loadMealHistoryPage(targetMealType);
     
-    // Afficher la modal avec animation iOS
-    modal.style.display = 'flex';
+    // Pit Lane unified : .modal-overlay + .active = display:flex via CSS
+    modal.classList.add('active');
     if (window.ModalManager) ModalManager.lock('meal-history-modal');
-    
+
     // Animation slide-up
     const container = modal.querySelector('.meal-history-container');
     if (container) {
         container.classList.remove('slide-down');
         container.classList.add('slide-up');
     }
-    
-    // Activer le swipe down pour fermer
-    enableSwipeToClose(modal, container);
+
+    // Activer le swipe down pour fermer (mobile uniquement)
+    if (window.innerWidth <= 768) {
+        enableSwipeToClose(modal, container);
+    }
 }
 
 /**
@@ -225,9 +227,11 @@ function closeMealHistoryModal() {
     
     // Attendre la fin de l'animation
     setTimeout(() => {
-        modal.style.display = 'none';
+        modal.classList.remove('active');
         if (window.ModalManager) ModalManager.unlock('meal-history-modal');
         container.classList.remove('slide-down');
+        // Cleanup transform résiduel du swipe
+        container.style.transform = '';
     }, 300);
 }
 

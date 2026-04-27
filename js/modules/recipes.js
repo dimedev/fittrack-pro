@@ -27,7 +27,8 @@ function openRecipeModal(recipeId = null) {
         resetRecipeForm();
     }
     
-    modal.style.display = 'flex';
+    // Pit Lane unified : .modal-overlay + .active = display:flex via CSS
+    modal.classList.add('active');
     if (window.ModalManager) ModalManager.lock('recipe-modal');
 
     // Animation slide-up iOS
@@ -35,9 +36,11 @@ function openRecipeModal(recipeId = null) {
     if (container) {
         container.classList.remove('slide-down');
         container.classList.add('slide-up');
-        
-        // Activer swipe-to-close
-        enableRecipeSwipeToClose(modal, container);
+
+        // Activer swipe-to-close (mobile only — sinon le système universel s'en occupe)
+        if (window.innerWidth <= 768) {
+            enableRecipeSwipeToClose(modal, container);
+        }
     }
 }
 
@@ -99,10 +102,10 @@ function closeRecipeModal() {
     // Animation slide-down
     container.classList.remove('slide-up');
     container.classList.add('slide-down');
-    
+
     // Attendre la fin de l'animation
     setTimeout(() => {
-        modal.style.display = 'none';
+        modal.classList.remove('active');
         if (window.ModalManager) ModalManager.unlock('recipe-modal');
         container.classList.remove('slide-down');
     }, 300);

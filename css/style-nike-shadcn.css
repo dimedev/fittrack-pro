@@ -9901,3 +9901,108 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     }
 }
 
+/* ========================================================================
+   PIT LANE V2 — UNIFICATION MODALES NUTRITION (Recipe / Meal History / Barcode)
+   ------------------------------------------------------------------------
+   Les 3 modales ont été migrées vers la structure standard
+   `.modal-overlay > .modal.modal--md`. Les anciens blocs CSS
+   `.recipe-modal { position fixed; display flex }`, `.recipe-container { ... }`,
+   `.meal-history-*`, `.scanner-content` sont conservés pour les styles
+   internes (header padding, body scroll, slide animations) MAIS les règles
+   conflictuelles (position racine, background, max-width, border-radius)
+   sont neutralisées ici.
+   ======================================================================== */
+
+/* Reset des conteneurs racines : ils sont maintenant des .modal-overlay,
+   donc display + background + position viennent du système standard. */
+.recipe-modal,
+.meal-history-modal,
+.barcode-scanner-modal {
+    /* Annule le `display: flex` permanent qui rendait la modale toujours visible.
+       Le système .modal-overlay gère l'état via .active. */
+    display: none;
+    /* Ces overrides position/background sont déjà fournis par .modal-overlay */
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.modal-overlay.recipe-modal,
+.modal-overlay.meal-history-modal,
+.modal-overlay.barcode-scanner-modal {
+    /* Quand .modal-overlay est appliquée, on hérite du système standard */
+    display: none;
+}
+.modal-overlay.recipe-modal.active,
+.modal-overlay.meal-history-modal.active,
+.modal-overlay.barcode-scanner-modal.active {
+    display: flex;
+}
+
+/* Reset des conteneurs internes : ils sont maintenant des .modal.modal--md,
+   donc background + radius + max-width + box-shadow viennent du système standard.
+   On garde uniquement le comportement flex column + max-height + overflow. */
+.modal-overlay .recipe-container,
+.modal-overlay .meal-history-container,
+.modal-overlay .scanner-content {
+    /* Empêche le double-styling : le .modal parent fournit déjà tout ça */
+    background: transparent !important;
+    box-shadow: none !important;
+    /* Position : devient relative dans le flux flex de .modal-overlay */
+    position: relative;
+    /* max-width supprimé pour laisser .modal--md le gérer (560px desktop / 100% mobile) */
+    max-width: none !important;
+    /* border-radius : laisse .modal le gérer (20px desktop / 22px mobile bottom-sheet) */
+    border-radius: 0 !important;
+    /* Garde la structure interne flex column avec overflow géré */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Sur desktop, on remplace l'overflow hidden propriétaire par un scroll body interne :
+   .modal-body gère son propre scroll, le wrapper reste figé. */
+@media (min-width: 769px) {
+    .modal-overlay .recipe-container,
+    .modal-overlay .meal-history-container,
+    .modal-overlay .scanner-content {
+        overflow: visible !important;
+        max-height: 85dvh !important;
+    }
+}
+
+/* Mobile : conserve les anciennes animations slide-up/slide-down du JS legacy.
+   Mais on désactive le bottom-sheet handle propriétaire car .modal en fournit un. */
+@media (max-width: 768px) {
+    /* Le ::before drag handle propriétaire fait doublon avec celui de .modal */
+    .modal-overlay .recipe-container .recipe-header::before,
+    .modal-overlay .meal-history-container .meal-history-header::before {
+        display: none;
+    }
+    /* Reduce header padding-top quand on est dans le système .modal qui ajoute son propre handle */
+    .modal-overlay .recipe-header,
+    .modal-overlay .meal-history-header,
+    .modal-overlay .scanner-header {
+        padding-top: 14px !important;
+        cursor: default;
+    }
+}
+
+/* Animations slide-up/slide-down legacy : appliquées au .modal et plus au container.
+   Le système .modal-overlay.active .modal a déjà sa propre animation, mais le JS
+   ajoute .slide-up/.slide-down sur le .recipe-container — qui est le même élément
+   que .modal. On désactive l'animation conflictuelle de .modal-overlay.active .modal
+   pour ces 3 modales spécifiques. */
+.modal-overlay.recipe-modal.active .modal,
+.modal-overlay.meal-history-modal.active .modal,
+.modal-overlay.barcode-scanner-modal.active .modal {
+    /* Laisse .slide-up gérer */
+    animation: none;
+    transform: none;
+}
+.modal-overlay.recipe-modal .modal,
+.modal-overlay.meal-history-modal .modal,
+.modal-overlay.barcode-scanner-modal .modal {
+    /* Reset transform initial (sinon scale 0.95 + slide créent un conflit) */
+    transform: none;
+    opacity: 1;
+}

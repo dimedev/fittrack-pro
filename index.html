@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=55">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=56">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=48">
     <!-- Deferred: loaded async, applied when ready -->
@@ -3555,55 +3555,55 @@
         </div>
     </div>
 
-    <!-- Recipe Builder Modal -->
-    <div id="recipe-modal" class="recipe-modal" style="display: none;">
-        <div class="modal-overlay" onclick="closeRecipeModal()"></div>
-        <div class="recipe-container">
-            <div class="recipe-header">
-                <h3>👨‍🍳 Créer une recette</h3>
+    <!-- Recipe Builder Modal — Pit Lane unified -->
+    <div id="recipe-modal" class="modal-overlay recipe-modal">
+        <div class="modal modal--md recipe-container">
+            <div class="modal-header recipe-header">
+                <h3>Créer une recette</h3>
                 <button class="modal-close" onclick="closeRecipeModal()" aria-label="Fermer">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
-            
-            <div class="recipe-content">
+
+            <div class="modal-body recipe-content">
                 <div class="recipe-form-group">
                     <label class="recipe-label">Nom de la recette</label>
-                    <input 
-                        type="text" 
-                        id="recipe-name-input" 
-                        class="form-input" 
+                    <input
+                        type="text"
+                        id="recipe-name-input"
+                        class="form-input"
                         placeholder="Ex: Mon poulet curry"
                         maxlength="50"
                     >
                 </div>
-                
+
                 <div class="recipe-form-group">
                     <div class="recipe-ingredients-header">
                         <label class="recipe-label">Ingrédients</label>
                         <button class="btn btn-sm btn-primary" onclick="openRecipeIngredientSelector()">
-                            + Ajouter
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align: -2px; margin-right: 4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Ajouter
                         </button>
                     </div>
                     <div id="recipe-ingredients-list" class="recipe-ingredients-list">
                         <!-- Rempli dynamiquement -->
                     </div>
                 </div>
-                
+
                 <div class="recipe-form-group">
                     <label class="recipe-label">Valeurs nutritionnelles totales</label>
                     <div id="recipe-preview-macros" class="recipe-preview-macros">
                         <p style="color: var(--text-muted);">Ajoutez des ingrédients pour voir les macros</p>
                     </div>
                 </div>
-                
-                <div class="recipe-actions">
-                    <button class="btn btn-secondary" onclick="closeRecipeModal()" style="flex: 1;">Annuler</button>
-                    <button class="btn btn-primary" onclick="saveRecipe()" style="flex: 1;">Enregistrer</button>
-                </div>
+            </div>
+
+            <div class="modal-footer recipe-actions">
+                <button class="btn btn-secondary" onclick="closeRecipeModal()" style="flex: 1;">Annuler</button>
+                <button class="btn btn-primary" onclick="saveRecipe()" style="flex: 1;">Enregistrer</button>
             </div>
         </div>
     </div>
@@ -3623,62 +3623,62 @@
         </div>
     </div>
 
-    <!-- Meal History Modal -->
-    <div id="meal-history-modal" class="meal-history-modal" style="display: none;">
-        <div class="modal-overlay" onclick="closeMealHistoryModal()"></div>
-        <div class="meal-history-container">
-            <div class="meal-history-header">
-                <h3>📅 Historique des repas</h3>
+    <!-- Meal History Modal — Pit Lane unified -->
+    <div id="meal-history-modal" class="modal-overlay meal-history-modal">
+        <div class="modal modal--md meal-history-container">
+            <div class="modal-header meal-history-header">
+                <h3>Historique des repas</h3>
                 <button class="modal-close" onclick="closeMealHistoryModal()" aria-label="Fermer">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
-            <div class="meal-history-content">
+            <div class="modal-body meal-history-content">
                 <!-- Rempli dynamiquement -->
             </div>
         </div>
     </div>
 
-    <!-- Barcode Scanner Modal (QuaggaJS) -->
-    <div id="barcode-scanner-modal" class="barcode-scanner-modal" style="display: none;">
-        <div class="scanner-overlay" onclick="closeBarcodeScanner()"></div>
-        <div class="scanner-content">
-            <div class="scanner-header">
+    <!-- Barcode Scanner Modal (QuaggaJS) — Pit Lane unified -->
+    <div id="barcode-scanner-modal" class="modal-overlay barcode-scanner-modal">
+        <div class="modal modal--md scanner-content">
+            <div class="modal-header scanner-header">
                 <h3>Scanner un code-barres</h3>
                 <button class="modal-close" onclick="closeBarcodeScanner()" aria-label="Fermer">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
 
-            <!-- Conteneur QuaggaJS pour le scan caméra -->
-            <div class="barcode-video-container">
-                <div id="interactive" class="viewport" style="width: 100%; height: 280px; position: relative; overflow: hidden; border-radius: 12px; background: #1a1a1a;"></div>
-                <div class="scan-overlay">
-                    <div class="scan-line"></div>
+            <div class="modal-body">
+                <!-- Conteneur QuaggaJS pour le scan caméra -->
+                <div class="barcode-video-container">
+                    <div id="interactive" class="viewport" style="width: 100%; height: 280px; position: relative; overflow: hidden; border-radius: 12px; background: #1a1a1a;"></div>
+                    <div class="scan-overlay">
+                        <div class="scan-line"></div>
+                    </div>
+                    <div class="barcode-instructions">
+                        Placez le code-barres dans le cadre
+                    </div>
                 </div>
-                <div class="barcode-instructions">
-                    Placez le code-barres dans le cadre
+
+                <!-- Bouton pour basculer en saisie manuelle -->
+                <button class="btn btn-secondary btn-block" onclick="showManualBarcodeInput()" style="min-height: 48px; margin-top: 14px;">
+                    Saisie manuelle du code
+                </button>
+
+                <div id="barcode-loading" class="barcode-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Recherche en cours...</p>
                 </div>
-            </div>
 
-            <!-- Bouton pour basculer en saisie manuelle -->
-            <button class="btn btn-secondary btn-block" onclick="showManualBarcodeInput()" style="min-height: 48px;">
-                ⌨️ Saisie manuelle du code
-            </button>
-
-            <div id="barcode-loading" class="barcode-loading" style="display: none;">
-                <div class="spinner"></div>
-                <p>Recherche en cours...</p>
-            </div>
-
-            <div id="barcode-results" class="barcode-results" style="display: none;">
-                <!-- Rempli dynamiquement -->
+                <div id="barcode-results" class="barcode-results" style="display: none;">
+                    <!-- Rempli dynamiquement -->
+                </div>
             </div>
         </div>
     </div>
@@ -3853,9 +3853,9 @@
     <script src="js/modules/database.js?v=1"></script>
     <script src="js/modules/state.js?v=32"></script>
     <script src="js/modules/haptic.js?v=1"></script>
-    <script src="js/modules/barcode-scanner.js?v=3"></script>
-    <script src="js/modules/meal-history.js?v=3"></script>
-    <script src="js/modules/recipes.js?v=4"></script>
+    <script src="js/modules/barcode-scanner.js?v=4"></script>
+    <script src="js/modules/meal-history.js?v=4"></script>
+    <script src="js/modules/recipes.js?v=5"></script>
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=45"></script>
     <script src="js/modules/profile.js?v=27"></script>
