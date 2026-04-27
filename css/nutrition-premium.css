@@ -1917,3 +1917,870 @@ body.modal-open {
     .nutrition-macros-card { padding: 14px; }
     .nutrition-chart-card { padding: 14px; }
 }
+
+/* ============================================================================
+   FUEL COCKPIT — Pit Lane V3 (nutrition hero)
+   ----------------------------------------------------------------------------
+   Refonte radicale du bloc macros : 1 hero ring central CALORIES RESTANTES
+   en gros chiffre DM Mono brand red + 3 mini rings P/G/L en grille horizontale
+   en-dessous. Inspiration : tableau de bord carburant F1, télémétrie chronograph.
+   Conserve les IDs SVG legacy (ring-cals, ring-prot, ring-carbs, ring-fat) pour
+   compatibilité avec updateNutritionSVGRings(). Override les anciens styles
+   .nutrition-macros-rings via spécificité .fuel-cockpit > .cockpit-*.
+   ============================================================================ */
+
+.nutrition-macros-card.fuel-cockpit {
+    position: relative;
+    overflow: hidden;
+    /* Atmosphère cockpit : gradient radial subtil rouge brand top-right + corner accent */
+    background:
+        radial-gradient(circle at top right, color-mix(in srgb, var(--accent-brand, #ff0000) 8%, transparent) 0%, transparent 55%),
+        var(--bg-card);
+    padding: 20px 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* Corner accent ligne brand red (haut-gauche) — signature Pit Lane */
+.fuel-cockpit::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 18px;
+    width: 36px;
+    height: 2px;
+    background: var(--accent-brand, #ff0000);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-brand, #ff0000) 60%, transparent);
+}
+
+/* ---------- Kicker chronograph ---------- */
+.cockpit-kicker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    line-height: 1;
+}
+
+.cockpit-kicker-day {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.cockpit-kicker-divider {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.cockpit-kicker-spacer {
+    flex: 1;
+}
+
+.cockpit-kicker-status {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    padding: 4px 9px;
+    border-radius: 4px;
+    border: 1px solid color-mix(in srgb, #fff 8%, transparent);
+    background: color-mix(in srgb, #fff 4%, transparent);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: background 200ms, color 200ms, border-color 200ms;
+}
+
+.cockpit-kicker-status[data-state="ok"] {
+    color: #fff;
+    border-color: color-mix(in srgb, #fff 14%, transparent);
+}
+
+.cockpit-kicker-status[data-state="over"] {
+    color: var(--accent-brand, #ff0000);
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 14%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 42%, transparent);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent);
+}
+
+.cockpit-kicker-status[data-state="empty"] {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+/* ---------- Hero ring + central big number ---------- */
+.cockpit-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+/* Override : le hero container devient grand */
+.fuel-cockpit .macro-ring-container.cockpit-hero-ring {
+    width: 218px;
+    height: 218px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 0;
+}
+
+.fuel-cockpit .cockpit-hero-ring .macro-ring-svg {
+    width: 218px;
+    height: 218px;
+    transform: rotate(-90deg);
+}
+
+/* Stroke plus épais pour hero ring + halo brand red doux */
+.fuel-cockpit .cockpit-hero-ring .ring-bg {
+    stroke: color-mix(in srgb, var(--accent-brand, #ff0000) 7%, #0a0a0a);
+    stroke-width: 7;
+}
+
+.fuel-cockpit .cockpit-hero-ring .ring-progress.calories {
+    stroke-width: 7;
+    stroke: var(--accent-brand, #ff0000);
+    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent-brand, #ff0000) 35%, transparent));
+}
+
+/* Contenu central ABSOLUTE par-dessus le SVG */
+.cockpit-hero-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    text-align: center;
+}
+
+.cockpit-hero-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: clamp(2.4rem, 12vw, 3.4rem);
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-shadow: 0 0 24px color-mix(in srgb, var(--accent-brand, #ff0000) 25%, transparent);
+}
+
+/* État OVER : chiffre rouge brand glow intense */
+.fuel-cockpit[data-state="over"] .cockpit-hero-value {
+    color: var(--accent-brand, #ff0000);
+    text-shadow: 0 0 28px color-mix(in srgb, var(--accent-brand, #ff0000) 65%, transparent);
+}
+
+.cockpit-hero-label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.fuel-cockpit[data-state="over"] .cockpit-hero-label {
+    color: var(--accent-brand, #ff0000);
+    opacity: 0.9;
+}
+
+/* Meta line "0 / 2400 KCAL" sous le ring */
+.cockpit-hero-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.cockpit-hero-meta-consumed {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.cockpit-hero-meta-divider {
+    color: var(--text-muted);
+    opacity: 0.5;
+    padding: 0 1px;
+}
+
+.cockpit-hero-meta-goal {
+    color: var(--text-secondary);
+}
+
+.cockpit-hero-meta-unit {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    margin-left: 2px;
+}
+
+/* ---------- Mini rings grid : Protéines / Glucides / Lipides ---------- */
+.cockpit-macros-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, #fff 5%, transparent);
+}
+
+/* Override : mini ring container = layout column compact */
+.fuel-cockpit .macro-ring-container.cockpit-macro {
+    width: auto;
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 6px 10px;
+    border-radius: 12px;
+    background: color-mix(in srgb, #fff 2%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 5%, transparent);
+    transition: border-color 220ms ease, background 220ms ease;
+}
+
+.fuel-cockpit .cockpit-macro:hover {
+    border-color: color-mix(in srgb, #fff 12%, transparent);
+    background: color-mix(in srgb, #fff 4%, transparent);
+}
+
+@media (hover: none) {
+    .fuel-cockpit .cockpit-macro:hover {
+        border-color: color-mix(in srgb, #fff 5%, transparent);
+        background: color-mix(in srgb, #fff 2%, transparent);
+    }
+}
+
+.fuel-cockpit .cockpit-macro .macro-ring-svg {
+    width: 78px;
+    height: 78px;
+    transform: rotate(-90deg);
+}
+
+.fuel-cockpit .cockpit-macro .ring-bg {
+    stroke: color-mix(in srgb, #fff 6%, #0a0a0a);
+    stroke-width: 6.5;
+}
+
+.fuel-cockpit .cockpit-macro .ring-progress {
+    stroke-width: 6.5;
+}
+
+/* Halo subtil sur chaque mini ring quand complet */
+.fuel-cockpit .cockpit-macro.complete .ring-progress.protein {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, #ffffff 60%, transparent));
+}
+.fuel-cockpit .cockpit-macro.complete .ring-progress.carbs {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-brand, #ff0000) 60%, transparent));
+}
+.fuel-cockpit .cockpit-macro.complete .ring-progress.fat {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent));
+}
+
+/* Contenu central des mini rings — chiffre / goal */
+.cockpit-macro-content {
+    position: absolute;
+    top: calc(50% - 8px); /* ajuste car le label est en bas */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.cockpit-macro-value {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+
+.cockpit-macro-divider {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+    padding: 0 1px;
+}
+
+.cockpit-macro-goal {
+    font-size: 0.66rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.cockpit-macro-name {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* État complet : nom devient blanc / macro-couleur */
+.fuel-cockpit .cockpit-macro.complete[data-macro="protein"] .cockpit-macro-name {
+    color: #fff;
+}
+.fuel-cockpit .cockpit-macro.complete[data-macro="carbs"] .cockpit-macro-name,
+.fuel-cockpit .cockpit-macro.complete[data-macro="fat"] .cockpit-macro-name {
+    color: var(--accent-brand, #ff0000);
+}
+
+/* ---------- Mobile — adaptation cockpit ---------- */
+@media (max-width: 480px) {
+    .nutrition-macros-card.fuel-cockpit {
+        padding: 18px 14px 18px;
+        gap: 14px;
+    }
+
+    .fuel-cockpit::before {
+        left: 14px;
+        width: 28px;
+    }
+
+    .cockpit-kicker {
+        font-size: 0.6rem;
+        gap: 6px;
+    }
+
+    .cockpit-kicker-status {
+        font-size: 0.55rem;
+        padding: 3px 7px;
+    }
+
+    .fuel-cockpit .macro-ring-container.cockpit-hero-ring,
+    .fuel-cockpit .cockpit-hero-ring .macro-ring-svg {
+        width: 188px;
+        height: 188px;
+    }
+
+    .cockpit-hero-value {
+        font-size: clamp(2.1rem, 10.5vw, 2.8rem);
+    }
+
+    .cockpit-hero-label {
+        font-size: 0.58rem;
+        margin-top: 4px;
+    }
+
+    .cockpit-hero-meta {
+        font-size: 0.7rem;
+    }
+
+    .cockpit-macros-grid {
+        gap: 8px;
+    }
+
+    .fuel-cockpit .cockpit-macro {
+        padding: 10px 4px 8px;
+    }
+
+    .fuel-cockpit .cockpit-macro .macro-ring-svg {
+        width: 68px;
+        height: 68px;
+    }
+
+    .cockpit-macro-value { font-size: 0.82rem; }
+    .cockpit-macro-goal { font-size: 0.6rem; }
+    .cockpit-macro-name { font-size: 0.54rem; letter-spacing: 0.12em; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .fuel-cockpit .cockpit-hero-ring .ring-progress.calories {
+        filter: none;
+    }
+    .cockpit-hero-value,
+    .fuel-cockpit[data-state="over"] .cockpit-hero-value {
+        text-shadow: none;
+    }
+    .fuel-cockpit::before {
+        box-shadow: none;
+    }
+}
+
+/* Visually hidden helper (accessibility — ring-cals-value legacy ID) */
+.fuel-cockpit .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ============================================================================
+   QUICK-LOG BAR — Pit Lane V3 (nutrition sticky bottom action bar)
+   ----------------------------------------------------------------------------
+   Barre fixe au-dessus de la mobile-nav. Visible uniquement quand #nutrition
+   est active (display:none cascade depuis .section). Permet :
+   - Affichage du repas du moment (auto-détecté par heure)
+   - Carrousel scroll-snap-x des 5 derniers aliments uniques (1-tap = ajout)
+   - Bouton search → ouvre meal-add-sheet pré-réglé sur le repas en cours
+   ============================================================================ */
+
+.quicklog-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    /* Au-dessus de la mobile-nav (~64px) + safe area iOS */
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    z-index: 850; /* en-dessous des modales (1000+) mais au-dessus du contenu */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 0 12px;
+    border-radius: 16px;
+    background: color-mix(in srgb, #000 92%, var(--bg-card));
+    border: 1px solid color-mix(in srgb, #fff 8%, transparent);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    box-shadow:
+        0 12px 36px rgba(0, 0, 0, 0.55),
+        0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    /* Sécurité : ne déborde jamais */
+    max-width: calc(100vw - 24px);
+}
+
+/* Desktop : centré, largeur max ergonomique */
+@media (min-width: 769px) {
+    .quicklog-bar {
+        bottom: 24px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        max-width: 720px;
+        width: calc(100% - 48px);
+        margin: 0;
+    }
+}
+
+/* Hide quicklog-bar quand modale ouverte (z-index protection)
+   ou quand le clavier est ouvert (UX iOS) */
+body:has(.modal-overlay.active) .quicklog-bar,
+body:has(.bottom-sheet-overlay[style*="display: flex"]) .quicklog-bar {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+}
+@media (min-width: 769px) {
+    body:has(.modal-overlay.active) .quicklog-bar,
+    body:has(.bottom-sheet-overlay[style*="display: flex"]) .quicklog-bar {
+        transform: translate(-50%, 20px);
+    }
+}
+
+.quicklog-bar {
+    transition: opacity 200ms ease, transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ---------- Pill repas en cours ---------- */
+.quicklog-meal-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 11px;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 38%, transparent);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.quicklog-meal-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-brand, #ff0000);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-brand, #ff0000) 80%, transparent);
+    animation: quicklog-dot-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes quicklog-dot-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .quicklog-meal-dot { animation: none; }
+}
+
+/* ---------- Strip recent foods (scroll-snap-x) ---------- */
+.quicklog-strip-wrap {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    /* Fade-out sur les bords pour signaler le scroll */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8px, #000 calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 8px, #000 calc(100% - 12px), transparent 100%);
+}
+
+.quicklog-recent-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 2px 4px;
+}
+.quicklog-recent-strip::-webkit-scrollbar { display: none; }
+
+.quicklog-empty {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    padding: 6px 4px;
+    white-space: nowrap;
+    opacity: 0.7;
+}
+
+.quicklog-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    padding: 7px 11px;
+    background: color-mix(in srgb, #fff 5%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 8%, transparent);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 180ms ease, border-color 180ms ease, transform 120ms ease;
+    min-height: 40px;
+    max-width: 140px;
+    appearance: none;
+    color: #fff;
+    text-align: left;
+}
+
+.quicklog-chip:hover {
+    background: color-mix(in srgb, #fff 9%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 35%, transparent);
+}
+
+.quicklog-chip:active {
+    transform: scale(0.95);
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 16%, transparent);
+    border-color: var(--accent-brand, #ff0000);
+}
+
+@media (hover: none) {
+    .quicklog-chip:hover {
+        background: color-mix(in srgb, #fff 5%, transparent);
+        border-color: color-mix(in srgb, #fff 8%, transparent);
+    }
+}
+
+.quicklog-chip-name {
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.1;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 110px;
+    letter-spacing: -0.01em;
+}
+
+.quicklog-chip-qty {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    line-height: 1;
+}
+
+/* Animation flash quand un chip est ajouté avec succès */
+.quicklog-chip.flash-success {
+    animation: quicklog-chip-flash 600ms ease-out;
+}
+@keyframes quicklog-chip-flash {
+    0%   { background: color-mix(in srgb, var(--accent-brand, #ff0000) 35%, transparent); transform: scale(1.08); }
+    100% { background: color-mix(in srgb, #fff 5%, transparent); transform: scale(1); }
+}
+
+/* ---------- Bouton recherche (loupe brand red) ---------- */
+.quicklog-search-btn {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--accent-brand, #ff0000);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 16%, transparent);
+    color: #fff;
+    cursor: pointer;
+    transition: background 180ms ease, transform 120ms ease, box-shadow 180ms ease;
+    appearance: none;
+    padding: 0;
+    aspect-ratio: 1 / 1;
+}
+
+.quicklog-search-btn:hover {
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 28%, transparent);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--accent-brand, #ff0000) 35%, transparent);
+}
+
+.quicklog-search-btn:active {
+    transform: scale(0.92);
+    background: var(--accent-brand, #ff0000);
+}
+
+.quicklog-search-btn:focus-visible {
+    outline: 2px solid var(--accent-brand, #ff0000);
+    outline-offset: 3px;
+}
+
+/* ---------- Mobile : padding-bottom de la section pour ne pas masquer
+                       le dernier élément derrière la quicklog-bar ---------- */
+#nutrition.section {
+    /* +96px pour la bar + safe area */
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 769px) {
+    #nutrition.section {
+        padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* Mobile compact : sur très petits écrans, réduire padding bar */
+@media (max-width: 380px) {
+    .quicklog-bar {
+        gap: 8px;
+        padding: 8px 10px;
+        margin: 0 8px;
+    }
+    .quicklog-meal-pill {
+        font-size: 0.56rem;
+        padding: 6px 9px;
+        letter-spacing: 0.1em;
+    }
+    .quicklog-search-btn {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE V3 · BULLETPROOF ROUND BUTTONS
+   Force absolue : cibler les overrides cascade (min-height: 48px touch
+   targets, flex-stretch parents, etc.) pour garantir le cercle parfait
+   sur tous viewports. !important critique car les media queries mobile
+   redéfinissent min-height/min-width sur tous les <button>.
+   ════════════════════════════════════════════════════════════════════ */
+.ngc-item-add,
+.suggestion-add-btn,
+.meal-result-quickadd-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
+    flex: 0 0 36px !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    align-self: center !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE V3 · QUICK-ADD INLINE SUR meal-result-item
+   Bouton + brand red discret affiché à droite de chaque résultat de
+   recherche dans la meal-sheet. Tap card body = sheet quantité (legacy).
+   Tap bouton + = ajout 1-tap quantité par défaut + flash success.
+   ════════════════════════════════════════════════════════════════════ */
+.meal-result-item {
+    position: relative;
+    /* Garder le padding existant mais réserver de la place pour le bouton */
+    padding-right: 56px !important;
+}
+
+.meal-result-quickadd-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 45%, transparent);
+    color: var(--accent-brand, #ff0000);
+    cursor: pointer;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: background 180ms ease, transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 2;
+}
+
+.meal-result-quickadd-btn:hover {
+    background: var(--accent-brand, #ff0000);
+    color: #fff;
+    border-color: var(--accent-brand, #ff0000);
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--accent-brand, #ff0000) 45%, transparent);
+}
+
+.meal-result-quickadd-btn:active {
+    transform: translateY(-50%) scale(0.92);
+}
+
+.meal-result-quickadd-btn.flash-success {
+    animation: meal-quickadd-flash 380ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes meal-quickadd-flash {
+    0% {
+        background: var(--accent-brand, #ff0000);
+        color: #fff;
+        transform: translateY(-50%) scale(1.18);
+        box-shadow: 0 0 28px color-mix(in srgb, var(--accent-brand, #ff0000) 65%, transparent);
+    }
+    100% {
+        background: color-mix(in srgb, var(--accent-brand, #ff0000) 14%, transparent);
+        color: var(--accent-brand, #ff0000);
+        transform: translateY(-50%) scale(1);
+        box-shadow: 0 0 0 transparent;
+    }
+}
+
+/* Empêcher le hover translateX du parent de bouger le bouton absolu */
+.meal-result-item:hover .meal-result-quickadd-btn {
+    /* Le translateX du parent décale aussi le bouton — on annule visuellement */
+    /* (rien à faire : le parent translateX(4px) shift l'enfant aussi, c'est OK) */
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PIT LANE V3 · CHRONOGRAPH HEADER (Nutrition page header)
+   Transformation du header en cockpit chronograph : kicker DM Mono
+   uppercase tracking, titre Outfit display, indicator brand red dot.
+   ════════════════════════════════════════════════════════════════════ */
+.nutrition-page-header {
+    /* Conserver flex existant — on enrichit visuellement */
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg,
+        var(--bg-card) 0%,
+        color-mix(in srgb, var(--accent-brand, #ff0000) 3%, var(--bg-card)) 100%);
+    border-color: color-mix(in srgb, #fff 8%, transparent);
+}
+
+/* Corner accent diagonal brand red discret (hommage chronograph F1) */
+.nutrition-page-header::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(225deg,
+        color-mix(in srgb, var(--accent-brand, #ff0000) 25%, transparent) 0%,
+        transparent 70%);
+    pointer-events: none;
+    border-top-right-radius: 16px;
+}
+
+.nutrition-page-title {
+    position: relative;
+    z-index: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+/* Sous-titre kicker DM Mono uppercase (généré dynamiquement par JS) */
+.nutrition-page-title-kicker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+}
+
+.nutrition-page-title-kicker-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-brand, #ff0000);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-brand, #ff0000) 70%, transparent);
+    animation: nutrition-header-dot-pulse 2.4s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+@keyframes nutrition-header-dot-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.45; transform: scale(0.85); }
+}
+
+.nutrition-page-title-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-sans, 'Outfit', system-ui, sans-serif);
+    font-weight: 800;
+    font-size: clamp(1.1rem, 4.5vw, 1.4rem);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+
+.nutrition-page-title-main svg {
+    color: var(--accent-brand, #ff0000);
+    flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nutrition-page-title-kicker-dot { animation: none; }
+}

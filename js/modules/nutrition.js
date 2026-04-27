@@ -1291,6 +1291,15 @@ function searchFoodsForMeal() {
                     <div class="meal-item-subtitle">P: ${food.protein}g · G: ${food.carbs}g · L: ${food.fat}g</div>
                 </div>
                 <div class="meal-item-cals">${food.calories} kcal</div>
+                <button class="meal-result-quickadd-btn" type="button"
+                        onclick="event.stopPropagation(); quickAddSearchResult('${food.id}', event)"
+                        aria-label="Ajouter ${food.name.replace(/"/g, '&quot;')} rapidement"
+                        title="Ajout rapide (quantité par défaut)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
             </div>
         `).join('');
     }
@@ -1546,6 +1555,54 @@ async function addSuggestionDirect(foodId, quantity, mealType) {
     updateMacroRings();
 
     // Check goal
+    checkGoalReached();
+}
+
+/**
+ * Pit Lane V3 — Quick-add depuis les résultats de recherche en 1 tap.
+ * Ajoute l'aliment au mealType courant à sa quantité par défaut (100g, 1 unité, etc.).
+ * Ne ferme PAS la meal-sheet → permet d'enchaîner plusieurs ajouts.
+ * Flash visuel sur le bouton + haptic + toast.
+ */
+async function quickAddSearchResult(foodId, event) {
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) return;
+
+    // mealType courant (défini par openMealSheet) ou détection auto par heure
+    let mealType = currentMealType;
+    if (!mealType && typeof getCurrentMealTypeByHour === 'function') {
+        mealType = getCurrentMealTypeByHour();
+    }
+    if (!mealType) mealType = 'snack';
+
+    // Quantité par défaut : 100g pour gram-based, 1 pour unit-based
+    const defaultQty = (food.unit === 'unit' || food.unit === 'piece') ? 1 : 100;
+
+    // Haptic + flash sur le bouton cliqué
+    try {
+        if (window.HapticFeedback?.success) window.HapticFeedback.success();
+        else if (navigator.vibrate) navigator.vibrate(10);
+    } catch (_) { /* noop */ }
+
+    if (event && event.currentTarget) {
+        const btn = event.currentTarget;
+        btn.classList.remove('flash-success');
+        // force reflow pour rejouer l'animation
+        void btn.offsetWidth;
+        btn.classList.add('flash-success');
+        setTimeout(() => btn.classList.remove('flash-success'), 420);
+    }
+
+    await addToJournalWithMealType(foodId, defaultQty, mealType);
+
+    const qtyDisplay = formatQuantityDisplay(food, defaultQty);
+    const mealLabel = (window._MEAL_LABELS_FR && window._MEAL_LABELS_FR[mealType]) || mealType;
+    showToast(`${qtyDisplay} ${food.name} → ${mealLabel}`, 'success');
+
+    // Refresh sans fermer la sheet : l'utilisateur peut enchaîner
+    renderMealsByType();
+    updateJournalSummary();
+    updateMacroRings();
     checkGoalReached();
 }
 
@@ -2490,6 +2547,7 @@ window.selectQuantityPreset = selectQuantityPreset;
 window.adjustQuantity = adjustQuantity;
 window.animateFoodAdded = animateFoodAdded;
 window.addSuggestionDirect = addSuggestionDirect;
+window.quickAddSearchResult = quickAddSearchResult;
 window.refreshSuggestions = refreshSuggestions;
 window.applySuggestion = applySuggestion;
 window.initNutritionSwipeToClose = initNutritionSwipeToClose;

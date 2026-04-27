@@ -8,13 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=56">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=57">
     <link rel="stylesheet" href="css/mobile-premium.css?v=5">
     <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=48">
     <!-- Deferred: loaded async, applied when ready -->
     <link rel="stylesheet" href="css/session-manager.css?v=43" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=24" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="css/nutrition-premium.css?v=8" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/nutrition-premium.css?v=9" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/micro-animations.css?v=2" media="print" onload="this.media='all'">
@@ -466,13 +466,21 @@
                     </div>
                 </div>
                 
-                <!-- ═════════ HEADER ACTIONS (carte plate, pas de hover lift) ═════════ -->
+                <!-- ═════════ HEADER CHRONOGRAPH (kicker + titre + actions) ═════════ -->
                 <div class="nutrition-page-header">
                     <div class="nutrition-page-title">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M3 11h18M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M6 11v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-6"/>
-                        </svg>
-                        <span>Nutrition</span>
+                        <div class="nutrition-page-title-kicker">
+                            <span class="nutrition-page-title-kicker-dot" aria-hidden="true"></span>
+                            <span id="nutrition-header-day-label">AUJOURD'HUI</span>
+                            <span aria-hidden="true">·</span>
+                            <span id="nutrition-header-date-label">—</span>
+                        </div>
+                        <div class="nutrition-page-title-main">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M3 11h18M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M6 11v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-6"/>
+                            </svg>
+                            <span>Nutrition</span>
+                        </div>
                     </div>
                     <div class="nutrition-header-actions">
                         <input type="date" class="form-input" id="journal-date" onchange="loadJournalDay()">
@@ -508,102 +516,93 @@
                     </div>
                 </div>
 
-                <!-- ═════════ MACROS DU JOUR (carte autonome) ═════════ -->
-                <div class="nutrition-macros-card">
-                    <div class="nutrition-macros-summary">
-                        <!-- Progress Rings - Premium UI -->
-                        <div class="nutrition-macros-rings" id="nutrition-macros-rings">
-                            <div class="macro-ring-container" data-macro="calories" id="ring-container-cals">
-                                <svg class="macro-ring-svg" viewBox="0 0 120 120">
-                                    <circle class="ring-bg" cx="60" cy="60" r="50"/>
-                                    <circle class="ring-progress calories" cx="60" cy="60" r="50" id="ring-cals"/>
-                                </svg>
-                                <div class="ring-content">
-                                    <span class="ring-value" id="ring-cals-value">0</span>
-                                    <span class="ring-label">kcal</span>
-                                </div>
-                                <span class="ring-macro-name">Calories</span>
-                            </div>
-                            <div class="macro-ring-container" data-macro="protein" id="ring-container-prot">
-                                <svg class="macro-ring-svg" viewBox="0 0 120 120">
-                                    <circle class="ring-bg" cx="60" cy="60" r="50"/>
-                                    <circle class="ring-progress protein" cx="60" cy="60" r="50" id="ring-prot"/>
-                                </svg>
-                                <div class="ring-content">
-                                    <span class="ring-value" id="ring-prot-value">0</span>
-                                    <span class="ring-label">g</span>
-                                </div>
-                                <span class="ring-macro-name">Protéines</span>
-                            </div>
-                            <div class="macro-ring-container" data-macro="carbs" id="ring-container-carbs">
-                                <svg class="macro-ring-svg" viewBox="0 0 120 120">
-                                    <circle class="ring-bg" cx="60" cy="60" r="50"/>
-                                    <circle class="ring-progress carbs" cx="60" cy="60" r="50" id="ring-carbs"/>
-                                </svg>
-                                <div class="ring-content">
-                                    <span class="ring-value" id="ring-carbs-value">0</span>
-                                    <span class="ring-label">g</span>
-                                </div>
-                                <span class="ring-macro-name">Glucides</span>
-                            </div>
-                            <div class="macro-ring-container" data-macro="fat" id="ring-container-fat">
-                                <svg class="macro-ring-svg" viewBox="0 0 120 120">
-                                    <circle class="ring-bg" cx="60" cy="60" r="50"/>
-                                    <circle class="ring-progress fat" cx="60" cy="60" r="50" id="ring-fat"/>
-                                </svg>
-                                <div class="ring-content">
-                                    <span class="ring-value" id="ring-fat-value">0</span>
-                                    <span class="ring-label">g</span>
-                                </div>
-                                <span class="ring-macro-name">Lipides</span>
-                            </div>
-                        </div>
-
-                        <!-- Barres détaillées (masquées par défaut sur mobile) -->
-                        <div id="journal-macros-bars" class="journal-macro-bars">
-                            <div class="journal-macro-bar-item">
-                                <div class="journal-macro-bar-header">
-                                    <span class="journal-macro-bar-label">🔥 Calories</span>
-                                    <span class="journal-macro-bar-values" id="journal-cals-values">0 / 2000 kcal</span>
-                                </div>
-                                <div class="journal-macro-bar-track">
-                                    <div class="journal-macro-bar-fill calories" id="journal-cals-bar"></div>
-                                </div>
-                            </div>
-                            <div class="journal-macro-bar-item">
-                                <div class="journal-macro-bar-header">
-                                    <span class="journal-macro-bar-label">🥩 Protéines</span>
-                                    <span class="journal-macro-bar-values" id="journal-prot-values">0 / 150g</span>
-                                </div>
-                                <div class="journal-macro-bar-track">
-                                    <div class="journal-macro-bar-fill protein" id="journal-prot-bar"></div>
-                                </div>
-                            </div>
-                            <div class="journal-macro-bar-item">
-                                <div class="journal-macro-bar-header">
-                                    <span class="journal-macro-bar-label">🍚 Glucides</span>
-                                    <span class="journal-macro-bar-values" id="journal-carbs-values">0 / 250g</span>
-                                </div>
-                                <div class="journal-macro-bar-track">
-                                    <div class="journal-macro-bar-fill carbs" id="journal-carbs-bar"></div>
-                                </div>
-                            </div>
-                            <div class="journal-macro-bar-item">
-                                <div class="journal-macro-bar-header">
-                                    <span class="journal-macro-bar-label">🥑 Lipides</span>
-                                    <span class="journal-macro-bar-values" id="journal-fat-values">0 / 70g</span>
-                                </div>
-                                <div class="journal-macro-bar-track">
-                                    <div class="journal-macro-bar-fill fat" id="journal-fat-bar"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Déficit net (calories - cardio) -->
-                        <div id="net-deficit-summary" style="display: none;"></div>
+                <!-- ═════════ FUEL COCKPIT — Pit Lane V3 ═════════ -->
+                <div class="nutrition-macros-card fuel-cockpit" id="fuel-cockpit">
+                    <!-- Kicker chronograph -->
+                    <div class="cockpit-kicker">
+                        <span class="cockpit-kicker-day" id="cockpit-day-label">AUJOURD'HUI</span>
+                        <span class="cockpit-kicker-divider">·</span>
+                        <span class="cockpit-kicker-date" id="cockpit-date-label">—</span>
+                        <span class="cockpit-kicker-spacer"></span>
+                        <span class="cockpit-kicker-status" id="cockpit-status-pill" data-state="ok">FUEL</span>
                     </div>
+
+                    <!-- Hero ring : CALORIES RESTANTES -->
+                    <div class="cockpit-hero">
+                        <div class="macro-ring-container cockpit-hero-ring" data-macro="calories" id="ring-container-cals">
+                            <svg class="macro-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+                                <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                                <circle class="ring-progress calories" cx="60" cy="60" r="50" id="ring-cals"/>
+                            </svg>
+                            <div class="cockpit-hero-content">
+                                <span class="cockpit-hero-value" id="cockpit-cals-remaining">—</span>
+                                <span class="cockpit-hero-label" id="cockpit-cals-status">RESTANTES</span>
+                            </div>
+                            <!-- Compatibilité legacy : valeur consommée pour updateNutritionSVGRings -->
+                            <span class="visually-hidden" id="ring-cals-value">0</span>
+                        </div>
+                        <div class="cockpit-hero-meta">
+                            <span class="cockpit-hero-meta-consumed" id="cockpit-cals-consumed">0</span>
+                            <span class="cockpit-hero-meta-divider">/</span>
+                            <span class="cockpit-hero-meta-goal" id="cockpit-cals-goal">2 400</span>
+                            <span class="cockpit-hero-meta-unit">KCAL</span>
+                        </div>
+                    </div>
+
+                    <!-- Mini rings : Protéines / Glucides / Lipides -->
+                    <div class="cockpit-macros-grid">
+                        <div class="macro-ring-container cockpit-macro" data-macro="protein" id="ring-container-prot">
+                            <svg class="macro-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+                                <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                                <circle class="ring-progress protein" cx="60" cy="60" r="50" id="ring-prot"/>
+                            </svg>
+                            <div class="cockpit-macro-content">
+                                <span class="cockpit-macro-value" id="ring-prot-value">0</span>
+                                <span class="cockpit-macro-divider">/</span>
+                                <span class="cockpit-macro-goal" id="cockpit-prot-goal">150</span>
+                            </div>
+                            <span class="cockpit-macro-name">PROT</span>
+                        </div>
+                        <div class="macro-ring-container cockpit-macro" data-macro="carbs" id="ring-container-carbs">
+                            <svg class="macro-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+                                <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                                <circle class="ring-progress carbs" cx="60" cy="60" r="50" id="ring-carbs"/>
+                            </svg>
+                            <div class="cockpit-macro-content">
+                                <span class="cockpit-macro-value" id="ring-carbs-value">0</span>
+                                <span class="cockpit-macro-divider">/</span>
+                                <span class="cockpit-macro-goal" id="cockpit-carbs-goal">250</span>
+                            </div>
+                            <span class="cockpit-macro-name">GLUC</span>
+                        </div>
+                        <div class="macro-ring-container cockpit-macro" data-macro="fat" id="ring-container-fat">
+                            <svg class="macro-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+                                <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                                <circle class="ring-progress fat" cx="60" cy="60" r="50" id="ring-fat"/>
+                            </svg>
+                            <div class="cockpit-macro-content">
+                                <span class="cockpit-macro-value" id="ring-fat-value">0</span>
+                                <span class="cockpit-macro-divider">/</span>
+                                <span class="cockpit-macro-goal" id="cockpit-fat-goal">70</span>
+                            </div>
+                            <span class="cockpit-macro-name">LIPI</span>
+                        </div>
+                    </div>
+
+                    <!-- Legacy hidden elements (compatibilité JS existant) -->
+                    <div id="journal-macros-bars" class="journal-macro-bars" hidden aria-hidden="true">
+                        <span id="journal-cals-values" hidden></span>
+                        <span id="journal-prot-values" hidden></span>
+                        <span id="journal-carbs-values" hidden></span>
+                        <span id="journal-fat-values" hidden></span>
+                        <span id="journal-cals-bar" hidden></span>
+                        <span id="journal-prot-bar" hidden></span>
+                        <span id="journal-carbs-bar" hidden></span>
+                        <span id="journal-fat-bar" hidden></span>
+                    </div>
+                    <div id="net-deficit-summary" style="display: none;"></div>
                 </div>
-                <!-- /nutrition-macros-card -->
+                <!-- /fuel-cockpit -->
 
                 <!-- Aliments récents (favoris rapides) -->
                 <div id="recent-foods-section" style="display: none;"></div>
@@ -738,6 +737,28 @@
                 <!-- Badge flottant compteur -->
                 <div class="food-counter-badge" id="food-counter-badge" style="display: none;">
                     <span id="food-counter-text">+1 ajouté</span>
+                </div>
+
+                <!-- ═════════ PIT LANE QUICK-LOG BAR (sticky bottom) ═════════ -->
+                <!-- Affichée uniquement quand #nutrition est active. Permet l'ajout 1-tap
+                     des aliments récents au repas du moment (auto-détecté par heure). -->
+                <div class="quicklog-bar" id="nutrition-quicklog-bar" data-meal-type="lunch">
+                    <div class="quicklog-meal-pill" id="quicklog-meal-pill" aria-live="polite">
+                        <span class="quicklog-meal-dot"></span>
+                        <span class="quicklog-meal-name" id="quicklog-meal-name">DÉJEUNER</span>
+                    </div>
+                    <div class="quicklog-strip-wrap">
+                        <div class="quicklog-recent-strip" id="quicklog-recent-strip">
+                            <!-- Empty state par défaut -->
+                            <div class="quicklog-empty">Aucun aliment récent · cherche pour commencer</div>
+                        </div>
+                    </div>
+                    <button class="quicklog-search-btn" onclick="openQuickLogSearch()" aria-label="Rechercher un aliment">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </button>
                 </div>
             </section>
 
@@ -3859,9 +3880,9 @@
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=45"></script>
     <script src="js/modules/profile.js?v=27"></script>
-    <script src="js/modules/nutrition-core.js?v=1"></script>
-    <script src="js/modules/nutrition-ui.js?v=1"></script>
-    <script src="js/modules/nutrition.js?v=33"></script>
+    <script src="js/modules/nutrition-core.js?v=2"></script>
+    <script src="js/modules/nutrition-ui.js?v=2"></script>
+    <script src="js/modules/nutrition.js?v=34"></script>
     <script src="js/modules/food-api.js?v=1"></script>
     <script src="js/modules/nutrition-suggestions.js?v=2"></script>
     <script src="js/modules/meal-templates.js?v=5"></script>

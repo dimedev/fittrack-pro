@@ -618,6 +618,7 @@ async function addToJournalWithMealType(foodId, quantity, mealType) {
     renderMealsByType();
     updateJournalSummary();
     updateMacroRings();
+    // updateMacroRings() déclenche désormais renderQuickLogBar() en cascade.
 
     // 5. Animation sur le dernier item ajouté
     setTimeout(() => {

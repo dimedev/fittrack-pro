@@ -5,43 +5,164 @@
 // ==================== ALIMENTS RÉCENTS ====================
 
 function renderRecentFoodsSection() {
+    // L'ancienne section #recent-foods-section est dépréciée par la quicklog-bar.
+    // On la garde cachée et on alimente la nouvelle barre à la place.
     const container = document.getElementById('recent-foods-section');
-    if (!container) return;
+    if (container) container.style.display = 'none';
 
-    const recentFoods = getRecentFoodsWithDetails();
+    // Délègue à la nouvelle quicklog-bar
+    if (typeof renderQuickLogBar === 'function') {
+        renderQuickLogBar();
+    }
+}
+
+// ==================== QUICK-LOG BAR (Pit Lane V3) ====================
+
+/**
+ * Auto-détecte le type de repas à partir de l'heure courante.
+ * 6h–11h = breakfast, 11h–15h = lunch, 15h–19h = snack, 19h–6h = dinner
+ */
+function getCurrentMealTypeByHour(hour) {
+    const h = (typeof hour === 'number') ? hour : new Date().getHours();
+    if (h >= 6 && h < 11) return 'breakfast';
+    if (h >= 11 && h < 15) return 'lunch';
+    if (h >= 15 && h < 19) return 'snack';
+    return 'dinner';
+}
+
+const _MEAL_LABELS = {
+    breakfast: 'PETIT-DÉJ',
+    lunch: 'DÉJEUNER',
+    snack: 'COLLATION',
+    dinner: 'DÎNER'
+};
+// Expose pour quickAddSearchResult dans nutrition.js (toast inline)
+window._MEAL_LABELS_FR = _MEAL_LABELS;
+
+/**
+ * Rend la quicklog-bar (pill repas + strip recents).
+ * Appelée à : init nutrition section, après chaque ajout, au focus de l'onglet.
+ */
+function renderQuickLogBar() {
+    const bar = document.getElementById('nutrition-quicklog-bar');
+    if (!bar) return;
+
+    // Détecter le repas du moment (sauf si user a sélectionné une autre date)
+    const journalDate = document.getElementById('journal-date')?.value;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isToday = !journalDate || journalDate === todayStr;
+    const mealType = getCurrentMealTypeByHour();
+
+    bar.dataset.mealType = mealType;
+    const nameEl = document.getElementById('quicklog-meal-name');
+    if (nameEl) {
+        nameEl.textContent = isToday
+            ? _MEAL_LABELS[mealType]
+            : 'JOURNÉE';
+    }
+
+    // Rendre la strip de recents
+    const strip = document.getElementById('quicklog-recent-strip');
+    if (!strip) return;
+
+    let recentFoods = [];
+    if (typeof getRecentFoodsWithDetails === 'function') {
+        recentFoods = getRecentFoodsWithDetails().slice(0, 8);
+    }
 
     if (recentFoods.length === 0) {
-        container.style.display = 'none';
+        strip.innerHTML = '<div class="quicklog-empty">Aucun aliment récent · cherche pour commencer</div>';
         return;
     }
 
-    container.style.display = 'block';
-    container.innerHTML = `
-        <div class="recent-foods-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">⚡ Récents</span>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Tap pour ajouter</span>
-        </div>
-        <div class="recent-foods-grid" style="display: flex; flex-wrap: wrap; gap: 8px;">
-            ${recentFoods.map(food => {
-                const hasUnit = hasNaturalUnit(food);
-                const displayQty = hasUnit
-                    ? `${Math.round(food.lastQuantity / food.unitWeight)} ${food.unitLabel}`
-                    : `${food.lastQuantity}g`;
-
-                return `
-                    <button class="recent-food-chip" onclick="quickAddRecent('${food.id}', ${food.lastQuantity})"
-                        style="display: flex; align-items: center; gap: 6px; padding: 8px 12px;
-                               background: var(--bg-tertiary); border: 1px solid var(--border-color);
-                               border-radius: 20px; cursor: pointer; transition: all 0.2s;
-                               font-size: 0.85rem; color: var(--text-primary);">
-                        <span style="font-weight: 500;">${food.name}</span>
-                        <span style="color: var(--text-muted); font-size: 0.75rem;">${displayQty}</span>
-                    </button>
-                `;
-            }).join('')}
-        </div>
-    `;
+    strip.innerHTML = recentFoods.map(food => {
+        const hasUnit = (typeof hasNaturalUnit === 'function') ? hasNaturalUnit(food) : false;
+        let qtyDisplay;
+        if (hasUnit) {
+            const units = Math.max(1, Math.round(food.lastQuantity / food.unitWeight));
+            qtyDisplay = `${units} ${food.unitLabel || 'unité'}`;
+        } else {
+            qtyDisplay = `${food.lastQuantity}g`;
+        }
+        // Escape simple pour les noms (juste guillemets)
+        const safeName = (food.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        return `
+            <button class="quicklog-chip" data-food-id="${food.id}"
+                onclick="quickLogChip('${food.id}', ${food.lastQuantity})"
+                aria-label="Ajouter ${safeName} ${qtyDisplay} au repas en cours">
+                <span class="quicklog-chip-name">${food.name}</span>
+                <span class="quicklog-chip-qty">${qtyDisplay}</span>
+            </button>
+        `;
+    }).join('');
 }
+
+/**
+ * Ajoute 1-tap un aliment recent au repas du moment (auto-détecté).
+ * Affiche un toast de confirmation et flash le chip.
+ */
+async function quickLogChip(foodId, quantity) {
+    const bar = document.getElementById('nutrition-quicklog-bar');
+    const mealType = bar?.dataset.mealType || getCurrentMealTypeByHour();
+
+    const food = state.foods.find(f => f.id === foodId);
+    if (!food) return;
+
+    // Haptic feedback
+    if (window.HapticFeedback) HapticFeedback.success();
+
+    // Flash visuel sur le chip cliqué
+    const chip = bar?.querySelector(`.quicklog-chip[data-food-id="${foodId}"]`);
+    if (chip) {
+        chip.classList.remove('flash-success');
+        // Force reflow pour rejouer l'animation
+        void chip.offsetWidth;
+        chip.classList.add('flash-success');
+        setTimeout(() => chip.classList.remove('flash-success'), 600);
+    }
+
+    // Ajout au journal
+    if (typeof addToJournalWithMealType === 'function') {
+        await addToJournalWithMealType(foodId, quantity, mealType);
+    } else if (typeof addToJournalDirect === 'function') {
+        await addToJournalDirect(foodId, quantity);
+    }
+
+    // Toast confirmation discret
+    const mealLabel = _MEAL_LABELS[mealType] || 'repas';
+    const qtyText = (typeof formatQuantityDisplay === 'function')
+        ? formatQuantityDisplay(food, quantity)
+        : `${quantity}g`;
+    if (typeof showToast === 'function') {
+        showToast(`${qtyText} ${food.name} → ${mealLabel.toLowerCase()}`, 'success');
+    }
+}
+
+/**
+ * Ouvre le meal-add-sheet pré-réglé sur le repas en cours.
+ * Pré-focus sur l'input recherche pour réduire à 1 clic supplémentaire.
+ */
+function openQuickLogSearch() {
+    const bar = document.getElementById('nutrition-quicklog-bar');
+    const mealType = bar?.dataset.mealType || getCurrentMealTypeByHour();
+
+    if (window.HapticFeedback) HapticFeedback.tap();
+
+    if (typeof openMealSheet === 'function') {
+        openMealSheet(mealType);
+        // Pré-focus l'input recherche après animation d'ouverture
+        setTimeout(() => {
+            const searchInput = document.getElementById('meal-food-search');
+            if (searchInput) searchInput.focus();
+        }, 350);
+    }
+}
+
+// Exports
+window.renderQuickLogBar = renderQuickLogBar;
+window.quickLogChip = quickLogChip;
+window.openQuickLogSearch = openQuickLogSearch;
+window.getCurrentMealTypeByHour = getCurrentMealTypeByHour;
 
 // ==================== LISTE DES ALIMENTS (ACCORDÉON) ====================
 
@@ -660,6 +781,103 @@ function updateNutritionSVGRings(consumed, targets) {
             }
         }
     });
+
+    // Pit Lane V3 : alimenter le Fuel Cockpit (kicker + hero remaining + meta + goals)
+    updateFuelCockpit(consumed, targets);
+
+    // Pit Lane V3 : refresh la quicklog-bar (recents peuvent avoir changé)
+    if (typeof renderQuickLogBar === 'function') {
+        renderQuickLogBar();
+    }
+}
+
+/**
+ * Alimente le Fuel Cockpit (kicker chronograph + hero calories restantes + état "over")
+ * Gère 3 états :
+ *   - empty : aucune entrée du jour → label "FUEL · 0 / 2400" + chiffre = goal
+ *   - ok : consommation < goal → big number = remaining (positif)
+ *   - over : consommation > goal → big number = écart négatif rouge + state "EXCÈS"
+ */
+function updateFuelCockpit(consumed, targets) {
+    const cockpit = document.getElementById('fuel-cockpit');
+    if (!cockpit) return;
+
+    // Kicker : jour + date courte FR (Cockpit + Page header chronograph)
+    const selectedDate = document.getElementById('journal-date')?.value;
+    const dayLabelEl = document.getElementById('cockpit-day-label');
+    const dateLabelEl = document.getElementById('cockpit-date-label');
+    const headerDayEl = document.getElementById('nutrition-header-day-label');
+    const headerDateEl = document.getElementById('nutrition-header-date-label');
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const target = selectedDate ? new Date(selectedDate + 'T12:00:00') : new Date();
+    const isToday = !selectedDate || selectedDate === todayStr;
+
+    const dayNames = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
+    const monthNames = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUI', 'JUI', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
+    const dayLabel = isToday ? "AUJOURD'HUI" : dayNames[target.getDay()];
+    const dateLabel = `${target.getDate().toString().padStart(2, '0')} ${monthNames[target.getMonth()]}`;
+
+    if (dayLabelEl) dayLabelEl.textContent = dayLabel;
+    if (dateLabelEl) dateLabelEl.textContent = dateLabel;
+    if (headerDayEl) headerDayEl.textContent = dayLabel;
+    if (headerDateEl) headerDateEl.textContent = dateLabel;
+
+    // Calcul restantes
+    const goal = Math.max(0, Math.round(targets.calories || 0));
+    const eaten = Math.max(0, Math.round(consumed.calories || 0));
+    const remaining = goal - eaten;
+    const isEmpty = eaten === 0;
+    const isOver = remaining < 0;
+
+    // Big number : restantes ou excès (avec signe -)
+    const remainingEl = document.getElementById('cockpit-cals-remaining');
+    const statusLabelEl = document.getElementById('cockpit-cals-status');
+    if (remainingEl) {
+        if (isOver) {
+            // Affiche -123 (l'excès)
+            remainingEl.textContent = remaining.toLocaleString('fr-FR');
+        } else {
+            remainingEl.textContent = remaining.toLocaleString('fr-FR');
+        }
+    }
+    if (statusLabelEl) {
+        if (isOver) statusLabelEl.textContent = 'EXCÈS';
+        else if (isEmpty) statusLabelEl.textContent = 'BUDGET';
+        else statusLabelEl.textContent = 'RESTANTES';
+    }
+
+    // Meta consommé / goal
+    const consumedEl = document.getElementById('cockpit-cals-consumed');
+    const goalEl = document.getElementById('cockpit-cals-goal');
+    if (consumedEl) consumedEl.textContent = eaten.toLocaleString('fr-FR');
+    if (goalEl) goalEl.textContent = goal.toLocaleString('fr-FR');
+
+    // Goals des macros (P/G/L)
+    const protGoalEl = document.getElementById('cockpit-prot-goal');
+    const carbsGoalEl = document.getElementById('cockpit-carbs-goal');
+    const fatGoalEl = document.getElementById('cockpit-fat-goal');
+    if (protGoalEl) protGoalEl.textContent = Math.round(targets.protein || 0);
+    if (carbsGoalEl) carbsGoalEl.textContent = Math.round(targets.carbs || 0);
+    if (fatGoalEl) fatGoalEl.textContent = Math.round(targets.fat || 0);
+
+    // Status pill (kicker top-right)
+    const statusPill = document.getElementById('cockpit-status-pill');
+    if (statusPill) {
+        if (isOver) {
+            statusPill.dataset.state = 'over';
+            statusPill.textContent = 'EXCÈS';
+        } else if (isEmpty) {
+            statusPill.dataset.state = 'empty';
+            statusPill.textContent = 'FUEL';
+        } else {
+            statusPill.dataset.state = 'ok';
+            statusPill.textContent = 'FUEL';
+        }
+    }
+
+    // État global du cockpit pour styles conditionnels
+    cockpit.dataset.state = isOver ? 'over' : (isEmpty ? 'empty' : 'ok');
 }
 
 /**
