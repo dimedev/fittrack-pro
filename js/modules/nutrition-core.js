@@ -127,6 +127,11 @@ function closeCopyDayModal() {
         modal.classList.remove('active');
         modal.style.display = 'none';
         if (window.ModalManager) ModalManager.unlock('copy-day-modal');
+        // Pit Lane V3 fix : retirer du DOM pour éviter état zombie
+        // (la modal sera recréée à la prochaine ouverture)
+        setTimeout(() => {
+            if (modal.parentElement) modal.remove();
+        }, 50);
     }
 }
 

@@ -243,6 +243,7 @@ const ModalManager = {
         document.body.style.top = '';
         document.body.style.width = '';
         document.body.classList.remove('modal-open');
+        this._bodyStyles = null;
     },
 
     isLocked() {
@@ -251,10 +252,46 @@ const ModalManager = {
 
     get activeModals() {
         return [...this._stack];
+    },
+
+    /**
+     * Watchdog : détecte un état zombie (body locked sans modal visible)
+     * et auto-récupère. Critique pour le scroll-lock persistant après nav
+     * entre sections sans fermer les modales nutrition.
+     */
+    healIfStale() {
+        const bodyLocked =
+            document.body.classList.contains('modal-open') ||
+            document.body.style.position === 'fixed' ||
+            document.body.style.overflow === 'hidden';
+        if (!bodyLocked) return false;
+
+        // Compter les modales réellement visibles à l'écran
+        const visibleModals = Array.from(document.querySelectorAll('.modal-overlay.active'))
+            .filter(m => {
+                if (m.style.display === 'none') return false;
+                // Visible si display:flex OU CSS .active visible
+                const cs = window.getComputedStyle(m);
+                return cs.display !== 'none' && cs.visibility !== 'hidden';
+            });
+
+        if (visibleModals.length === 0) {
+            console.warn('[ModalManager] Stale lock détecté → forceUnlockAll()');
+            this.forceUnlockAll();
+            return true;
+        }
+        return false;
     }
 };
 
 window.ModalManager = ModalManager;
+
+// Watchdog passif : appelé à visibilitychange + au router popstate.
+// Évite les scroll-locks zombies après nav entre sections sans close.
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) ModalManager.healIfStale();
+});
+window.addEventListener('focus', () => ModalManager.healIfStale());
 
 // ==================== SKELETON LOADERS ====================
 
@@ -471,6 +508,21 @@ function navigateToSection(sectionId) {
 }
 
 function _navigateToSectionInternal(sectionId) {
+    // 0. SAFETY NET : si l'user navigue avec une modale ouverte (notamment
+    //    sur nutrition), on force la fermeture pour éviter le scroll-lock
+    //    zombie. Ne ferme PAS les modales globales d'auth/onboarding.
+    const PERSISTENT_MODAL_IDS = new Set(['auth-modal', 'onboarding-modal']);
+    document.querySelectorAll('.modal-overlay.active').forEach(m => {
+        if (PERSISTENT_MODAL_IDS.has(m.id)) return;
+        m.classList.remove('active');
+        if (m.style.display === 'flex' || m.style.cssText.includes('flex')) {
+            m.style.display = 'none';
+        }
+        if (window.ModalManager && m.id) ModalManager.unlock(m.id);
+    });
+    // Watchdog en complément : si rien n'est unlock mais body locked → recover
+    if (window.ModalManager) ModalManager.healIfStale();
+
     // 1. RESET scroll AVANT animation (instant pour éviter conflit visuel)
     window.scrollTo({ top: 0, behavior: 'instant' });
 

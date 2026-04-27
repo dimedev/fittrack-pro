@@ -48,19 +48,15 @@ function openCopyDayModal() {
         return;
     }
 
-    let modal = document.getElementById('copy-day-modal');
-    console.log('📋 Modal existante:', !!modal);
-
-    if (!modal) {
-        // Créer la modal dynamiquement si elle n'existe pas
-        createCopyDayModal(recentDays, currentDate);
-    } else {
-        // La modal existe déjà, juste la remplir et l'afficher
-        populateCopyDayModal(recentDays, currentDate);
-        modal.classList.add('active');
-        modal.style.cssText = 'display: flex !important; z-index: 9999;';
-        if (window.ModalManager) ModalManager.lock('copy-day-modal');
+    // Pit Lane V3 fix : on détruit toujours l'ancienne instance avant de recréer.
+    // Évite l'état zombie (modal cachée display:none avec body lock résiduel)
+    // qui empêchait le scroll après plusieurs ouvertures/fermetures.
+    const oldModal = document.getElementById('copy-day-modal');
+    if (oldModal) {
+        if (window.ModalManager) ModalManager.unlock('copy-day-modal');
+        oldModal.remove();
     }
+    createCopyDayModal(recentDays, currentDate);
 }
 
 /**
