@@ -47,6 +47,65 @@
     padding: 24px !important;
 }
 
+/* V5-PATCH : Pit Lane card variants — laisser leurs propres tokens piloter le padding.
+   Évite que la règle legacy 24px !important écrase --card-padding sur les cards compactes
+   (ex : Insights dans le dashboard) ou à variantes hero/spotlight. */
+.card.card--compact,
+.card.card--spotlight,
+.card.card--hero {
+    padding: var(--card-padding) !important;
+}
+
+.card.card--compact {
+    padding: var(--space-3, 12px) !important;
+}
+
+.card.card--compact .card-header,
+.card.card--spotlight .card-header,
+.card.card--hero .card-header {
+    padding: 0 0 var(--space-3, 12px) 0 !important;
+}
+
+.card.card--compact .card-body,
+.card.card--spotlight .card-body,
+.card.card--hero .card-body {
+    padding: 0 !important;
+}
+
+/* V5-PATCH : icons SVG dans les insights — brand red + alignement */
+.insight-icon,
+.dash-insight-icon,
+.insights-empty-icon {
+    color: var(--accent-brand, #ff0000);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.insight-icon svg,
+.dash-insight-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+.insights-empty-icon svg {
+    width: 32px;
+    height: 32px;
+    display: block;
+}
+
+/* Coach recommendations icons */
+.coach-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-brand, #ff0000);
+}
+.coach-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
 /* Réduire les ombres excessives - uniquement sur dispositifs avec hover (pas touch) */
 @media (hover: hover) {
     .card:hover, .stat-card:hover {

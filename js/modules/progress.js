@@ -2163,15 +2163,25 @@ function renderCoachRecommendations() {
     ];
 
     const recommendations = generateCoachRecommendations();
-    
+
+    // V5-PATCH : SVG icons brand-aligned (remplace emojis 🤖/📈/💪/⚠️/✅/🔄/📉/💡)
+    const SVG_BOT      = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.4"><rect x="3" y="11" width="18" height="10" rx="2" ry="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
+    const SVG_UP       = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`;
+    const SVG_DOWN     = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
+    const SVG_REPS     = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.768 1.768a2 2 0 1 1-2.828-2.829l6.364-6.364a2 2 0 1 1 2.829 2.828l-1.768-1.768a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>`;
+    const SVG_ALERT    = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    const SVG_CHECK    = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
+    const SVG_REFRESH  = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>`;
+    const SVG_BULB     = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.6c.6.4 1 1.1 1 1.9V18h6v-1.5c0-.8.4-1.5 1-1.9A7 7 0 0 0 12 2z"/></svg>`;
+
     const emptyStateHTML = `
         <div class="empty-state">
-            <div class="empty-state-icon" style="font-size:2.5rem">🤖</div>
+            <div class="empty-state-icon">${SVG_BOT}</div>
             <div class="empty-state-title">Le coach se prépare</div>
             <p style="color:var(--text-secondary)">Après 3 séances, tu recevras des recommandations personnalisées sur ta progression</p>
         </div>
     `;
-    
+
     if (recommendations.length === 0) {
         containers.forEach(container => {
             if (container) container.innerHTML = emptyStateHTML;
@@ -2180,15 +2190,15 @@ function renderCoachRecommendations() {
     }
 
     let html = '<div class="coach-recommendations-grid">';
-    
+
     recommendations.forEach((rec, index) => {
         const iconMap = {
-            'increase_weight': '📈',
-            'increase_reps': '💪',
-            'deload': '⚠️',
-            'maintain': '✅',
-            'plateau': '🔄',
-            'volume_plateau': '📉'
+            'increase_weight': SVG_UP,
+            'increase_reps':   SVG_REPS,
+            'deload':          SVG_ALERT,
+            'maintain':        SVG_CHECK,
+            'plateau':         SVG_REFRESH,
+            'volume_plateau':  SVG_DOWN
         };
 
         const colorMap = {
@@ -2199,10 +2209,10 @@ function renderCoachRecommendations() {
             'plateau': 'warning',
             'volume_plateau': 'warning'
         };
-        
-        const icon = iconMap[rec.type] || '💡';
+
+        const icon = iconMap[rec.type] || SVG_BULB;
         const color = colorMap[rec.type] || 'neutral';
-        
+
         html += `
             <div class="coach-card coach-${color}" style="animation-delay: ${index * 0.1}s">
                 <div class="coach-card-header">
@@ -2214,9 +2224,9 @@ function renderCoachRecommendations() {
             </div>
         `;
     });
-    
+
     html += '</div>';
-    
+
     // Remplir tous les conteneurs
     containers.forEach(container => {
         if (container) container.innerHTML = html;
@@ -2700,12 +2710,21 @@ function renderDashboardInsights() {
     const plateauCount = countPlateauExercises();
     const monthlyProg = calculateMonthlyProgression();
 
-    // Trend label
-    let trendIcon, trendLabel;
-    if (monthlyProg === null) { trendIcon = '—'; trendLabel = 'Pas assez de données'; }
-    else if (monthlyProg > 5) { trendIcon = '📈'; trendLabel = `+${monthlyProg}% vs mois dernier`; }
-    else if (monthlyProg > -5) { trendIcon = '➡️'; trendLabel = `${monthlyProg >= 0 ? '+' : ''}${monthlyProg}% stable`; }
-    else { trendIcon = '📉'; trendLabel = `${monthlyProg}% vs mois dernier`; }
+    // V5-PATCH : SVG icons brand-aligned (remplace emojis) — currentColor = .dash-insight-icon CSS color
+    const SVG_TREND_UP   = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`;
+    const SVG_TREND_DOWN = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
+    const SVG_TREND_FLAT = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>`;
+    const SVG_DASH       = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+    const SVG_AWARD      = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>`;
+    const SVG_ALERT      = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    const SVG_CHECK      = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+    // Trend icon
+    let trendIconSvg, trendLabel;
+    if (monthlyProg === null) { trendIconSvg = SVG_DASH; trendLabel = 'Pas assez de données'; }
+    else if (monthlyProg > 5) { trendIconSvg = SVG_TREND_UP; trendLabel = `+${monthlyProg}% vs mois dernier`; }
+    else if (monthlyProg > -5) { trendIconSvg = SVG_TREND_FLAT; trendLabel = `${monthlyProg >= 0 ? '+' : ''}${monthlyProg}% stable`; }
+    else { trendIconSvg = SVG_TREND_DOWN; trendLabel = `${monthlyProg}% vs mois dernier`; }
 
     let html = '<div class="dashboard-insights-grid">';
 
@@ -2713,11 +2732,11 @@ function renderDashboardInsights() {
     if (bestExo) {
         html += `
             <div class="dash-insight-item">
-                <span class="dash-insight-icon">🏅</span>
+                <span class="dash-insight-icon">${SVG_AWARD}</span>
                 <div class="dash-insight-body">
                     <div class="dash-insight-label">Meilleur exercice du mois</div>
                     <div class="dash-insight-value">${bestExo.name}</div>
-                    <div class="dash-insight-meta" style="color: var(--success)">${bestExo.score > 0 ? '+' : ''}${bestExo.score}%</div>
+                    <div class="dash-insight-meta" style="color: var(--accent-brand)">${bestExo.score > 0 ? '+' : ''}${bestExo.score}%</div>
                 </div>
             </div>`;
     }
@@ -2725,7 +2744,7 @@ function renderDashboardInsights() {
     // Plateaux
     html += `
         <div class="dash-insight-item">
-            <span class="dash-insight-icon">${plateauCount > 0 ? '⚠️' : '✅'}</span>
+            <span class="dash-insight-icon">${plateauCount > 0 ? SVG_ALERT : SVG_CHECK}</span>
             <div class="dash-insight-body">
                 <div class="dash-insight-label">Plateaux détectés</div>
                 <div class="dash-insight-value">${plateauCount}</div>
@@ -2736,7 +2755,7 @@ function renderDashboardInsights() {
     // Volume trend
     html += `
         <div class="dash-insight-item">
-            <span class="dash-insight-icon">${trendIcon}</span>
+            <span class="dash-insight-icon">${trendIconSvg}</span>
             <div class="dash-insight-body">
                 <div class="dash-insight-label">Volume mensuel</div>
                 <div class="dash-insight-value">${trendLabel}</div>

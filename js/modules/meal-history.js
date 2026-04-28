@@ -83,15 +83,15 @@ function openMealHistoryModal(targetMealType = null) {
     modal.classList.add('active');
     if (window.ModalManager) ModalManager.lock('meal-history-modal');
 
-    // Animation slide-up
-    const container = modal.querySelector('.meal-history-container');
+    // Animation slide-up — V5-D : nouvelle structure .modal (au lieu de .meal-history-container)
+    const container = modal.querySelector('.modal');
     if (container) {
         container.classList.remove('slide-down');
         container.classList.add('slide-up');
     }
 
     // Activer le swipe down pour fermer (mobile uniquement)
-    if (window.innerWidth <= 768) {
+    if (container && window.innerWidth <= 768) {
         enableSwipeToClose(modal, container);
     }
 }
@@ -172,7 +172,7 @@ function enableSwipeToClose(modal, container) {
         startY = touch.clientY;
         
         // Seulement si on commence le swipe dans le header
-        const isInHeader = e.target.closest('.meal-history-header');
+        const isInHeader = e.target.closest('.modal-header') || e.target.closest('.meal-history-header');
         if (isInHeader || container.scrollTop === 0) {
             isDragging = true;
         }
@@ -220,14 +220,21 @@ function enableSwipeToClose(modal, container) {
  */
 function closeMealHistoryModal() {
     const modal = document.getElementById('meal-history-modal');
-    const container = modal?.querySelector('.meal-history-container');
-    
-    if (!modal || !container) return;
-    
+    if (!modal) return;
+    // V5-D : on cible .modal (Pit Lane) et plus .meal-history-container
+    const container = modal.querySelector('.modal');
+
+    // Si pas de container, fermer brutalement (pas d'animation mais ça ferme)
+    if (!container) {
+        modal.classList.remove('active');
+        if (window.ModalManager) ModalManager.unlock('meal-history-modal');
+        return;
+    }
+
     // Animation slide-down
     container.classList.remove('slide-up');
     container.classList.add('slide-down');
-    
+
     // Attendre la fin de l'animation
     setTimeout(() => {
         modal.classList.remove('active');

@@ -31,8 +31,8 @@ function openRecipeModal(recipeId = null) {
     modal.classList.add('active');
     if (window.ModalManager) ModalManager.lock('recipe-modal');
 
-    // Animation slide-up iOS
-    const container = modal.querySelector('.recipe-container');
+    // Animation slide-up iOS — V5-D : nouvelle structure .modal (au lieu de .recipe-container)
+    const container = modal.querySelector('.modal');
     if (container) {
         container.classList.remove('slide-down');
         container.classList.add('slide-up');
@@ -55,7 +55,7 @@ function enableRecipeSwipeToClose(modal, container) {
     let currentY = 0;
     let isDragging = false;
     
-    const header = container.querySelector('.recipe-header') || container;
+    const header = container.querySelector('.modal-header') || container.querySelector('.recipe-header') || container;
     
     header.addEventListener('touchstart', (e) => {
         startY = e.touches[0].clientY;
@@ -95,10 +95,17 @@ function enableRecipeSwipeToClose(modal, container) {
  */
 function closeRecipeModal() {
     const modal = document.getElementById('recipe-modal');
-    const container = modal?.querySelector('.recipe-container');
-    
-    if (!modal || !container) return;
-    
+    if (!modal) return;
+    // V5-D : on cible .modal (Pit Lane) et plus .recipe-container
+    const container = modal.querySelector('.modal');
+
+    // Si pas de container, fermer brutalement (pas d'animation mais ça ferme)
+    if (!container) {
+        modal.classList.remove('active');
+        if (window.ModalManager) ModalManager.unlock('recipe-modal');
+        return;
+    }
+
     // Animation slide-down
     container.classList.remove('slide-up');
     container.classList.add('slide-down');
@@ -108,6 +115,8 @@ function closeRecipeModal() {
         modal.classList.remove('active');
         if (window.ModalManager) ModalManager.unlock('recipe-modal');
         container.classList.remove('slide-down');
+        // Cleanup transform résiduel du swipe
+        container.style.transform = '';
     }, 300);
 }
 
