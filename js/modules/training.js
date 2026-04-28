@@ -55,14 +55,21 @@ function startFullScreenSessionWithCustomExercises(splitIndex, customExercises) 
     const existingSession = loadFsSessionFromStorage();
     const today = new Date().toLocaleDateString('en-CA');
     
-    if (existingSession && 
-        existingSession.splitName === splitName && 
+    if (existingSession &&
+        existingSession.splitName === splitName &&
         existingSession.sessionId &&
         new Date(existingSession.startTime).toLocaleDateString('en-CA') === today) {
         // Reprendre la session existante (même jour, même split)
         console.log('📌 Reprise de la session existante:', existingSession.sessionId);
         fsSession = existingSession;
         fsSession.active = true;
+        // V6-PATCH : feedback visuel de reprise (avant on perdait la session
+        // après 24h sans aucune notif, l'user croyait que ça avait sauvé).
+        if (existingSession._isRestored && typeof showToast === 'function') {
+            const setsCount = (existingSession.completedSets || []).filter(s => !s.isWarmup).length;
+            const startedAt = new Date(existingSession.startTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            showToast(`Reprise séance de ${startedAt} — ${setsCount} série${setsCount > 1 ? 's' : ''} restaurée${setsCount > 1 ? 's' : ''}`, 'success', 4000);
+        }
     } else {
         // Initialize session avec UUID unique
         fsSession = {
@@ -507,6 +514,9 @@ function renderCurrentExercise() {
             previousValueEl.textContent = fmtPrev(lastSessionSet.weight, lastSessionSet.reps);
             previousEl.style.display = 'flex';
             suggestedWeight = lastSessionSet.weight;
+            // V7-PATCH : pré-remplir les reps avec celles du dernier set validé
+            // → permet le pattern Hevy "2 taps/série" (juste valider si pas de changement).
+            if (lastSessionSet.reps > 0) suggestedReps = lastSessionSet.reps;
             hasPreviousData = true;
             dataSource = 'current-session';
         }
@@ -947,6 +957,34 @@ function skipWarmupPanel(event) {
 }
 
 window.skipWarmupPanel = skipWarmupPanel;
+
+/**
+ * V7-PATCH : Ajoute une série bonus à l'exercice courant.
+ * Incrémente exercise.sets de 1 → la transition vers l'exercice suivant
+ * sera reportée d'autant. L'user peut cliquer plusieurs fois.
+ *
+ * UX en salle : "Tiens je me sens fort, je tente une série de plus" — 1 tap.
+ */
+function addExtraSet() {
+    if (!fsSession || !fsSession.exercises) return;
+    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    if (!exercise) return;
+
+    exercise.sets = (exercise.sets || 0) + 1;
+    saveFsSessionToStorage();
+
+    // Re-render pour mettre à jour le compteur de sets et le bouton d'action
+    if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
+    if (typeof updateActionButton === 'function') updateActionButton();
+    if (typeof updateCompletedSetsList === 'function') updateCompletedSetsList();
+
+    if (window.HapticFeedback) HapticFeedback.light();
+    if (typeof showToast === 'function') {
+        showToast(`Série bonus ajoutée — ${exercise.sets} séries au total`, 'success', 2000);
+    }
+}
+
+window.addExtraSet = addExtraSet;
 
 /**
  * Toggle collapse du panneau warmup

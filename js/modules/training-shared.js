@@ -386,11 +386,19 @@ function loadFsSessionFromStorage() {
         if (!saved) return null;
 
         var sessionData = JSON.parse(saved);
-        // Vérifier que la session n'est pas trop ancienne (max 24h)
-        if (Date.now() - sessionData.savedAt > 24 * 60 * 60 * 1000) {
+        // V6-PATCH : timeout étendu à 7 jours (vs 24h silencieux qui détruisait
+        // les séances oubliées d'un jour sur l'autre). On notifie l'user
+        // visuellement à la restauration via showToast (training.js).
+        var TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
+        if (Date.now() - sessionData.savedAt > TIMEOUT_MS) {
+            console.log('🕒 Session locale > 7 jours, archivée et nettoyée');
             localStorage.removeItem('pendingFsSession');
             return null;
         }
+
+        // Marqueur pour que training.js sache afficher un toast de reprise
+        sessionData._isRestored = true;
+        sessionData._restoredFromAgeMs = Date.now() - sessionData.savedAt;
 
         return sessionData;
     } catch (err) {

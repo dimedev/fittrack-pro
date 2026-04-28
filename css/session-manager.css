@@ -1442,6 +1442,48 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     transform: scale(0.98);
 }
 
+/* V7-PATCH : bouton "Une série de plus" — ghost discret Pit Lane.
+   Toujours visible en bas de la liste de sets pour permettre une série
+   bonus à tout moment (pattern Hevy). */
+.fs-add-set-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 300px;
+    margin: 14px auto 4px;
+    padding: 11px 18px;
+    background: transparent;
+    border: 1px dashed color-mix(in srgb, #fff 18%, transparent);
+    border-radius: var(--space-3, 12px);
+    color: var(--text-muted, #a3a3a3);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
+}
+
+.fs-add-set-btn:hover {
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 45%, transparent);
+    color: #fff;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 6%, transparent);
+}
+
+.fs-add-set-btn:active {
+    transform: scale(0.98);
+}
+
+.fs-add-set-btn svg {
+    color: currentColor;
+    flex-shrink: 0;
+}
+
+/* Sur mobile, kill-switch hover transform (cf. mobile-ux-fixes) déjà géré */
+
 /* Advanced techniques container */
 .fs-advanced-btns {
     display: flex;
