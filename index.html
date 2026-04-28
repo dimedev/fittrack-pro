@@ -27,7 +27,7 @@
     <!-- Critical: design system + mobile base (render-blocking) -->
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=63">
     <link rel="stylesheet" href="css/mobile-premium.css?v=6">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=61">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=62">
     <!-- Deferred: loaded async, applied when ready -->
     <link rel="stylesheet" href="css/session-manager.css?v=46" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=26" media="print" onload="this.media='all'">
@@ -370,6 +370,27 @@
                         </div>
                     </div>
                 </details>
+
+                <!-- V8-C-B : Deload Banner (auto-detect surcharge >MRV 2 sem. consec.)
+                     Pit Lane "RACE CONTROL" stripe — animated red gradient + warning -->
+                <div class="deload-banner" id="deload-banner" style="display: none;" role="alert" aria-live="polite">
+                    <span class="deload-stripe" aria-hidden="true"></span>
+                    <div class="deload-icon-wrap" aria-hidden="true">
+                        <svg class="deload-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 9v4"></path>
+                            <path d="M12 17h.01"></path>
+                            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="deload-body">
+                        <span class="deload-kicker">RACE CONTROL · DELOAD</span>
+                        <span class="deload-msg" id="deload-banner-msg">Surcharge détectée 2 semaines</span>
+                    </div>
+                    <button type="button" class="deload-cta" id="deload-banner-cta" onclick="openPeriodizationSheet()" aria-label="Configurer la périodisation">
+                        <span>Configurer</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
 
                 <!-- V8-B : Recovery Radar (Helms/Israetel) -->
                 <div class="card recovery-radar-card" id="recovery-radar-card" style="display: none;">
@@ -3956,6 +3977,96 @@
         </div>
     </div>
 
+    <!-- ════════════════════════════════════════════════════════════════
+         V8-C-A — RPE FORCE MODAL (Pit Lane Cockpit · Effort Throttle)
+         Force le picker RPE 1-tap UNIQUEMENT sur la dernière série de
+         chaque exercice. 3 skips consécutifs sur un même exo → désactive
+         pour cet exo (respect choix user).
+         ════════════════════════════════════════════════════════════════ -->
+    <div class="rpe-force-overlay" id="rpe-force-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="rpe-force-title" onclick="closeRpeForceModal(event)">
+        <div class="rpe-force-sheet" onclick="event.stopPropagation()">
+            <!-- Top hairline brand-red glow -->
+            <span class="rpe-force-rail"></span>
+
+            <header class="rpe-force-head">
+                <span class="rpe-force-kicker">EFFORT &middot; DERNIERE SERIE</span>
+                <h3 class="rpe-force-title" id="rpe-force-title">Combien il restait dans le réservoir&nbsp;?</h3>
+                <p class="rpe-force-sub" id="rpe-force-sub">RPE = Rating of Perceived Exertion. 1-tap, le coach apprend.</p>
+            </header>
+
+            <!-- 5 throttle pillars : RPE 6 / 7 / 8 / 9 / 10 -->
+            <div class="rpe-force-grid" role="radiogroup" aria-labelledby="rpe-force-title">
+                <button type="button" class="rpe-throttle" data-rpe="6" role="radio" aria-checked="false" aria-label="RPE 6, easy, 4 reps en réserve" onclick="selectRpeForced(6)">
+                    <span class="rpe-throttle-num">6</span>
+                    <span class="rpe-throttle-gauge" aria-hidden="true">
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg"></span>
+                        <span class="rpe-seg"></span>
+                        <span class="rpe-seg"></span>
+                        <span class="rpe-seg"></span>
+                    </span>
+                    <span class="rpe-throttle-label">EASY</span>
+                    <span class="rpe-throttle-rir">4+ RIR</span>
+                </button>
+                <button type="button" class="rpe-throttle" data-rpe="7" role="radio" aria-checked="false" aria-label="RPE 7, talk, 3 reps en réserve" onclick="selectRpeForced(7)">
+                    <span class="rpe-throttle-num">7</span>
+                    <span class="rpe-throttle-gauge" aria-hidden="true">
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg"></span>
+                        <span class="rpe-seg"></span>
+                        <span class="rpe-seg"></span>
+                    </span>
+                    <span class="rpe-throttle-label">TALK</span>
+                    <span class="rpe-throttle-rir">3 RIR</span>
+                </button>
+                <button type="button" class="rpe-throttle" data-rpe="8" role="radio" aria-checked="false" aria-label="RPE 8, hard, 2 reps en réserve" onclick="selectRpeForced(8)">
+                    <span class="rpe-throttle-num">8</span>
+                    <span class="rpe-throttle-gauge" aria-hidden="true">
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg"></span>
+                        <span class="rpe-seg"></span>
+                    </span>
+                    <span class="rpe-throttle-label">HARD</span>
+                    <span class="rpe-throttle-rir">2 RIR</span>
+                </button>
+                <button type="button" class="rpe-throttle" data-rpe="9" role="radio" aria-checked="false" aria-label="RPE 9, grind, 1 rep en réserve" onclick="selectRpeForced(9)">
+                    <span class="rpe-throttle-num">9</span>
+                    <span class="rpe-throttle-gauge" aria-hidden="true">
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg"></span>
+                    </span>
+                    <span class="rpe-throttle-label">GRIND</span>
+                    <span class="rpe-throttle-rir">1 RIR</span>
+                </button>
+                <button type="button" class="rpe-throttle" data-rpe="10" role="radio" aria-checked="false" aria-label="RPE 10, max, 0 rep en réserve" onclick="selectRpeForced(10)">
+                    <span class="rpe-throttle-num">10</span>
+                    <span class="rpe-throttle-gauge" aria-hidden="true">
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                        <span class="rpe-seg" data-on="1"></span>
+                    </span>
+                    <span class="rpe-throttle-label">MAX</span>
+                    <span class="rpe-throttle-rir">0 RIR</span>
+                </button>
+            </div>
+
+            <footer class="rpe-force-foot">
+                <button type="button" class="rpe-force-skip" id="rpe-force-skip" onclick="skipRpeForced()">
+                    <span class="rpe-skip-text">Sauter</span>
+                    <span class="rpe-skip-meta" id="rpe-force-skip-meta"></span>
+                </button>
+            </footer>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <!-- V6.1 STORE-BLOCKER : DomSafe DOIT être chargé EN PREMIER pour que
          tous les modules suivants puissent appeler window.DomSafe.escape()
@@ -3975,7 +4086,7 @@
     <script src="js/modules/recipes.js?v=7"></script>
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=46"></script>
-    <script src="js/modules/profile.js?v=31"></script>
+    <script src="js/modules/profile.js?v=32"></script>
     <script src="js/modules/nutrition-core.js?v=4"></script>
     <script src="js/modules/nutrition-ui.js?v=6"></script>
     <script src="js/modules/nutrition.js?v=39"></script>
@@ -3990,15 +4101,15 @@
     <script src="js/modules/training-wizard.js?v=1"></script>
     <script src="js/modules/training-swap.js?v=2"></script>
     <script src="js/modules/training-builder.js?v=3"></script>
-    <script src="js/modules/training.js?v=51"></script>
+    <script src="js/modules/training.js?v=52"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=10"></script>
-    <script src="js/modules/progress.js?v=35"></script>
+    <script src="js/modules/progress.js?v=36"></script>
     <script src="js/modules/achievements.js?v=2"></script>
     <!-- coach-engine.js : fusion SmartTraining + AIInsights + façade CoachEngine (S3.5) -->
     <script src="js/modules/coach-engine.js?v=4"></script>
     <!-- V8-A : MEV/MAV/MRV per muscle group (Renaissance Periodization) -->
-    <script src="js/modules/coach-volume.js?v=1"></script>
+    <script src="js/modules/coach-volume.js?v=2"></script>
     <script src="js/modules/health-integration.js?v=2"></script>
     <script src="js/modules/audio-feedback.js?v=1"></script>
     <script src="js/modules/timer.js?v=7"></script>

@@ -2919,6 +2919,81 @@ function _vtRowHtml(row, scaleMax) {
 }
 
 /**
+ * V8-C-B — Soft banner "RACE CONTROL · DELOAD" on Dashboard.
+ *
+ * Affiche un bandeau soft-warning quand un (ou plusieurs) muscle a dépassé
+ * MRV deux semaines consécutives. CTA → ouvre le bottom-sheet périodisation
+ * (où l'utilisateur peut activer le deload manuel ou ajuster son cycle).
+ *
+ * Le banner reste invisible si :
+ *   - CoachVolume indisponible (pas encore loadé)
+ *   - aucun muscle ne déclenche le critère
+ *   - moins de 14 jours d'historique exploitable
+ */
+function renderDeloadBanner() {
+    const banner = document.getElementById('deload-banner');
+    if (!banner) return;
+
+    if (!window.CoachVolume || typeof window.CoachVolume.detectConsecutiveOverload !== 'function') {
+        banner.style.display = 'none';
+        return;
+    }
+
+    // Garde-fou : il faut au moins 14 jours d'historique exploitable.
+    // On regarde sessionHistory ; si la première session date de moins de 14j,
+    // on n'a pas encore deux semaines à comparer → pas de banner.
+    try {
+        const sessions = (window.state && Array.isArray(window.state.sessionHistory))
+            ? window.state.sessionHistory.filter(s => !s.deletedAt)
+            : [];
+        if (sessions.length === 0) {
+            banner.style.display = 'none';
+            return;
+        }
+        // Plus ancienne timestamp
+        const oldest = sessions.reduce((min, s) => {
+            const ts = s.timestamp || s.endTime || s.startTime || (s.date ? new Date(s.date).getTime() : 0);
+            return (ts && ts < min) ? ts : min;
+        }, Date.now());
+        const ageDays = (Date.now() - oldest) / (24 * 60 * 60 * 1000);
+        if (ageDays < 14) {
+            banner.style.display = 'none';
+            return;
+        }
+    } catch (_) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    let matches;
+    try {
+        matches = window.CoachVolume.detectConsecutiveOverload();
+    } catch (e) {
+        console.warn('[V8-C-B] detectConsecutiveOverload error:', e);
+        banner.style.display = 'none';
+        return;
+    }
+
+    if (!Array.isArray(matches) || matches.length === 0) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    // Construire le message — top 2 muscles les plus chargés
+    const msgEl = document.getElementById('deload-banner-msg');
+    if (msgEl) {
+        const top = matches.slice(0, 2).map(m => m.label).join(' & ');
+        const moreCount = Math.max(0, matches.length - 2);
+        const moreSuffix = moreCount > 0 ? ` +${moreCount}` : '';
+        // Le premier muscle a déjà l'excédent le plus important
+        const headExcess = matches[0].excess;
+        msgEl.textContent = `${top}${moreSuffix} en surcharge 2 semaines (+${headExcess} sets / MRV).`;
+    }
+
+    banner.style.display = 'flex';
+}
+
+/**
  * V8-B — Render the "Recovery Radar" card on the dashboard.
  * Hexagonal cockpit-style SVG showing per-muscle recovery percentage.
  * 10 muscle vertices arranged around a polygon, filled per current state.
@@ -3484,6 +3559,7 @@ window.getBestExerciseOfMonth = getBestExerciseOfMonth;
 window.renderDashboardInsights = renderDashboardInsights;
 window.renderVolumeTelemetry = renderVolumeTelemetry;
 window.renderRecoveryRadar = renderRecoveryRadar;
+window.renderDeloadBanner = renderDeloadBanner;
 window.checkPlateauAlert = checkPlateauAlert;
 
 // Service Registry

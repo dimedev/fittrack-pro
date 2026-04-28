@@ -1158,6 +1158,213 @@ function renderRpeSuggestion(exerciseName) {
     }
 }
 
+// ==================== V8-C-A : RPE FORCE MODAL (last set, 3-skip disable) ====================
+//
+// Le picker RPE inline (fs-rpe-quick) reste dispo en option visible à côté
+// de l'input. Mais sur la DERNIÈRE série de chaque exercice, on FORCE
+// l'utilisateur à entrer un RPE via une modal bottom-sheet plein écran
+// (cockpit Pit Lane "Effort Throttle"). 3 skips consécutifs sur le même
+// exercice → on désactive le forcing pour cet exercice (state.rpeSkipCounters).
+
+const RPE_SKIP_DISABLE_THRESHOLD = 3;
+
+/**
+ * Détermine si on doit forcer le RPE pour la série en cours.
+ * Conditions cumulatives :
+ *   - On est sur la dernière working set de l'exo en cours
+ *   - L'utilisateur n'a pas (déjà) saisi un RPE pour cette série
+ *   - Le compteur de skip pour cet exercice est < threshold
+ *   - Le RPE n'est pas déjà coché via le inline picker
+ */
+function _shouldForceRpe() {
+    if (!fsSession || !Array.isArray(fsSession.exercises)) return false;
+    const exercise = fsSession.exercises[fsSession.currentExerciseIndex];
+    if (!exercise) return false;
+
+    // Skip si pas un exercice "normal" (drop / rest-pause en cours = pas la "vraie" dernière série)
+    if (fsSession.isDropMode || fsSession.isRestPauseMode) return false;
+
+    const totalSets = exercise.sets || 0;
+    if (totalSets <= 0) return false;
+
+    const completedForExercise = (fsSession.completedSets || []).filter(
+        s => s.exerciseIndex === fsSession.currentExerciseIndex && !s.isWarmup && !s.isDrop && !s.isRestPause
+    ).length;
+
+    // (completedForExercise + 1) === totalSets  ⇒  on est en train de valider la dernière working set
+    const isLastSet = (completedForExercise + 1) >= totalSets;
+    if (!isLastSet) return false;
+
+    // Si user a déjà saisi un RPE (via inline picker ou autoreg select) → pas besoin de forcer
+    const rpeInput = document.getElementById('fs-rpe-input');
+    const currentRpe = rpeInput ? parseInt(rpeInput.value) || null : null;
+    if (currentRpe && currentRpe >= 6 && currentRpe <= 10) return false;
+
+    // Compteur de skip — si user a déjà skipé 3× sur cet exo, respecter son choix
+    const effName = exercise.effectiveName || exercise.name || '';
+    if (!effName) return false;
+    const skipCount = (state.rpeSkipCounters && state.rpeSkipCounters[effName]) || 0;
+    if (skipCount >= RPE_SKIP_DISABLE_THRESHOLD) return false;
+
+    return true;
+}
+
+/**
+ * Ouvre la modal RPE force. Met à jour le label "skip" si le user
+ * approche de la limite (3 skips → off).
+ */
+function openRpeForceModal() {
+    const overlay = document.getElementById('rpe-force-overlay');
+    if (!overlay) return;
+
+    // Reset visuel : aucun bouton sélectionné
+    overlay.querySelectorAll('.rpe-throttle').forEach(b => {
+        b.setAttribute('aria-checked', 'false');
+    });
+
+    // Mettre à jour le compteur de skip (transparency)
+    const exercise = fsSession.exercises?.[fsSession.currentExerciseIndex];
+    const effName = exercise?.effectiveName || exercise?.name || '';
+    const skipCount = (state.rpeSkipCounters && state.rpeSkipCounters[effName]) || 0;
+    const skipMeta = document.getElementById('rpe-force-skip-meta');
+    if (skipMeta) {
+        if (skipCount > 0) {
+            skipMeta.textContent = `${skipCount}/${RPE_SKIP_DISABLE_THRESHOLD} — off après ${RPE_SKIP_DISABLE_THRESHOLD}`;
+        } else {
+            skipMeta.textContent = '';
+        }
+    }
+
+    // Afficher
+    overlay.style.display = 'flex';
+
+    // Lock scroll body
+    if (window.ModalManager && typeof ModalManager.lock === 'function') {
+        ModalManager.lock('rpe-force-overlay');
+    }
+
+    // Haptic léger pour signaler l'ouverture
+    if (window.HapticFeedback && typeof window.HapticFeedback.light === 'function') {
+        window.HapticFeedback.light();
+    }
+}
+
+/**
+ * Ferme la modal RPE force. Optionnel : on accepte un event pour onclick
+ * sur backdrop (event.target check pour ignorer le sheet interne).
+ */
+function closeRpeForceModal(event) {
+    const overlay = document.getElementById('rpe-force-overlay');
+    if (!overlay) return;
+
+    // Si event arrive du backdrop : on ferme. Sinon : appel direct OK.
+    if (event && event.target !== overlay) return;
+
+    overlay.style.display = 'none';
+
+    if (window.ModalManager && typeof ModalManager.unlock === 'function') {
+        ModalManager.unlock('rpe-force-overlay');
+    }
+}
+
+/**
+ * User a sélectionné un RPE depuis la modal force. On remplit le champ
+ * caché et on relance validateCurrentSet (qui ne ré-ouvre pas la modal
+ * car le RPE est désormais présent).
+ */
+function selectRpeForced(value) {
+    if (!Number.isInteger(value) || value < 6 || value > 10) return;
+
+    // Highlight visuel synchrone du bouton sélectionné (pour le feedback
+    // tactile pendant la frame avant fermeture)
+    const overlay = document.getElementById('rpe-force-overlay');
+    if (overlay) {
+        overlay.querySelectorAll('.rpe-throttle').forEach(b => {
+            b.setAttribute('aria-checked', String(parseInt(b.dataset.rpe) === value));
+        });
+    }
+
+    // Remplir le champ caché — pipeline standard de validateCurrentSet
+    const rpeInput = document.getElementById('fs-rpe-input');
+    if (rpeInput) rpeInput.value = String(value);
+
+    // S'assurer que la section autoregulation est "active" (autoreg select lit la valeur)
+    const autoSection = document.getElementById('fs-autoregulation-section');
+    if (autoSection) autoSection.style.display = '';
+    const autoInputs = document.getElementById('fs-autoregulation-inputs');
+    if (autoInputs) autoInputs.style.display = '';
+
+    // Synchro avec inline picker (visuel cohérent si le user retourne au panel)
+    if (typeof _highlightRpeBtn === 'function') {
+        _highlightRpeBtn(value);
+    }
+    const hint = document.getElementById('fs-rpe-quick-hint');
+    if (hint && typeof RPE_LABELS !== 'undefined') {
+        hint.textContent = RPE_LABELS[value] || '';
+        if (typeof _rpeColor === 'function') {
+            hint.style.color = _rpeColor(value);
+        }
+    }
+
+    // RESET le compteur de skip pour cet exo (l'utilisateur a engagé)
+    const exercise = fsSession.exercises?.[fsSession.currentExerciseIndex];
+    const effName = exercise?.effectiveName || exercise?.name || '';
+    if (effName) {
+        if (!state.rpeSkipCounters) state.rpeSkipCounters = {};
+        if (state.rpeSkipCounters[effName]) {
+            state.rpeSkipCounters[effName] = 0;
+            saveState();
+        }
+    }
+
+    // Haptic — palette intensité (RPE 9-10 = error, 6-7 = light, 8 = success)
+    if (window.HapticFeedback) {
+        if (value >= 9) window.HapticFeedback.error();
+        else if (value === 8) window.HapticFeedback.success();
+        else window.HapticFeedback.light();
+    }
+
+    // Petit délai pour que la pulse animation soit visible avant fermeture
+    setTimeout(() => {
+        closeRpeForceModal();
+        // Re-trigger validate — RPE est filled, la modal ne se ré-ouvrira pas
+        validateCurrentSet({ rpeBypass: false });
+    }, 220);
+}
+
+/**
+ * User a skip — incrémente compteur, ferme modal, valide sans RPE.
+ * Si le compteur atteint le threshold, le forcing est OFF pour cet exo.
+ */
+function skipRpeForced() {
+    const exercise = fsSession.exercises?.[fsSession.currentExerciseIndex];
+    const effName = exercise?.effectiveName || exercise?.name || '';
+
+    if (effName) {
+        if (!state.rpeSkipCounters) state.rpeSkipCounters = {};
+        state.rpeSkipCounters[effName] = ((state.rpeSkipCounters[effName] || 0) + 1);
+        saveState();
+
+        // Toast si on vient de désactiver
+        if (state.rpeSkipCounters[effName] >= RPE_SKIP_DISABLE_THRESHOLD) {
+            showToast(`RPE désactivé pour ${effName}. Tu pourras toujours le saisir via le picker.`, 'info', 4000);
+        }
+    }
+
+    if (window.HapticFeedback && typeof window.HapticFeedback.light === 'function') {
+        window.HapticFeedback.light();
+    }
+
+    closeRpeForceModal();
+    // Bypass = true : pas de ré-ouverture de la modal sur ce set
+    validateCurrentSet({ rpeBypass: true });
+}
+
+window.openRpeForceModal = openRpeForceModal;
+window.closeRpeForceModal = closeRpeForceModal;
+window.selectRpeForced = selectRpeForced;
+window.skipRpeForced = skipRpeForced;
+
 // ==================== (FIN) WARMUP + RPE ====================
 
 // Constantes de validation
@@ -1232,7 +1439,9 @@ function _spawnValidationCheckOverlay(anchor) {
     setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 1200);
 }
 
-function validateCurrentSet() {
+function validateCurrentSet(opts) {
+    opts = opts || {};
+
     // Protection double-submit par clé d'état (exerciceIndex-setIndex)
     // Immunise contre les double-clics même après 500ms+ sur le même set
     const _lockKey = `${fsSession.currentExerciseIndex}-${fsSession.currentSetIndex}`;
@@ -1245,9 +1454,21 @@ function validateCurrentSet() {
     if (!repsRaw) {
         showToast('Entre le nombre de répétitions', 'error');
         repsInput.focus();
+        // Release lock — sinon prochaine validation sur ce même set est bloquée
+        fsSession._validatingKey = null;
         return;
     }
     const reps = parseInt(repsRaw) || 0;
+
+    // V8-C-A : RPE force sur la dernière série (avant la branche save).
+    // Place AFTER reps validation (sinon modal s'ouvre avec inputs vides) et
+    // AVANT la branche save (sinon le set est pushé sans RPE).
+    if (!opts.rpeBypass && reps > 0 && weight >= 0 && weight <= MAX_WEIGHT && reps <= MAX_REPS && _shouldForceRpe()) {
+        // Release lock — selectRpeForced() va re-trigger validateCurrentSet
+        fsSession._validatingKey = null;
+        openRpeForceModal();
+        return;
+    }
 
     // Validation stricte : reps obligatoires, poids optionnel (poids de corps)
     if (reps <= 0) {

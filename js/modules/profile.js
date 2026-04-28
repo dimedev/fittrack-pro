@@ -360,6 +360,11 @@ function updateDashboard() {
         if (typeof renderRecoveryRadar === 'function') {
             renderRecoveryRadar();
         }
+
+        // V8-C-B — Deload banner (auto-detect surcharge >MRV 2 sem. consec.)
+        if (typeof renderDeloadBanner === 'function') {
+            renderDeloadBanner();
+        }
     } catch (error) {
         console.error('Erreur dans updateDashboard:', error);
     } finally {

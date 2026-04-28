@@ -425,6 +425,55 @@
         return result;
     }
 
+    // ==================== V8-C-B : DELOAD AUTO-DETECT ====================
+    //
+    // Détecte si un (ou plusieurs) groupe musculaire a dépassé MRV deux
+    // semaines consécutives. Si oui → on recommande un deload proactif.
+    //
+    // Méthode : on appelle weeklyVolumeByMuscle(7) pour la semaine en cours
+    // et weeklyVolumeByMuscle(14) pour la fenêtre cumulée 14j. Le volume
+    // de la semaine précédente = vol14 - vol7. Un muscle est "en surcharge
+    // 2 semaines consec" si sets7 > MRV ET (sets14 - sets7) > MRV.
+
+    /**
+     * Retourne la liste des groupes musculaires en surcharge 2 semaines
+     * consécutives.
+     * @returns {Array<{groupId, label, short, currentSets, previousSets, mrv}>}
+     *          Trié par excédent décroissant. Vide si aucun match.
+     */
+    function detectConsecutiveOverload() {
+        const v7 = weeklyVolumeByMuscle(7);
+        const v14 = weeklyVolumeByMuscle(14);
+
+        const matches = [];
+        Object.keys(v7).forEach(g => {
+            const sets7 = v7[g].sets;
+            const sets14 = v14[g].sets;
+            const setsPrev = Math.max(0, Math.round((sets14 - sets7) * 10) / 10);
+            const mrv = v7[g].mrv;
+
+            // Critère strict : les DEUX semaines doivent dépasser MRV.
+            // On exige aussi un volume "réel" la semaine précédente (au
+            // moins MEV) — sinon une seule grosse semaine semblerait
+            // "consécutive" alors que la précédente était quasi-vide.
+            if (sets7 > mrv && setsPrev > mrv && setsPrev >= v7[g].mev) {
+                matches.push({
+                    groupId: g,
+                    label: v7[g].label,
+                    short: v7[g].short,
+                    currentSets: sets7,
+                    previousSets: setsPrev,
+                    mrv,
+                    excess: Math.round((sets7 - mrv) * 10) / 10
+                });
+            }
+        });
+
+        // Tri par excédent décroissant (le plus problématique en premier)
+        matches.sort((a, b) => b.excess - a.excess);
+        return matches;
+    }
+
     // ==================== EXPORTS ====================
     window.CoachVolume = {
         MUSCLE_GROUPS,
@@ -436,7 +485,9 @@
         summarizeGroup,
         // V8-B
         recoveryPctByMuscle,
-        recoveryByAllMuscles
+        recoveryByAllMuscles,
+        // V8-C-B
+        detectConsecutiveOverload
     };
 
 })();

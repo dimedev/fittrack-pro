@@ -3859,3 +3859,538 @@ textarea:focus-visible {
     user-select: none !important;
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   V8-C-A — RPE FORCE MODAL (Pit Lane Cockpit · Effort Throttle)
+   ────────────────────────────────────────────────────────────────────
+   Modal bottom-sheet plein écran. Force le picker RPE 1-tap UNIQUEMENT
+   sur la dernière série de chaque exercice. 3 skips consécutifs → off.
+   Aesthetic : F1 race-engineer cockpit, throttle gauge à 5 segments
+   par bouton, accent brand-red sur sélection.
+   ════════════════════════════════════════════════════════════════════ */
+
+@keyframes rpeOverlayFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes rpeSheetRise {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+@keyframes rpeRailGlow {
+    0%, 100% { opacity: 0.55; box-shadow: 0 0 14px rgba(255, 45, 45, 0.45); }
+    50%      { opacity: 1;    box-shadow: 0 0 22px rgba(255, 45, 45, 0.85); }
+}
+@keyframes rpeSegPulse {
+    0%, 100% { transform: scaleY(1);    opacity: 0.95; }
+    50%      { transform: scaleY(1.06); opacity: 1;    }
+}
+
+.rpe-force-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10500;
+    background: rgba(6, 6, 8, 0.78);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    backdrop-filter: blur(8px) saturate(120%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: stretch;
+    animation: rpeOverlayFadeIn 220ms ease-out forwards;
+    /* V7-PATCH-4 doctrine : kill all touch surface noise */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    overscroll-behavior: contain;
+}
+
+.rpe-force-sheet {
+    position: relative;
+    width: 100%;
+    max-width: 580px;
+    margin: 0 auto;
+    /* Cockpit gradient : carbon black → graphite avec injection rouge subtile */
+    background:
+        radial-gradient(140% 70% at 50% 0%, rgba(255, 45, 45, 0.12) 0%, rgba(255, 45, 45, 0) 55%),
+        linear-gradient(180deg, #131316 0%, #0c0c0e 60%, #0a0608 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px 20px 0 0;
+    padding: 1.4rem 1.1rem 1.1rem;
+    box-shadow:
+        0 -24px 48px rgba(0, 0, 0, 0.55),
+        0 -2px 0 rgba(255, 45, 45, 0.18) inset;
+    animation: rpeSheetRise 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    /* Allow internal scroll on tiny screens (e.g. landscape) */
+    max-height: 92vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Notch / home indicator safety */
+    padding-bottom: max(1.1rem, calc(1.1rem + env(safe-area-inset-bottom, 0px)));
+}
+
+/* Top brand-red rail with breathing glow */
+.rpe-force-rail {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 64px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: linear-gradient(90deg, transparent 0%, #ff2d2d 50%, transparent 100%);
+    animation: rpeRailGlow 2400ms ease-in-out infinite;
+}
+
+/* ─── Header ─── */
+.rpe-force-head {
+    text-align: center;
+    margin-bottom: 1.35rem;
+    padding-top: 0.4rem;
+}
+
+.rpe-force-kicker {
+    display: inline-block;
+    font-family: 'DM Mono', 'Roboto Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #ff2d2d;
+    padding: 0.28rem 0.7rem;
+    border: 1px solid rgba(255, 45, 45, 0.32);
+    border-radius: 999px;
+    background: rgba(255, 45, 45, 0.08);
+    margin-bottom: 0.7rem;
+}
+
+.rpe-force-title {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.18;
+    color: #f5f5f5;
+    margin: 0 0 0.4rem 0;
+    letter-spacing: -0.01em;
+}
+
+.rpe-force-sub {
+    font-family: 'DM Mono', 'Roboto Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    font-weight: 400;
+    line-height: 1.4;
+    color: rgba(245, 245, 245, 0.55);
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+
+/* ─── Throttle grid (5 boutons en ligne) ─── */
+.rpe-force-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.45rem;
+    margin-bottom: 1.05rem;
+}
+
+.rpe-throttle {
+    /* Reset button */
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    font: inherit;
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    padding: 0.7rem 0.25rem 0.65rem;
+    /* Surface */
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 13px;
+    color: #f5f5f5;
+    /* Animation prep */
+    transform: translateZ(0);
+    transition:
+        transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        border-color 180ms ease-out,
+        background 180ms ease-out,
+        box-shadow 180ms ease-out;
+    /* Touch */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Min hit target */
+    min-height: 92px;
+}
+
+@media (hover: hover) {
+    .rpe-throttle:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.18);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
+    }
+}
+
+/* Selected state — brand-red glow + lifted */
+.rpe-throttle[aria-checked="true"] {
+    transform: translateY(-3px) scale(1.025);
+    border-color: #ff2d2d;
+    background:
+        radial-gradient(80% 60% at 50% 0%, rgba(255, 45, 45, 0.22) 0%, rgba(255, 45, 45, 0) 70%),
+        linear-gradient(180deg, rgba(255, 45, 45, 0.08) 0%, rgba(255, 45, 45, 0.02) 100%);
+    box-shadow:
+        0 0 0 1px rgba(255, 45, 45, 0.32),
+        0 6px 18px rgba(255, 45, 45, 0.28),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+
+.rpe-throttle-num {
+    font-family: 'DM Mono', 'Roboto Mono', ui-monospace, monospace;
+    font-size: 1.95rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: #f5f5f5;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.rpe-throttle[aria-checked="true"] .rpe-throttle-num {
+    color: #ff5050;
+    text-shadow: 0 0 12px rgba(255, 45, 45, 0.55);
+}
+
+/* Throttle gauge : 5 mini segments verticaux qui s'illuminent */
+.rpe-throttle-gauge {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    height: 16px;
+    width: 100%;
+    padding: 0 4px;
+}
+
+.rpe-seg {
+    flex: 1;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 1.5px;
+    transition: background 220ms ease-out, box-shadow 220ms ease-out;
+}
+
+/* Segments illuminés progressivement par RPE — color tier per RPE band */
+/* RPE 6 = 1 seg green ; RPE 7 = 2 lime ; RPE 8 = 3 amber ; RPE 9 = 4 orange ; RPE 10 = 5 brand-red */
+.rpe-throttle[data-rpe="6"]  .rpe-seg[data-on="1"] { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+.rpe-throttle[data-rpe="7"]  .rpe-seg[data-on="1"] { background: #84cc16; box-shadow: 0 0 6px rgba(132, 204, 22, 0.5); }
+.rpe-throttle[data-rpe="8"]  .rpe-seg[data-on="1"] { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.55); }
+.rpe-throttle[data-rpe="9"]  .rpe-seg[data-on="1"] { background: #f97316; box-shadow: 0 0 6px rgba(249, 115, 22, 0.6); }
+.rpe-throttle[data-rpe="10"] .rpe-seg[data-on="1"] { background: #ff2d2d; box-shadow: 0 0 8px rgba(255, 45, 45, 0.7); }
+
+/* When selected : pulse the lit segments */
+.rpe-throttle[aria-checked="true"] .rpe-seg[data-on="1"] {
+    animation: rpeSegPulse 1400ms ease-in-out infinite;
+    transform-origin: bottom center;
+}
+
+.rpe-throttle-label {
+    font-family: 'DM Mono', 'Roboto Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(245, 245, 245, 0.78);
+    line-height: 1;
+    margin-top: 0.05rem;
+}
+
+.rpe-throttle[aria-checked="true"] .rpe-throttle-label {
+    color: #ffe5e5;
+}
+
+.rpe-throttle-rir {
+    font-family: 'DM Mono', 'Roboto Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    color: rgba(245, 245, 245, 0.42);
+    line-height: 1;
+}
+
+.rpe-throttle[aria-checked="true"] .rpe-throttle-rir {
+    color: rgba(255, 230, 230, 0.65);
+}
+
+/* ─── Footer skip ─── */
+.rpe-force-foot {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rpe-force-skip {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: rgba(245, 245, 245, 0.55);
+    font-family: 'DM Mono', 'Roboto Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 180ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+@media (hover: hover) {
+    .rpe-force-skip:hover { color: rgba(245, 245, 245, 0.9); }
+}
+
+.rpe-skip-text {
+    text-decoration: underline;
+    text-decoration-color: rgba(245, 245, 245, 0.25);
+    text-underline-offset: 3px;
+}
+
+.rpe-skip-meta {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    color: rgba(245, 245, 245, 0.32);
+    font-weight: 400;
+}
+
+.rpe-skip-meta:not(:empty)::before {
+    content: '·';
+    margin-right: 0.55rem;
+    color: rgba(245, 245, 245, 0.18);
+}
+
+/* ─── Responsive : mobile très étroit (≤340px) ─── */
+@media (max-width: 340px) {
+    .rpe-force-grid { gap: 0.32rem; }
+    .rpe-throttle { padding: 0.55rem 0.15rem; min-height: 84px; }
+    .rpe-throttle-num { font-size: 1.65rem; }
+    .rpe-throttle-label { font-size: 0.56rem; letter-spacing: 0.1em; }
+    .rpe-throttle-rir { font-size: 0.54rem; }
+    .rpe-force-title { font-size: 1.15rem; }
+}
+
+/* ─── Tablet+ : agrandit légèrement ─── */
+@media (min-width: 600px) {
+    .rpe-force-sheet { padding: 1.7rem 1.4rem 1.3rem; }
+    .rpe-force-title { font-size: 1.4rem; }
+    .rpe-force-grid  { gap: 0.6rem; }
+    .rpe-throttle { padding: 0.85rem 0.35rem 0.75rem; min-height: 108px; }
+    .rpe-throttle-num { font-size: 2.15rem; }
+    .rpe-throttle-gauge { height: 20px; }
+}
+
+/* ─── Touch fix : kill scroll-zoom on entire modal (V7-PATCH-4 doctrine) ─── */
+.rpe-force-overlay,
+.rpe-force-overlay * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+}
+.rpe-force-overlay *:not(input):not(textarea) {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+.rpe-throttle:active {
+    /* Soft opacity feedback only — no transform (V7-PATCH-4 doctrine) */
+    opacity: 0.88;
+    transform: translateY(0) scale(0.99);
+}
+.rpe-throttle[aria-checked="true"]:active {
+    transform: translateY(-2px) scale(1.015);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   V8-C-B — DELOAD BANNER (Pit Lane Race Control)
+   ────────────────────────────────────────────────────────────────────
+   Bandeau soft-warning placé en haut du Dashboard (au-dessus du
+   Recovery Radar) quand un muscle a dépassé MRV 2 semaines consec.
+   Aesthetic : F1 race-control stripe, diagonal scan animé, brand-red
+   accent, pas alarmiste — informatif & actionnable.
+   ════════════════════════════════════════════════════════════════════ */
+
+@keyframes deloadStripeScan {
+    0%   { background-position:  0% 0%; }
+    100% { background-position: 100% 0%; }
+}
+@keyframes deloadIconPulse {
+    0%, 100% { opacity: 0.92; transform: scale(1);    }
+    50%      { opacity: 1;    transform: scale(1.06); }
+}
+
+.deload-banner {
+    /* Layout */
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.75rem 0.9rem 0.75rem 0.95rem;
+    margin-bottom: 0.95rem;
+    /* Surface — brand-red soft tint sur graphite */
+    position: relative;
+    background:
+        radial-gradient(120% 120% at 0% 50%, rgba(255, 45, 45, 0.18) 0%, rgba(255, 45, 45, 0) 65%),
+        linear-gradient(180deg, rgba(255, 45, 45, 0.08) 0%, rgba(15, 15, 17, 0.96) 50%, rgba(15, 15, 17, 0.98) 100%);
+    border: 1px solid rgba(255, 45, 45, 0.26);
+    border-left: 3px solid #ff2d2d;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.04) inset,
+        0 6px 16px rgba(0, 0, 0, 0.32);
+    /* Touch */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Diagonal scan stripes (race-control feel) */
+.deload-stripe {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+        135deg,
+        rgba(255, 45, 45, 0.06) 0px,
+        rgba(255, 45, 45, 0.06) 2px,
+        transparent 2px,
+        transparent 14px
+    );
+    background-size: 200% 100%;
+    animation: deloadStripeScan 12s linear infinite;
+    opacity: 0.65;
+}
+
+.deload-icon-wrap {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(255, 45, 45, 0.14);
+    border: 1px solid rgba(255, 45, 45, 0.32);
+    box-shadow: 0 0 18px rgba(255, 45, 45, 0.22) inset;
+    position: relative;
+    z-index: 1;
+}
+
+.deload-icon {
+    color: #ff5050;
+    animation: deloadIconPulse 1900ms ease-in-out infinite;
+    filter: drop-shadow(0 0 6px rgba(255, 45, 45, 0.55));
+}
+
+.deload-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    position: relative;
+    z-index: 1;
+}
+
+.deload-kicker {
+    font-family: 'DM Mono', 'Roboto Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #ff5050;
+    line-height: 1;
+}
+
+.deload-msg {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 0.84rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: #f5f5f5;
+    /* Tronqué proprement si message long (rare) */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.deload-cta {
+    flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    font-family: 'DM Mono', 'Roboto Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.5rem 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 45, 45, 0.14);
+    border: 1px solid rgba(255, 45, 45, 0.4);
+    color: #ffe5e5;
+    border-radius: 8px;
+    transition: background 200ms ease-out, border-color 200ms ease-out, transform 200ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    position: relative;
+    z-index: 1;
+}
+
+@media (hover: hover) {
+    .deload-cta:hover {
+        background: rgba(255, 45, 45, 0.22);
+        border-color: rgba(255, 45, 45, 0.6);
+    }
+}
+
+.deload-cta:active {
+    /* V7-PATCH-4 doctrine : opacity feedback, not transform */
+    opacity: 0.78;
+}
+
+.deload-cta svg {
+    color: #ff5050;
+}
+
+/* Mobile compact */
+@media (max-width: 360px) {
+    .deload-banner { padding: 0.65rem 0.7rem; gap: 0.55rem; }
+    .deload-icon-wrap { width: 32px; height: 32px; }
+    .deload-icon { width: 18px; height: 18px; }
+    .deload-msg { font-size: 0.78rem; }
+    .deload-cta {
+        padding: 0.42rem 0.55rem;
+        font-size: 0.6rem;
+    }
+    .deload-cta span { display: none; }
+    /* Garder seulement la flèche en mobile très étroit */
+}
+
+/* Touch carryover */
+.deload-banner,
+.deload-banner * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+}
+.deload-banner *:not(input):not(textarea) {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
