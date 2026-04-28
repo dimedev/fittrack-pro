@@ -277,6 +277,12 @@
         renderHydrationWidget
     };
 
+    // V5-PATCH : aliases globaux pour les onclick="addWater(...)" dans index.html
+    // (mini-row Macros). Sans ça les boutons +250/+500ml échouent silencieusement.
+    window.addWater = addWater;
+    window.removeWater = removeWater;
+    window.openCustomWaterModal = toggleCustomInput;
+
     // Auto-render au chargement
     document.addEventListener('DOMContentLoaded', () => {
         // Délai pour s'assurer que le state est chargé

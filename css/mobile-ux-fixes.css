@@ -2346,8 +2346,29 @@ textarea:focus-visible {
 }
 
 /* Sur tactile : aucun transform sur :hover / :active.
-   Empêche le "lift" qui crée la sensation de zoom pendant le scroll. */
+   Empêche le "lift" qui crée la sensation de zoom pendant le scroll.
+   IMPORTANT : on cible AUSSI .card baseline (style-nike-shadcn.css:931 fait
+   transform: translateY(-2px) sur .card:hover) sinon training-week-card,
+   nutrition-goal-card et tous les autres .card laissent passer le bug. */
 @media (hover: none), (pointer: coarse) {
+    .card,
+    .card:hover,
+    .card:active,
+    .card:focus,
+    .card:focus-visible,
+    .stat-card,
+    .stat-card:hover,
+    .stat-card:active,
+    .training-week-card,
+    .training-week-card:hover,
+    .nutrition-goal-card,
+    .nutrition-goal-card:hover,
+    .last-session-card,
+    .last-session-card:hover,
+    .last-session-card:active,
+    .ngc-item-add,
+    .ngc-item-add:hover,
+    .ngc-item-add:active,
     .dash-insight-item,
     .dash-insight-item:hover,
     .dash-insight-item:active,
@@ -2359,6 +2380,8 @@ textarea:focus-visible {
     .coach-card:hover,
     .coach-card:active,
     .coach-card:focus,
+    .macros-hydration-row,
+    .macros-hydration-row:hover,
     #progress .pr-card,
     #progress .pr-card:hover,
     #progress .pr-card:active,
