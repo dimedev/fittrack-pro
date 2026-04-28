@@ -355,6 +355,11 @@ function updateDashboard() {
         if (typeof renderVolumeTelemetry === 'function') {
             renderVolumeTelemetry();
         }
+
+        // V8-B — Recovery Radar (Helms/Israetel)
+        if (typeof renderRecoveryRadar === 'function') {
+            renderRecoveryRadar();
+        }
     } catch (error) {
         console.error('Erreur dans updateDashboard:', error);
     } finally {

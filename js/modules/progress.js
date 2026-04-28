@@ -3439,6 +3439,7 @@ function initProgressSection() {
     renderMuscleWeeklyHeatmap();
     renderDashboardInsights();
     renderVolumeTelemetry();
+    renderRecoveryRadar();
     checkPlateauAlert();
     if (typeof AIInsights !== 'undefined') {
         AIInsights.load();
@@ -3482,6 +3483,7 @@ window.calculateProgressionScore = calculateProgressionScore;
 window.getBestExerciseOfMonth = getBestExerciseOfMonth;
 window.renderDashboardInsights = renderDashboardInsights;
 window.renderVolumeTelemetry = renderVolumeTelemetry;
+window.renderRecoveryRadar = renderRecoveryRadar;
 window.checkPlateauAlert = checkPlateauAlert;
 
 // Service Registry

@@ -267,6 +267,164 @@
         return { headline: label, action: '—', severity: 'info' };
     }
 
+    // ==================== V8-B · RECOVERY MODEL ====================
+    // Modèle empirique inspiré de Helms / Israetel pour estimer le %
+    // récupération d'un groupe musculaire à un instant T.
+    //
+    // Variables :
+    //   - hoursSinceLast : heures depuis la fin de la dernière session ciblant
+    //     ce muscle en primaire.
+    //   - sessionVolume : nombre de sets de la session, modulant la durée de
+    //     récup nécessaire (gros volume = récup plus longue).
+    //   - avgRpe : RPE moyen de la session (si renseigné), modulant idem.
+    //
+    // Modèle :
+    //   baseRecoveryHrs = 72 (3 jours = full recovery muscle moyen)
+    //   volumeMod   = +12h si session > MAV, +24h si session > MRV
+    //   rpeMod      = +8h si RPE moyen >= 9, +16h si == 10
+    //   adjustedHrs = baseRecoveryHrs + volumeMod + rpeMod
+    //   recoveryPct = min(100, hoursSinceLast / adjustedHrs * 100)
+    //
+    // Si jamais entraîné dans 30 jours → 100% (frais total).
+    // ==================================================================
+
+    /**
+     * Récupère les sessions des derniers 30 jours, triées par date desc.
+     */
+    function _recentSessions(daysWindow = 30) {
+        const state = window.state || {};
+        const cutoff = Date.now() - daysWindow * 24 * 60 * 60 * 1000;
+        return (state.sessionHistory || [])
+            .filter(s => _sessionTimestamp(s) >= cutoff)
+            .sort((a, b) => _sessionTimestamp(b) - _sessionTimestamp(a));
+    }
+
+    /**
+     * Trouve la dernière session qui a ciblé `groupId` en muscle PRIMAIRE.
+     * @returns {Object|null} { session, sets, endTime, avgRpe, primaryRatio }
+     */
+    function _lastSessionForMuscle(groupId) {
+        const sessions = _recentSessions(30);
+
+        for (const session of sessions) {
+            let primarySetsForGroup = 0;
+            let totalRpe = 0;
+            let rpeCount = 0;
+
+            for (const ex of session.exercises || []) {
+                const exName = ex.exerciseName || ex.exercise || ex.name;
+                const muscles = getMusclesForExercise(exName);
+                const primaryGroups = new Set();
+                muscles.primary.forEach(m => {
+                    const g = mapMuscleToGroup(m);
+                    if (g) primaryGroups.add(g);
+                });
+
+                if (primaryGroups.has(groupId)) {
+                    const sets = (ex.sets || ex.setsDetail || []).filter(
+                        s => !s.isWarmup && s.completed !== false
+                    );
+                    primarySetsForGroup += sets.length;
+                    sets.forEach(s => {
+                        if (typeof s.rpe === 'number' && s.rpe > 0) {
+                            totalRpe += s.rpe;
+                            rpeCount += 1;
+                        }
+                    });
+                }
+            }
+
+            if (primarySetsForGroup > 0) {
+                return {
+                    session,
+                    sets: primarySetsForGroup,
+                    endTime: _sessionTimestamp(session) + (session.duration || 60) * 60 * 1000,
+                    avgRpe: rpeCount > 0 ? totalRpe / rpeCount : null
+                };
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Calcule le % de récupération pour un groupe musculaire.
+     * @param {string} groupId
+     * @returns {Object} { pct, status, lastSessionAgo, lastSessionSets, avgRpe }
+     */
+    function recoveryPctByMuscle(groupId) {
+        const last = _lastSessionForMuscle(groupId);
+        const lm = VOLUME_LANDMARKS[groupId];
+        if (!last || !lm) {
+            return {
+                groupId,
+                pct: 100,
+                status: 'fresh',
+                hoursSinceLast: null,
+                lastSessionSets: 0,
+                avgRpe: null,
+                neverTrained: !last
+            };
+        }
+
+        const hoursSinceLast = Math.max(0, (Date.now() - last.endTime) / (1000 * 60 * 60));
+
+        // Modulateurs
+        let baseRecoveryHrs = 72;
+        let volumeMod = 0;
+        if (last.sets > lm.mrv) volumeMod = 24;
+        else if (last.sets > lm.mav) volumeMod = 12;
+
+        let rpeMod = 0;
+        if (last.avgRpe !== null) {
+            if (last.avgRpe >= 9.5) rpeMod = 16;
+            else if (last.avgRpe >= 9) rpeMod = 12;
+            else if (last.avgRpe >= 8) rpeMod = 4;
+        }
+
+        const adjustedRecoveryHrs = baseRecoveryHrs + volumeMod + rpeMod;
+        const pct = Math.min(100, Math.round((hoursSinceLast / adjustedRecoveryHrs) * 100));
+
+        // Classification visuelle :
+        //   - fresh:    100% (full)
+        //   - ready:    >= 75%
+        //   - partial:  40-74%
+        //   - fatigued: 15-39%
+        //   - doms:     < 15% (rouge, repos imperatif)
+        let status;
+        if (pct >= 100) status = 'fresh';
+        else if (pct >= 75) status = 'ready';
+        else if (pct >= 40) status = 'partial';
+        else if (pct >= 15) status = 'fatigued';
+        else status = 'doms';
+
+        return {
+            groupId,
+            pct,
+            status,
+            hoursSinceLast: Math.round(hoursSinceLast * 10) / 10,
+            lastSessionSets: last.sets,
+            avgRpe: last.avgRpe !== null ? Math.round(last.avgRpe * 10) / 10 : null,
+            adjustedRecoveryHrs,
+            neverTrained: false
+        };
+    }
+
+    /**
+     * Calcule la récupération pour TOUS les groupes musculaires.
+     * @returns {Object} { chest: {...}, back: {...}, ... }
+     */
+    function recoveryByAllMuscles() {
+        const result = {};
+        Object.keys(MUSCLE_GROUPS).forEach(g => {
+            result[g] = {
+                ...recoveryPctByMuscle(g),
+                label: MUSCLE_GROUPS[g].label,
+                short: MUSCLE_GROUPS[g].short
+            };
+        });
+        return result;
+    }
+
     // ==================== EXPORTS ====================
     window.CoachVolume = {
         MUSCLE_GROUPS,
@@ -275,7 +433,10 @@
         getMusclesForExercise,
         weeklyVolumeByMuscle,
         classifyVolume,
-        summarizeGroup
+        summarizeGroup,
+        // V8-B
+        recoveryPctByMuscle,
+        recoveryByAllMuscles
     };
 
 })();
