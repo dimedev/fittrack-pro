@@ -3,7 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Repzy</title>
+
+    <!-- V6.3 STORE — SEO + social (Play Store / App Store / partage Twitter, etc.) -->
+    <title>Repzy — Coach fitness & nutrition</title>
+    <meta name="description" content="Repzy : suivi musculation et nutrition premium. Coach intelligent, programmes proven, séances en mode pleine page, sync multi-appareils. Hors ligne, RGPD.">
+    <meta name="theme-color" content="#000000">
+    <meta name="color-scheme" content="dark">
+    <meta name="robots" content="index,follow">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Repzy — Coach fitness & nutrition">
+    <meta property="og:description" content="Coach intelligent, programmes proven, séances en pleine page, sync multi-appareils. Hors ligne, RGPD.">
+    <meta property="og:locale" content="fr_FR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Repzy — Coach fitness & nutrition">
+    <meta name="twitter:description" content="Coach intelligent, programmes proven, séances en pleine page, sync multi-appareils.">
+    <link rel="canonical" href="/">
+    <!-- Lien légal RGPD (utilisé par certains scrapers + plugins navigateurs) -->
+    <link rel="privacy-policy" href="privacy.html">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1187,6 +1204,40 @@
                     </div>
                     <div class="chart-container" style="position:relative; height:180px;">
                         <canvas id="bodyweight-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- V6.3 RGPD : Compte & Confidentialité -->
+                <div class="form-group profile-account-section" style="padding-top: 16px; border-top: 1px solid var(--border-color); margin-top: 16px;">
+                    <div class="profile-section-head">
+                        <span class="profile-section-num">04</span>
+                        <label class="form-label profile-section-label">Compte &amp; Confidentialité</label>
+                        <span class="profile-section-hint">Vos données vous appartiennent. Vous gardez le contrôle.</span>
+                    </div>
+                    <div class="profile-account-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                        <a href="privacy.html" target="_blank" rel="noopener" class="btn btn-ghost" style="justify-content: space-between;">
+                            <span style="display: flex; align-items: center; gap: 10px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                Politique de confidentialité
+                            </span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M7 17L17 7"/><path d="M7 7h10v10"/>
+                            </svg>
+                        </a>
+                        <button type="button" class="btn btn-ghost" onclick="signOut()" style="justify-content: flex-start; gap: 10px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            Se déconnecter
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="deleteAccount()" style="justify-content: flex-start; gap: 10px;" aria-label="Supprimer mon compte définitivement">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            </svg>
+                            Supprimer mon compte
+                        </button>
                     </div>
                 </div>
             </div>
@@ -3880,7 +3931,7 @@
     <script src="js/modules/meal-history.js?v=7"></script>
     <script src="js/modules/recipes.js?v=7"></script>
     <script src="js/modules/icons.js?v=1"></script>
-    <script src="js/modules/supabase.js?v=45"></script>
+    <script src="js/modules/supabase.js?v=46"></script>
     <script src="js/modules/profile.js?v=29"></script>
     <script src="js/modules/nutrition-core.js?v=4"></script>
     <script src="js/modules/nutrition-ui.js?v=6"></script>

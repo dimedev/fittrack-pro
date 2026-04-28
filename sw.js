@@ -3,7 +3,7 @@
 // Stratégie: Cache-first pour assets statiques, Network-first pour API
 // Offline-first avec Background Sync
 
-const CACHE_VERSION = 'repzy-v1.2.1';
+const CACHE_VERSION = 'repzy-v1.2.2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -15,6 +15,7 @@ const BASE_PATH = self.location.pathname.replace(/sw\.js$/, '');
 const STATIC_ASSETS_RELATIVE = [
     '',
     'index.html',
+    'privacy.html',
     'webmanifest',
     // CSS
     'css/style-nike-shadcn.css',

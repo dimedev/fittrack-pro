@@ -1177,6 +1177,114 @@ async function signOut() {
     }
 }
 
+// V6.3 RGPD — Suppression du compte (article 17 du RGPD).
+// Purge tout le contenu user dans Supabase + localStorage, puis déconnecte.
+// Note : la ligne `auth.users` n'est pas supprimable côté client (sécurité Supabase).
+// Elle sera purgée par l'admin sous 24h, ou via une edge function si configurée.
+async function deleteAccount() {
+    const userId = currentUser?.id;
+    if (!userId) {
+        showToast('Vous devez être connecté pour supprimer votre compte', 'error');
+        return { success: false };
+    }
+
+    // Confirmation : l'user doit taper "SUPPRIMER" pour valider
+    const typed = window.prompt(
+        'Cette action est IRRÉVERSIBLE. Toutes vos séances, repas, photos, ' +
+        'PR et préférences seront supprimés.\n\n' +
+        'Pour confirmer, tape exactement : SUPPRIMER'
+    );
+    if (typed !== 'SUPPRIMER') {
+        showToast('Suppression annulée', 'info');
+        return { success: false, cancelled: true };
+    }
+
+    showToast('Suppression en cours...', 'info');
+
+    // Toutes les tables user-data du repo (audit grep `from('...'`)
+    const USER_TABLES = [
+        'workout_sessions',
+        'progress_log',
+        'active_sessions',
+        'exercise_swaps',
+        'training_settings',
+        'food_journal',
+        'custom_foods',
+        'custom_exercises',
+        'cardio_sessions',
+        'progress_photos',
+        'meal_combos',
+        'hydration_log',
+        'user_profiles',
+    ];
+
+    const errors = [];
+    for (const table of USER_TABLES) {
+        try {
+            const { error } = await supabaseClient
+                .from(table)
+                .delete()
+                .eq('user_id', userId);
+            if (error) {
+                console.warn(`[deleteAccount] ${table} :`, error.message);
+                errors.push({ table, message: error.message });
+            }
+        } catch (e) {
+            console.warn(`[deleteAccount] ${table} (catch) :`, e?.message || e);
+            errors.push({ table, message: e?.message || String(e) });
+        }
+    }
+
+    // Tentative d'effacer l'utilisateur auth (Edge Function `delete-user` si
+    // configurée — sinon on ignore, l'admin nettoiera).
+    try {
+        await supabaseClient.functions.invoke('delete-user', {
+            body: { user_id: userId }
+        });
+    } catch (e) {
+        // Pas grave : la fn peut ne pas être déployée
+        console.info('[deleteAccount] delete-user edge fn non disponible — purge manuelle requise.');
+    }
+
+    // Purge localStorage Repzy (garde ce qui n'est pas à nous)
+    try {
+        const keysToKeep = []; // tout supprimer pour partir clean
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(k => {
+            if (
+                k.startsWith('fittrack-') ||
+                k.startsWith('repzy-') ||
+                k.startsWith('sb-') || // tokens Supabase
+                k === 'supabase.auth.token'
+            ) {
+                if (!keysToKeep.includes(k)) localStorage.removeItem(k);
+            }
+        });
+    } catch (_) {}
+
+    // Déconnexion
+    try { await supabaseClient.auth.signOut(); } catch (_) {}
+
+    // Feedback final
+    if (errors.length > 0) {
+        console.warn('[deleteAccount] erreurs partielles :', errors);
+        showToast(
+            `Compte supprimé (${errors.length} table(s) à purger côté admin)`,
+            'warning',
+            8000
+        );
+    } else {
+        showToast('Compte supprimé. Vous êtes déconnecté.', 'success', 6000);
+    }
+
+    // Recharger l'app sur écran de connexion (clean state)
+    setTimeout(() => {
+        window.location.href = window.location.pathname;
+    }, 1500);
+
+    return { success: true, errors };
+}
+
 // Réinitialisation du mot de passe (envoi email)
 async function resetPassword(email) {
     try {
@@ -2976,6 +3084,7 @@ function getCurrentUser() {
 
 // ==================== EXPORTS GLOBAUX ====================
 window.signOut = signOut;
+window.deleteAccount = deleteAccount;
 window.signInWithGoogle = signInWithGoogle;
 window.showAuthModal = showAuthModal;
 window.isLoggedIn = isLoggedIn;
