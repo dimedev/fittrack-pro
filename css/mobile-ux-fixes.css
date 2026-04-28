@@ -2345,49 +2345,36 @@ textarea:focus-visible {
             user-select: none;
 }
 
-/* Sur tactile : aucun transform sur :hover / :active.
-   Empêche le "lift" qui crée la sensation de zoom pendant le scroll.
-   IMPORTANT : on cible AUSSI .card baseline (style-nike-shadcn.css:931 fait
-   transform: translateY(-2px) sur .card:hover) sinon training-week-card,
-   nutrition-goal-card et tous les autres .card laissent passer le bug. */
+/* Sur tactile : aucun transform sur :hover. Kill-switch global.
+   Le :hover en tactile est parasite : iOS Safari le déclenche au tap puis le
+   garde "collé" pendant le scroll → effet zoom/bump permanent. On neutralise
+   tous les transform sur :hover, peu importe l'élément ; les feedbacks
+   d'interaction passent par :active (gérés ailleurs).
+   Les keyframes / animations utilisant transform ne sont pas affectées
+   (elles ciblent un état, pas :hover). */
 @media (hover: none), (pointer: coarse) {
-    .card,
-    .card:hover,
+    *:hover {
+        transform: none !important;
+        -webkit-transform: none !important;
+    }
+    /* Bonus : neutraliser aussi les translate sur :active des cards.
+       Sur les cards-cliquables, le tap → translate "lift" peut donner la
+       sensation de bump pendant un scroll qui passe par-dessus. */
     .card:active,
     .card:focus,
     .card:focus-visible,
-    .stat-card,
-    .stat-card:hover,
     .stat-card:active,
-    .training-week-card,
-    .training-week-card:hover,
-    .nutrition-goal-card,
-    .nutrition-goal-card:hover,
-    .last-session-card,
-    .last-session-card:hover,
+    .training-week-card:active,
+    .nutrition-goal-card:active,
     .last-session-card:active,
-    .ngc-item-add,
-    .ngc-item-add:hover,
     .ngc-item-add:active,
-    .dash-insight-item,
-    .dash-insight-item:hover,
     .dash-insight-item:active,
-    .dash-insight-item:focus,
-    .insight-item,
-    .insight-item:hover,
     .insight-item:active,
-    .coach-card,
-    .coach-card:hover,
     .coach-card:active,
-    .coach-card:focus,
-    #progress .pr-card,
-    #progress .pr-card:hover,
     #progress .pr-card:active,
-    #progress .stat-card,
-    #progress .stat-card:hover,
     #progress .stat-card:active,
-    #progress .daily-progress-feed > *:hover,
-    #progress .achievement-card:hover {
+    #progress .achievement-card:active,
+    #progress .daily-progress-feed > *:active {
         transform: none !important;
         -webkit-transform: none !important;
     }
