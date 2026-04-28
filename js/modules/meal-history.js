@@ -299,12 +299,16 @@ function renderMealHistory(history, dates, targetMealType) {
             });
             
             // Lister les aliments
+            // V6.1 STORE-BLOCKER : foodsText est injecté en innerHTML plus bas
+            // → escape food.name + qtyDisplay (user-typed sur custom foods).
+            const _esc = window.DomSafe ? DomSafe.escape : (s) => String(s ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const foodsText = entries.map(entry => {
                 const food = state.foods.find(f => f.id === entry.foodId);
                 if (!food) return '';
-                
+
                 const qtyDisplay = formatQuantityDisplay(food, entry.quantity || 100);
-                return `${qtyDisplay} ${food.name}`;
+                return `${_esc(qtyDisplay)} ${_esc(food.name)}`;
             }).filter(Boolean).join(' • ');
             
             html += `

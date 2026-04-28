@@ -209,15 +209,20 @@ function renderVirtualFoodSearchList(container, results) {
         const macroText = `P: ${food.protein}g · G: ${food.carbs}g · L: ${food.fat}g`;
         const hasUnit = hasNaturalUnit(food);
         const quickAddLabel = hasUnit ? `1 ${food.unitLabel}` : '100g';
+        // V6.1 STORE-BLOCKER : escape food.name + food.id (user-typed dans
+        // les aliments custom, peut contenir <img onerror=…> sinon).
+        const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+        const safeId = window.DomSafe ? DomSafe.attr(food.id) : food.id;
+        const safeUnitLabel = window.DomSafe ? DomSafe.escape(quickAddLabel) : quickAddLabel;
         return `
-            <div class="search-result-item" id="search-item-${food.id}" style="padding: 12px; border-bottom: 1px solid var(--border-color);">
+            <div class="search-result-item" id="search-item-${safeId}" style="padding: 12px; border-bottom: 1px solid var(--border-color);">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <div onclick="quickAddFromSearch('${food.id}')" style="flex: 1; cursor: pointer;">
-                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${food.name}</div>
+                    <div onclick="quickAddFromSearch('${DomSafe.jsString(food.id)}')" style="flex: 1; cursor: pointer;">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${safeName}</div>
                         <div style="font-size: 0.85rem; color: var(--text-secondary);">${macroText}</div>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
-                        <button class="btn btn-sm btn-primary" onclick="quickAdd100g('${food.id}', event)" style="font-size: 0.75rem; padding: 4px 12px; white-space: nowrap;">+ ${quickAddLabel}</button>
+                        <button class="btn btn-sm btn-primary" onclick="quickAdd100g('${DomSafe.jsString(food.id)}', event)" style="font-size: 0.75rem; padding: 4px 12px; white-space: nowrap;">+ ${safeUnitLabel}</button>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">${food.calories} kcal</span>
                     </div>
                 </div>
@@ -279,17 +284,21 @@ function searchUnifiedFoods() {
         const macroText = `P: ${food.protein}g · G: ${food.carbs}g · L: ${food.fat}g`;
         const hasUnit = hasNaturalUnit(food);
         const quickAddLabel = hasUnit ? `1 ${food.unitLabel}` : '100g';
+        // V6.1 STORE-BLOCKER : escape food.name (user-typed)
+        const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+        const safeId = window.DomSafe ? DomSafe.attr(food.id) : food.id;
+        const safeUnitLabel = window.DomSafe ? DomSafe.escape(quickAddLabel) : quickAddLabel;
 
         return `
-            <div class="search-result-item" id="search-item-${food.id}" style="padding: 12px; border-bottom: 1px solid var(--border-color); transition: all 0.3s;">
+            <div class="search-result-item" id="search-item-${safeId}" style="padding: 12px; border-bottom: 1px solid var(--border-color); transition: all 0.3s;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <div onclick="quickAddFromSearch('${food.id}')" style="flex: 1; cursor: pointer;">
-                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${food.name}</div>
+                    <div onclick="quickAddFromSearch('${DomSafe.jsString(food.id)}')" style="flex: 1; cursor: pointer;">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${safeName}</div>
                         <div style="font-size: 0.85rem; color: var(--text-secondary);">${macroText}</div>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
-                        <button class="btn btn-sm btn-primary" onclick="quickAdd100g('${food.id}', event)" style="font-size: 0.75rem; padding: 4px 12px; white-space: nowrap;">
-                            + ${quickAddLabel}
+                        <button class="btn btn-sm btn-primary" onclick="quickAdd100g('${DomSafe.jsString(food.id)}', event)" style="font-size: 0.75rem; padding: 4px 12px; white-space: nowrap;">
+                            + ${safeUnitLabel}
                         </button>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">${food.calories} kcal</span>
                     </div>
@@ -999,11 +1008,13 @@ function searchFoodsForJournal() {
 
     container.innerHTML = results.map(food => {
         const isSelected = selectedFoodsToAdd.some(f => f.id === food.id);
+        // V6.1 STORE-BLOCKER : escape food.name (user-typed)
+        const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
         return `
-            <div class="food-search-item-selectable ${isSelected ? 'selected' : ''}" onclick="toggleFoodSelection('${food.id}')">
+            <div class="food-search-item-selectable ${isSelected ? 'selected' : ''}" onclick="toggleFoodSelection('${DomSafe.jsString(food.id)}')">
                 <div class="food-check"></div>
                 <div class="food-select-info-multi">
-                    <strong>${food.name}</strong>
+                    <strong>${safeName}</strong>
                     <div class="food-search-macros">
                         <span>🔥 ${food.calories} kcal</span>
                         <span>P: ${food.protein}g</span>

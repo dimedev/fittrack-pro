@@ -197,6 +197,10 @@ function renderSessionPreviewUI() {
         const displayName = ex.swappedName || ex.originalName;
         const isModified = ex.isModified;
         const isAutoAdapted = ex.autoAdapted;
+        // V6.1 STORE-BLOCKER : displayName est user-typed (custom exos)
+        // → escape pour HTML ET pour le onclick inline (jsString).
+        const safeDisplayName = window.DomSafe ? DomSafe.escape(displayName) : displayName;
+        const safeJsName = window.DomSafe ? DomSafe.jsString(displayName) : displayName.replace(/'/g, "\\'");
 
         // Badge selon le type de modification
         let badge = '';
@@ -211,13 +215,13 @@ function renderSessionPreviewUI() {
             <div class="preview-exercise-item ${isModified ? 'modified' : ''} ${isAutoAdapted ? 'auto-adapted' : ''}" data-index="${idx}">
                 <div class="preview-exercise-info">
                     <span class="preview-exercise-name">
-                        ${displayName}
+                        ${safeDisplayName}
                         ${badge}
                     </span>
                     <span class="preview-exercise-meta">${ex.sets} séries × ${ex.reps} reps</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="exercise-info-btn" onclick="openExerciseTips('${displayName.replace(/'/g, "\\'")}')" title="Informations">
+                    <button class="exercise-info-btn" onclick="openExerciseTips('${safeJsName}')" title="Informations">
                         ⓘ
                     </button>
                     <button class="preview-exercise-edit" onclick="openExerciseSwapSheet(${idx})" title="Changer l'exercice">
@@ -926,11 +930,18 @@ function renderFreeSessionExercises() {
         'rear-delts': 'Deltoïdes post.'
     };
 
-    container.innerHTML = freeSessionBuilder.exercises.map((ex, idx) => `
+    container.innerHTML = freeSessionBuilder.exercises.map((ex, idx) => {
+        // V6.1 STORE-BLOCKER : ex.name peut être custom (user-typed via "Créer exo")
+        // ex.muscle est interne mais on échappe par défense en profondeur (si fallback custom)
+        const safeName = window.DomSafe ? DomSafe.escape(ex.name) : ex.name;
+        const muscleLabel = muscleLabels[ex.muscle] || ex.muscle;
+        const safeMuscle = window.DomSafe ? DomSafe.escape(muscleLabel) : muscleLabel;
+        const safeReps = window.DomSafe ? DomSafe.attr(ex.reps) : ex.reps;
+        return `
         <div class="free-exercise-item">
             <div class="free-exercise-info">
-                <span class="free-exercise-name">${ex.name}</span>
-                <span class="free-exercise-muscle">${muscleLabels[ex.muscle] || ex.muscle}</span>
+                <span class="free-exercise-name">${safeName}</span>
+                <span class="free-exercise-muscle">${safeMuscle}</span>
             </div>
             <div class="free-exercise-params">
                 <label class="free-param-label">
@@ -940,7 +951,7 @@ function renderFreeSessionExercises() {
                 </label>
                 <label class="free-param-label">
                     Reps
-                    <input type="text" class="free-param-input free-param-reps" value="${ex.reps}"
+                    <input type="text" class="free-param-input free-param-reps" value="${safeReps}"
                            maxlength="6" onchange="updateFreeExerciseReps(${idx}, this.value)">
                 </label>
             </div>
@@ -950,7 +961,8 @@ function renderFreeSessionExercises() {
                 </svg>
             </button>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     const startBtn = document.getElementById('free-start-btn');
     if (startBtn) startBtn.disabled = false;
@@ -1045,15 +1057,21 @@ function openExercisePickerForFreeSession() {
             const label = muscleLabels[muscle] || muscle;
             const itemsHtml = (typeof renderSwapItems === 'function')
                 ? renderSwapItems(exercises)
-                : exercises.map((ex, i) => `
-                    <button type="button" class="swap-option-item" style="--i:${i}" onclick="swapExerciseInPreview('${ex.id}')">
+                : exercises.map((ex, i) => {
+                    // V6.1 STORE-BLOCKER : ex.name peut être custom (user-typed)
+                    const safeName = window.DomSafe ? DomSafe.escape(ex.name) : ex.name;
+                    const safeEquip = window.DomSafe ? DomSafe.escape(ex.equipment || '') : (ex.equipment || '');
+                    const safeJsId = window.DomSafe ? DomSafe.jsString(ex.id) : ex.id;
+                    return `
+                    <button type="button" class="swap-option-item" style="--i:${i}" onclick="swapExerciseInPreview('${safeJsId}')">
                         <span class="swap-option-equip-icon" aria-hidden="true"></span>
                         <div class="swap-option-info">
-                            <span class="swap-option-name">${ex.name}</span>
-                            <span class="swap-option-meta"><span class="swap-option-equip">${ex.equipment || ''}</span></span>
+                            <span class="swap-option-name">${safeName}</span>
+                            <span class="swap-option-meta"><span class="swap-option-equip">${safeEquip}</span></span>
                         </div>
                         <span class="swap-option-cta" aria-hidden="true">+</span>
-                    </button>`).join('');
+                    </button>`;
+                }).join('');
             return `
                 <div class="swap-section">
                     <div class="swap-section-header">

@@ -99,14 +99,18 @@ function renderQuickLogBar() {
         } else {
             qtyDisplay = `${food.lastQuantity}g`;
         }
-        // Escape simple pour les noms (juste guillemets)
-        const safeName = (food.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        // V6.1 STORE-BLOCKER : escape complet (HTML + JS) pour food.name user-typed.
+        // L'ancien escape simple (guillemets) ne protégeait pas contre <img onerror=…>.
+        const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+        const safeAttrName = window.DomSafe ? DomSafe.attr(food.name) : food.name;
+        const safeJsId = window.DomSafe ? DomSafe.jsString(food.id) : food.id;
+        const safeQty = window.DomSafe ? DomSafe.escape(qtyDisplay) : qtyDisplay;
         return `
-            <button class="quicklog-chip" data-food-id="${food.id}"
-                onclick="quickLogChip('${food.id}', ${food.lastQuantity})"
-                aria-label="Ajouter ${safeName} ${qtyDisplay} au repas en cours">
-                <span class="quicklog-chip-name">${food.name}</span>
-                <span class="quicklog-chip-qty">${qtyDisplay}</span>
+            <button class="quicklog-chip" data-food-id="${DomSafe.attr(food.id)}"
+                onclick="quickLogChip('${safeJsId}', ${food.lastQuantity})"
+                aria-label="Ajouter ${safeAttrName} ${safeQty} au repas en cours">
+                <span class="quicklog-chip-name">${safeName}</span>
+                <span class="quicklog-chip-qty">${safeQty}</span>
             </button>
         `;
     }).join('');
@@ -240,13 +244,18 @@ function renderFoodsList() {
                 <div class="food-category-content" style="display: ${isOpen ? 'block' : 'none'};">
                     ${catFoods.map(food => {
                         const hasUnit = food.unit && food.unitLabel && food.unitWeight;
-                        const unitInfo = hasUnit ? ` • 1 ${food.unitLabel} = ${food.unitWeight}g` : '';
+                        // V6.1 STORE-BLOCKER : food.name + food.unitLabel sont user-typed
+                        // (custom foods). On échappe pour empêcher injection HTML.
+                        const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+                        const safeUnitLabel = window.DomSafe ? DomSafe.escape(food.unitLabel || '') : (food.unitLabel || '');
+                        const safeJsId = window.DomSafe ? DomSafe.jsString(food.id) : food.id;
+                        const unitInfo = hasUnit ? ` • 1 ${safeUnitLabel} = ${food.unitWeight}g` : '';
 
                         return `
                             <div class="food-select-item">
-                                <div class="food-select-info" onclick="quickAddFromSearch('${food.id}')" style="flex: 1; cursor: pointer;">
+                                <div class="food-select-info" onclick="quickAddFromSearch('${safeJsId}')" style="flex: 1; cursor: pointer;">
                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                        <strong>${food.name}</strong>
+                                        <strong>${safeName}</strong>
                                         ${hasUnit ? `<span class="food-unit-icon" style="display:inline-flex; align-items:center; color: var(--text-secondary);" title="Unité personnalisée">${NUI_ICONS.chart}</span>` : ''}
                                     </div>
                                     <div class="food-search-macros">
@@ -257,7 +266,7 @@ function renderFoodsList() {
                                     </div>
                                     ${hasUnit ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">${unitInfo}</div>` : ''}
                                 </div>
-                                <button class="food-btn icon-btn" onclick="event.stopPropagation(); deleteCustomFood('${food.id}')" title="Supprimer" aria-label="Supprimer">${NUI_ICONS.trash}</button>
+                                <button class="food-btn icon-btn" onclick="event.stopPropagation(); deleteCustomFood('${safeJsId}')" title="Supprimer" aria-label="Supprimer">${NUI_ICONS.trash}</button>
                             </div>
                         `;
                     }).join('')}
@@ -415,11 +424,14 @@ function renderJournalEntries() {
 
         const animationClass = entry.isNew ? 'entry-added entry-highlight' : '';
 
+        // V6.1 STORE-BLOCKER : escape food.name user-typed
+        const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+
         return `
             <div class="journal-entry ${animationClass}">
                 <div class="journal-entry-main">
                     <div class="journal-entry-header">
-                        <div class="journal-entry-name">${food.name}</div>
+                        <div class="journal-entry-name">${safeName}</div>
                         <div class="journal-entry-cals">${cals} kcal</div>
                     </div>
                     <div class="journal-entry-macros">
@@ -1027,12 +1039,16 @@ function renderMealItems(mealType, entries) {
 
         const cals = Math.round((food.calories * entry.quantity) / 100);
         const qtyDisplay = formatQuantityDisplay(food, entry.quantity);
+        // V6.1 STORE-BLOCKER : escape food.name + qtyDisplay (qtyDisplay peut
+        // inclure unitLabel custom typé par l'user via "Créer aliment perso")
+        const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+        const safeQty = window.DomSafe ? DomSafe.escape(qtyDisplay) : qtyDisplay;
 
         return `
             <div class="meal-item" data-entry-idx="${idx}">
                 <div class="meal-item-info">
-                    <div class="meal-item-name">${food.name}</div>
-                    <div class="meal-item-details">${qtyDisplay} · ${cals} kcal</div>
+                    <div class="meal-item-name">${safeName}</div>
+                    <div class="meal-item-details">${safeQty} · ${cals} kcal</div>
                 </div>
                 <div class="meal-item-actions">
                     <button class="meal-item-edit icon-btn" onclick="editMealItemQuantity('${mealType}', ${idx})" title="Modifier" aria-label="Modifier">${NUI_ICONS.edit}</button>

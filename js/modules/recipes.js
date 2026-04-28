@@ -140,11 +140,13 @@ function populateRecipeForm(recipe) {
     list.innerHTML = recipe.ingredients.map((ing, idx) => {
         const food = state.foods.find(f => f.id === ing.foodId);
         if (!food) return '';
-        
+        // V6.1 STORE-BLOCKER : escape food.name (user-typed dans aliments custom)
+        const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+
         return `
             <div class="recipe-ingredient-item" data-index="${idx}">
                 <div class="recipe-ingredient-info">
-                    <span class="recipe-ingredient-name">${food.name}</span>
+                    <span class="recipe-ingredient-name">${safeName}</span>
                     <span class="recipe-ingredient-qty">${ing.quantity}g</span>
                 </div>
                 <button class="btn-icon btn-danger-icon" onclick="removeRecipeIngredient(${idx})">
@@ -208,12 +210,17 @@ function renderRecipeFoodsList() {
         html += `
             <div class="recipe-food-category">
                 <div class="recipe-food-category-header">${catInfo.icon} ${catInfo.name}</div>
-                ${foods.map(food => `
-                    <div class="recipe-food-item" onclick="selectRecipeIngredient('${food.id}')">
-                        <span>${food.name}</span>
+                ${foods.map(food => {
+                    // V6.1 STORE-BLOCKER : escape food.name + food.id user-typed
+                    const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+                    const safeJsId = window.DomSafe ? DomSafe.jsString(food.id) : food.id;
+                    return `
+                    <div class="recipe-food-item" onclick="selectRecipeIngredient('${safeJsId}')">
+                        <span>${safeName}</span>
                         <span class="recipe-food-cals">${food.calories} kcal</span>
                     </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         `;
     });
@@ -244,11 +251,13 @@ function addIngredientToRecipe(foodId, quantity) {
     
     const list = document.getElementById('recipe-ingredients-list');
     const currentCount = list.children.length;
-    
+    // V6.1 STORE-BLOCKER : escape food.name (user-typed)
+    const safeName = window.DomSafe ? DomSafe.escape(food.name) : food.name;
+
     const html = `
         <div class="recipe-ingredient-item" data-index="${currentCount}">
             <div class="recipe-ingredient-info">
-                <span class="recipe-ingredient-name">${food.name}</span>
+                <span class="recipe-ingredient-name">${safeName}</span>
                 <span class="recipe-ingredient-qty">${quantity}g</span>
             </div>
             <button class="btn-icon btn-danger-icon" onclick="removeRecipeIngredient(${currentCount})">

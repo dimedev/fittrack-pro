@@ -3863,6 +3863,11 @@
     </div>
 
     <!-- Scripts -->
+    <!-- V6.1 STORE-BLOCKER : DomSafe DOIT être chargé EN PREMIER pour que
+         tous les modules suivants puissent appeler window.DomSafe.escape()
+         ou window.escapeHtml() sur les noms d'aliments/exos/programmes
+         user-typed avant injection via innerHTML. -->
+    <script src="js/modules/dom-safe.js?v=1"></script>
     <script src="js/modules/services.js?v=1"></script>
     <script src="js/data/foods.js?v=5"></script>
     <script src="js/data/exercises.js?v=11"></script>
@@ -3872,14 +3877,14 @@
     <script src="js/modules/state.js?v=32"></script>
     <script src="js/modules/haptic.js?v=1"></script>
     <script src="js/modules/barcode-scanner.js?v=5"></script>
-    <script src="js/modules/meal-history.js?v=6"></script>
-    <script src="js/modules/recipes.js?v=6"></script>
+    <script src="js/modules/meal-history.js?v=7"></script>
+    <script src="js/modules/recipes.js?v=7"></script>
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=45"></script>
     <script src="js/modules/profile.js?v=29"></script>
     <script src="js/modules/nutrition-core.js?v=4"></script>
-    <script src="js/modules/nutrition-ui.js?v=5"></script>
-    <script src="js/modules/nutrition.js?v=38"></script>
+    <script src="js/modules/nutrition-ui.js?v=6"></script>
+    <script src="js/modules/nutrition.js?v=39"></script>
     <script src="js/modules/food-api.js?v=1"></script>
     <script src="js/modules/nutrition-suggestions.js?v=3"></script>
     <script src="js/modules/meal-templates.js?v=5"></script>
@@ -3890,7 +3895,7 @@
     <script src="js/modules/training-periodization.js?v=1"></script>
     <script src="js/modules/training-wizard.js?v=1"></script>
     <script src="js/modules/training-swap.js?v=2"></script>
-    <script src="js/modules/training-builder.js?v=2"></script>
+    <script src="js/modules/training-builder.js?v=3"></script>
     <script src="js/modules/training.js?v=51"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=10"></script>
@@ -3901,7 +3906,7 @@
     <script src="js/modules/health-integration.js?v=2"></script>
     <script src="js/modules/audio-feedback.js?v=1"></script>
     <script src="js/modules/timer.js?v=7"></script>
-    <script src="js/modules/ui.js?v=17"></script>
+    <script src="js/modules/ui.js?v=18"></script>
     <script src="js/modules/goals.js?v=9"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=6"></script>

@@ -878,15 +878,22 @@ function showToast(message, type = 'success', options = {}) {
     };
     const icon = icons[type] || icons.info;
 
-    // Build HTML with optional action button
+    // V6.1 STORE-BLOCKER : escape message + action.label.
+    // Plein de call-sites passent du contenu user-typed (noms d'aliments,
+    // d'exos, de templates) → si on n'escape pas dans showToast, chaque
+    // appelant doit le faire et c'est risqué d'oublier. Centralisation ici.
+    const safeMessage = window.DomSafe ? DomSafe.escape(message) : String(message)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     let actionHTML = '';
     if (action && action.label) {
-        actionHTML = `<button class="toast-action-btn">${action.label}</button>`;
+        const safeLabel = window.DomSafe ? DomSafe.escape(action.label) : String(action.label)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        actionHTML = `<button class="toast-action-btn">${safeLabel}</button>`;
     }
 
     toast.innerHTML = `
         <span class="toast-icon">${icon}</span>
-        <span class="toast-message">${message}</span>
+        <span class="toast-message">${safeMessage}</span>
         ${actionHTML}
     `;
 
@@ -1128,23 +1135,37 @@ function showConfirmModal(config) {
         overlay.className = 'confirm-modal-overlay';
         overlay.id = 'confirm-modal-overlay';
 
+        // V6.1 STORE-BLOCKER : title/message/preview/labels viennent souvent
+        // d'appelants qui interpolent du contenu user-typed (noms d'aliments,
+        // d'exos, de templates). Centralisation de l'escape ici → tous les
+        // call-sites sont safe sans avoir à le faire eux-mêmes.
+        const _esc = window.DomSafe ? DomSafe.escape : (str) => String(str ?? '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const safeTitle = _esc(title);
+        const safeMessage = _esc(message);
+        const safePreview = _esc(preview);
+        const safeIcon = _esc(icon);
+        const safeConfirmLabel = _esc(confirmLabel);
+        const safeCancelLabel = _esc(cancelLabel);
+
         // Preview HTML optionnel
         const previewHTML = preview ? `
             <div class="confirm-modal-preview">
                 <span class="confirm-modal-preview-label">Élément concerné :</span>
-                <span class="confirm-modal-preview-value">${preview}</span>
+                <span class="confirm-modal-preview-value">${safePreview}</span>
             </div>
         ` : '';
 
         overlay.innerHTML = `
             <div class="confirm-modal">
-                <div class="confirm-modal-icon">${icon}</div>
-                <h3 class="confirm-modal-title">${title}</h3>
-                <p class="confirm-modal-message">${message}</p>
+                <div class="confirm-modal-icon">${safeIcon}</div>
+                <h3 class="confirm-modal-title">${safeTitle}</h3>
+                <p class="confirm-modal-message">${safeMessage}</p>
                 ${previewHTML}
                 <div class="confirm-modal-actions">
-                    <button class="btn btn-secondary confirm-modal-cancel">${cancelLabel}</button>
-                    <button class="btn btn-${confirmType} confirm-modal-confirm">${confirmLabel}</button>
+                    <button class="btn btn-secondary confirm-modal-cancel">${safeCancelLabel}</button>
+                    <button class="btn btn-${confirmType} confirm-modal-confirm">${safeConfirmLabel}</button>
                 </div>
             </div>
         `;
