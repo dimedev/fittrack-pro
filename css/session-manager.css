@@ -1464,13 +1464,21 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .fs-completed-set.is-drop .fs-completed-set-num {
-    color: #3b82f6;
+    color: var(--accent-brand);
 }
 
+/* V5-C : 💧 emoji remplacé par tag DM Mono brand-coloré "DROP" */
 .fs-completed-set.is-drop::before {
-    content: '💧';
-    font-size: 0.7rem;
-    margin-right: 4px;
+    content: 'DROP';
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent-brand);
+    margin-right: 6px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--accent-brand) 14%, transparent);
 }
 
 .fs-completed-set.is-restpause {
@@ -3340,17 +3348,25 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     padding: 10px 14px;
     border-radius: 10px;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
+/* V5-D : Pit Lane brand red. Avant, drop=#3b82f6 (bleu) et rp=#a855f7 (violet) :
+   couleurs hors-charte. On les unifie sur brand red avec une nuance subtile :
+   drop = surface brand 14%, rp = surface brand 9% (légère hiérarchie visuelle
+   sans quitter la palette). */
 .fs-complete-drop-btn {
-    border-color: #3b82f6;
-    color: #3b82f6;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 14%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent);
+    color: var(--accent-brand, #ff0000);
 }
 
 .fs-complete-rp-btn {
-    border-color: #a855f7;
-    color: #a855f7;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 9%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 38%, transparent);
+    color: color-mix(in srgb, var(--accent-brand, #ff0000) 80%, #fff);
 }
 
 .fs-complete-stats {
@@ -7835,8 +7851,20 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .ai-insight-icon {
-    font-size: 1.3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent-brand) 16%, transparent);
+    color: var(--accent-brand);
+}
+
+.ai-insight-icon svg {
+    width: 16px;
+    height: 16px;
 }
 
 .ai-insight-title {

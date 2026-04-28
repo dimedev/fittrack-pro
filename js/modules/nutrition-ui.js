@@ -120,8 +120,17 @@ async function quickLogChip(foodId, quantity) {
     const bar = document.getElementById('nutrition-quicklog-bar');
     const mealType = bar?.dataset.mealType || getCurrentMealTypeByHour();
 
-    const food = state.foods.find(f => f.id === foodId);
-    if (!food) return;
+    // FIX (V5-A) : cast en String — l'id arrive depuis l'attribut HTML (toujours string)
+    // alors que state.foods[].id est number pour les défauts. Sans cast, find() retourne undefined.
+    const targetId = String(foodId);
+    const food = state.foods.find(f => String(f.id) === targetId);
+    if (!food) {
+        console.warn('[quickLogChip] Aliment introuvable, id:', foodId);
+        if (typeof showToast === 'function') {
+            showToast('Aliment introuvable', 'warning');
+        }
+        return;
+    }
 
     // Haptic feedback
     if (window.HapticFeedback) HapticFeedback.success();

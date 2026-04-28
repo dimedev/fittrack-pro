@@ -101,15 +101,18 @@ function openMealHistoryModal(targetMealType = null) {
  */
 function loadMealHistoryPage(targetMealType = null, append = false) {
     const modal = document.getElementById('meal-history-modal');
-    const content = modal.querySelector('.meal-history-content');
+    // V5-D : la classe .meal-history-content a été retirée — on cible #meal-history-content (id) ou .modal-body
+    const content = document.getElementById('meal-history-content') || modal.querySelector('.modal-body');
     
     const history = getMealHistory(mealHistoryState.currentPage, mealHistoryState.daysPerPage);
     const historyDates = Object.keys(history).sort().reverse();
     
     if (historyDates.length === 0 && mealHistoryState.currentPage === 0) {
         content.innerHTML = `
-            <div class="empty-state" style="padding: 60px 20px; text-align: center;">
-                <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 16px;">📅</div>
+            <div class="empty-state">
+                <div class="empty-state-icon" aria-hidden="true">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
                 <div class="empty-state-title">Aucun historique</div>
                 <div class="empty-state-text">Vos repas passés apparaîtront ici</div>
             </div>

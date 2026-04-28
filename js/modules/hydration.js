@@ -121,8 +121,20 @@
     // ==================== RENDER WIDGET ====================
 
     function renderHydrationWidget() {
+        // V5-B : alimentation prioritaire de la mini-row hydration dans la card Macros
+        const miniValue = document.getElementById('macros-hydration-value');
+        const miniFill  = document.getElementById('macros-hydration-fill');
+        if (miniValue || miniFill) {
+            const current = getTodayHydration();
+            const goal = getWaterGoal();
+            const percentage = Math.min(100, Math.round((current / goal) * 100));
+            if (miniValue) miniValue.textContent = `${formatMl(current)} / ${formatMl(goal)}`;
+            if (miniFill) miniFill.style.width = `${percentage}%`;
+        }
+
+        // Legacy : si l'ancien container existe encore et n'est pas hidden, le remplir
         const container = document.getElementById('hydration-widget');
-        if (!container) return;
+        if (!container || container.hidden) return;
 
         const current = getTodayHydration();
         const goal = getWaterGoal();

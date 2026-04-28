@@ -8,12 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=59">
-    <link rel="stylesheet" href="css/mobile-premium.css?v=5">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=49">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=61">
+    <link rel="stylesheet" href="css/mobile-premium.css?v=6">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=50">
     <!-- Deferred: loaded async, applied when ready -->
-    <link rel="stylesheet" href="css/session-manager.css?v=43" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="css/premium-components.css?v=24" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/session-manager.css?v=45" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/premium-components.css?v=25" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=10" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
@@ -306,6 +306,25 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- V5-B : Hydration mini-row (fusionné depuis l'ancien hydration-widget) -->
+                    <div class="macros-hydration-row" id="macros-hydration-row">
+                        <div class="macros-hydration-meta">
+                            <svg class="macros-hydration-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                                <path d="M12 2.5s6.5 6.5 6.5 11.5a6.5 6.5 0 1 1-13 0c0-5 6.5-11.5 6.5-11.5z"/>
+                            </svg>
+                            <span class="macros-hydration-label">Hydratation</span>
+                            <span class="macros-hydration-value" id="macros-hydration-value">0 / 2500ml</span>
+                        </div>
+                        <div class="macros-hydration-actions">
+                            <button type="button" class="btn btn-ghost btn-xs" onclick="addWater(250)">+250ml</button>
+                            <button type="button" class="btn btn-ghost btn-xs" onclick="addWater(500)">+500ml</button>
+                            <button type="button" class="btn btn-ghost btn-xs" onclick="openCustomWaterModal()">Custom</button>
+                        </div>
+                        <div class="macros-hydration-track">
+                            <div class="macros-hydration-fill" id="macros-hydration-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Nutrition Goal Card (suggestion pour fermer le gap) -->
@@ -313,20 +332,9 @@
                     <!-- Rempli par renderNutritionGoalCard() -->
                 </div>
 
-                <!-- Hydratation Widget -->
-                <div class="hydration-card" id="hydration-widget">
-                    <!-- Rempli par renderHydrationWidget() -->
-                </div>
-
-                <!-- Today's Session - IMPROVED CTA -->
-                <div class="card today-session-card" id="today-session-card" style="display: none;">
-                    <div class="today-session-header">
-                        <span class="today-session-label">Séance du jour</span>
-                    </div>
-                    <div class="today-session-content" id="today-session-content">
-                        <!-- Rempli par renderTodaySession() -->
-                    </div>
-                </div>
+                <!-- V5-B : Today's Session card supprimée — redondante avec le Hero CTA "Commencer la séance".
+                     Hydration widget déplacé dans la card Macros (ligne ~309) en mini-row compact. -->
+                <div class="hydration-card" id="hydration-widget" hidden></div>
 
                 <!-- ═════════ SECONDARY PANEL (Insights & Recovery, collapsible) ═════════ -->
                 <details class="dashboard-secondary" id="dashboard-secondary-panel">
@@ -342,20 +350,17 @@
                             <div id="readiness-score-container"><!-- updateReadinessScore() --></div>
                             <div id="muscle-recovery-container"><!-- SmartTraining.renderMuscleRecoveryWidget() --></div>
                         </div>
-                        <div class="readiness-card insights-card">
-                            <div class="insights-title">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
-                                <span>Insights de la semaine</span>
-                            </div>
-                            <div id="insights-container"><!-- renderInsightsWidget() --></div>
-                        </div>
-                        <div class="card">
+                        <!-- V5-B : fusion des 2 cards Insights doublons en une seule card unique
+                             (renderInsightsWidget pour weekly + renderDashboardInsights pour dashboard
+                             + renderCoachRecommendations pour coach) -->
+                        <div class="card card--compact">
                             <div class="card-header">
                                 <div class="card-title">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                                     <span>Insights</span>
                                 </div>
                             </div>
+                            <div id="insights-container"><!-- renderInsightsWidget() --></div>
                             <div id="dashboard-insights-content">
                                 <div class="empty-state" style="padding: 16px;">
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="opacity:.35"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -413,23 +418,8 @@
                     </div>
                 </div>
 
-                <!-- Bodyweight Chart -->
-                <div class="card" id="bodyweight-chart-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                            <span>Evolution du Poids</span>
-                        </div>
-                        <div class="chart-filters">
-                            <button class="filter-btn active" data-period="30" onclick="filterWeightChart(30)">30J</button>
-                            <button class="filter-btn" data-period="90" onclick="filterWeightChart(90)">3M</button>
-                            <button class="filter-btn" data-period="180" onclick="filterWeightChart(180)">6M</button>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="bodyweight-chart"></canvas>
-                    </div>
-                </div>
+                <!-- V5-B : Evolution du Poids déplacée dans la modale Profil
+                     (data de profil → contexte naturel, libère le dashboard). -->
 
                 <!-- Hidden stat values for JS compatibility -->
                 <div style="display: none;">
@@ -439,9 +429,9 @@
                     <span id="stat-days">--</span>
                 </div>
 
-                <div id="recommendations-card-container"></div>
-                
-                <div id="smart-insights-card-container"></div>
+                <!-- V5-B : conteneurs supprimés (recommendations-card + smart-insights-card)
+                     car redondants avec Coach Recommendations et obsolètes (legacy ML stéréotypé).
+                     Le coach unifié coach-engine.js produit les insights réels. -->
 
             </section>
 
@@ -1199,6 +1189,23 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         <span>Ajouter une salle</span>
                     </button>
+                </div>
+
+                <!-- Évolution du Poids — V5-B : déplacée du dashboard vers le profil -->
+                <div class="form-group profile-bodyweight-section" id="bodyweight-chart-card">
+                    <div class="profile-section-head">
+                        <span class="profile-section-num">03</span>
+                        <label class="form-label profile-section-label">Évolution du poids</label>
+                        <span class="profile-section-hint">Trace ton poids dans le temps pour voir la tendance.</span>
+                    </div>
+                    <div class="chart-filters" style="display:flex; gap:6px; margin-bottom:10px;">
+                        <button type="button" class="filter-btn active" data-period="30" onclick="filterWeightChart(30)">30J</button>
+                        <button type="button" class="filter-btn" data-period="90" onclick="filterWeightChart(90)">3M</button>
+                        <button type="button" class="filter-btn" data-period="180" onclick="filterWeightChart(180)">6M</button>
+                    </div>
+                    <div class="chart-container" style="position:relative; height:180px;">
+                        <canvas id="bodyweight-chart"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -3578,22 +3585,22 @@
         </div>
     </div>
 
-    <!-- Recipe Builder Modal — Pit Lane unified -->
-    <div id="recipe-modal" class="modal-overlay recipe-modal">
-        <div class="modal modal--md recipe-container">
-            <div class="modal-header recipe-header">
-                <h3>Créer une recette</h3>
-                <button class="modal-close" onclick="closeRecipeModal()" aria-label="Fermer">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+    <!-- Recipe Builder Modal — V5-D Pit Lane (classes propriétaires retirées) -->
+    <div id="recipe-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="recipe-modal-title">
+        <div class="modal modal--md">
+            <div class="modal-header">
+                <h3 class="modal-title" id="recipe-modal-title">Créer une recette</h3>
+                <button class="modal-close-btn" onclick="closeRecipeModal()" aria-label="Fermer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
 
-            <div class="modal-body recipe-content">
-                <div class="recipe-form-group">
-                    <label class="recipe-label">Nom de la recette</label>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="recipe-name-input">Nom de la recette</label>
                     <input
                         type="text"
                         id="recipe-name-input"
@@ -3603,30 +3610,30 @@
                     >
                 </div>
 
-                <div class="recipe-form-group">
-                    <div class="recipe-ingredients-header">
-                        <label class="recipe-label">Ingrédients</label>
-                        <button class="btn btn-sm btn-primary" onclick="openRecipeIngredientSelector()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align: -2px; margin-right: 4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <div class="form-group">
+                    <div class="form-label-row">
+                        <label class="form-label">Ingrédients</label>
+                        <button class="btn btn-xs btn-primary" type="button" onclick="openRecipeIngredientSelector()">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             Ajouter
                         </button>
                     </div>
-                    <div id="recipe-ingredients-list" class="recipe-ingredients-list">
+                    <div id="recipe-ingredients-list" class="recipe-ingredients-list" role="list">
                         <!-- Rempli dynamiquement -->
                     </div>
                 </div>
 
-                <div class="recipe-form-group">
-                    <label class="recipe-label">Valeurs nutritionnelles totales</label>
+                <div class="form-group">
+                    <label class="form-label">Valeurs nutritionnelles totales</label>
                     <div id="recipe-preview-macros" class="recipe-preview-macros">
-                        <p style="color: var(--text-muted);">Ajoutez des ingrédients pour voir les macros</p>
+                        <p class="form-help-empty">Ajoutez des ingrédients pour voir les macros</p>
                     </div>
                 </div>
             </div>
 
-            <div class="modal-footer recipe-actions">
-                <button class="btn btn-secondary" onclick="closeRecipeModal()" style="flex: 1;">Annuler</button>
-                <button class="btn btn-primary" onclick="saveRecipe()" style="flex: 1;">Enregistrer</button>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeRecipeModal()">Annuler</button>
+                <button class="btn btn-primary" type="button" onclick="saveRecipe()">Enregistrer</button>
             </div>
         </div>
     </div>
@@ -3646,31 +3653,31 @@
         </div>
     </div>
 
-    <!-- Meal History Modal — Pit Lane unified -->
-    <div id="meal-history-modal" class="modal-overlay meal-history-modal">
-        <div class="modal modal--md meal-history-container">
-            <div class="modal-header meal-history-header">
-                <h3>Historique des repas</h3>
-                <button class="modal-close" onclick="closeMealHistoryModal()" aria-label="Fermer">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+    <!-- Meal History Modal — V5-D Pit Lane -->
+    <div id="meal-history-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="meal-history-modal-title">
+        <div class="modal modal--md">
+            <div class="modal-header">
+                <h3 class="modal-title" id="meal-history-modal-title">Historique des repas</h3>
+                <button class="modal-close-btn" onclick="closeMealHistoryModal()" aria-label="Fermer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
-            <div class="modal-body meal-history-content">
+            <div class="modal-body" id="meal-history-content">
                 <!-- Rempli dynamiquement -->
             </div>
         </div>
     </div>
 
-    <!-- Barcode Scanner Modal (QuaggaJS) — Pit Lane unified -->
-    <div id="barcode-scanner-modal" class="modal-overlay barcode-scanner-modal">
-        <div class="modal modal--md scanner-content">
-            <div class="modal-header scanner-header">
-                <h3>Scanner un code-barres</h3>
-                <button class="modal-close" onclick="closeBarcodeScanner()" aria-label="Fermer">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+    <!-- Barcode Scanner Modal (QuaggaJS) — V5-D Pit Lane -->
+    <div id="barcode-scanner-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="barcode-scanner-modal-title">
+        <div class="modal modal--md">
+            <div class="modal-header">
+                <h3 class="modal-title" id="barcode-scanner-modal-title">Scanner un code-barres</h3>
+                <button class="modal-close-btn" onclick="closeBarcodeScanner()" aria-label="Fermer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
@@ -3680,26 +3687,23 @@
             <div class="modal-body">
                 <!-- Conteneur QuaggaJS pour le scan caméra -->
                 <div class="barcode-video-container">
-                    <div id="interactive" class="viewport" style="width: 100%; height: 280px; position: relative; overflow: hidden; border-radius: 12px; background: #1a1a1a;"></div>
-                    <div class="scan-overlay">
+                    <div id="interactive" class="viewport"></div>
+                    <div class="scan-overlay" aria-hidden="true">
                         <div class="scan-line"></div>
                     </div>
-                    <div class="barcode-instructions">
-                        Placez le code-barres dans le cadre
-                    </div>
+                    <p class="barcode-instructions">Placez le code-barres dans le cadre</p>
                 </div>
 
-                <!-- Bouton pour basculer en saisie manuelle -->
-                <button class="btn btn-secondary btn-block" onclick="showManualBarcodeInput()" style="min-height: 48px; margin-top: 14px;">
+                <button class="btn btn-secondary btn-block" type="button" onclick="showManualBarcodeInput()" style="margin-top:14px;">
                     Saisie manuelle du code
                 </button>
 
-                <div id="barcode-loading" class="barcode-loading" style="display: none;">
+                <div id="barcode-loading" class="barcode-loading" hidden>
                     <div class="spinner"></div>
-                    <p>Recherche en cours...</p>
+                    <p>Recherche en cours…</p>
                 </div>
 
-                <div id="barcode-results" class="barcode-results" style="display: none;">
+                <div id="barcode-results" class="barcode-results" hidden>
                     <!-- Rempli dynamiquement -->
                 </div>
             </div>
@@ -3876,15 +3880,15 @@
     <script src="js/modules/database.js?v=1"></script>
     <script src="js/modules/state.js?v=32"></script>
     <script src="js/modules/haptic.js?v=1"></script>
-    <script src="js/modules/barcode-scanner.js?v=4"></script>
-    <script src="js/modules/meal-history.js?v=4"></script>
+    <script src="js/modules/barcode-scanner.js?v=5"></script>
+    <script src="js/modules/meal-history.js?v=5"></script>
     <script src="js/modules/recipes.js?v=5"></script>
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=45"></script>
-    <script src="js/modules/profile.js?v=27"></script>
-    <script src="js/modules/nutrition-core.js?v=3"></script>
-    <script src="js/modules/nutrition-ui.js?v=3"></script>
-    <script src="js/modules/nutrition.js?v=36"></script>
+    <script src="js/modules/profile.js?v=28"></script>
+    <script src="js/modules/nutrition-core.js?v=4"></script>
+    <script src="js/modules/nutrition-ui.js?v=4"></script>
+    <script src="js/modules/nutrition.js?v=37"></script>
     <script src="js/modules/food-api.js?v=1"></script>
     <script src="js/modules/nutrition-suggestions.js?v=3"></script>
     <script src="js/modules/meal-templates.js?v=5"></script>
@@ -3899,18 +3903,18 @@
     <script src="js/modules/training.js?v=50"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=10"></script>
-    <script src="js/modules/progress.js?v=29"></script>
+    <script src="js/modules/progress.js?v=30"></script>
     <script src="js/modules/achievements.js?v=2"></script>
     <!-- coach-engine.js : fusion SmartTraining + AIInsights + façade CoachEngine (S3.5) -->
-    <script src="js/modules/coach-engine.js?v=2"></script>
+    <script src="js/modules/coach-engine.js?v=3"></script>
     <script src="js/modules/health-integration.js?v=2"></script>
     <script src="js/modules/audio-feedback.js?v=1"></script>
     <script src="js/modules/timer.js?v=7"></script>
     <script src="js/modules/ui.js?v=17"></script>
-    <script src="js/modules/goals.js?v=7"></script>
+    <script src="js/modules/goals.js?v=8"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=6"></script>
-    <script src="js/modules/hydration.js?v=1"></script>
+    <script src="js/modules/hydration.js?v=2"></script>
     <script src="js/modules/plate-calculator.js?v=1"></script>
     <script src="js/modules/mobile-gestures.js?v=12"></script>
     <script src="js/modules/theme.js?v=6"></script>

@@ -560,7 +560,36 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
 
+/* ---- OUTLINE : V5-D ajout du variant manquant.
+   Avant, .btn-outline n'était défini nulle part → fs-complete-drop-btn,
+   fs-complete-rp-btn et 3 hydration buttons s'affichaient transparents,
+   bordure invisible. On lui donne un canon brand red ghost. ---- */
+.btn-outline {
+    background: transparent;
+    color: var(--accent-brand);
+    border-color: color-mix(in srgb, var(--accent-brand) 50%, transparent);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.btn-outline:hover {
+    background: color-mix(in srgb, var(--accent-brand) 14%, transparent);
+    border-color: var(--accent-brand);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--accent-brand) 40%, transparent);
+}
+
 /* ---- SIZE VARIANTS ---- */
+.btn-xs {
+    --btn-height: 28px;
+    --btn-padding-x: 10px;
+    --btn-radius: 8px;
+    --btn-font-size: 0.7rem;
+    gap: 4px;
+    letter-spacing: 0.04em;
+}
+
 .btn-sm {
     --btn-height: 36px;
     --btn-padding-x: 14px;
@@ -1391,12 +1420,13 @@ h1, h2, h3, h4, h5, h6 {
     100% { transform: scale(1); }
 }
 
-/* ─── Dashboard Insights (Phase 2C) ─── */
+/* ─── Dashboard Insights (Phase 2C, V5-B padding réduit) ─── */
 .dashboard-insights-grid {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 8px;
+    padding: 0;
+    margin-top: 8px;
 }
 
 .dash-insight-item {
@@ -1450,7 +1480,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dash-insight-link {
-    padding: 10px 16px;
+    padding: 8px 0 0;
     text-align: right;
     font-size: var(--text-xs);
     color: var(--accent-brand);
@@ -2144,6 +2174,102 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     color: #fff;
 }
 
+/* V5-D : alias pour les modales nutrition (recipe, meal-history, barcode, copy-day) */
+.modal-close-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, #fff 5%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 8%, transparent);
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 160ms ease;
+    padding: 0;
+}
+.modal-close-btn:hover {
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 22%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 50%, transparent);
+    color: #fff;
+}
+.modal-close-btn:focus-visible {
+    outline: 2px solid var(--accent-brand);
+    outline-offset: 2px;
+}
+
+.modal-subtitle {
+    margin: 0 0 16px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* V5-D : Copy-day list (modale "Copier un jour") */
+.copy-day-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.copy-day-item {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: color-mix(in srgb, #fff 3%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 7%, transparent);
+    border-radius: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: all 160ms ease;
+    font-family: inherit;
+}
+.copy-day-item:hover,
+.copy-day-item:focus-visible {
+    background: color-mix(in srgb, var(--accent-brand) 8%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand) 35%, transparent);
+    transform: translateY(-1px);
+    outline: none;
+}
+.copy-day-item__name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-transform: capitalize;
+    color: var(--text-primary);
+}
+.copy-day-item__date {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+.copy-day-item__stats {
+    text-align: right;
+    flex-shrink: 0;
+}
+.copy-day-item__cals {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--accent-brand);
+}
+.copy-day-item__count {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
 .modal-body {
     padding: var(--dialog-padding-y) var(--dialog-padding-x);
     overflow-y: auto;
@@ -2153,7 +2279,8 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     min-height: 0;
 }
 
-.modal-footer {
+.modal-footer,
+.modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
@@ -2162,6 +2289,17 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     border-top: 1px solid color-mix(in srgb, #fff 5%, transparent);
     flex-shrink: 0;
     background: var(--bg-card, #0a0a0a);
+}
+
+/* V5-D : sur mobile (≤768px) la modale prend toute la largeur et le footer
+   doit s'étirer pour que les boutons remplissent la zone (flex:1 chacun).
+   On aligne .modal-actions sur .modal-footer côté layout. */
+@media (max-width: 768px) {
+    .modal-actions .btn {
+        flex: 1;
+        min-height: 48px;
+        justify-content: center;
+    }
 }
 
 /* ==================== MACRO BARS ==================== */
@@ -3085,11 +3223,18 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     border-left: 3px solid var(--text-muted);
 }
 
-/* ==================== EMPTY STATES ==================== */
+/* ==================== EMPTY STATES (V5-B padding réduit baseline) ==================== */
 .empty-state {
     text-align: center;
-    padding: 60px 24px;
+    padding: 28px 20px;
     animation: emptyFadeIn 0.4s ease-out;
+}
+
+.empty-state-icon svg {
+    width: 32px;
+    height: 32px;
+    color: var(--text-muted);
+    opacity: 0.55;
 }
 
 @keyframes emptyFadeIn {
@@ -7667,35 +7812,25 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
 }
 
-/* ==================== RECIPE BUILDER — Pit Lane unified (S4.1) ==================== */
-/* Le conteneur utilise désormais .modal-overlay > .modal.modal--md.
-   Les anciennes règles .recipe-modal { display: flex; ... } et .recipe-container
-   { max-width: 600px; border-radius: 20px 20px 0 0; ... } ont été retirées car
-   elles forçaient l'affichage du modal sans .active et écrasaient le système
-   Pit Lane. Voir .modal-overlay (~ligne 1801) et @media max-width 768 (~ligne 965). */
+/* ==================== RECIPE BUILDER — V5-D Pit Lane purgé ==================== */
+/* Conteneur : .modal-overlay > .modal.modal--md (système Pit Lane unifié).
+   Anciennes règles propriétaires .recipe-header h3, .recipe-form-group,
+   .recipe-label, .recipe-ingredients-header, .recipe-actions retirées :
+   désormais sur .modal-title, .form-group, .form-label, .form-label-row,
+   .modal-footer (tokens Pit Lane). */
 
-/* Header drag handle : retiré car .modal-header::before (Pit Lane mobile) le fournit déjà */
-.recipe-header h3 {
-    margin: 0;
-    font-size: 1.25rem;
-}
-
-.recipe-form-group {
-    margin-bottom: 20px;
-}
-
-.recipe-label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-}
-
-.recipe-ingredients-header {
+.form-label-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.form-help-empty {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
 }
 
 .recipe-ingredients-list {
@@ -7704,8 +7839,9 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     gap: 8px;
     min-height: 60px;
     padding: 12px;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, #fff 3%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 7%, transparent);
+    border-radius: 12px;
 }
 
 .recipe-ingredient-item {
@@ -7714,12 +7850,14 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     align-items: center;
     padding: 12px;
     background: var(--bg-card);
-    border-radius: var(--radius-md);
-    transition: all 0.2s ease;
+    border: 1px solid color-mix(in srgb, #fff 6%, transparent);
+    border-radius: 10px;
+    transition: all 160ms ease;
 }
 
 .recipe-ingredient-item:hover {
-    transform: translateX(4px);
+    border-color: color-mix(in srgb, var(--accent-brand) 35%, transparent);
+    transform: translateX(2px);
 }
 
 .recipe-ingredient-info {
@@ -7739,9 +7877,10 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 }
 
 .recipe-preview-macros {
-    padding: 16px;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-lg);
+    padding: 14px;
+    background: color-mix(in srgb, #fff 3%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 7%, transparent);
+    border-radius: 12px;
 }
 
 .recipe-macros-display {
@@ -7762,17 +7901,14 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 }
 
 .recipe-macro-value {
-    font-size: 1.1rem;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.05rem;
     font-weight: 700;
-    color: var(--accent-primary);
+    color: var(--accent-brand);
 }
 
-.recipe-actions {
-    display: flex;
-    gap: 12px;
-    padding: 20px;
-    border-top: 1px solid var(--border-color);
-}
+/* .recipe-actions retiré : .modal-footer Pit Lane fournit display:flex+gap+padding+safe-area */
 
 .recipe-ingredient-sheet {
     max-height: 70vh;
@@ -7798,15 +7934,17 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     justify-content: space-between;
     align-items: center;
     padding: 12px;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
+    background: color-mix(in srgb, #fff 3%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 6%, transparent);
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 160ms ease;
 }
 
 .recipe-food-item:hover {
-    background: var(--bg-tertiary);
-    transform: translateX(4px);
+    background: color-mix(in srgb, var(--accent-brand) 8%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand) 35%, transparent);
+    transform: translateX(2px);
 }
 
 .recipe-food-cals {
@@ -7814,13 +7952,21 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     color: var(--text-muted);
 }
 
+/* V5-D : alias historique conservé pour compat ascendante.
+   Les overrides Pit Lane vivent dans nutrition-premium.css (.nutrition-page-header
+   .nutrition-buttons-row .btn-icon.btn-success-icon). Ici on neutralise la palette
+   legacy verte (#11998e → #38ef7d) au profit d'une surface ghost brand-aligned
+   pour les usages hors header nutrition. */
 .btn-icon.btn-success-icon {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    color: white;
+    background: color-mix(in srgb, #fff 4%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 10%, transparent);
+    color: var(--text-primary);
 }
 
 .btn-icon.btn-success-icon:hover {
-    background: linear-gradient(135deg, #0d8074 0%, #2dd968 100%);
+    background: color-mix(in srgb, var(--accent-brand) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand) 55%, transparent);
+    color: #fff;
 }
 
 /* ==================== AUTOREGULATION (RPE/RIR) ==================== */
@@ -7905,14 +8051,12 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     padding: 8px;
 }
 
-/* ==================== MEAL HISTORY MODAL — Pit Lane unified (S4.1) ==================== */
-/* Le conteneur utilise désormais .modal-overlay > .modal.modal--md.
-   Les anciennes règles .meal-history-modal { display: flex; ... } et
-   .meal-history-container { max-width: 600px; ... } ont été retirées car elles
-   forçaient l'affichage du modal sans .active et écrasaient le système Pit Lane.
-   Voir .modal-overlay (~ligne 1801) et @media max-width 768 (~ligne 965). */
+/* ==================== MEAL HISTORY MODAL — V5-D Pit Lane purgé ==================== */
+/* Conteneur : .modal-overlay > .modal.modal--md (système unifié).
+   Anciennes règles .meal-history-header h3, .meal-history-content (overflow + padding)
+   retirées : .modal-title et .modal-body Pit Lane les remplacent.
+   Keyframes conservées pour compatibilité legacy. */
 
-/* Keyframes conservées au cas où d'autres modales legacy en dépendent */
 @keyframes slideUpFromBottom {
     from { transform: translateY(100%); opacity: 0; }
     to   { transform: translateY(0);    opacity: 1; }
@@ -7921,19 +8065,6 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 @keyframes slideDownToBottom {
     from { transform: translateY(0);    opacity: 1; }
     to   { transform: translateY(100%); opacity: 0; }
-}
-
-.meal-history-header h3 {
-    margin: 0;
-    font-size: 1.25rem;
-}
-
-.meal-history-content {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    padding: 20px;
 }
 
 .meal-history-day {
@@ -7950,33 +8081,39 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     align-items: center;
     margin-bottom: 12px;
     padding-bottom: 8px;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 1px solid color-mix(in srgb, #fff 8%, transparent);
 }
 
 .meal-history-day-name {
-    font-weight: 600;
-    font-size: 1.1rem;
-    text-transform: capitalize;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--text-primary);
 }
 
 .meal-history-day-date {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
 }
 
 .meal-history-meal-card {
-    background: var(--bg-secondary);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-    margin-bottom: 12px;
-    transition: all 0.2s ease;
+    background: color-mix(in srgb, #fff 3%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 6%, transparent);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    transition: all 160ms ease;
 }
 
 .meal-history-meal-card:hover {
-    background: var(--bg-tertiary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: color-mix(in srgb, var(--accent-brand) 6%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand) 30%, transparent);
+    transform: translateY(-1px);
 }
 
 .meal-history-meal-header {
@@ -8023,16 +8160,21 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     background: var(--accent-brand);
     color: #ffffff !important;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 10px;
     padding: 10px 16px;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.78rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 160ms ease;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-brand) 28%, transparent);
 }
 
 .btn-quick-add-meal:hover {
-    background: var(--accent-brand-hover);
+    background: var(--accent-brand-hover, var(--accent-brand));
     transform: translateY(-1px);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-brand) 40%, transparent);
 }
 
 .btn-quick-add-meal:active {
@@ -8041,88 +8183,95 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 
 /* Bouton charger plus */
 .meal-history-load-more {
-    padding: 20px;
+    padding: 16px 0 4px;
     text-align: center;
-    border-top: 1px solid var(--border-color);
-    margin-top: 20px;
+    border-top: 1px solid color-mix(in srgb, #fff 6%, transparent);
+    margin-top: 16px;
 }
 
 .meal-history-load-more .btn {
     min-width: 200px;
 }
 
+/* V5-D : alias historique. Override Pit Lane dans nutrition-premium.css.
+   Ici on neutralise la palette legacy violette (#667eea → #764ba2)
+   au profit d'une surface ghost brand-aligned pour les usages hors header. */
 .btn-icon.btn-accent-icon {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: color-mix(in srgb, #fff 4%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 10%, transparent);
+    color: var(--text-primary);
 }
 
 .btn-icon.btn-accent-icon:hover {
-    background: linear-gradient(135deg, #5568d3 0%, #63408a 100%);
+    background: color-mix(in srgb, var(--accent-brand) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand) 55%, transparent);
+    color: #fff;
 }
 
-/* ==================== BARCODE SCANNER ==================== */
-.barcode-scanner-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-}
-
-.scanner-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.9);
-}
-
-.scanner-content {
-    position: relative;
-    width: 100%;
-    max-width: 500px;
-    background: var(--bg-card);
-    border-radius: var(--radius-xl);
-    padding: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.scanner-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.scanner-header h3 {
-    margin: 0;
-    font-size: 1.25rem;
-}
+/* ==================== BARCODE SCANNER — V5-D Pit Lane purgé ==================== */
+/* Conteneur : .modal-overlay > .modal.modal--md (système unifié).
+   Anciennes règles .barcode-scanner-modal { position:fixed; ... }, .scanner-overlay,
+   .scanner-content { max-width:500px; padding:20px; }, .scanner-header retirées :
+   forçaient le modal hors système Pit Lane. */
 
 .barcode-video-container {
     position: relative;
     width: 100%;
-    aspect-ratio: 4/3;
+    aspect-ratio: 16/10;
     background: #000;
-    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--accent-brand) 18%, transparent);
+    border-radius: 14px;
     overflow: hidden;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
+    box-shadow: inset 0 0 40px color-mix(in srgb, var(--accent-brand) 10%, transparent);
 }
 
-#barcode-video {
+#barcode-video,
+.barcode-video-container .viewport {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
+.scan-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.4) 0%,
+        transparent 28%,
+        transparent 72%,
+        rgba(0,0,0,0.4) 100%
+    );
+}
+
+.scan-overlay::before,
+.scan-overlay::after {
+    content: '';
+    position: absolute;
+    width: 22px; height: 22px;
+    border: 2px solid var(--accent-brand);
+}
+.scan-overlay::before {
+    top: 14px; left: 14px;
+    border-right: 0; border-bottom: 0;
+    border-top-left-radius: 6px;
+}
+.scan-overlay::after {
+    bottom: 14px; right: 14px;
+    border-left: 0; border-top: 0;
+    border-bottom-right-radius: 6px;
+}
+
+.scan-line,
 .barcode-scan-line {
     position: absolute;
-    top: 50%;
-    left: 10%;
-    right: 10%;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
-    animation: scan-line 2s ease-in-out infinite;
+    top: 50%; left: 10%; right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-brand), transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-brand) 60%, transparent);
+    animation: scan-line 2.4s ease-in-out infinite;
 }
 
 @keyframes scan-line {
@@ -8131,16 +8280,14 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 }
 
 .barcode-instructions {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    right: 0;
+    margin: 0;
     text-align: center;
-    color: white;
-    font-size: 0.9rem;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 8px;
-    backdrop-filter: blur(4px);
+    color: var(--text-muted);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 8px 4px 0;
 }
 
 .barcode-loading {
@@ -8148,20 +8295,90 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    padding: 40px 20px;
+    padding: 32px 20px;
 }
 
 .barcode-loading .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--border-color);
-    border-top-color: var(--accent-primary);
+    width: 36px;
+    height: 36px;
+    border: 3px solid color-mix(in srgb, #fff 10%, transparent);
+    border-top-color: var(--accent-brand);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
 
 .barcode-results {
-    padding: 20px;
+    padding: 12px 0 0;
+}
+
+/* V5-D : Pane Pit Lane pour la saisie manuelle barcode */
+.manual-barcode-pane {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    text-align: center;
+    padding: 8px 0;
+}
+.manual-barcode-icon {
+    align-self: center;
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--accent-brand) 16%, transparent);
+    color: var(--accent-brand);
+    margin: 0 auto;
+}
+.manual-barcode-title {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+}
+.manual-barcode-desc {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+.manual-barcode-tip {
+    background: color-mix(in srgb, #fff 4%, transparent);
+    border: 1px solid color-mix(in srgb, #fff 7%, transparent);
+    border-radius: 12px;
+    padding: 12px 14px;
+    text-align: left;
+}
+.manual-barcode-tip-label {
+    display: inline-block;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-brand);
+    margin-bottom: 6px;
+}
+.manual-barcode-tip p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.manual-barcode-actions {
+    display: flex;
+    gap: 10px;
+}
+.manual-barcode-actions .btn {
+    flex: 1;
+}
+.manual-barcode-actions .btn-primary {
+    flex: 2;
 }
 
 .scanned-product-card {
@@ -10018,94 +10235,14 @@ details.dashboard-secondary[open] .dashboard-secondary-chevron {
 
 /* Reset des conteneurs racines : ils sont maintenant des .modal-overlay,
    donc display + background + position viennent du système standard. */
-.recipe-modal,
-.meal-history-modal,
-.barcode-scanner-modal {
-    /* Annule le `display: flex` permanent qui rendait la modale toujours visible.
-       Le système .modal-overlay gère l'état via .active. */
-    display: none;
-    /* Ces overrides position/background sont déjà fournis par .modal-overlay */
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-}
-
-.modal-overlay.recipe-modal,
-.modal-overlay.meal-history-modal,
-.modal-overlay.barcode-scanner-modal {
-    /* Quand .modal-overlay est appliquée, on hérite du système standard */
-    display: none;
-}
-.modal-overlay.recipe-modal.active,
-.modal-overlay.meal-history-modal.active,
-.modal-overlay.barcode-scanner-modal.active {
-    display: flex;
-}
-
-/* Reset des conteneurs internes : ils sont maintenant des .modal.modal--md,
-   donc background + radius + max-width + box-shadow viennent du système standard.
-   On garde uniquement le comportement flex column + max-height + overflow. */
-.modal-overlay .recipe-container,
-.modal-overlay .meal-history-container,
-.modal-overlay .scanner-content {
-    /* Empêche le double-styling : le .modal parent fournit déjà tout ça */
-    background: transparent !important;
-    box-shadow: none !important;
-    /* Position : devient relative dans le flux flex de .modal-overlay */
-    position: relative;
-    /* max-width supprimé pour laisser .modal--md le gérer (560px desktop / 100% mobile) */
-    max-width: none !important;
-    /* border-radius : laisse .modal le gérer (20px desktop / 22px mobile bottom-sheet) */
-    border-radius: 0 !important;
-    /* Garde la structure interne flex column avec overflow géré */
-    display: flex;
-    flex-direction: column;
-}
-
-/* Sur desktop, on remplace l'overflow hidden propriétaire par un scroll body interne :
-   .modal-body gère son propre scroll, le wrapper reste figé. */
-@media (min-width: 769px) {
-    .modal-overlay .recipe-container,
-    .modal-overlay .meal-history-container,
-    .modal-overlay .scanner-content {
-        overflow: visible !important;
-        max-height: 85dvh !important;
-    }
-}
-
-/* Mobile : conserve les anciennes animations slide-up/slide-down du JS legacy.
-   Mais on désactive le bottom-sheet handle propriétaire car .modal en fournit un. */
-@media (max-width: 768px) {
-    /* Le ::before drag handle propriétaire fait doublon avec celui de .modal */
-    .modal-overlay .recipe-container .recipe-header::before,
-    .modal-overlay .meal-history-container .meal-history-header::before {
-        display: none;
-    }
-    /* Reduce header padding-top quand on est dans le système .modal qui ajoute son propre handle */
-    .modal-overlay .recipe-header,
-    .modal-overlay .meal-history-header,
-    .modal-overlay .scanner-header {
-        padding-top: 14px !important;
-        cursor: default;
-    }
-}
-
-/* Animations slide-up/slide-down legacy : appliquées au .modal et plus au container.
-   Le système .modal-overlay.active .modal a déjà sa propre animation, mais le JS
-   ajoute .slide-up/.slide-down sur le .recipe-container — qui est le même élément
-   que .modal. On désactive l'animation conflictuelle de .modal-overlay.active .modal
-   pour ces 3 modales spécifiques. */
-.modal-overlay.recipe-modal.active .modal,
-.modal-overlay.meal-history-modal.active .modal,
-.modal-overlay.barcode-scanner-modal.active .modal {
-    /* Laisse .slide-up gérer */
-    animation: none;
-    transform: none;
-}
-.modal-overlay.recipe-modal .modal,
-.modal-overlay.meal-history-modal .modal,
-.modal-overlay.barcode-scanner-modal .modal {
-    /* Reset transform initial (sinon scale 0.95 + slide créent un conflit) */
-    transform: none;
-    opacity: 1;
+/* V5-D : ~90 lignes d'overrides .recipe-modal/.meal-history-modal/.barcode-scanner-modal
+   retirées car ces classes ont été supprimées du HTML. Les modales utilisent désormais
+   les ID #recipe-modal / #meal-history-modal / #barcode-scanner-modal sur des
+   .modal-overlay > .modal.modal--md standard, sans override propriétaire. */
+#recipe-modal .modal,
+#meal-history-modal .modal,
+#barcode-scanner-modal .modal {
+    /* compat : si le JS legacy ajoute encore .slide-up/.slide-down, désactive l'animation
+       Pit Lane par défaut pour éviter conflit transform */
+    /* Sur ces 3 modales, l'animation pl-dialog-up reste OK ; on garde le comportement standard */
 }

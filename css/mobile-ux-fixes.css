@@ -468,17 +468,12 @@ html, body, main {
         font-size: clamp(0.65rem, 2vw, 0.75rem) !important;
     }
     
-    /* Boutons */
-    .btn {
-        font-size: clamp(0.85rem, 3vw, 1rem) !important;
-    }
-    
-    .btn-sm {
-        font-size: clamp(0.7rem, 2.5vw, 0.85rem) !important;
-    }
-    
-    .btn-lg {
-        font-size: clamp(1rem, 3.5vw, 1.125rem) !important;
+    /* V5-D : on respecte le contrat custom property (--btn-font-size) des variants.
+       L'ancien override .btn { font-size: clamp(...) !important } clobait .btn-xs
+       (0.7rem) et .btn-sm (0.78rem) et faisait sauter la hiérarchie typographique
+       Pit Lane des modales. */
+    .btn:not(.btn-xs):not(.btn-sm):not(.btn-lg):not(.btn-xl) {
+        font-size: clamp(0.85rem, 3vw, 1rem);
     }
 }
 
@@ -1160,19 +1155,21 @@ html, body, main {
 /* ==================== FIX 7: BOUTONS ET ACTIONS ==================== */
 
 @media (max-width: 768px) {
-    /* Tous les boutons - minimum 44px tap target */
+    /* V5-D : on respecte le contrat custom properties (--btn-height/--btn-padding-x)
+       posé par .btn-xs / .btn-sm / .btn-lg. Avant on slammait padding:12px 20px et
+       min-height:44px directement, ce qui clobait les variants tailles (hydration
+       +250ml, recipe + Ajouter, etc.) et explosait leur dimension Pit Lane. */
     .btn {
-        min-height: 44px;
-        padding: 12px 20px;
-        font-size: 0.95rem;
-        border-radius: 12px;
+        min-height: var(--btn-height, 44px);
+        padding: 0 var(--btn-padding-x, 20px);
+        border-radius: var(--btn-radius, 12px);
         -webkit-tap-highlight-color: transparent;
     }
 
-    .btn-sm {
-        min-height: 40px;
-        padding: 10px 16px;
-        font-size: 0.875rem;
+    /* Sur mobile on conserve un tap target ≥44px UNIQUEMENT pour le baseline .btn
+       (sans variant size). Les .btn-xs / .btn-sm restent fidèles à leurs tokens. */
+    .btn:not(.btn-xs):not(.btn-sm):not(.btn-icon) {
+        min-height: max(var(--btn-height, 44px), 44px);
     }
 
     .btn-icon {

@@ -1000,11 +1000,16 @@
             return `
                 <div class="recovery-widget">
                     <div class="recovery-header">
-                        <span class="recovery-title">💪 Prêt à Entraîner</span>
+                        <span class="recovery-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                            Prêt à entraîner
+                        </span>
                     </div>
                     <div class="recovery-ready-message">
-                        <div class="ready-icon">🎯</div>
-                        <div class="ready-text">Tous vos muscles sont disponibles !</div>
+                        <div class="ready-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        </div>
+                        <div class="ready-text">Tous vos muscles sont disponibles</div>
                         <div class="ready-suggestion">Suggéré : ${suggestions.join(', ')}</div>
                     </div>
                 </div>
@@ -1015,7 +1020,10 @@
         let html = `
             <div class="recovery-widget">
                 <div class="recovery-header">
-                    <span class="recovery-title">✅ Prêts à Entraîner</span>
+                    <span class="recovery-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                        Prêts à entraîner
+                    </span>
                 </div>
                 <div class="recovery-ready-muscles">
         `;
@@ -1805,7 +1813,7 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
             container.innerHTML = `
                 <div class="ai-insight-card ai-insight-loading">
                     <div class="ai-insight-header">
-                        <span class="ai-insight-icon">🤖</span>
+                        <span class="ai-insight-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="14" x2="22" y2="14"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="14" x2="4" y2="14"/></svg></span>
                         <span class="ai-insight-title">Analyse IA en cours...</span>
                     </div>
                     <div class="ai-insight-skeleton"></div>
@@ -1820,7 +1828,7 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
             container.innerHTML = `
                 <div class="ai-insight-card ai-insight-error">
                     <div class="ai-insight-header">
-                        <span class="ai-insight-icon">🤖</span>
+                        <span class="ai-insight-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="14" x2="22" y2="14"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="14" x2="4" y2="14"/></svg></span>
                         <span class="ai-insight-title">Insights IA</span>
                     </div>
                     <p class="ai-insight-text">${error}</p>
@@ -1845,7 +1853,7 @@ Réponds directement sans titre ni liste — juste un texte fluide.`;
         container.innerHTML = `
             <div class="ai-insight-card">
                 <div class="ai-insight-header">
-                    <span class="ai-insight-icon">🤖</span>
+                    <span class="ai-insight-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="14" x2="22" y2="14"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="14" x2="4" y2="14"/></svg></span>
                     <div>
                         <span class="ai-insight-title">Analyse de la semaine</span>
                         <span class="ai-insight-week">${week}</span>

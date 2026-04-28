@@ -342,10 +342,12 @@ async function addToJournalDirect(foodId, quantity) {
     }
 
     const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
-    const food = state.foods.find(f => f.id === foodId);
+    // FIX (V5-A) : cast string pour matcher recentFoods (string) avec foods[].id (number defaults)
+    const targetId = String(foodId);
+    const food = state.foods.find(f => String(f.id) === targetId);
 
     if (!food) {
-        console.error('addToJournalDirect: aliment non trouvé', foodId);
+        console.error('addToJournalDirect: aliment non trouvé', foodId, '(type:', typeof foodId, ')');
         showToast('Aliment introuvable', 'error');
         return;
     }
@@ -576,9 +578,18 @@ function getTodayCardioCalories() {
 
 async function addToJournalWithMealType(foodId, quantity, mealType) {
     const date = document.getElementById('journal-date')?.value || new Date().toISOString().split('T')[0];
-    const food = state.foods.find(f => f.id === foodId);
+    // FIX (V5-A) : compare ids en string pour éviter mismatch number/string entre
+    // state.recentFoods (string) et state.foods[].id (number pour les défauts vs string pour custom).
+    const targetId = String(foodId);
+    const food = state.foods.find(f => String(f.id) === targetId);
 
-    if (!food) return;
+    if (!food) {
+        console.warn('[quickLog] Aliment introuvable, id:', foodId, '(type:', typeof foodId, ')');
+        if (typeof showToast === 'function') {
+            showToast('Aliment introuvable — il a peut-être été supprimé', 'warning');
+        }
+        return;
+    }
 
     if (!state.foodJournal) state.foodJournal = {};
     if (!state.foodJournal[date]) state.foodJournal[date] = [];

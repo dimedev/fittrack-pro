@@ -6,8 +6,14 @@
  * Ajoute rapidement un aliment depuis les récents
  */
 async function quickAddRecent(foodId, quantity) {
-    const food = state.foods.find(f => f.id === foodId);
-    if (!food) return;
+    // FIX (V5-A) : cast en String — id depuis attribut HTML est string, défauts sont number
+    const targetId = String(foodId);
+    const food = state.foods.find(f => String(f.id) === targetId);
+    if (!food) {
+        console.warn('[quickAddRecent] Aliment introuvable, id:', foodId);
+        if (typeof showToast === 'function') showToast('Aliment introuvable', 'warning');
+        return;
+    }
 
     // Haptic feedback
     if (window.HapticFeedback) {
@@ -60,60 +66,45 @@ function openCopyDayModal() {
 }
 
 /**
- * Crée la modal de copie de jour
+ * Crée la modal de copie de jour — V5-D : template Pit Lane unifié
+ * Plus de styles inline, structure standard .modal-overlay > .modal.modal--md
  */
 function createCopyDayModal(recentDays, targetDate) {
-    console.log('📋 createCopyDayModal() - Création de la modal...');
-
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay active'; // Ajouter 'active' directement
+    modal.className = 'modal-overlay active';
     modal.id = 'copy-day-modal';
-    modal.style.cssText = 'display: flex !important; z-index: 9999;'; // Force l'affichage
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'copy-day-modal-title');
     modal.innerHTML = `
-        <div class="modal" style="max-width: 400px; margin: 20px; border-radius: 24px; overflow: hidden;">
-            <div class="modal-header" style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin: 0; font-size: 1.2rem; font-weight: 600;">📋 Copier un jour</h2>
-                <button onclick="closeCopyDayModal()" style="
-                    background: var(--bg-tertiary);
-                    border: none;
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    color: var(--text-muted);
-                    font-size: 1.4rem;
-                    transition: all 0.2s;
-                ">&times;</button>
+        <div class="modal modal--md">
+            <div class="modal-header">
+                <h3 class="modal-title" id="copy-day-modal-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;margin-right:8px;color:var(--accent-brand);"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copier un jour
+                </h3>
+                <button class="modal-close-btn" type="button" onclick="closeCopyDayModal()" aria-label="Fermer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
             </div>
-            <div class="modal-body" id="copy-day-list" style="max-height: 55vh; overflow-y: auto; padding: 12px 16px;">
-                <!-- Populated dynamically -->
+            <div class="modal-body">
+                <p class="modal-subtitle">Sélectionne un jour récent à dupliquer dans la date courante.</p>
+                <div id="copy-day-list" class="copy-day-list"><!-- Populated dynamically --></div>
             </div>
-            <div style="padding: 16px 20px 24px; border-top: 1px solid var(--border-color);">
-                <button onclick="closeCopyDayModal()" style="
-                    width: 100%;
-                    padding: 16px;
-                    border-radius: 14px;
-                    border: none;
-                    background: var(--bg-tertiary);
-                    color: var(--text-secondary);
-                    font-size: 1rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                ">Annuler</button>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-block" type="button" onclick="closeCopyDayModal()">Annuler</button>
             </div>
         </div>
     `;
     document.body.appendChild(modal);
-    console.log('📋 Modal ajoutée au DOM:', modal);
 
     populateCopyDayModal(recentDays, targetDate);
     if (window.ModalManager) ModalManager.lock('copy-day-modal');
 
-    console.log('📋 Modal devrait être visible maintenant');
+    // Ferme au clic backdrop
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeCopyDayModal();
+    });
 }
 
 /**
@@ -126,7 +117,7 @@ function populateCopyDayModal(recentDays, targetDate) {
     container.innerHTML = recentDays.map(date => {
         const entries = state.foodJournal[date] || [];
         const totalCals = entries.reduce((sum, e) => {
-            const food = state.foods.find(f => f.id === e.foodId);
+            const food = state.foods.find(f => String(f.id) === String(e.foodId));
             return sum + ((food?.calories || 0) * (e.quantity || 100) / 100);
         }, 0);
 
@@ -135,20 +126,16 @@ function populateCopyDayModal(recentDays, targetDate) {
         const dayDate = dateObj.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
         return `
-            <div class="copy-day-item" onclick="copyDayTo('${date}', '${targetDate}')"
-                 style="padding: 16px; border: 1px solid var(--border-color); border-radius: 12px;
-                        margin-bottom: 12px; cursor: pointer; transition: all 0.2s;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: 600; color: var(--text-primary); text-transform: capitalize;">${dayName}</div>
-                        <div style="font-size: 0.85rem; color: var(--text-muted);">${dayDate}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: 600; color: var(--accent-brand);">${Math.round(totalCals)} kcal</div>
-                        <div style="font-size: 0.85rem; color: var(--text-muted);">${entries.length} aliments</div>
-                    </div>
+            <button type="button" class="copy-day-item" onclick="copyDayTo('${date}', '${targetDate}')">
+                <div class="copy-day-item__main">
+                    <div class="copy-day-item__name">${dayName}</div>
+                    <div class="copy-day-item__date">${dayDate}</div>
                 </div>
-            </div>
+                <div class="copy-day-item__stats">
+                    <div class="copy-day-item__cals">${Math.round(totalCals)} kcal</div>
+                    <div class="copy-day-item__count">${entries.length} aliments</div>
+                </div>
+            </button>
         `;
     }).join('');
 }

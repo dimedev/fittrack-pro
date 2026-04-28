@@ -318,19 +318,10 @@ function updateDashboard() {
             if (daysEl) daysEl.textContent = state.trainingDays;
         }
 
-        // Widget de recommandations
-        const recommendationsCard = document.getElementById('recommendations-card-container');
-        if (recommendationsCard && typeof renderRecommendationsCard === 'function') {
-            recommendationsCard.innerHTML = renderRecommendationsCard();
-        }
-        
-        // Smart Insights
-        const smartInsightsContainer = document.getElementById('smart-insights-card-container');
-        if (smartInsightsContainer && typeof renderSmartInsightsCard === 'function') {
-            smartInsightsContainer.innerHTML = renderSmartInsightsCard();
-        }
-        
-        // Graphique du poids corporel
+        // V5-B : Recommendations Card et Smart Insights Card supprimés (cards mortes
+        // / legacy ML). Le coach unifié coach-engine.js gère tous les insights réels.
+
+        // Graphique du poids corporel — désormais rendu dans la modale Profil (V5-B.2)
         if (typeof updateBodyWeightChart === 'function') {
             updateBodyWeightChart();
         }

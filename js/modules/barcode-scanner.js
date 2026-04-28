@@ -44,7 +44,7 @@ function resetScannerUI() {
     const resultsDiv = document.getElementById('barcode-results');
     const loadingDiv = document.getElementById('barcode-loading');
     const videoContainer = document.querySelector('.barcode-video-container');
-    const scannerContent = document.querySelector('.scanner-content');
+    const scannerContent = document.querySelector('#barcode-scanner-modal .modal-body');
 
     if (resultsDiv) resultsDiv.style.display = 'none';
     if (loadingDiv) loadingDiv.style.display = 'none';
@@ -275,49 +275,46 @@ function showManualBarcodeInput() {
     stopScanning();
 
     const scannerModal = document.getElementById('barcode-scanner-modal');
-    const scannerContent = scannerModal?.querySelector('.scanner-content');
+    const scannerContent = scannerModal?.querySelector('.modal-body');
 
     if (!scannerContent) return;
 
+    // V5-D : refonte Pit Lane — typo, tokens, SVG icons
     scannerContent.innerHTML = `
-        <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 3rem; margin-bottom: 16px;">📱</div>
-            <h3 style="margin-bottom: 12px; font-size: 1.2rem;">Saisie manuelle</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem; line-height: 1.5;">
-                Entrez le code-barres manuellement pour rechercher le produit.
-            </p>
+        <div class="manual-barcode-pane">
+            <div class="manual-barcode-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="1"/><line x1="6" y1="9" x2="6" y2="15"/><line x1="9" y1="9" x2="9" y2="15"/><line x1="13" y1="9" x2="13" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg>
+            </div>
+            <h4 class="manual-barcode-title">Saisie manuelle</h4>
+            <p class="manual-barcode-desc">Entrez le code-barres pour rechercher le produit.</p>
 
-            <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: left;">
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">💡 Astuce</p>
-                <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4;">
-                    Le code-barres se trouve généralement au dos du produit, composé de 8 ou 13 chiffres.
-                </p>
+            <div class="manual-barcode-tip">
+                <span class="manual-barcode-tip-label">Astuce</span>
+                <p>Le code-barres se trouve au dos du produit, 8 à 13 chiffres.</p>
             </div>
 
             <input
                 type="text"
                 id="manual-barcode-input"
-                placeholder="Ex: 3017620422003"
-                class="form-input"
-                style="margin-bottom: 16px; width: 100%; font-size: 1.1rem; text-align: center; letter-spacing: 1px; min-height: 48px;"
+                placeholder="Ex : 3017620422003"
+                class="form-input num"
                 inputmode="numeric"
                 pattern="[0-9]*"
                 autocomplete="off"
+                style="text-align:center;letter-spacing:0.12em;"
             >
 
-            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <button class="btn btn-secondary" onclick="closeBarcodeScanner()" style="flex: 1; min-height: 48px;">Annuler</button>
-                <button class="btn btn-primary" onclick="searchManualBarcode()" style="flex: 2; min-height: 48px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="m21 21-4.35-4.35"></path>
-                    </svg>
+            <div class="manual-barcode-actions">
+                <button class="btn btn-secondary" type="button" onclick="closeBarcodeScanner()">Annuler</button>
+                <button class="btn btn-primary" type="button" onclick="searchManualBarcode()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                     Rechercher
                 </button>
             </div>
 
-            <button class="btn btn-secondary btn-block" onclick="retryScanner()" style="margin-top: 12px; min-height: 48px;">
-                📷 Réessayer le scanner
+            <button class="btn btn-ghost btn-block" type="button" onclick="retryScanner()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Réessayer le scanner
             </button>
         </div>
     `;

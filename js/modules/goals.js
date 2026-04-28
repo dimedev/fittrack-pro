@@ -669,82 +669,9 @@ function renderStreakCard() {
     `;
 }
 
-function renderRecommendationsCard() {
-    const container = document.getElementById('recommendations-card');
-    const analysis = state.progressionAnalysis;
-    const trainingRecs = state.progressionRecommendations || {};
-    
-    // Fallback si pas de données
-    if (!analysis && Object.keys(trainingRecs).length === 0) {
-        if (container) {
-            container.innerHTML = `
-                <div class="readiness-card">
-                    <h3>Recommandations</h3>
-                    <p class="rec-empty" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">
-                        Complète quelques séances pour recevoir des conseils personnalisés.
-                    </p>
-                </div>
-            `;
-        }
-        return '';
-    }
-    
-    let html = `
-        <div class="recommendations-card">
-            <div class="recommendations-header">
-                <div class="recommendations-title">
-                    <span class="icon">💡</span>
-                    Recommandations
-                </div>
-            </div>
-            <div class="recommendations-content">
-    `;
-    
-    // Recommandations nutrition
-    if (analysis && analysis.recommendations.length > 0) {
-        analysis.recommendations.forEach(rec => {
-            html += `
-                <div class="rec-item">
-                    <span class="rec-icon">${rec.icon}</span>
-                    <span class="rec-text">${rec.message}</span>
-                </div>
-            `;
-        });
-        
-        if (analysis.calorieAdjustment) {
-            html += `
-                <button class="btn btn-primary btn-sm" onclick="applyCalorieAdjustment()" style="width: 100%; margin-top: 8px;">
-                    Appliquer l'ajustement
-                </button>
-            `;
-        }
-    }
-    
-    // Top 3 recommandations training
-    const topTraining = Object.entries(trainingRecs)
-        .filter(([_, rec]) => rec.type !== 'maintain')
-        .slice(0, 3);
-    
-    if (topTraining.length > 0) {
-        html += `<div class="rec-section-label">Progression exercices :</div>`;
-        
-        topTraining.forEach(([exercise, rec]) => {
-            html += `
-                <div class="rec-exercise-item">
-                    <div class="rec-exercise-name">${rec.icon} ${exercise}</div>
-                    <div class="rec-exercise-detail">${rec.message}</div>
-                </div>
-            `;
-        });
-    }
-    
-    html += `
-            </div>
-        </div>
-    `;
-    
-    return html;
-}
+// V5-B : renderRecommendationsCard() supprimée — cette card affichait un fallback vide
+// "Complète quelques séances..." dans 95% des cas et était redondante avec le panel
+// "Coach Recommendations" (coach-engine.js / progress.js:renderCoachRecommendations).
 
 // Graphique du poids corporel
 let bodyWeightChart = null;
@@ -1727,7 +1654,7 @@ function renderInsightItem(insight) {
                 <div class="insight-text">${insight.message}</div>
                 ${hasExplanation ? `
                     <div class="insight-explanation">
-                        <span class="explanation-icon">💡</span>
+                        <span class="explanation-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.71V17h8v-2.29A7 7 0 0 0 12 2z"/></svg></span>
                         <span class="explanation-text">${insight.explanation}</span>
                     </div>
                 ` : ''}
@@ -1736,33 +1663,14 @@ function renderInsightItem(insight) {
     `;
 }
 
-/**
- * Rend la card des smart insights
- */
-function renderSmartInsightsCard() {
-    const insights = generateSmartInsights();
-    
-    if (insights.length === 0) {
-        return '';
-    }
-    
-    return `
-        <div class="readiness-card smart-insights-card">
-            <div class="insights-title">
-                <span class="icon">🧠</span>
-                ANALYSE INTELLIGENTE
-            </div>
-            <div class="smart-insights-list">
-                ${insights.map(i => renderInsightItem(i)).join('')}
-            </div>
-        </div>
-    `;
-}
+// V5-B : renderSmartInsightsCard() supprimée — card "ANALYSE INTELLIGENTE" obsolète
+// (legacy ML pré-coach-engine, messages stéréotypés "muscle non travaillé depuis X jours").
+// Le coach unifié coach-engine.js gère désormais ces insights de manière contextuelle.
 
 // Export pour utilisation globale
 window.generateWeeklyInsights = generateWeeklyInsights;
 window.renderInsightsWidget = renderInsightsWidget;
-window.renderSmartInsightsCard = renderSmartInsightsCard;
+// V5-B : renderSmartInsightsCard supprimée (cf. plus haut)
 window.filterWeightChart = filterWeightChart;
 window.openLogWeightModal = openLogWeightModal;
 window.saveLogWeight = saveLogWeight;
