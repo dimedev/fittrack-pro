@@ -2726,46 +2726,64 @@ function renderDashboardInsights() {
     else if (monthlyProg > -5) { trendIconSvg = SVG_TREND_FLAT; trendLabel = `${monthlyProg >= 0 ? '+' : ''}${monthlyProg}% stable`; }
     else { trendIconSvg = SVG_TREND_DOWN; trendLabel = `${monthlyProg}% vs mois dernier`; }
 
+    // V7-PATCH-3 : status par insight (positive | alert | neutral) + classe is-numeric
+    // pour basculer en DM Mono tabular sur les valeurs purement chiffrées.
     let html = '<div class="dashboard-insights-grid">';
 
-    // Meilleur exercice
+    // Meilleur exercice — toujours positif s'il y en a un
     if (bestExo) {
+        const exoStatus = bestExo.score > 0 ? 'positive' : (bestExo.score < 0 ? 'alert' : 'neutral');
         html += `
-            <div class="dash-insight-item">
-                <span class="dash-insight-icon">${SVG_AWARD}</span>
+            <div class="dash-insight-item" data-status="${exoStatus}">
+                <span class="dash-insight-icon" aria-hidden="true">${SVG_AWARD}</span>
                 <div class="dash-insight-body">
                     <div class="dash-insight-label">Meilleur exercice du mois</div>
                     <div class="dash-insight-value">${bestExo.name}</div>
-                    <div class="dash-insight-meta" style="color: var(--accent-brand)">${bestExo.score > 0 ? '+' : ''}${bestExo.score}%</div>
+                    <div class="dash-insight-meta">${bestExo.score > 0 ? '+' : ''}${bestExo.score}% sur 30j</div>
                 </div>
             </div>`;
     }
 
-    // Plateaux
+    // Plateaux — alert si > 0, positive sinon
+    const plateauStatus = plateauCount > 0 ? 'alert' : 'positive';
     html += `
-        <div class="dash-insight-item">
-            <span class="dash-insight-icon">${plateauCount > 0 ? SVG_ALERT : SVG_CHECK}</span>
+        <div class="dash-insight-item" data-status="${plateauStatus}">
+            <span class="dash-insight-icon" aria-hidden="true">${plateauCount > 0 ? SVG_ALERT : SVG_CHECK}</span>
             <div class="dash-insight-body">
                 <div class="dash-insight-label">Plateaux détectés</div>
-                <div class="dash-insight-value">${plateauCount}</div>
-                <div class="dash-insight-meta">${plateauCount > 0 ? 'Consultez vos insights' : 'Aucun plateau !'}</div>
+                <div class="dash-insight-value is-numeric">${plateauCount}</div>
+                <div class="dash-insight-meta">${plateauCount > 0 ? 'Consulte tes insights' : 'Aucun plateau'}</div>
             </div>
         </div>`;
 
-    // Volume trend
+    // Volume mensuel — positive si > 5%, alert si < -5%, neutral entre les deux
+    let volStatus = 'neutral';
+    if (monthlyProg !== null) {
+        if (monthlyProg > 5) volStatus = 'positive';
+        else if (monthlyProg < -5) volStatus = 'alert';
+    }
+    const volValue = (monthlyProg === null)
+        ? '—'
+        : `${monthlyProg >= 0 ? '+' : ''}${monthlyProg}%`;
+    const volMeta = (monthlyProg === null)
+        ? 'Pas assez de données'
+        : (monthlyProg > 5
+            ? 'En progression'
+            : (monthlyProg < -5 ? 'En recul vs mois -1' : 'Stable vs mois -1'));
     html += `
-        <div class="dash-insight-item">
-            <span class="dash-insight-icon">${trendIconSvg}</span>
+        <div class="dash-insight-item" data-status="${volStatus}">
+            <span class="dash-insight-icon" aria-hidden="true">${trendIconSvg}</span>
             <div class="dash-insight-body">
                 <div class="dash-insight-label">Volume mensuel</div>
-                <div class="dash-insight-value">${trendLabel}</div>
+                <div class="dash-insight-value is-numeric">${volValue}</div>
+                <div class="dash-insight-meta">${volMeta}</div>
             </div>
         </div>`;
 
     html += '</div>';
 
-    // Link
-    html += `<div class="dash-insight-link" onclick="if(typeof navigateToSection==='function'){navigateToSection('progress');}">Voir tous les insights →</div>`;
+    // Link refined
+    html += `<div class="dash-insight-link" role="button" tabindex="0" onclick="if(typeof navigateToSection==='function'){navigateToSection('progress');}">Voir tous les insights <span aria-hidden="true">→</span></div>`;
 
     container.innerHTML = html;
 }

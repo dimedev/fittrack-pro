@@ -2306,368 +2306,313 @@ textarea:focus-visible {
 
 
 /* ════════════════════════════════════════════════════════════════════════════
-   V5-PATCH — INSIGHTS / COACH PIT BOARD + TOUCH FIX
+   V7-PATCH-3 — INSIGHTS REFINED + TOUCH BULLETPROOF (sectionwide)
    ════════════════════════════════════════════════════════════════════════════
-   Bug critique : sur mobile, scroll + pouce sur card Insights / Progression
-   créait un "zoom au tap" (combo iOS magnifier + hover-translate qui sticke
-   sur tactile + cursor:pointer sans tap-highlight neutralisé).
-   Refonte visuelle : passage en "Pit Board" — strip vertical compact,
-   accent rouge brand vertical, DM Mono tabular pour tout chiffre,
-   première reco mise en avant comme "pole position".
+   Bug critique persistant : malgré V7-PATCH-2, l'effet "zoom au scroll" sous
+   le pouce restait visible sur :
+     - les sous-éléments texte des dash-insight-item (le user-select:none
+       n'était posé que sur les enfants directs de .dashboard-insights-grid,
+       pas tout le sous-arbre → magnifier iOS Safari sur les chiffres
+       tabulaires en gros) ;
+     - tout #progress (history-item / feed-item / training-week-card /
+       coach-card / heatmap-card non listés explicitement dans le
+       kill-switch box-shadow & transition).
+   Solution : kill-switch SECTION-WIDE via wildcard `*` à l'intérieur des
+   conteneurs concernés, en touch only. + refonte visuelle de la card
+   Insights (suppression du header TELEMETRY parasite + chevron décoratif
+   + gradient pole position trop chargé → présentation refined Pit Lane).
    ════════════════════════════════════════════════════════════════════════════ */
 
-/* ---------- 1) TOUCH FIX BULLETPROOF ---------- */
-/* Tue le magnifier iOS + tap-highlight + neutralise les hover-translate
-   qui collent en mode tactile. */
-.dashboard-insights-grid,
-.dashboard-insights-grid > *,
-.dash-insight-item,
-.dash-insight-icon,
-.dash-insight-body,
-.dash-insight-link,
-.insight-item,
-.insight-icon,
-.insight-content,
-.insights-empty,
-.coach-recommendations-grid,
-.coach-recommendations-grid > *,
-.coach-card,
-.coach-icon,
-.coach-card-header,
-.coach-message,
-.coach-reason,
-#progress .pr-card,
-#progress .stat-card,
-#progress .daily-progress-feed,
-#progress .daily-progress-feed > *,
-#progress .achievement-card,
-#progress .photo-card {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-            user-select: none;
+/* ---------- 1) TOUCH FIX SECTION-WIDE BULLETPROOF ---------- */
+/* iOS Safari magnifier (long-press text) + tap-highlight + sticky :hover
+   tués sur tout le sous-arbre des conteneurs concernés. Exclusion explicite
+   des inputs / textareas pour ne pas casser la sélection en saisie. */
+
+/* 1.a — Kill iOS magnifier + tap callout sur tout le sous-arbre */
+#dashboard #insights-container,
+#dashboard #insights-container *,
+#dashboard-insights-content,
+#dashboard-insights-content *,
+#coach-recommendations-dashboard,
+#coach-recommendations-dashboard *,
+#proactive-insights-section,
+#proactive-insights-section *,
+#ai-insights-container,
+#ai-insights-container *,
+#progress,
+#progress * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
 }
 
-/* Sur tactile : aucun transform sur :hover. Kill-switch global.
-   Le :hover en tactile est parasite : iOS Safari le déclenche au tap puis le
-   garde "collé" pendant le scroll → effet zoom/bump permanent. On neutralise
-   tous les transform sur :hover, peu importe l'élément ; les feedbacks
-   d'interaction passent par :active (gérés ailleurs).
-   Les keyframes / animations utilisant transform ne sont pas affectées
-   (elles ciblent un état, pas :hover). */
-@media (hover: none), (pointer: coarse) {
-    *:hover {
-        transform: none !important;
-        -webkit-transform: none !important;
-    }
-    /* Bonus : neutraliser aussi les translate sur :active des cards.
-       Sur les cards-cliquables, le tap → translate "lift" peut donner la
-       sensation de bump pendant un scroll qui passe par-dessus. */
-    .card:active,
-    .card:focus,
-    .card:focus-visible,
-    .stat-card:active,
-    .training-week-card:active,
-    .nutrition-goal-card:active,
-    .last-session-card:active,
-    .ngc-item-add:active,
-    .dash-insight-item:active,
-    .insight-item:active,
-    .coach-card:active,
-    #progress .pr-card:active,
-    #progress .stat-card:active,
-    #progress .achievement-card:active,
-    #progress .daily-progress-feed > *:active {
-        transform: none !important;
-        -webkit-transform: none !important;
-    }
+/* 1.b — user-select:none mais on préserve la saisie dans inputs/textareas */
+#dashboard #insights-container :not(input):not(textarea):not([contenteditable="true"]),
+#dashboard-insights-content :not(input):not(textarea):not([contenteditable="true"]),
+#coach-recommendations-dashboard :not(input):not(textarea):not([contenteditable="true"]),
+#proactive-insights-section :not(input):not(textarea):not([contenteditable="true"]),
+#ai-insights-container :not(input):not(textarea):not([contenteditable="true"]),
+#progress :not(input):not(textarea):not([contenteditable="true"]) {
+    -webkit-user-select: none !important;
+            user-select: none !important;
 }
 
-/* V7-PATCH-2 : KILL-SWITCH BOX-SHADOW + TRANSITION SUR TOUCH
-   ---------------------------------------------------------------------
-   Le `*:hover { transform: none !important }` au-dessus tue bien le
-   translate, mais `.card:hover` (style-nike-shadcn.css:931) applique
-   AUSSI `box-shadow: 0 8px 25px rgba(0,0,0,0.3)` avec une transition.
-   Sur iOS Safari, le tap-then-scroll fire :hover, lance la transition
-   sur box-shadow, force un repaint pendant le scroll. Le scroll
-   thread bloque visuellement → effet "zoom/bump" perceptible sous
-   le pouce sur dashboard insights et toute la section progression.
-   On neutralise donc box-shadow ET on supprime les transitions
-   transform/box-shadow sur les cards en mode tactile.
-   ──────────────────────────────────────────────────────────────────── */
+/* 1.c — Touch only : neutraliser TOUT transform/box-shadow sur :hover/:active
+   à l'échelle des sections. Le wildcard `*` capture les cards non listées
+   nominativement (.session-history-item, .feed-item, .training-week-card,
+   .heatmap-card, etc.) qui avaient encore des règles `:hover { transform }`
+   ou `:active { transform: scale }` actives sur tactile. */
 @media (hover: none), (pointer: coarse) {
-    /* 1. Tuer le box-shadow lift sur :hover/:active des cards */
-    .card:hover,
-    .card:active,
-    .card:focus,
-    .card.card--compact:hover,
-    .card.card--compact:active,
-    .card.card--spotlight:hover,
-    .card.card--spotlight:active,
-    .card.card--hero:hover,
-    .card.card--hero:active,
-    .stat-card:hover,
-    .stat-card:active,
-    .pr-card:hover,
-    .pr-card:active,
-    .achievement-card:hover,
-    .achievement-card:active,
-    .training-week-card:hover,
-    .training-week-card:active,
-    .profile-card-simplified:hover,
-    .profile-card-simplified:active {
+    #dashboard #insights-container *:hover,
+    #dashboard #insights-container *:active,
+    #dashboard #insights-container *:focus,
+    #dashboard-insights-content *:hover,
+    #dashboard-insights-content *:active,
+    #dashboard-insights-content *:focus,
+    #coach-recommendations-dashboard *:hover,
+    #coach-recommendations-dashboard *:active,
+    #coach-recommendations-dashboard *:focus,
+    #proactive-insights-section *:hover,
+    #proactive-insights-section *:active,
+    #ai-insights-container *:hover,
+    #ai-insights-container *:active,
+    #progress *:hover,
+    #progress *:active,
+    #progress *:focus,
+    /* Le conteneur card "Insights" lui-même (parent de #insights-container) */
+    #dashboard .card:has(#insights-container):hover,
+    #dashboard .card:has(#insights-container):active,
+    #dashboard .card:has(#dashboard-insights-content):hover,
+    #dashboard .card:has(#dashboard-insights-content):active {
+        transform: none !important;
+        -webkit-transform: none !important;
         box-shadow: none !important;
         -webkit-box-shadow: none !important;
-        border-color: var(--border-color, color-mix(in srgb, #fff 6%, transparent)) !important;
     }
 
-    /* 2. Réduire les transitions aux propriétés non-painty (pas de transform/shadow). */
-    .card,
-    .card.card--compact,
-    .card.card--spotlight,
-    .card.card--hero,
-    .stat-card,
-    .pr-card,
-    .achievement-card,
-    .training-week-card,
-    .profile-card-simplified,
-    .dash-insight-item,
-    .insight-item,
-    .coach-card,
-    #progress .card,
-    #progress .pr-card,
-    #progress .stat-card,
-    #progress .achievement-card,
-    #progress .daily-progress-feed > *,
-    #progress .photo-card {
-        transition-property: border-color, background-color, opacity, color !important;
+    /* 1.d — Réduire les transitions aux props non-painty sur tout le
+       sous-arbre concerné. Évite tout repaint synchrone pendant le scroll. */
+    #dashboard #insights-container *,
+    #dashboard-insights-content *,
+    #coach-recommendations-dashboard *,
+    #proactive-insights-section *,
+    #ai-insights-container *,
+    #progress * {
+        transition-property: color, background-color, border-color, opacity !important;
         transition-duration: 200ms !important;
     }
 
-    /* 3. will-change neutralisé en touch — empêche la création d'un layer GPU
-          qui peut causer des artefacts de paint pendant le scroll. */
-    .card,
-    .stat-card,
-    .pr-card,
-    .achievement-card,
-    .dash-insight-item,
-    .insight-item,
-    .coach-card {
+    /* 1.e — Désactiver will-change qui force la création d'un layer GPU
+       parfois responsable d'artefacts visuels pendant le scroll. */
+    #dashboard #insights-container *,
+    #dashboard-insights-content *,
+    #coach-recommendations-dashboard *,
+    #progress * {
         will-change: auto !important;
+    }
+
+    /* 1.f — touch-action: manipulation : tue le double-tap-zoom natif iOS
+       sur les cards cliquables du sous-arbre concerné, sans bloquer pan-y. */
+    #dashboard .card,
+    #progress .card,
+    #progress .session-history-item,
+    #progress .feed-item,
+    #progress .pr-card,
+    #progress .pr-card-premium,
+    #progress .achievement-card,
+    #progress .photo-card,
+    #progress .heatmap-card,
+    #progress .training-week-card,
+    #progress .coach-card,
+    .dash-insight-item,
+    .dash-insight-link {
+        touch-action: manipulation;
     }
 }
 
-/* ---------- 2) DASHBOARD INSIGHTS — Telemetry Strip v2 ----------
-   V7-PATCH-2 : redesign cohérent Pit Lane chronograph.
-   - Pole position (1ère row) : valeur HUGE en DM Mono, gradient brand,
-     barre verticale brand 3px épaisse.
-   - Secondary rows : compact, hairline divider, pas de bordure
-     individuelle. Tout dans un container unique avec un seul border.
-   - Suppression des paddings excessifs et du `gap: 8px` qui faisait
-     "card-list", remplacé par un strip continu (style cluster F1).
-   ──────────────────────────────────────────────────────────────── */
+/* ---------- 2) DASHBOARD INSIGHTS — Refined v3 ----------
+   V7-PATCH-3 : refonte présentation. Suppression de la déco F1 trop chargée
+   (header pseudo-sticky TELEMETRY, dot pulse, chevron décoratif après chaque
+   row, gradient pole-position, barre verticale brand). On garde l'ADN Pit
+   Lane via :
+     - typographie monospace pour les labels (DM Mono uppercase)
+     - hairline dividers entre rows
+     - icônes color-coded par status (data-status="positive|alert|neutral")
+     - signature subtile : un point status à gauche de l'icône
+     - "Voir tous les insights" en chip ghost refined
+   Plus aérée, plus lisible, moins "data porn". */
+
 .dashboard-insights-grid {
     display: flex;
     flex-direction: column;
     gap: 0;
     padding: 0;
-    margin: 0 calc(-1 * var(--space-3, 12px));
+    margin: 4px 0 0 0;          /* on ne déborde plus la card via margin négatif */
     background: transparent;
     border: none;
-    border-top: 1px solid color-mix(in srgb, #ffffff 6%, transparent);
-    border-bottom: 1px solid color-mix(in srgb, #ffffff 6%, transparent);
-    overflow: hidden;
+    overflow: visible;
     position: relative;
 }
 
-/* Header strip "TELEMETRY · LIVE" sticky en haut du strip */
-.dashboard-insights-grid::before {
-    content: 'TELEMETRY · LIVE';
-    display: block;
-    font-family: var(--font-mono, 'DM Mono', monospace);
-    font-size: 0.58rem;
-    color: var(--text-muted, #a3a3a3);
-    letter-spacing: 0.22em;
-    font-weight: 500;
-    padding: 12px 16px 10px;
-    border-bottom: 1px solid color-mix(in srgb, #ffffff 5%, transparent);
-    background:
-        linear-gradient(90deg,
-            color-mix(in srgb, var(--accent-brand, #ff0000) 9%, transparent),
-            transparent 55%);
-    position: relative;
-}
-/* Dot brand-red pulse à droite du label TELEMETRY */
-.dashboard-insights-grid::after {
-    content: '';
-    position: absolute;
-    top: 17px;
-    right: 16px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent-brand, #ff0000);
-    box-shadow: 0 0 8px var(--accent-brand, #ff0000);
-    animation: telemetryPulse 2.4s ease-in-out infinite;
-}
-@keyframes telemetryPulse {
-    0%, 100% { opacity: 0.55; }
-    50%      { opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-    .dashboard-insights-grid::after { animation: none; }
-}
+/* Plus de header pseudo "TELEMETRY · LIVE" — la card a déjà un header propre */
+.dashboard-insights-grid::before { content: none !important; }
+.dashboard-insights-grid::after  { content: none !important; }
 
 .dash-insight-item {
     position: relative;
     display: grid !important;
-    grid-template-columns: 38px 1fr auto;
+    grid-template-columns: 28px 1fr;
     gap: 14px;
-    align-items: center;
-    padding: 14px 14px 14px 18px !important;
+    align-items: start;
+    padding: 14px 6px !important;
     background: transparent !important;
     border: none !important;
     border-radius: 0 !important;
-    /* Hairline divider entre les rows — pas de bordure pleine, juste un trait fin */
-    border-bottom: 1px solid color-mix(in srgb, #ffffff 4%, transparent) !important;
-    overflow: hidden;
-    transition: background-color 200ms ease;
+    border-bottom: 1px solid color-mix(in srgb, #ffffff 5%, transparent) !important;
+    overflow: visible;
 }
+.dash-insight-item:first-of-type { padding-top: 6px !important; }
 .dash-insight-item:last-of-type {
     border-bottom: none !important;
+    padding-bottom: 6px !important;
 }
 
-/* Vertical accent bar gauche — signature Pit Lane */
+/* Status dot signature — petit point coloré collé à gauche de l'icône.
+   Couleur dérivée de [data-status] (positive / alert / neutral). */
 .dash-insight-item::before {
     content: '';
     position: absolute;
-    left: 0;
-    top: 18px;
-    bottom: 18px;
-    width: 2px;
-    background: color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent);
-    border-radius: 0 2px 2px 0;
+    left: -6px;
+    top: 22px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-muted, #a3a3a3);
+    opacity: 0.85;
+}
+.dash-insight-item[data-status="positive"]::before {
+    background: #4ade80;
+    box-shadow: 0 0 6px color-mix(in srgb, #4ade80 60%, transparent);
+}
+.dash-insight-item[data-status="alert"]::before {
+    background: var(--accent-brand, #ff0000);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--accent-brand, #ff0000) 60%, transparent);
+}
+.dash-insight-item[data-status="neutral"]::before {
+    background: color-mix(in srgb, #ffffff 25%, transparent);
 }
 
-/* === Pole Position (1ère row) === */
-.dash-insight-item:first-of-type {
-    padding: 18px 14px 18px 18px !important;
-    background:
-        linear-gradient(135deg,
-            color-mix(in srgb, var(--accent-brand, #ff0000) 7%, transparent),
-            transparent 55%) !important;
-}
-.dash-insight-item:first-of-type::before {
-    width: 3px;
-    background: var(--accent-brand, #ff0000);
-    top: 14px;
-    bottom: 14px;
-}
-.dash-insight-item:first-of-type .dash-insight-icon {
-    width: 42px !important;
-    height: 42px;
-    background: color-mix(in srgb, var(--accent-brand, #ff0000) 16%, transparent);
-}
-.dash-insight-item:first-of-type .dash-insight-icon svg {
-    width: 20px !important;
-    height: 20px !important;
-}
-.dash-insight-item:first-of-type .dash-insight-value {
-    font-size: 1.18rem;
-    letter-spacing: -0.02em;
-}
+/* Plus de chevron décoratif après chaque row — ça donnait l'illusion d'un lien. */
+.dash-insight-item::after { content: none !important; }
+
+/* Pas de pole position gradient ni de styling spécial sur la 1ère row :
+   l'ordre de priorité est porté par le label / data-status, pas par la déco. */
 
 .dash-insight-icon {
-    width: 38px !important;
-    height: 38px;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--accent-brand, #ff0000) 10%, transparent);
+    width: 28px !important;
+    height: 28px;
+    border-radius: 0 !important;
+    background: transparent !important;
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
     margin: 0 !important;
     flex-shrink: 0;
-    color: var(--accent-brand, #ff0000);
+    color: var(--text-muted, #a3a3a3);
     font-size: inherit !important;
+    margin-top: 2px;
 }
 .dash-insight-icon svg {
-    width: 18px !important;
-    height: 18px !important;
+    width: 20px !important;
+    height: 20px !important;
     display: block;
+    stroke-width: 2;
 }
+/* Icône color-coded par status */
+.dash-insight-item[data-status="positive"] .dash-insight-icon { color: #4ade80; }
+.dash-insight-item[data-status="alert"] .dash-insight-icon    { color: var(--accent-brand, #ff0000); }
+.dash-insight-item[data-status="neutral"] .dash-insight-icon  { color: color-mix(in srgb, #ffffff 55%, transparent); }
 
-.dash-insight-body { flex: 1; min-width: 0; grid-column: 2 / 3; }
+.dash-insight-body {
+    min-width: 0;
+    grid-column: 2 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
 
 .dash-insight-label {
     font-family: var(--font-mono, 'DM Mono', monospace);
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.18em;
     font-weight: 500;
-    margin-bottom: 4px;
     line-height: 1.1;
+    margin: 0;
 }
 
 .dash-insight-value {
-    font-family: var(--font-mono, 'DM Mono', monospace);
-    font-variant-numeric: tabular-nums;
-    font-size: 1.02rem;
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 1.05rem;
     font-weight: 700;
     color: #ffffff;
-    line-height: 1.2;
+    line-height: 1.25;
     letter-spacing: -0.01em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin: 0;
+}
+/* Si la valeur est purement numérique : DM Mono tabular-nums via classe utilitaire (JS) */
+.dash-insight-value.is-numeric {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
 }
 
 .dash-insight-meta {
-    font-size: 0.7rem;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.72rem;
     color: var(--text-muted);
-    margin-top: 3px;
     line-height: 1.35;
-    font-weight: 400;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    margin: 0;
+}
+.dash-insight-item[data-status="positive"] .dash-insight-meta {
+    color: color-mix(in srgb, #4ade80 75%, var(--text-muted));
+}
+.dash-insight-item[data-status="alert"] .dash-insight-meta {
+    color: color-mix(in srgb, var(--accent-brand, #ff0000) 70%, var(--text-muted));
 }
 
-/* Right chevron — purement décoratif (≥ pas un lien, juste signature visuelle) */
-.dash-insight-item::after {
-    content: '';
-    display: block;
-    grid-column: 3 / 4;
-    justify-self: end;
-    align-self: center;
-    width: 5px;
-    height: 5px;
-    border-right: 1.5px solid color-mix(in srgb, #ffffff 18%, transparent);
-    border-top: 1.5px solid color-mix(in srgb, #ffffff 18%, transparent);
-    transform: rotate(45deg);
-    margin-right: 4px;
-    flex-shrink: 0;
-}
-
-/* Footer link "Voir tous les insights" — chip discret en pied de strip
-   V7-PATCH-2 : sortie de la grid → pas de border-top dupliqué (la grid a déjà un border) */
+/* Footer link "Voir tous les insights" — ghost chip refined, plus discret
+   qu'avant (pas de bg brand permanent, juste un filet hairline). */
 .dash-insight-link {
-    margin-top: 10px !important;
-    padding: 10px 12px !important;
+    margin-top: 14px !important;
+    padding: 11px 14px !important;
     text-align: center !important;
     font-family: var(--font-mono, 'DM Mono', monospace);
-    font-size: 0.65rem !important;
-    color: var(--accent-brand, #ff0000) !important;
+    font-size: 0.62rem !important;
+    color: var(--text-secondary, #d4d4d4) !important;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.18em;
     font-weight: 600 !important;
-    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff0000) 22%, transparent) !important;
-    border-radius: 10px !important;
+    border: 1px solid color-mix(in srgb, #ffffff 8%, transparent) !important;
+    border-radius: 8px !important;
     cursor: pointer;
-    background: color-mix(in srgb, var(--accent-brand, #ff0000) 4%, transparent);
-    transition: background 180ms ease, border-color 180ms ease;
+    background: transparent;
+    transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 .dash-insight-link:hover {
-    background: color-mix(in srgb, var(--accent-brand, #ff0000) 10%, transparent);
-    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 38%, transparent) !important;
-    opacity: 1;
+    color: var(--accent-brand, #ff0000) !important;
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 28%, transparent) !important;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 4%, transparent);
 }
 
 /* ---------- 3) COACH RECOMMENDATIONS — Pit Board Rows ---------- */
@@ -2833,12 +2778,19 @@ textarea:focus-visible {
     margin-bottom: 4px;
 }
 
-/* ---------- 4) Mobile compact ---------- */
+/* ---------- 4) Mobile compact (V7-PATCH-3) ---------- */
 @media (max-width: 480px) {
-    .dash-insight-item { padding: 12px 12px 12px 14px !important; gap: 12px; }
-    .dash-insight-icon { width: 34px !important; height: 34px; }
-    .dash-insight-icon svg { width: 16px !important; height: 16px !important; }
-    .dash-insight-value { font-size: 0.98rem; }
+    .dash-insight-item { padding: 12px 6px !important; gap: 12px; }
+    .dash-insight-icon { width: 26px !important; height: 26px; margin-top: 1px; }
+    .dash-insight-icon svg { width: 18px !important; height: 18px !important; }
+    .dash-insight-value { font-size: 1rem; }
+    .dash-insight-value.is-numeric { font-size: 1.05rem; }
+    .dash-insight-meta { font-size: 0.7rem; }
+    .dash-insight-link {
+        font-size: 0.6rem !important;
+        padding: 10px 12px !important;
+        margin-top: 12px !important;
+    }
     .coach-card { padding: 11px 12px 11px 12px !important; }
     .coach-icon { width: 30px !important; height: 30px; }
     .coach-icon svg { width: 15px !important; height: 15px !important; }
@@ -2849,9 +2801,10 @@ textarea:focus-visible {
     #coach-recommendations-dashboard:not(:empty)::before { font-size: 0.6rem; }
 }
 
-/* ---------- 5) Progression cards — touch fix global ---------- */
-/* Sur la section #progress : empêcher TOUT transform sur touch.
-   Couvre pr-card, stat-card, achievement-card, daily-progress-feed items. */
+/* ---------- 5) Progression cards — touch fix legacy (kept for redundancy) ---------- */
+/* Le kill-switch section-wide en haut (V7-PATCH-3) couvre déjà tout #progress.
+   On garde ce bloc minimaliste comme garde-fou explicite sur les cards
+   les plus visitées. */
 @media (hover: none), (pointer: coarse) {
     #progress .pr-card,
     #progress .pr-card:hover,
@@ -2860,12 +2813,15 @@ textarea:focus-visible {
     #progress .stat-card:hover,
     #progress .stat-card:active,
     #progress .achievement-card,
-    #progress .achievement-card:hover {
+    #progress .achievement-card:hover,
+    #progress .session-history-item,
+    #progress .session-history-item:hover,
+    #progress .session-history-item:active,
+    #progress .feed-item,
+    #progress .feed-item:hover,
+    #progress .feed-item:active {
         transform: none !important;
         -webkit-transform: none !important;
-        box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset !important;
-    }
-    #progress * {
-        -webkit-tap-highlight-color: transparent;
+        box-shadow: none !important;
     }
 }
