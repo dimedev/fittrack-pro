@@ -27,7 +27,7 @@
     <!-- Critical: design system + mobile base (render-blocking) -->
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=63">
     <link rel="stylesheet" href="css/mobile-premium.css?v=6">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=58">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=59">
     <!-- Deferred: loaded async, applied when ready -->
     <link rel="stylesheet" href="css/session-manager.css?v=46" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=26" media="print" onload="this.media='all'">
@@ -370,6 +370,28 @@
                         </div>
                     </div>
                 </details>
+
+                <!-- V8-A : Volume Hebdo Telemetry (MEV/MAV/MRV par muscle, Israetel) -->
+                <div class="card volume-telemetry-card" id="volume-telemetry-card" style="display: none;">
+                    <div class="vt-header">
+                        <div class="vt-header-left">
+                            <span class="vt-kicker">VOLUME · 7J</span>
+                            <h3 class="vt-title">Stim musculaire</h3>
+                        </div>
+                        <div class="vt-legend" aria-label="Légende des zones de volume">
+                            <span class="vt-legend-dot vt-legend-dot--low" title="Sous-stimulé"></span>
+                            <span class="vt-legend-dot vt-legend-dot--ok" title="Optimal"></span>
+                            <span class="vt-legend-dot vt-legend-dot--over" title="Surcharge"></span>
+                        </div>
+                    </div>
+                    <div class="vt-grid" id="volume-telemetry-grid">
+                        <!-- renderVolumeTelemetry() -->
+                    </div>
+                    <div class="vt-footer">
+                        <span class="vt-footer-label">Référence</span>
+                        <span class="vt-footer-source">Israetel · Renaissance Periodization</span>
+                    </div>
+                </div>
 
                 <!-- Training Week Summary -->
                 <div class="card training-week-card" id="training-week-summary">
@@ -3932,7 +3954,7 @@
     <script src="js/modules/recipes.js?v=7"></script>
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=46"></script>
-    <script src="js/modules/profile.js?v=29"></script>
+    <script src="js/modules/profile.js?v=30"></script>
     <script src="js/modules/nutrition-core.js?v=4"></script>
     <script src="js/modules/nutrition-ui.js?v=6"></script>
     <script src="js/modules/nutrition.js?v=39"></script>
@@ -3950,10 +3972,12 @@
     <script src="js/modules/training.js?v=51"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=10"></script>
-    <script src="js/modules/progress.js?v=32"></script>
+    <script src="js/modules/progress.js?v=33"></script>
     <script src="js/modules/achievements.js?v=2"></script>
     <!-- coach-engine.js : fusion SmartTraining + AIInsights + façade CoachEngine (S3.5) -->
     <script src="js/modules/coach-engine.js?v=4"></script>
+    <!-- V8-A : MEV/MAV/MRV per muscle group (Renaissance Periodization) -->
+    <script src="js/modules/coach-volume.js?v=1"></script>
     <script src="js/modules/health-integration.js?v=2"></script>
     <script src="js/modules/audio-feedback.js?v=1"></script>
     <script src="js/modules/timer.js?v=7"></script>

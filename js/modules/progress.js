@@ -2789,6 +2789,112 @@ function renderDashboardInsights() {
 }
 
 /**
+ * V8-A — Render the "Volume Hebdo Telemetry" card on the dashboard.
+ * Pit Lane Telemetry style : barres horizontales segmentées MEV/MAV/MRV,
+ * curseur de position courante, kicker DM Mono, valeurs Outfit.
+ *
+ * Affiche uniquement les muscles avec ≥1 set la semaine en cours OU
+ * dont le déficit dépasse MEV (sous-stim notable). Trie par sévérité.
+ */
+function renderVolumeTelemetry() {
+    const card = document.getElementById('volume-telemetry-card');
+    const grid = document.getElementById('volume-telemetry-grid');
+    if (!card || !grid) return;
+    if (typeof window.CoachVolume === 'undefined') return;
+
+    const data = window.CoachVolume.weeklyVolumeByMuscle(7);
+
+    // Filtre : on affiche uniquement les muscles avec activité ou en sous-stim notable
+    const rows = Object.values(data).filter(r => r.sets > 0 || r.status === 'underdosed');
+    if (rows.length === 0) {
+        card.style.display = 'none';
+        return;
+    }
+
+    // Tri : overload > underdosed > developing > optimal (priorité aux warnings)
+    const SEV_RANK = { overload: 0, underdosed: 1, developing: 2, optimal: 3 };
+    rows.sort((a, b) => {
+        const sa = SEV_RANK[a.status] ?? 9;
+        const sb = SEV_RANK[b.status] ?? 9;
+        if (sa !== sb) return sa - sb;
+        return b.sets - a.sets;
+    });
+
+    // Échelle commune pour comparer visuellement les barres entre muscles
+    // On prend max(MRV * 1.15) sur tous les groupes affichés
+    const scaleMax = Math.max(...rows.map(r => r.mrv * 1.15));
+
+    grid.innerHTML = rows.map(r => _vtRowHtml(r, scaleMax)).join('');
+    card.style.display = '';
+}
+
+/**
+ * Génère le HTML d'une ligne télémétrie pour un muscle.
+ * Layout (mobile-first) :
+ *   [SHORT]  [muscle label]              [sets / MAV target]
+ *   ┌─ underdose ─┬─ developing ─┬─ optimal ─┬─ overload ─┐
+ *                                ↑ current
+ *   [status hint]
+ */
+function _vtRowHtml(row, scaleMax) {
+    const { groupId, label, short, sets, mev, mav, mrv, status } = row;
+
+    // Conversion en pourcentages basés sur scaleMax (échelle commune)
+    const pctMev = Math.min(100, (mev / scaleMax) * 100);
+    const pctMav = Math.min(100, (mav / scaleMax) * 100);
+    const pctMrv = Math.min(100, (mrv / scaleMax) * 100);
+    const pctCur = Math.min(100, (sets / scaleMax) * 100);
+
+    // Hint actionnable selon zone
+    let hint = '';
+    let hintClass = '';
+    switch (status) {
+        case 'underdosed':
+            hint = `+${Math.ceil(mev - sets)} séries pour MEV ${mev}`;
+            hintClass = 'is-warn';
+            break;
+        case 'developing':
+            hint = `Vise ${mav} séries/sem pour optimum`;
+            hintClass = 'is-info';
+            break;
+        case 'optimal':
+            hint = `Zone optimale · maintien`;
+            hintClass = 'is-ok';
+            break;
+        case 'overload':
+            hint = `Au-dessus MRV ${mrv} · deload conseillé`;
+            hintClass = 'is-danger';
+            break;
+    }
+
+    // Formatage des sets (1 décimale si fraction)
+    const setsStr = Number.isInteger(sets) ? sets.toString() : sets.toFixed(1);
+    const targetStr = `${mav}`;
+
+    return `
+    <div class="vt-row" data-status="${status}" data-muscle="${groupId}">
+      <div class="vt-row-head">
+        <span class="vt-row-tag">${short}</span>
+        <span class="vt-row-label">${label}</span>
+        <span class="vt-row-numeric">
+          <span class="vt-row-current">${setsStr}</span><span class="vt-row-divider">/</span><span class="vt-row-target">${targetStr}</span>
+        </span>
+      </div>
+      <div class="vt-bar" role="progressbar" aria-valuenow="${setsStr}" aria-valuemin="0" aria-valuemax="${mrv}" aria-label="${label} : ${setsStr} séries cette semaine, optimum ${mav}, max ${mrv}">
+        <div class="vt-bar-zone vt-bar-zone--low"      style="width: ${pctMev}%"></div>
+        <div class="vt-bar-zone vt-bar-zone--dev"      style="left: ${pctMev}%; width: ${pctMav - pctMev}%"></div>
+        <div class="vt-bar-zone vt-bar-zone--ok"       style="left: ${pctMav}%; width: ${pctMrv - pctMav}%"></div>
+        <div class="vt-bar-zone vt-bar-zone--over"     style="left: ${pctMrv}%; width: ${100 - pctMrv}%"></div>
+        <div class="vt-bar-tick vt-bar-tick--mev"      style="left: ${pctMev}%" aria-hidden="true"></div>
+        <div class="vt-bar-tick vt-bar-tick--mav"      style="left: ${pctMav}%" aria-hidden="true"></div>
+        <div class="vt-bar-tick vt-bar-tick--mrv"      style="left: ${pctMrv}%" aria-hidden="true"></div>
+        <div class="vt-bar-cursor"                     style="left: ${pctCur}%" aria-hidden="true"></div>
+      </div>
+      <div class="vt-row-hint ${hintClass}">${hint}</div>
+    </div>`;
+}
+
+/**
  * Alerte proactive via toast si ≥2 exercices en plateau.
  * Maximum 1 toast par jour.
  */
@@ -3114,6 +3220,7 @@ function initProgressSection() {
     renderActivityHeatmap();
     renderMuscleWeeklyHeatmap();
     renderDashboardInsights();
+    renderVolumeTelemetry();
     checkPlateauAlert();
     if (typeof AIInsights !== 'undefined') {
         AIInsights.load();
@@ -3156,6 +3263,7 @@ window.detectVolumePlateau = detectVolumePlateau;
 window.calculateProgressionScore = calculateProgressionScore;
 window.getBestExerciseOfMonth = getBestExerciseOfMonth;
 window.renderDashboardInsights = renderDashboardInsights;
+window.renderVolumeTelemetry = renderVolumeTelemetry;
 window.checkPlateauAlert = checkPlateauAlert;
 
 // Service Registry

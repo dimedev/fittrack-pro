@@ -350,6 +350,11 @@ function updateDashboard() {
         if (typeof renderDashboardInsights === 'function') {
             renderDashboardInsights();
         }
+
+        // V8-A — Volume hebdo telemetry (MEV/MAV/MRV)
+        if (typeof renderVolumeTelemetry === 'function') {
+            renderVolumeTelemetry();
+        }
     } catch (error) {
         console.error('Erreur dans updateDashboard:', error);
     } finally {
