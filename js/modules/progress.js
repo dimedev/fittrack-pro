@@ -2699,8 +2699,12 @@ function countPlateauExercises() {
 }
 
 /**
- * Rend la card Insights sur le Dashboard.
- * Meilleur exercice du mois, plateaux détectés, trend volume.
+ * Rend la card Insights sur le Dashboard — V7-PATCH-4 layout magazine refined.
+ * Hero row (insight n°1 mis en valeur avec gros chiffre + chip trend) +
+ * sub-rows compactes pour les insights secondaires.
+ *
+ * Hiérarchie : volume mensuel = hero (le plus macro), puis plateaux + best exo
+ * en sub-rows compactes.
  */
 function renderDashboardInsights() {
     const container = document.getElementById('dashboard-insights-content');
@@ -2710,80 +2714,100 @@ function renderDashboardInsights() {
     const plateauCount = countPlateauExercises();
     const monthlyProg = calculateMonthlyProgression();
 
-    // V5-PATCH : SVG icons brand-aligned (remplace emojis) — currentColor = .dash-insight-icon CSS color
-    const SVG_TREND_UP   = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`;
-    const SVG_TREND_DOWN = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
-    const SVG_TREND_FLAT = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>`;
-    const SVG_DASH       = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
-    const SVG_AWARD      = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>`;
-    const SVG_ALERT      = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-    const SVG_CHECK      = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
+    // Lucide-style line icons — stroke-width="2.2" pour cohérence Pit Lane
+    const SVG_TREND_UP   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`;
+    const SVG_TREND_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
+    const SVG_TREND_FLAT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+    const SVG_BARS       = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`;
+    const SVG_AWARD      = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>`;
+    const SVG_ALERT      = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    const SVG_CHECK      = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
+    const SVG_ARROW_UP_R = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>`;
+    const SVG_ARROW_DN_R = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="7" x2="17" y2="17"/><polyline points="17 7 17 17 7 17"/></svg>`;
 
-    // Trend icon
-    let trendIconSvg, trendLabel;
-    if (monthlyProg === null) { trendIconSvg = SVG_DASH; trendLabel = 'Pas assez de données'; }
-    else if (monthlyProg > 5) { trendIconSvg = SVG_TREND_UP; trendLabel = `+${monthlyProg}% vs mois dernier`; }
-    else if (monthlyProg > -5) { trendIconSvg = SVG_TREND_FLAT; trendLabel = `${monthlyProg >= 0 ? '+' : ''}${monthlyProg}% stable`; }
-    else { trendIconSvg = SVG_TREND_DOWN; trendLabel = `${monthlyProg}% vs mois dernier`; }
+    // ───── HERO : Volume mensuel (l'indicateur macro le plus important) ─────
+    let heroStatus, heroValue, heroMeta, heroTrend, heroTrendIcon, heroIcon;
 
-    // V7-PATCH-3 : status par insight (positive | alert | neutral) + classe is-numeric
-    // pour basculer en DM Mono tabular sur les valeurs purement chiffrées.
-    let html = '<div class="dashboard-insights-grid">';
+    if (monthlyProg === null) {
+        heroStatus = 'neutral';
+        heroValue = '—';
+        heroMeta = 'Entraîne-toi pour activer ton suivi mensuel';
+        heroTrend = null;
+        heroIcon = SVG_BARS;
+    } else if (monthlyProg > 5) {
+        heroStatus = 'positive';
+        heroValue = `+${monthlyProg}%`;
+        heroMeta = 'Volume en progression vs mois -1';
+        heroTrend = { dir: 'up', label: `+${monthlyProg}%`, icon: SVG_ARROW_UP_R };
+        heroIcon = SVG_TREND_UP;
+    } else if (monthlyProg < -5) {
+        heroStatus = 'alert';
+        heroValue = `${monthlyProg}%`;
+        heroMeta = 'Volume en recul vs mois -1';
+        heroTrend = { dir: 'down', label: `${monthlyProg}%`, icon: SVG_ARROW_DN_R };
+        heroIcon = SVG_TREND_DOWN;
+    } else {
+        heroStatus = 'neutral';
+        heroValue = `${monthlyProg >= 0 ? '+' : ''}${monthlyProg}%`;
+        heroMeta = 'Volume stable vs mois -1';
+        heroTrend = { dir: 'flat', label: 'STABLE', icon: SVG_TREND_FLAT };
+        heroIcon = SVG_TREND_FLAT;
+    }
 
-    // Meilleur exercice — toujours positif s'il y en a un
+    const trendChipHtml = heroTrend
+        ? `<span class="dash-trend-chip" data-trend="${heroTrend.dir}">${heroTrend.icon}<span>${heroTrend.label}</span></span>`
+        : '';
+
+    let html = '<div class="dash-insights-v4">';
+
+    html += `
+        <div class="dash-insight-hero" data-status="${heroStatus}">
+            <span class="dash-icon" aria-hidden="true">${heroIcon}</span>
+            <div class="dash-body">
+                <div class="dash-kicker">Volume · 30 jours</div>
+                <div class="dash-value">${heroValue}</div>
+                <div class="dash-meta">${heroMeta}</div>
+            </div>
+            ${trendChipHtml}
+        </div>`;
+
+    // ───── SUB-ROWS : insights secondaires en compact ─────
+    // Plateaux détectés
+    const plateauStatus = plateauCount > 0 ? 'alert' : 'positive';
+    const plateauValue = plateauCount > 0
+        ? `${plateauCount} ${plateauCount > 1 ? 'exercices bloqués' : 'exercice bloqué'}`
+        : 'Aucun plateau détecté';
+    const plateauSide = plateauCount > 0 ? `${plateauCount}` : '✓';
+
+    html += `
+        <div class="dash-insight-row" data-status="${plateauStatus}">
+            <span class="dash-icon" aria-hidden="true">${plateauCount > 0 ? SVG_ALERT : SVG_CHECK}</span>
+            <div class="dash-body">
+                <div class="dash-kicker">Plateaux</div>
+                <div class="dash-value">${plateauValue}</div>
+            </div>
+            <span class="dash-side">${plateauSide}</span>
+        </div>`;
+
+    // Meilleur exercice du mois (si dispo)
     if (bestExo) {
         const exoStatus = bestExo.score > 0 ? 'positive' : (bestExo.score < 0 ? 'alert' : 'neutral');
+        const exoSign = bestExo.score > 0 ? '+' : '';
         html += `
-            <div class="dash-insight-item" data-status="${exoStatus}">
-                <span class="dash-insight-icon" aria-hidden="true">${SVG_AWARD}</span>
-                <div class="dash-insight-body">
-                    <div class="dash-insight-label">Meilleur exercice du mois</div>
-                    <div class="dash-insight-value">${bestExo.name}</div>
-                    <div class="dash-insight-meta">${bestExo.score > 0 ? '+' : ''}${bestExo.score}% sur 30j</div>
+            <div class="dash-insight-row" data-status="${exoStatus}">
+                <span class="dash-icon" aria-hidden="true">${SVG_AWARD}</span>
+                <div class="dash-body">
+                    <div class="dash-kicker">Top exercice du mois</div>
+                    <div class="dash-value">${bestExo.name}</div>
                 </div>
+                <span class="dash-side">${exoSign}${bestExo.score}%</span>
             </div>`;
     }
 
-    // Plateaux — alert si > 0, positive sinon
-    const plateauStatus = plateauCount > 0 ? 'alert' : 'positive';
-    html += `
-        <div class="dash-insight-item" data-status="${plateauStatus}">
-            <span class="dash-insight-icon" aria-hidden="true">${plateauCount > 0 ? SVG_ALERT : SVG_CHECK}</span>
-            <div class="dash-insight-body">
-                <div class="dash-insight-label">Plateaux détectés</div>
-                <div class="dash-insight-value is-numeric">${plateauCount}</div>
-                <div class="dash-insight-meta">${plateauCount > 0 ? 'Consulte tes insights' : 'Aucun plateau'}</div>
-            </div>
-        </div>`;
-
-    // Volume mensuel — positive si > 5%, alert si < -5%, neutral entre les deux
-    let volStatus = 'neutral';
-    if (monthlyProg !== null) {
-        if (monthlyProg > 5) volStatus = 'positive';
-        else if (monthlyProg < -5) volStatus = 'alert';
-    }
-    const volValue = (monthlyProg === null)
-        ? '—'
-        : `${monthlyProg >= 0 ? '+' : ''}${monthlyProg}%`;
-    const volMeta = (monthlyProg === null)
-        ? 'Pas assez de données'
-        : (monthlyProg > 5
-            ? 'En progression'
-            : (monthlyProg < -5 ? 'En recul vs mois -1' : 'Stable vs mois -1'));
-    html += `
-        <div class="dash-insight-item" data-status="${volStatus}">
-            <span class="dash-insight-icon" aria-hidden="true">${trendIconSvg}</span>
-            <div class="dash-insight-body">
-                <div class="dash-insight-label">Volume mensuel</div>
-                <div class="dash-insight-value is-numeric">${volValue}</div>
-                <div class="dash-insight-meta">${volMeta}</div>
-            </div>
-        </div>`;
-
     html += '</div>';
 
-    // Link refined
-    html += `<div class="dash-insight-link" role="button" tabindex="0" onclick="if(typeof navigateToSection==='function'){navigateToSection('progress');}">Voir tous les insights <span aria-hidden="true">→</span></div>`;
+    // Footer link refined
+    html += `<div class="dash-insight-link v4" role="button" tabindex="0" onclick="if(typeof navigateToSection==='function'){navigateToSection('progress');}">Voir tous les insights <span aria-hidden="true">→</span></div>`;
 
     container.innerHTML = html;
 }
@@ -2892,6 +2916,200 @@ function _vtRowHtml(row, scaleMax) {
       </div>
       <div class="vt-row-hint ${hintClass}">${hint}</div>
     </div>`;
+}
+
+/**
+ * V8-B — Render the "Recovery Radar" card on the dashboard.
+ * Hexagonal cockpit-style SVG showing per-muscle recovery percentage.
+ * 10 muscle vertices arranged around a polygon, filled per current state.
+ *
+ * Aesthetic : Pit Lane Cockpit Telemetry — concentric rings + filled polygon
+ * with brand-red glow, vertex dots color-coded by status (DOMS=red,
+ * fatigued=amber, partial=blue-ish, ready=green, fresh=white).
+ */
+function renderRecoveryRadar() {
+    const card = document.getElementById('recovery-radar-card');
+    const svg = document.getElementById('recovery-radar-svg');
+    const list = document.getElementById('recovery-radar-list');
+    if (!card || !svg || !list) return;
+    if (typeof window.CoachVolume === 'undefined') return;
+
+    const data = window.CoachVolume.recoveryByAllMuscles();
+
+    // Filter : on affiche uniquement les muscles déjà entraînés
+    const trained = Object.values(data).filter(r => !r.neverTrained);
+    if (trained.length === 0) {
+        card.style.display = 'none';
+        return;
+    }
+
+    // Ordre canonique autour du radar (anatomique, sens horaire depuis le haut)
+    const RADAR_ORDER = [
+        'chest', 'shoulders', 'biceps', 'triceps', 'abs',
+        'calves', 'hamstrings', 'glutes', 'quads', 'back'
+    ];
+    const ordered = RADAR_ORDER
+        .map(g => data[g])
+        .filter(r => r && !r.neverTrained);
+
+    if (ordered.length < 3) {
+        // Pas assez de données pour un radar visuel ; afficher uniquement la liste
+        card.style.display = '';
+        svg.innerHTML = '';
+        list.innerHTML = trained
+            .sort((a, b) => a.pct - b.pct)
+            .slice(0, 5)
+            .map(r => _rrListItem(r))
+            .join('');
+        return;
+    }
+
+    // ── SVG geometry ──────────────────────────────────────────────────
+    // viewBox 320x280 ; on centre dans un cercle radius 100
+    const cx = 160;
+    const cy = 140;
+    const maxR = 100; // 100% radius
+    const labelR = 122; // distance du label depuis le centre
+
+    const angleStep = (2 * Math.PI) / ordered.length;
+    const startAngle = -Math.PI / 2; // commence en haut (12h)
+
+    // Points polygon courant (recovery %)
+    const dataPoints = ordered.map((r, i) => {
+        const angle = startAngle + i * angleStep;
+        const radius = (r.pct / 100) * maxR;
+        return {
+            x: cx + Math.cos(angle) * radius,
+            y: cy + Math.sin(angle) * radius,
+            angle,
+            data: r
+        };
+    });
+
+    // Helpers SVG
+    const polyPath = (points) => points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+    // Anneaux concentriques (25/50/75/100%)
+    const rings = [25, 50, 75, 100].map(pct => {
+        const r = (pct / 100) * maxR;
+        const ringPoints = ordered.map((_, i) => {
+            const angle = startAngle + i * angleStep;
+            return {
+                x: cx + Math.cos(angle) * r,
+                y: cy + Math.sin(angle) * r
+            };
+        });
+        return `<polygon class="rr-ring rr-ring--${pct}" points="${polyPath(ringPoints)}" fill="none" />`;
+    }).join('');
+
+    // Axes (du centre vers chaque vertex à 100%)
+    const axes = ordered.map((_, i) => {
+        const angle = startAngle + i * angleStep;
+        const x = cx + Math.cos(angle) * maxR;
+        const y = cy + Math.sin(angle) * maxR;
+        return `<line class="rr-axis" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" />`;
+    }).join('');
+
+    // Polygon courant rempli (recovery state)
+    const dataPolygon = `<polygon class="rr-data" points="${polyPath(dataPoints)}" />`;
+
+    // Vertex dots colorés selon status
+    const dots = dataPoints.map(p => `
+        <circle class="rr-dot rr-dot--${p.data.status}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.2" />
+    `).join('');
+
+    // Labels muscle (autour) + pct
+    const labels = ordered.map((r, i) => {
+        const angle = startAngle + i * angleStep;
+        const lx = cx + Math.cos(angle) * labelR;
+        const ly = cy + Math.sin(angle) * labelR;
+        // Anchor selon position angulaire (gauche/droite/centre)
+        let textAnchor = 'middle';
+        const cosA = Math.cos(angle);
+        if (cosA > 0.2) textAnchor = 'start';
+        else if (cosA < -0.2) textAnchor = 'end';
+        // Petit décalage vertical pour les labels haut/bas
+        const dyText = Math.sin(angle) > 0.2 ? 8 : (Math.sin(angle) < -0.2 ? -2 : 3);
+
+        return `
+        <text class="rr-label rr-label--${r.status}" x="${lx.toFixed(1)}" y="${(ly + dyText).toFixed(1)}" text-anchor="${textAnchor}">
+            <tspan class="rr-label-tag">${r.short}</tspan>
+            <tspan class="rr-label-pct" x="${lx.toFixed(1)}" dy="11">${r.pct}%</tspan>
+        </text>`;
+    }).join('');
+
+    // Centre : pulse ring + label "%"
+    const avgPct = Math.round(ordered.reduce((s, r) => s + r.pct, 0) / ordered.length);
+    const centerLabel = `
+        <circle class="rr-center" cx="${cx}" cy="${cy}" r="22" />
+        <text class="rr-center-pct" x="${cx}" y="${cy + 3}" text-anchor="middle">${avgPct}<tspan class="rr-center-suffix">%</tspan></text>
+        <text class="rr-center-kicker" x="${cx}" y="${cy + 16}" text-anchor="middle">GLOBAL</text>
+    `;
+
+    // SVG defs : gradient pour le polygon data
+    const defs = `
+        <defs>
+            <radialGradient id="rrDataGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(255, 45, 45, 0.32)" />
+                <stop offset="100%" stop-color="rgba(255, 45, 45, 0.08)" />
+            </radialGradient>
+            <filter id="rrGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+    `;
+
+    svg.innerHTML = `${defs}
+        <g class="rr-grid">${rings}${axes}</g>
+        <g class="rr-data-group">${dataPolygon}</g>
+        <g class="rr-dots">${dots}</g>
+        ${centerLabel}
+        <g class="rr-labels">${labels}</g>
+    `;
+
+    // Liste des muscles en-dessous : top 3 muscles les moins récupérés
+    const priorities = [...ordered]
+        .filter(r => r.pct < 100)
+        .sort((a, b) => a.pct - b.pct)
+        .slice(0, 3);
+
+    list.innerHTML = priorities.length > 0
+        ? priorities.map(r => _rrListItem(r)).join('')
+        : `<li class="rr-list-item rr-list-item--all-fresh">
+             <span class="rr-list-tag rr-list-tag--fresh">●</span>
+             <span class="rr-list-text">Tous frais — go all in 💪</span>
+           </li>`;
+
+    card.style.display = '';
+}
+
+function _rrListItem(r) {
+    const STATUS_LABEL = {
+        fresh: 'Frais',
+        ready: 'Prêt',
+        partial: 'Partiel',
+        fatigued: 'Fatigué',
+        doms: 'DOMS'
+    };
+    const HOURS_LEFT = r.adjustedRecoveryHrs && r.hoursSinceLast !== null
+        ? Math.max(0, Math.round(r.adjustedRecoveryHrs - r.hoursSinceLast))
+        : 0;
+    const hint = r.pct >= 100
+        ? 'récupéré · go'
+        : (HOURS_LEFT > 0 ? `~${HOURS_LEFT}h restantes` : 'récupération imminente');
+
+    return `
+    <li class="rr-list-item" data-status="${r.status}">
+        <span class="rr-list-tag rr-list-tag--${r.status}">●</span>
+        <span class="rr-list-name">${r.label}</span>
+        <span class="rr-list-status">${STATUS_LABEL[r.status] || r.status}</span>
+        <span class="rr-list-pct">${r.pct}%</span>
+        <span class="rr-list-hint">${hint}</span>
+    </li>`;
 }
 
 /**
