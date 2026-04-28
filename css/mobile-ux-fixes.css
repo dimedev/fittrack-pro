@@ -2300,3 +2300,382 @@ textarea:focus-visible {
 
    Le drag-handle, le radius, le scroll body et le sticky header sont désormais
    gérés nativement par `.modal` et `.modal-body` Pit Lane. Plus rien à fixer ici. */
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   V5-PATCH — INSIGHTS / COACH PIT BOARD + TOUCH FIX
+   ════════════════════════════════════════════════════════════════════════════
+   Bug critique : sur mobile, scroll + pouce sur card Insights / Progression
+   créait un "zoom au tap" (combo iOS magnifier + hover-translate qui sticke
+   sur tactile + cursor:pointer sans tap-highlight neutralisé).
+   Refonte visuelle : passage en "Pit Board" — strip vertical compact,
+   accent rouge brand vertical, DM Mono tabular pour tout chiffre,
+   première reco mise en avant comme "pole position".
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ---------- 1) TOUCH FIX BULLETPROOF ---------- */
+/* Tue le magnifier iOS + tap-highlight + neutralise les hover-translate
+   qui collent en mode tactile. */
+.dashboard-insights-grid,
+.dashboard-insights-grid > *,
+.dash-insight-item,
+.dash-insight-icon,
+.dash-insight-body,
+.dash-insight-link,
+.insight-item,
+.insight-icon,
+.insight-content,
+.insights-empty,
+.coach-recommendations-grid,
+.coach-recommendations-grid > *,
+.coach-card,
+.coach-icon,
+.coach-card-header,
+.coach-message,
+.coach-reason,
+#progress .pr-card,
+#progress .stat-card,
+#progress .daily-progress-feed,
+#progress .daily-progress-feed > *,
+#progress .achievement-card,
+#progress .photo-card {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+            user-select: none;
+}
+
+/* Sur tactile : aucun transform sur :hover / :active.
+   Empêche le "lift" qui crée la sensation de zoom pendant le scroll. */
+@media (hover: none), (pointer: coarse) {
+    .dash-insight-item,
+    .dash-insight-item:hover,
+    .dash-insight-item:active,
+    .dash-insight-item:focus,
+    .insight-item,
+    .insight-item:hover,
+    .insight-item:active,
+    .coach-card,
+    .coach-card:hover,
+    .coach-card:active,
+    .coach-card:focus,
+    #progress .pr-card,
+    #progress .pr-card:hover,
+    #progress .pr-card:active,
+    #progress .stat-card,
+    #progress .stat-card:hover,
+    #progress .stat-card:active,
+    #progress .daily-progress-feed > *:hover,
+    #progress .achievement-card:hover {
+        transform: none !important;
+        -webkit-transform: none !important;
+    }
+}
+
+/* ---------- 2) DASHBOARD INSIGHTS — Telemetry Strip ---------- */
+.dashboard-insights-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0 0;
+}
+
+.dash-insight-item {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: 38px 1fr;
+    gap: 14px;
+    align-items: center;
+    padding: 13px 14px 13px 16px !important;
+    background:
+        linear-gradient(90deg,
+            color-mix(in srgb, var(--accent-brand, #ff0000) 5%, transparent),
+            transparent 38%),
+        var(--bg-card, #0f0f0f) !important;
+    border: 1px solid color-mix(in srgb, #ffffff 5%, transparent) !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+    transition: border-color 200ms ease;
+}
+
+/* Vertical accent bar gauche — signature Pit Lane */
+.dash-insight-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14px;
+    bottom: 14px;
+    width: 2px;
+    background: var(--accent-brand, #ff0000);
+    border-radius: 0 2px 2px 0;
+    opacity: 0.55;
+}
+
+.dash-insight-icon {
+    width: 38px !important;
+    height: 38px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 10%, transparent);
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    flex-shrink: 0;
+    color: var(--accent-brand, #ff0000);
+    font-size: inherit !important;
+}
+.dash-insight-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+    display: block;
+}
+
+.dash-insight-body { flex: 1; min-width: 0; }
+
+.dash-insight-label {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 500;
+    margin-bottom: 4px;
+    line-height: 1.1;
+}
+
+.dash-insight-value {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-insight-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    line-height: 1.35;
+    font-weight: 400;
+}
+
+/* Footer link "Voir tous les insights" — divider + uppercase chip-style */
+.dash-insight-link {
+    margin-top: 10px;
+    padding: 10px 0 4px !important;
+    text-align: right;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.66rem !important;
+    color: var(--accent-brand, #ff0000) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600 !important;
+    border-top: 1px solid color-mix(in srgb, #ffffff 4%, transparent);
+    cursor: pointer;
+}
+.dash-insight-link:hover { opacity: 0.75; }
+
+/* ---------- 3) COACH RECOMMENDATIONS — Pit Board Rows ---------- */
+.coach-recommendations-grid {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+/* Section label "COACH" séparateur entre stats et recos */
+#coach-recommendations-dashboard:not(:empty) {
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid color-mix(in srgb, #ffffff 5%, transparent);
+    position: relative;
+}
+#coach-recommendations-dashboard:not(:empty)::before {
+    content: 'COACH · RECOMMANDATIONS';
+    display: block;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    letter-spacing: 0.18em;
+    margin-bottom: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.coach-card {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: 32px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 14px 12px 14px !important;
+    background: var(--bg-card, #0f0f0f) !important;
+    border: 1px solid color-mix(in srgb, #ffffff 4%, transparent) !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+    transition: border-color 200ms ease;
+    animation-name: coachRowReveal;
+    animation-duration: 350ms;
+    animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+    animation-fill-mode: both;
+    box-shadow: none !important;
+}
+
+@keyframes coachRowReveal {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .coach-card { animation: none; }
+}
+
+/* Vertical accent gauche — color-coded par type */
+.coach-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    background: var(--accent-brand, #ff0000);
+    opacity: 0.5;
+    border-radius: 0 2px 2px 0;
+}
+.coach-card.coach-success::before { background: var(--accent-brand, #ff0000); opacity: 0.7; }
+.coach-card.coach-warning::before { background: #ff9f40; opacity: 0.6; }
+.coach-card.coach-info::before    { background: #ffffff;  opacity: 0.22; }
+.coach-card.coach-neutral::before { background: var(--text-muted); opacity: 0.35; }
+
+.coach-icon {
+    width: 32px !important;
+    height: 32px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 10%, transparent);
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--accent-brand, #ff0000);
+    margin-top: 1px;
+}
+.coach-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+    display: block;
+}
+
+.coach-card-header {
+    display: flex !important;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0 !important;
+    align-items: flex-start !important;
+    grid-column: 2 / 3;
+}
+
+.coach-exercise {
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #ffffff;
+    letter-spacing: -0.005em;
+    line-height: 1.25;
+    /* Pas d'uppercase : les noms d'exercices longs deviennent illisibles */
+    text-transform: none;
+}
+
+.coach-message {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.78rem !important;
+    color: var(--text-secondary, #a3a3a3) !important;
+    line-height: 1.35;
+    margin: 2px 0 0 !important;
+    grid-column: 2 / 3;
+    font-weight: 500;
+}
+
+.coach-reason {
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px !important;
+    line-height: 1.35;
+    font-style: normal;
+    opacity: 0.85;
+    grid-column: 2 / 3;
+}
+
+/* Pole position : la 1ère reco — gradient subtil + bordure brand + chiffre légèrement plus grand */
+.coach-card:first-child {
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent-brand, #ff0000) 8%, transparent),
+            transparent 55%),
+        var(--bg-card, #0f0f0f) !important;
+    border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 22%, transparent) !important;
+}
+.coach-card:first-child::before { width: 3px; opacity: 0.85; }
+.coach-card:first-child .coach-exercise { font-size: 1rem; }
+.coach-card:first-child .coach-icon {
+    background: color-mix(in srgb, var(--accent-brand, #ff0000) 18%, transparent);
+}
+
+/* Empty-state coach : SVG bot grosse opacité réduite, pas de bordure */
+#coach-recommendations-dashboard .empty-state {
+    padding: 18px 12px !important;
+    background: transparent;
+    border: none;
+}
+#coach-recommendations-dashboard .empty-state-icon { margin-bottom: 8px; }
+#coach-recommendations-dashboard .empty-state-title {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+/* ---------- 4) Mobile compact ---------- */
+@media (max-width: 480px) {
+    .dash-insight-item { padding: 12px 12px 12px 14px !important; gap: 12px; }
+    .dash-insight-icon { width: 34px !important; height: 34px; }
+    .dash-insight-icon svg { width: 16px !important; height: 16px !important; }
+    .dash-insight-value { font-size: 0.98rem; }
+    .coach-card { padding: 11px 12px 11px 12px !important; }
+    .coach-icon { width: 30px !important; height: 30px; }
+    .coach-icon svg { width: 15px !important; height: 15px !important; }
+    .coach-exercise { font-size: 0.9rem; }
+    .coach-card:first-child .coach-exercise { font-size: 0.95rem; }
+    .coach-message { font-size: 0.74rem !important; }
+    .coach-reason { font-size: 0.68rem; }
+    #coach-recommendations-dashboard:not(:empty)::before { font-size: 0.6rem; }
+}
+
+/* ---------- 5) Progression cards — touch fix global ---------- */
+/* Sur la section #progress : empêcher TOUT transform sur touch.
+   Couvre pr-card, stat-card, achievement-card, daily-progress-feed items. */
+@media (hover: none), (pointer: coarse) {
+    #progress .pr-card,
+    #progress .pr-card:hover,
+    #progress .pr-card:active,
+    #progress .stat-card,
+    #progress .stat-card:hover,
+    #progress .stat-card:active,
+    #progress .achievement-card,
+    #progress .achievement-card:hover {
+        transform: none !important;
+        -webkit-transform: none !important;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset !important;
+    }
+    #progress * {
+        -webkit-tap-highlight-color: transparent;
+    }
+}
