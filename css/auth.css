@@ -19,7 +19,7 @@
     /* Text */
     --text-primary: #fafafa;
     --text-secondary: #a1a1a1;
-    --text-muted: #525252;
+    --text-muted: #a3a3a3; /* V6.2 A11Y : WCAG AA 4.5:1 (avant: #525252 ~2.8:1) */
     
     /* Borders */
     --border-color: #262626;

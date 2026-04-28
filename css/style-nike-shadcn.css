@@ -32,7 +32,7 @@
     /* Text */
     --text-primary: #fafafa;
     --text-secondary: #a3a09c;
-    --text-muted: #57534e;
+    --text-muted: #a3a3a3; /* V6.2 A11Y : WCAG AA 4.5:1 (avant: #57534e ~3.0:1 fail) */
 
     /* Borders - shadcn style (stone palette) */
     --border-color: #292524;

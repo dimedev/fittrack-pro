@@ -29,9 +29,12 @@
     flex-shrink: 0 !important;
 }
 
-/* Améliorer le contraste des labels muted */
+/* V6.2 A11Y — contraste WCAG AA (4.5:1 minimum sur texte normal)
+   Token muted unifié à `#a3a3a3` (#a3 = 163/255), ratio ~7.0:1 sur fond
+   `#0a0a0c` (bg sombre Repzy) → AA confortable, AAA pour le texte large.
+   Avant on avait #737373 (~4.0:1 → fail AA). */
 :root {
-    --text-muted: #737373 !important; /* Plus clair que #525252 */
+    --text-muted: #a3a3a3 !important;
 }
 
 /* Unifier les paddings des cards */

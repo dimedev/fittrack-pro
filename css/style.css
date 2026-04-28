@@ -9,7 +9,7 @@
     --accent-glow: rgba(0, 255, 136, 0.15);
     --text-primary: #ffffff;
     --text-secondary: #a0a0b0;
-    --text-muted: #606070;
+    --text-muted: #a3a3a3; /* V6.2 A11Y : WCAG AA 4.5:1 sur fond sombre (~7.0:1) */
     --border-color: #2a2a3a;
     --danger: #ff4466;
     --warning: #ffaa00;

@@ -108,9 +108,29 @@ const FocusTrap = {
 
         const previousFocus = document.activeElement;
 
-        // Ajouter les attributs ARIA
+        // V6.2 A11Y : attributs ARIA dialog complets
+        // - role=dialog : le mode fenêtre modale (annoncé par les SR)
+        // - aria-modal=true : le contenu en arrière-plan est désactivé
+        // - aria-labelledby : pointe vers le titre interne (lecteur d'écran le lit
+        //   à l'ouverture de la modale)
         element.setAttribute('role', 'dialog');
         element.setAttribute('aria-modal', 'true');
+
+        // Auto-pose `aria-labelledby` si on trouve un titre interne sans id explicite.
+        // Pattern Repzy : `.modal-title`, `.confirm-modal-title`, ou un `h1/h2/h3`
+        // dans `.modal-header`. On lui pose un id stable et on relie.
+        if (!element.getAttribute('aria-labelledby')) {
+            const titleEl =
+                element.querySelector('.modal-title, .confirm-modal-title, .bottom-sheet-title') ||
+                element.querySelector('.modal-header h1, .modal-header h2, .modal-header h3, .modal-header h4') ||
+                element.querySelector('h1, h2, h3, h4'); // fallback large
+            if (titleEl) {
+                if (!titleEl.id) {
+                    titleEl.id = `modal-title-${id}-${Math.random().toString(36).slice(2, 7)}`;
+                }
+                element.setAttribute('aria-labelledby', titleEl.id);
+            }
+        }
 
         const handler = (e) => {
             if (e.key !== 'Tab') return;
@@ -160,7 +180,8 @@ const FocusTrap = {
 
         document.removeEventListener('keydown', trap.handler);
 
-        // Retirer les attributs ARIA
+        // Retirer les attributs ARIA (mais on garde role=dialog statique pour
+        // les modales déclarées en HTML qui le portent en dur)
         trap.element.removeAttribute('aria-modal');
 
         // Restaurer le focus à l'élément déclencheur
