@@ -8,12 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=61">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=62">
     <link rel="stylesheet" href="css/mobile-premium.css?v=6">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=53">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=54">
     <!-- Deferred: loaded async, applied when ready -->
     <link rel="stylesheet" href="css/session-manager.css?v=45" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="css/premium-components.css?v=25" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/premium-components.css?v=26" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=10" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
@@ -307,24 +307,6 @@
                         </div>
                     </div>
 
-                    <!-- V5-B : Hydration mini-row (fusionné depuis l'ancien hydration-widget) -->
-                    <div class="macros-hydration-row" id="macros-hydration-row">
-                        <div class="macros-hydration-meta">
-                            <svg class="macros-hydration-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
-                                <path d="M12 2.5s6.5 6.5 6.5 11.5a6.5 6.5 0 1 1-13 0c0-5 6.5-11.5 6.5-11.5z"/>
-                            </svg>
-                            <span class="macros-hydration-label">Hydratation</span>
-                            <span class="macros-hydration-value" id="macros-hydration-value">0 / 2500ml</span>
-                        </div>
-                        <div class="macros-hydration-actions">
-                            <button type="button" class="btn btn-ghost btn-xs" onclick="addWater(250)">+250ml</button>
-                            <button type="button" class="btn btn-ghost btn-xs" onclick="addWater(500)">+500ml</button>
-                            <button type="button" class="btn btn-ghost btn-xs" onclick="openCustomWaterModal()">Custom</button>
-                        </div>
-                        <div class="macros-hydration-track">
-                            <div class="macros-hydration-fill" id="macros-hydration-fill" style="width: 0%"></div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Nutrition Goal Card (suggestion pour fermer le gap) -->
@@ -333,8 +315,8 @@
                 </div>
 
                 <!-- V5-B : Today's Session card supprimée — redondante avec le Hero CTA "Commencer la séance".
-                     Hydration widget déplacé dans la card Macros (ligne ~309) en mini-row compact. -->
-                <div class="hydration-card" id="hydration-widget" hidden></div>
+                     V5-PATCH : Hydration widget supprimé entièrement (feature décorative non utilisée). -->
+
 
                 <!-- ═════════ SECONDARY PANEL (Insights & Recovery, collapsible) ═════════ -->
                 <details class="dashboard-secondary" id="dashboard-secondary-panel">
@@ -3885,10 +3867,10 @@
     <script src="js/modules/recipes.js?v=6"></script>
     <script src="js/modules/icons.js?v=1"></script>
     <script src="js/modules/supabase.js?v=45"></script>
-    <script src="js/modules/profile.js?v=28"></script>
+    <script src="js/modules/profile.js?v=29"></script>
     <script src="js/modules/nutrition-core.js?v=4"></script>
-    <script src="js/modules/nutrition-ui.js?v=4"></script>
-    <script src="js/modules/nutrition.js?v=37"></script>
+    <script src="js/modules/nutrition-ui.js?v=5"></script>
+    <script src="js/modules/nutrition.js?v=38"></script>
     <script src="js/modules/food-api.js?v=1"></script>
     <script src="js/modules/nutrition-suggestions.js?v=3"></script>
     <script src="js/modules/meal-templates.js?v=5"></script>
@@ -3914,9 +3896,8 @@
     <script src="js/modules/goals.js?v=9"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=6"></script>
-    <script src="js/modules/hydration.js?v=3"></script>
     <script src="js/modules/plate-calculator.js?v=1"></script>
-    <script src="js/modules/mobile-gestures.js?v=12"></script>
+    <script src="js/modules/mobile-gestures.js?v=13"></script>
     <script src="js/modules/theme.js?v=6"></script>
     <script src="js/modules/onboarding.js?v=1"></script>
     <script src="js/app.js?v=34"></script>

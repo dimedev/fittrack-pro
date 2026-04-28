@@ -1520,38 +1520,10 @@ function resetKeyboardPaddingFix() {
     }
 }
 
-// ==================== HYDRATATION ====================
-
-/**
- * Affiche le widget d'hydratation
- */
-function renderHydrationWidget() {
-    const container = document.getElementById('hydration-widget');
-    if (!container) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const consumed = state.hydration?.[today] || 0;
-    const goal = state.profile?.waterGoal || 2500;
-    const percentage = Math.min(100, Math.round((consumed / goal) * 100));
-
-    container.innerHTML = `
-        <div class="hydration-header">
-            <div class="hydration-title">
-                <span class="icon" style="display:inline-flex; align-items:center; color: var(--accent-brand); margin-right:6px;">${NUI_ICONS.droplet}</span>
-                Hydratation
-            </div>
-            <div class="hydration-value">${consumed} / ${goal}ml</div>
-        </div>
-        <div class="hydration-progress-bar">
-            <div class="hydration-progress-fill" style="width: ${percentage}%"></div>
-        </div>
-        <div class="hydration-actions">
-            <button class="btn btn-sm btn-outline" onclick="addWater(250)">+250ml</button>
-            <button class="btn btn-sm btn-outline" onclick="addWater(500)">+500ml</button>
-            <button class="btn btn-sm btn-outline" onclick="openCustomWaterModal()">Custom</button>
-        </div>
-    `;
-}
+// ==================== HYDRATATION (supprimée V5-PATCH) ====================
+// Feature retirée. Stub no-op conservé pour neutraliser les anciens callers
+// éventuels sans crasher.
+function renderHydrationWidget() { /* feature supprimée */ }
 
 // ==================== WINDOW EXPORTS ====================
 window.renderRecentFoodsSection = renderRecentFoodsSection;

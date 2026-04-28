@@ -863,9 +863,6 @@
                 if (window.SmartTraining?.renderMuscleRecoveryWidget) {
                     window.SmartTraining.renderMuscleRecoveryWidget();
                 }
-                if (window.Hydration?.renderHydrationWidget) {
-                    window.Hydration.renderHydrationWidget();
-                }
                 if (typeof renderDailyMacros === 'function') {
                     renderDailyMacros();
                 }

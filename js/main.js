@@ -75,7 +75,6 @@ import './modules/ui.js';
 import './modules/goals.js';
 import './modules/photos.js';
 import './modules/premium-ui.js';
-import './modules/hydration.js';
 import './modules/plate-calculator.js';
 import './modules/mobile-gestures.js';
 import './modules/theme.js';

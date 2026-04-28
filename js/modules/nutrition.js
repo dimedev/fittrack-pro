@@ -1,5 +1,5 @@
 // ==================== NUTRITION SEARCH & SHEETS ====================
-// Recherche, quantity sheets, meal sheets, custom food, cardio flow, hydration
+// Recherche, quantity sheets, meal sheets, custom food, cardio flow
 // Extracted to: nutrition-core.js (constants, calculs, CRUD), nutrition-ui.js (rendu, rings, charts)
 
 /**
@@ -2097,44 +2097,15 @@ function initNutritionSwipeToClose() {
     });
 }
 
-// ==================== HYDRATATION ====================
-
-/**
- * Ajoute de l'eau au journal
- */
-async function addWater(amountMl) {
-    const today = new Date().toISOString().split('T')[0];
-
-    if (!state.hydration) state.hydration = {};
-    if (!state.hydration[today]) state.hydration[today] = 0;
-
-    state.hydration[today] += amountMl;
-    saveState();
-
-    // Sync Supabase
-    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-        await saveHydrationToSupabase(today, state.hydration[today]);
-    }
-
-    renderHydrationWidget();
-    showToast(`+${amountMl}ml ajoutés 💧`, 'success');
-}
-
-/**
- * Ouvre une modal pour ajouter une quantité custom d'eau
- */
-function openCustomWaterModal() {
-    const amount = prompt('Quantité d\'eau (ml) :', '750');
-    if (amount && !isNaN(amount) && parseInt(amount) > 0) {
-        addWater(parseInt(amount));
-    }
-}
+// ==================== HYDRATATION (supprimée V5-PATCH) ====================
+// Feature retirée : tracking manuel non utilisé. Les fonctions addWater /
+// openCustomWaterModal et le state.hydration sont déclassés. La section reste
+// vide pour préserver les line numbers des autres modules.
 
 // Initialiser au chargement du DOM
 if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
         initNutritionSwipeToClose();
-        renderHydrationWidget();
     });
 }
 
@@ -2508,8 +2479,6 @@ window.openFoodQuantitySheetForMeal = openFoodQuantitySheetForMeal;
 window.openFoodQuantitySheetForEdit = openFoodQuantitySheetForEdit;
 window.closeFoodQuantitySheet = closeFoodQuantitySheet;
 window.confirmAddFood = confirmAddFood;
-window.addWater = addWater;
-window.openCustomWaterModal = openCustomWaterModal;
 window.selectQuantityPresetAdaptive = selectQuantityPresetAdaptive;
 window.adjustQuantityUnit = adjustQuantityUnit;
 window.selectFoodForMeal = selectFoodForMeal;
@@ -2547,4 +2516,4 @@ window.normalizeForSearch = normalizeForSearch;
 window.mealSectionStates = mealSectionStates;
 window.currentMealType = currentMealType;
 
-console.log('✅ nutrition.js: Search, sheets, cardio, hydration exportés');
+console.log('✅ nutrition.js: Search, sheets, cardio exportés');

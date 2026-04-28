@@ -450,26 +450,26 @@ function updateQuickSummary() {
 
 // ==================== DAILY READINESS SCORE ====================
 function calculateReadinessScore() {
+    // V5-PATCH : hydratation retirée. Pondération recalibrée nutrition 40 / recovery 40 / streak 20.
     let details = {
         nutrition: 0,
         recovery: 100,
-        hydration: 0,
         streak: 0
     };
-    
+
     // Vérifier si nouvel utilisateur (pas de sessions)
     const isNewUser = !state.sessionHistory || state.sessionHistory.length === 0;
     const hasEatenToday = state.foodJournal && state.foodJournal[new Date().toISOString().split('T')[0]]?.length > 0;
-    
+
     // Nutrition (40%) - macros atteints
     if (state.profile && state.profile.targetCalories) {
         const consumed = calculateConsumedMacros();
         if (consumed && consumed.calories > 0) {
             const caloriePercent = Math.min(100, (consumed.calories / state.profile.targetCalories) * 100);
-            const proteinPercent = state.profile.macros?.protein 
+            const proteinPercent = state.profile.macros?.protein
                 ? Math.min(100, (consumed.protein / state.profile.macros.protein) * 100)
                 : 0;
-            
+
             // Pénaliser si trop au-dessus des objectifs
             const nutritionScore = caloriePercent > 120 ? Math.max(0, 100 - (caloriePercent - 120)) : caloriePercent;
             details.nutrition = Math.round((nutritionScore + proteinPercent) / 2);
@@ -480,43 +480,27 @@ function calculateReadinessScore() {
     } else if (isNewUser) {
         details.nutrition = 50;
     }
-    
+
     // Recovery (40%) - récupération musculaire moyenne + impact cardio
     if (typeof SmartTraining !== 'undefined') {
         const recovery = SmartTraining.calculateMuscleRecovery();
         const recoveryValues = Object.values(recovery)
             .filter(r => r.lastWorked !== null)
             .map(r => r.recovery);
-        
+
         if (recoveryValues.length > 0) {
             details.recovery = Math.round(recoveryValues.reduce((a, b) => a + b, 0) / recoveryValues.length);
         } else {
             details.recovery = 100; // Pas d'entraînement récent = bien récupéré
         }
-        
+
         // Impact du cardio sur la récupération
         if (typeof Cardio !== 'undefined') {
             const cardioImpact = Cardio.getRecoveryImpact();
             details.recovery = Math.max(0, details.recovery - cardioImpact);
         }
     }
-    
-    // Hydratation (10%) - bonus si objectif atteint
-    const today = new Date().toISOString().split('T')[0];
-    const waterConsumed = state.hydration?.[today] || 0;
-    const waterGoal = state.profile?.waterGoal || 2500;
-    const waterPercent = Math.min(100, (waterConsumed / waterGoal) * 100);
-    
-    if (waterPercent >= 80) {
-        details.hydration = 100; // Bonus si >= 80%
-    } else if (waterPercent >= 50) {
-        details.hydration = 70; // Acceptable
-    } else if (waterPercent > 0) {
-        details.hydration = 40; // Insuffisant
-    } else {
-        details.hydration = isNewUser ? 50 : 0; // Neutre pour nouveaux users
-    }
-    
+
     // Streak (20%) - bonus pour la constance
     const currentStreak = state.goals?.currentStreak || 0;
     if (currentStreak > 0) {
@@ -524,12 +508,11 @@ function calculateReadinessScore() {
     } else if (isNewUser) {
         details.streak = 50; // Neutre pour nouveaux utilisateurs
     }
-    
-    // Calcul du score final pondéré
+
+    // Calcul du score final pondéré (40/40/20)
     let score = Math.round(
-        (details.nutrition * 0.35) +
-        (details.recovery * 0.35) +
-        (details.hydration * 0.10) +
+        (details.nutrition * 0.40) +
+        (details.recovery * 0.40) +
         (details.streak * 0.20)
     );
     
