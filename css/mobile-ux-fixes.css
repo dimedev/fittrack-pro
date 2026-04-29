@@ -4394,3 +4394,320 @@ textarea:focus-visible {
     user-select: none !important;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   V8-D-C — COACH RECO CARDS (Pit Lane refined v4)
+   ════════════════════════════════════════════════════════════════════════════
+   Refonte complète des recommandations coach. Schema enrichi V8-D :
+       priority (1-5) · type · action court · actionDetail · evidence · confidence
+   Visuel : carte cockpit avec :
+     - barre verticale de priorité gauche (color-tier P1 brand-red → P5 muted)
+     - top row : badge priorité + chip kicker + nom exercice
+     - body : icône directionnelle XL + action chip BIG (DM Mono tabular) + détail
+     - footer : kicker "EVIDENCE" + texte raison + 3 dots de confidence
+   Tons par catégorie (alert / warn / positive / info / neutral) qui drivent
+   l'accent de la chip d'action. Animation de stagger reveal d'entrée.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.coach-recos-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+@keyframes coachRecoReveal {
+    0%   { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes coachRecoBarPulse {
+    0%, 100% { opacity: 0.85; }
+    50%      { opacity: 1; }
+}
+
+.coach-reco-card {
+    --reco-accent: #a3a3a3;
+    --reco-tone-bg: color-mix(in srgb, var(--reco-accent) 6%, transparent);
+    --reco-tone-border: color-mix(in srgb, var(--reco-accent) 22%, transparent);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 14px 12px 18px;
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, #ffffff 1.5%, transparent),
+            transparent 40%),
+        color-mix(in srgb, #0a0a0a 92%, transparent);
+    border: 1px solid var(--reco-tone-border);
+    border-radius: 14px;
+    overflow: hidden;
+    opacity: 0;
+    animation: coachRecoReveal 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    transition:
+        background-color 200ms ease,
+        border-color 200ms ease;
+}
+
+/* Priority bar — left vertical accent strip */
+.coach-reco-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--reco-accent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--reco-accent) 50%, transparent);
+}
+
+.coach-reco-card.prio-p1 .coach-reco-bar,
+.coach-reco-card.prio-p2 .coach-reco-bar {
+    animation: coachRecoBarPulse 2.4s ease-in-out infinite;
+}
+
+/* Tone overrides — accent inherits priority by default; tone overrides only the tint */
+.coach-reco-card.tone-alert    { --reco-accent: #ff2d2d; }
+.coach-reco-card.tone-warn     { --reco-accent: #ff8a3d; }
+.coach-reco-card.tone-positive { --reco-accent: #4ade80; }
+.coach-reco-card.tone-info     { --reco-accent: #7dd3fc; }
+.coach-reco-card.tone-neutral  { --reco-accent: #a3a3a3; }
+
+/* Priority tier overrides (winner over tone for the bar/badge) */
+.coach-reco-card.prio-p1 { --reco-accent: #ff2d2d; }
+.coach-reco-card.prio-p2 { --reco-accent: #ff6a3d; }
+.coach-reco-card.prio-p3 { --reco-accent: #ffae3d; }
+.coach-reco-card.prio-p4 { --reco-accent: #7dd3fc; }
+.coach-reco-card.prio-p5 { --reco-accent: #a3a3a3; }
+
+/* ── HEAD : badge priorité + label kicker + exercise ───────────────────── */
+.coach-reco-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.coach-reco-prio {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.coach-reco-prio-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 18px;
+    padding: 0 5px;
+    background: var(--reco-accent);
+    color: #000;
+    font-family: 'DM Mono', 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    border-radius: 3px;
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--reco-accent) 35%, transparent),
+        0 1px 0 0 rgba(0, 0, 0, 0.4) inset;
+}
+.coach-reco-prio-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--reco-accent);
+    opacity: 0.6;
+}
+.coach-reco-prio-label {
+    font-family: 'DM Mono', 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--reco-accent) 78%, transparent);
+}
+.coach-reco-exercise {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    color: var(--text-primary, #f5f5f5);
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* ── BODY : icon XL + action chip BIG + détail ─────────────────────────── */
+.coach-reco-body {
+    display: flex;
+    align-items: center;
+}
+.coach-reco-action-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 8px 4px 6px 4px;
+}
+.coach-reco-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background:
+        radial-gradient(circle at 30% 30%,
+            color-mix(in srgb, var(--reco-accent) 18%, transparent),
+            color-mix(in srgb, var(--reco-accent) 4%, transparent) 70%);
+    border: 1px solid color-mix(in srgb, var(--reco-accent) 28%, transparent);
+    border-radius: 10px;
+    color: var(--reco-accent);
+}
+.coach-reco-icon svg {
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--reco-accent) 35%, transparent));
+}
+.coach-reco-action-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+.coach-reco-action {
+    font-family: 'DM Mono', 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.05;
+    color: var(--reco-accent);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--reco-accent) 22%, transparent);
+}
+.coach-reco-detail {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.35;
+    color: color-mix(in srgb, #ffffff 62%, transparent);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* ── FOOT : evidence kicker + texte + confidence dots ──────────────────── */
+.coach-reco-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid color-mix(in srgb, #ffffff 6%, transparent);
+}
+.coach-reco-evidence-kicker {
+    font-family: 'DM Mono', 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: color-mix(in srgb, var(--reco-accent) 70%, transparent);
+    flex-shrink: 0;
+}
+.coach-reco-evidence-sep {
+    color: color-mix(in srgb, #ffffff 20%, transparent);
+    flex-shrink: 0;
+    font-size: 10px;
+}
+.coach-reco-evidence {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: color-mix(in srgb, #ffffff 58%, transparent);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.coach-reco-conf {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+.coach-conf-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 1px;
+    background: color-mix(in srgb, #ffffff 12%, transparent);
+}
+.coach-conf-dot.lit {
+    background: var(--reco-accent);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--reco-accent) 50%, transparent);
+}
+
+/* ── EMPTY STATE ────────────────────────────────────────────────────────── */
+.coach-empty-v2 {
+    padding: 24px 16px 22px;
+    text-align: center;
+    border: 1px dashed color-mix(in srgb, #ffffff 8%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, #0a0a0a 60%, transparent);
+}
+.coach-empty-icon {
+    margin-bottom: 8px;
+    display: inline-flex;
+}
+.coach-empty-title {
+    font-family: 'DM Mono', 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, #ffffff 70%, transparent);
+    margin-bottom: 4px;
+}
+.coach-empty-msg {
+    font-size: 12px;
+    line-height: 1.45;
+    color: color-mix(in srgb, #ffffff 48%, transparent);
+    margin: 0;
+    max-width: 320px;
+    margin-inline: auto;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 380px) {
+    .coach-reco-card {
+        padding: 12px 12px 10px 16px;
+    }
+    .coach-reco-action {
+        font-size: 16px;
+    }
+    .coach-reco-icon {
+        width: 34px;
+        height: 34px;
+    }
+    .coach-reco-exercise {
+        font-size: 12px;
+    }
+}
+
+/* Touch / scroll-fluidity carryover (V7-PATCH-3 doctrine) */
+.coach-reco-card,
+.coach-reco-card * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+}
+.coach-reco-card *:not(input):not(textarea) {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+@media (hover: none), (pointer: coarse) {
+    .coach-reco-card:hover,
+    .coach-reco-card:active,
+    .coach-reco-card *:hover,
+    .coach-reco-card *:active {
+        transform: none !important;
+        -webkit-transform: none !important;
+        box-shadow: none !important;
+    }
+}
+

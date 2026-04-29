@@ -2153,8 +2153,52 @@ function renderMonthlyComparisonChart() {
 
 // ==================== RECOMMANDATIONS COACH ====================
 
+// V8-D-C — SVG icon dictionary (consumes new schema icon field)
+const COACH_RECO_ICONS = {
+    bot:      `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.4"><rect x="3" y="11" width="18" height="10" rx="2" ry="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`,
+    up:       `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+    down:     `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`,
+    reps:     `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 7 7-7 7"/><path d="M21 12H3"/></svg>`,
+    plateau:  `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>`,
+    maintain: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
+};
+
+// V8-D-C — Priority tier styling (1=critique brand-red → 5=info muted)
+const PRIORITY_TIERS = {
+    1: { label: 'P1', cls: 'p1', accent: '#ff2d2d' },
+    2: { label: 'P2', cls: 'p2', accent: '#ff6a3d' },
+    3: { label: 'P3', cls: 'p3', accent: '#ffae3d' },
+    4: { label: 'P4', cls: 'p4', accent: '#7dd3fc' },
+    5: { label: 'P5', cls: 'p5', accent: '#a3a3a3' }
+};
+
+// V8-D-C — Tone mapping by reco type (drives chip color, dot, etc.)
+const RECO_TONE = {
+    plateau_real:   'alert',
+    plateau_simple: 'alert',
+    volume_high:    'alert',
+    rpe_reduce:     'alert',
+    weight_down:    'warn',
+    effort_low:     'warn',
+    weight_up:      'positive',
+    rep_up:         'positive',
+    volume_low:     'info',
+    maintain:       'neutral'
+};
+
 /**
- * Génère et affiche les recommandations du coach IA
+ * V8-D-C — Génère et affiche les recommandations du coach (Pit Lane refined).
+ *
+ * Card layout :
+ *   ┌─────────────────────────────────────────────────┐
+ *   │ ▌ P1 · ALERT      DEVELOPPÉ COUCHÉ              │  ← top row : priority + exercise
+ *   │ ▌                                                │
+ *   │ ▌  [icon]   ↓ -2.5kg                             │  ← action chip BIG
+ *   │ ▌           Passe à 80kg × 8                     │     (subtle subtitle)
+ *   │ ▌                                                │
+ *   │ ▌  EVIDENCE · RPE 9 SUR 3 SESSIONS               │  ← DM Mono kicker
+ *   └─────────────────────────────────────────────────┘
+ *      ↑ priority bar (color-tier, 3px)
  */
 function renderCoachRecommendations() {
     const containers = [
@@ -2164,189 +2208,502 @@ function renderCoachRecommendations() {
 
     const recommendations = generateCoachRecommendations();
 
-    // V5-PATCH : SVG icons brand-aligned (remplace emojis 🤖/📈/💪/⚠️/✅/🔄/📉/💡)
-    const SVG_BOT      = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.4"><rect x="3" y="11" width="18" height="10" rx="2" ry="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
-    const SVG_UP       = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`;
-    const SVG_DOWN     = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
-    const SVG_REPS     = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.768 1.768a2 2 0 1 1-2.828-2.829l6.364-6.364a2 2 0 1 1 2.829 2.828l-1.768-1.768a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>`;
-    const SVG_ALERT    = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-    const SVG_CHECK    = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
-    const SVG_REFRESH  = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>`;
-    const SVG_BULB     = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.6c.6.4 1 1.1 1 1.9V18h6v-1.5c0-.8.4-1.5 1-1.9A7 7 0 0 0 12 2z"/></svg>`;
-
     const emptyStateHTML = `
-        <div class="empty-state">
-            <div class="empty-state-icon">${SVG_BOT}</div>
-            <div class="empty-state-title">Le coach se prépare</div>
-            <p style="color:var(--text-secondary)">Après 3 séances, tu recevras des recommandations personnalisées sur ta progression</p>
+        <div class="coach-empty-v2">
+            <div class="coach-empty-icon">${COACH_RECO_ICONS.bot}</div>
+            <div class="coach-empty-title">Le coach analyse</div>
+            <p class="coach-empty-msg">Après 3 séances par exercice, des recommandations actionnables apparaîtront ici.</p>
         </div>
     `;
 
-    if (recommendations.length === 0) {
+    if (!recommendations || recommendations.length === 0) {
         containers.forEach(container => {
             if (container) container.innerHTML = emptyStateHTML;
         });
         return;
     }
 
-    let html = '<div class="coach-recommendations-grid">';
+    let html = '<div class="coach-recos-v2">';
 
     recommendations.forEach((rec, index) => {
-        const iconMap = {
-            'increase_weight': SVG_UP,
-            'increase_reps':   SVG_REPS,
-            'deload':          SVG_ALERT,
-            'maintain':        SVG_CHECK,
-            'plateau':         SVG_REFRESH,
-            'volume_plateau':  SVG_DOWN
-        };
+        const tier = PRIORITY_TIERS[rec.priority] || PRIORITY_TIERS[5];
+        const tone = RECO_TONE[rec.type] || 'neutral';
+        const icon = COACH_RECO_ICONS[rec.icon] || COACH_RECO_ICONS.maintain;
 
-        const colorMap = {
-            'increase_weight': 'success',
-            'increase_reps': 'info',
-            'deload': 'warning',
-            'maintain': 'neutral',
-            'plateau': 'warning',
-            'volume_plateau': 'warning'
-        };
+        // Confidence dots : 3 segments, lit = confidence level
+        const confLevel = rec.confidence === 'high' ? 3 : rec.confidence === 'medium' ? 2 : 1;
+        const confDots = [1, 2, 3].map(i =>
+            `<span class="coach-conf-dot${i <= confLevel ? ' lit' : ''}"></span>`
+        ).join('');
 
-        const icon = iconMap[rec.type] || SVG_BULB;
-        const color = colorMap[rec.type] || 'neutral';
+        const exerciseEsc  = _escapeText(rec.exercise || '');
+        const actionEsc    = _escapeText(rec.action || '');
+        const detailEsc    = _escapeText(rec.actionDetail || '');
+        const evidenceEsc  = _escapeText(rec.evidence || '');
 
         html += `
-            <div class="coach-card coach-${color}" style="animation-delay: ${index * 0.1}s">
-                <div class="coach-card-header">
-                    <span class="coach-icon">${icon}</span>
-                    <span class="coach-exercise">${rec.exercise}</span>
+            <article class="coach-reco-card tone-${tone} prio-${tier.cls}" style="animation-delay: ${Math.min(index, 5) * 60}ms">
+                <span class="coach-reco-bar" aria-hidden="true"></span>
+                <header class="coach-reco-head">
+                    <div class="coach-reco-prio">
+                        <span class="coach-reco-prio-badge">${tier.label}</span>
+                        <span class="coach-reco-prio-dot" aria-hidden="true"></span>
+                        <span class="coach-reco-prio-label">${_priorityLabel(rec.priority)}</span>
+                    </div>
+                    <span class="coach-reco-exercise" title="${exerciseEsc}">${exerciseEsc}</span>
+                </header>
+                <div class="coach-reco-body">
+                    <div class="coach-reco-action-wrap">
+                        <span class="coach-reco-icon" aria-hidden="true">${icon}</span>
+                        <div class="coach-reco-action-text">
+                            <span class="coach-reco-action">${actionEsc}</span>
+                            ${detailEsc ? `<span class="coach-reco-detail">${detailEsc}</span>` : ''}
+                        </div>
+                    </div>
                 </div>
-                <div class="coach-message">${rec.message}</div>
-                ${rec.reason ? `<div class="coach-reason">${rec.reason}</div>` : ''}
-            </div>
+                ${evidenceEsc ? `
+                    <footer class="coach-reco-foot">
+                        <span class="coach-reco-evidence-kicker">EVIDENCE</span>
+                        <span class="coach-reco-evidence-sep" aria-hidden="true">·</span>
+                        <span class="coach-reco-evidence">${evidenceEsc}</span>
+                        <span class="coach-reco-conf" aria-label="Confiance: ${rec.confidence || 'medium'}">${confDots}</span>
+                    </footer>
+                ` : ''}
+            </article>
         `;
     });
 
     html += '</div>';
 
-    // Remplir tous les conteneurs
     containers.forEach(container => {
         if (container) container.innerHTML = html;
     });
 }
 
+/** V8-D-C — Helper : Label texte pour priorité (kicker style). */
+function _priorityLabel(priority) {
+    switch (priority) {
+        case 1: return 'CRITIQUE';
+        case 2: return 'ALERT';
+        case 3: return 'PUSH';
+        case 4: return 'INFO';
+        case 5: return 'OBSERVE';
+        default: return 'INFO';
+    }
+}
+
+/** V8-D-C — Escape minimal pour innerHTML safety (XSS surface). */
+function _escapeText(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /**
- * Affiche un toast avec les recommandations du coach
+ * V8-D-D — Toast condensé des recos top-priority pour le post-séance.
+ * Nouveau schéma : on affiche `action` (court & actionnable) + evidence courte.
  */
 function showCoachRecommendationsToast() {
     const recommendations = generateCoachRecommendations();
-    
-    if (recommendations.length === 0) return;
-    
-    // Prendre les 3 premières recommandations
+    if (!recommendations || recommendations.length === 0) return;
+
     const topRecs = recommendations.slice(0, 3);
-    
-    let message = '🤖 <strong>Recommandations du Coach :</strong><br>';
+
+    let message = '<strong>Coach · Recommandations</strong><br>';
     topRecs.forEach(rec => {
-        const icon = rec.type === 'increase_weight' ? '📈' : 
-                     rec.type === 'increase_reps' ? '💪' : 
-                     rec.type === 'plateau' ? '⚠️' : '✅';
-        message += `<br>${icon} <strong>${rec.exercise}</strong>: ${rec.message}`;
+        const tier = PRIORITY_TIERS[rec.priority] || PRIORITY_TIERS[5];
+        message += `<br><span style="color:${tier.accent};font-weight:700">${tier.label}</span> <strong>${_escapeText(rec.exercise)}</strong> · ${_escapeText(rec.action)}`;
     });
-    
+
     if (recommendations.length > 3) {
-        message += `<br><br>Et ${recommendations.length - 3} autre(s) dans l'onglet Progression`;
+        message += `<br><br><em>+${recommendations.length - 3} autre(s) — voir Progression</em>`;
     }
-    
-    // Créer un toast custom avec plus de durée
+
     if (typeof showToast === 'function') {
         showToast(message, 'info', 8000);
     }
 }
 
+// ════════════════════════════════════════════════════════════════════
+// V8-D — RECOS ACTIONNABLES (RPE + volume + contexte semaine)
+// ════════════════════════════════════════════════════════════════════
+// Schema de sortie :
+//   {
+//     exercise: 'Développé Couché',
+//     type:     'plateau_real' | 'rpe_reduce' | 'weight_up' | 'rep_up'
+//             | 'effort_low'   | 'volume_low' | 'volume_high'
+//             | 'assimilation' | 'maintain',
+//     action:        '↓ -2.5kg'              // courte, actionnable
+//     actionDetail:  'Passe à 80kg × 8',     // détail facultatif
+//     evidence:      'RPE 9 sur 3 dernières  // preuve data
+//                     sessions',
+//     priority:      1-5,                     // 1 = urgent, 5 = info
+//     confidence:    'high'|'medium'|'low',
+//     icon:          'plateau' | 'up' | 'down' | 'reps' | ...
+//   }
+
 /**
- * Génère les recommandations basées sur l'historique
+ * V8-D-B — Détection de plateau CONTEXTUELLE.
+ *
+ * Discrimine 3 cas qui sembleraient identiques sur la métrique "volume
+ * stagnant" seule :
+ *   - 'real'         : volume stable + RPE en hausse → vrai plateau, deload
+ *   - 'fakeRpeDown'  : volume stable + RPE en baisse → effort qui chute
+ *   - 'assimilation' : volume stable + RPE stable    → semaine de récup
+ *                                                       légitime, no-op
+ *   - 'volumeUnknown': pas assez de RPE → fallback simple "volume stagnant"
+ *
+ * @returns {Object|null}  { kind, evidence, volChange, rpeDelta }
+ */
+function detectContextualPlateau(exerciseName) {
+    const logs = state.progressLog && state.progressLog[exerciseName];
+    if (!logs || logs.length < 6) return null;
+
+    const recent = logs.slice(-3);
+    const previous = logs.slice(-6, -3);
+
+    function logVolume(log) {
+        if (log.setsDetail && log.setsDetail.length > 0) {
+            return log.setsDetail.reduce((s, set) => {
+                const w = (typeof getEffectiveWeight === 'function')
+                    ? getEffectiveWeight(exerciseName, set.weight || 0)
+                    : (set.weight || 0);
+                return s + w * (set.reps || 0);
+            }, 0);
+        }
+        const w = (typeof getEffectiveWeight === 'function')
+            ? getEffectiveWeight(exerciseName, log.weight || 0)
+            : (log.weight || 0);
+        return w * (log.achievedReps || 0);
+    }
+
+    function logAvgRpe(log) {
+        if (!log.setsDetail || log.setsDetail.length === 0) return null;
+        const rpes = log.setsDetail
+            .filter(s => s.rpe != null && s.rpe > 0)
+            .map(s => s.rpe);
+        if (rpes.length === 0) return null;
+        return rpes.reduce((s, r) => s + r, 0) / rpes.length;
+    }
+
+    const recentVol  = recent.reduce((s, l) => s + logVolume(l), 0) / 3;
+    const prevVol    = previous.reduce((s, l) => s + logVolume(l), 0) / 3;
+    if (prevVol === 0) return null;
+
+    const volChange = ((recentVol - prevVol) / prevVol) * 100;
+    const STAGNANT_THRESHOLD_PCT = 3;
+    const isStagnant = Math.abs(volChange) < STAGNANT_THRESHOLD_PCT;
+    if (!isStagnant) return null;
+
+    // Volume stable. RPE evolution ?
+    const recentRpes = recent.map(logAvgRpe).filter(r => r != null);
+    const prevRpes   = previous.map(logAvgRpe).filter(r => r != null);
+
+    if (recentRpes.length < 2 || prevRpes.length < 2) {
+        return {
+            kind: 'volumeUnknown',
+            evidence: `Volume stable (${volChange >= 0 ? '+' : ''}${Math.round(volChange)}%), pas de RPE`,
+            volChange: Math.round(volChange * 10) / 10,
+            rpeDelta: null
+        };
+    }
+
+    const avgRecentRpe = recentRpes.reduce((s, r) => s + r, 0) / recentRpes.length;
+    const avgPrevRpe   = prevRpes.reduce((s, r) => s + r, 0) / prevRpes.length;
+    const rpeDelta = avgRecentRpe - avgPrevRpe;
+
+    // Vrai plateau : volume stable + RPE en hausse ≥ 0.8
+    if (rpeDelta >= 0.8) {
+        return {
+            kind: 'real',
+            evidence: `Volume stable, RPE ${avgPrevRpe.toFixed(1)} → ${avgRecentRpe.toFixed(1)}`,
+            volChange: Math.round(volChange * 10) / 10,
+            rpeDelta: Math.round(rpeDelta * 10) / 10
+        };
+    }
+
+    // Effort en baisse : volume stable + RPE en baisse ≤ -0.8
+    if (rpeDelta <= -0.8) {
+        return {
+            kind: 'fakeRpeDown',
+            evidence: `Volume stable, RPE ${avgPrevRpe.toFixed(1)} → ${avgRecentRpe.toFixed(1)} (effort en baisse)`,
+            volChange: Math.round(volChange * 10) / 10,
+            rpeDelta: Math.round(rpeDelta * 10) / 10
+        };
+    }
+
+    // Assimilation : volume stable + RPE stable
+    return {
+        kind: 'assimilation',
+        evidence: `Volume & RPE stables — phase d'assimilation`,
+        volChange: Math.round(volChange * 10) / 10,
+        rpeDelta: Math.round(rpeDelta * 10) / 10
+    };
+}
+
+/**
+ * V8-D-A — Génération des recommandations enrichies.
+ * Sortie : array<{exercise, type, action, actionDetail, evidence,
+ *                 priority (1-5), confidence, icon}>.
  */
 function generateCoachRecommendations() {
-    const recommendations = [];
-    
-    if (!state.progressLog) return recommendations;
-    
-    // Parcourir tous les exercices
+    if (!state.progressLog) return [];
+
+    const recos = [];
+
+    // Contexte global : phase + semaine périodisation
+    const phase = (state.periodization && state.periodization.currentPhase) || 'hypertrophy';
+    const week  = (state.periodization && state.periodization.currentWeek)  || 1;
+    const isDeloadWeek = phase === 'deload';
+
+    // Volume hebdo par groupe musculaire (V8-A)
+    let volByMuscle = null;
+    if (window.CoachVolume && typeof window.CoachVolume.weeklyVolumeByMuscle === 'function') {
+        try { volByMuscle = window.CoachVolume.weeklyVolumeByMuscle(7); } catch (_) {}
+    }
+
+    // Itère tous les exercices avec ≥ 3 logs
     Object.keys(state.progressLog).forEach(exerciseName => {
         const logs = state.progressLog[exerciseName];
-        if (logs.length < 2) return;
-        
-        const lastLog = logs[logs.length - 1];
-        const recent = logs.slice(-3); // 3 dernières séances
-        
-        // Utiliser getDoubleProgressionRecommendation si disponible
-        if (typeof getDoubleProgressionRecommendation === 'function') {
-            const dpRec = getDoubleProgressionRecommendation(exerciseName);
-            if (dpRec) {
-                recommendations.push({
-                    exercise: exerciseName,
-                    type: dpRec.phase === 'weight' ? 'increase_weight' : 'increase_reps',
-                    message: dpRec.message,
-                    reason: dpRec.phase === 'weight' ? 
-                        'Tu as atteint la cible haute de reps' : 
-                        'Continue à augmenter les reps'
-                });
-                return;
-            }
-        }
-        
-        // Fallback: analyse simple
-        const avgReps = lastLog.achievedReps / lastLog.achievedSets;
-        const targetReps = 10; // Valeur par défaut
-        
-        // Détection de plateau (même poids depuis 3 séances)
-        if (recent.length >= 3) {
-            const allSameWeight = recent.every(l => l.weight === lastLog.weight);
-            const noRepsProgress = recent.every(l => (l.achievedReps / l.achievedSets) < targetReps);
+        if (!logs || logs.length < 3) return;
 
-            if (allSameWeight && noRepsProgress) {
-                recommendations.push({
-                    exercise: exerciseName,
-                    type: 'plateau',
-                    message: `Plateau détecté. Essaie un deload à ${Math.round(lastLog.weight * 0.85 * 2) / 2}kg`,
-                    reason: 'Aucune progression depuis 3 séances'
-                });
-                return;
-            }
-        }
-
-        // Détection de plateau de VOLUME (variation < 3% sur 6 sessions)
-        const volPlat = detectVolumePlateau(exerciseName);
-        if (volPlat && volPlat.isPlateaued) {
-            recommendations.push({
-                exercise: exerciseName,
-                type: 'volume_plateau',
-                message: `Volume stagnant (${volPlat.volumeChange > 0 ? '+' : ''}${volPlat.volumeChange}%). Varie les reps ou les séries.`,
-                reason: 'Volume quasi identique sur les 6 dernières séances'
-            });
-            return;
-        }
-        
-        // Progression normale
-        if (avgReps >= targetReps + 2) {
-            const increment = lastLog.weight >= 40 ? 2.5 : 1.25;
-            recommendations.push({
-                exercise: exerciseName,
-                type: 'increase_weight',
-                message: `Passe à ${lastLog.weight + increment}kg`,
-                reason: 'Tu dépasses régulièrement la cible'
-            });
-        } else if (avgReps < targetReps - 2) {
-            recommendations.push({
-                exercise: exerciseName,
-                type: 'increase_reps',
-                message: `Vise ${Math.ceil(avgReps) + 1} reps par série`,
-                reason: 'Concentre-toi sur les reps avant d\'augmenter'
-            });
-        }
+        const reco = _analyzeExerciseForReco(exerciseName, logs, {
+            phase, week, isDeloadWeek, volByMuscle
+        });
+        if (reco) recos.push(reco);
     });
-    
-    // Limiter à 6 recommandations max
-    return recommendations.slice(0, 6);
+
+    // Sort priorité ASC (1 = urgent → 5 = info)
+    recos.sort((a, b) => a.priority - b.priority);
+
+    // Limit à 6 recos max — sinon le dashboard devient bruyant
+    return recos.slice(0, 6);
+}
+
+/**
+ * V8-D-A — Analyse 1 exercice → 1 reco au plus.
+ * Hiérarchie des règles (premier match retourne) :
+ *   1. Plateau réel (vrai vs assimilation) [priority 1-3]
+ *   2. RPE last set ≥ 9 → réduire [priority 2]
+ *   3. SmartTraining suggestion (rpe_reduce/rpe_boost/weight_up/down)
+ *   4. Double progression → ↑ poids ou ↑ reps
+ */
+function _analyzeExerciseForReco(exerciseName, logs, ctx) {
+    const lastLog = logs[logs.length - 1];
+    if (!lastLog) return null;
+
+    // ── 1. Plateau contextuel ───────────────────────────────────────
+    const plateau = detectContextualPlateau(exerciseName);
+    if (plateau) {
+        if (plateau.kind === 'real') {
+            // Vrai plateau : deload 10%
+            const lastWeight = lastLog.weight || 0;
+            const target = lastWeight > 0 ? Math.round(lastWeight * 0.9 * 2) / 2 : 0;
+            return {
+                exercise: exerciseName,
+                type: 'plateau_real',
+                action: target > 0 ? `↓ ${target}kg` : 'Deload',
+                actionDetail: target > 0 ? `Deload -10% pour casser le mur` : 'Réduire de 10%',
+                evidence: plateau.evidence,
+                priority: 1,
+                confidence: 'high',
+                icon: 'plateau'
+            };
+        }
+        if (plateau.kind === 'fakeRpeDown') {
+            return {
+                exercise: exerciseName,
+                type: 'effort_low',
+                action: `↑ Pousse plus`,
+                actionDetail: `RPE en baisse, augmente l'intensité`,
+                evidence: plateau.evidence,
+                priority: 3,
+                confidence: 'medium',
+                icon: 'up'
+            };
+        }
+        // 'assimilation' ou 'volumeUnknown' : on ne génère pas de reco (silence = OK)
+    }
+
+    // ── 2. RPE-driven via SmartTraining (déjà phase-aware) ─────────
+    let suggestion = null;
+    if (window.SmartTraining && typeof window.SmartTraining.calculateSuggestedWeight === 'function') {
+        try { suggestion = window.SmartTraining.calculateSuggestedWeight(exerciseName); } catch (_) {}
+    }
+
+    if (suggestion && suggestion.action) {
+        const reco = _mapSuggestionToReco(exerciseName, suggestion, lastLog, ctx);
+        if (reco) return reco;
+    }
+
+    // ── 3. Volume sub-MEV / over-MRV pour les muscles primaires ────
+    if (ctx.volByMuscle && window.CoachVolume) {
+        const vReco = _checkVolumeContext(exerciseName, ctx.volByMuscle);
+        if (vReco) return vReco;
+    }
+
+    // Pas de signal fort → silencieux (mieux que reco bruitée)
+    return null;
+}
+
+/**
+ * Maps une suggestion SmartTraining (action: rpe_reduce/rpe_boost/...) vers
+ * le schéma reco V8-D enrichi.
+ */
+function _mapSuggestionToReco(exerciseName, sug, lastLog, ctx) {
+    const lastWeight = lastLog.weight || 0;
+    const sugWeight = sug.suggested || 0;
+    const delta = sugWeight - lastWeight;
+    const deltaSign = delta > 0 ? '+' : (delta < 0 ? '' : '±');
+    const deltaTxt = delta !== 0 ? `${deltaSign}${delta}kg` : '';
+
+    switch (sug.action) {
+        case 'rpe_reduce':
+            return {
+                exercise: exerciseName,
+                type: 'rpe_reduce',
+                action: deltaTxt ? `↓ ${deltaTxt}` : '↓ Réduire',
+                actionDetail: sug.message || `Passe à ${sugWeight}kg`,
+                evidence: `RPE 10 dernier set — assure récup`,
+                priority: 2,
+                confidence: 'high',
+                icon: 'down'
+            };
+
+        case 'rpe_maintain':
+            return {
+                exercise: exerciseName,
+                type: 'maintain',
+                action: '= Maintien',
+                actionDetail: sug.message || `Reste à ${sugWeight}kg`,
+                evidence: `RPE 9 — maintenir l'intensité`,
+                priority: 4,
+                confidence: 'high',
+                icon: 'maintain'
+            };
+
+        case 'rpe_boost':
+            return {
+                exercise: exerciseName,
+                type: 'weight_up',
+                action: deltaTxt ? `↑ ${deltaTxt}` : '↑ Augmenter',
+                actionDetail: sug.message || `Passe à ${sugWeight}kg`,
+                evidence: `RPE faible + reps max → marge dispo`,
+                priority: 3,
+                confidence: 'high',
+                icon: 'up'
+            };
+
+        case 'weight_up': {
+            // Récolte d'evidence factuelle : avg reps des derniers sets
+            const lastReps = (lastLog.setsDetail && lastLog.setsDetail.length > 0)
+                ? Math.round(lastLog.setsDetail.reduce((s, x) => s + (x.reps || 0), 0) / lastLog.setsDetail.length)
+                : (lastLog.achievedReps && lastLog.achievedSets
+                    ? Math.round(lastLog.achievedReps / lastLog.achievedSets)
+                    : null);
+            const ev = lastReps ? `${lastReps} reps × ${lastWeight}kg dernière séance` : `Reps cible atteinte`;
+            return {
+                exercise: exerciseName,
+                type: 'weight_up',
+                action: deltaTxt ? `↑ ${deltaTxt}` : '↑ +2.5kg',
+                actionDetail: sug.message || `Passe à ${sugWeight}kg`,
+                evidence: ev,
+                priority: 3,
+                confidence: sug.confidence || 'medium',
+                icon: 'up'
+            };
+        }
+
+        case 'weight_down':
+            return {
+                exercise: exerciseName,
+                type: 'weight_down',
+                action: deltaTxt ? `↓ ${deltaTxt}` : '↓ Réduire',
+                actionDetail: sug.message || `Passe à ${sugWeight}kg`,
+                evidence: `Reps min non atteintes — décharge`,
+                priority: 2,
+                confidence: sug.confidence || 'medium',
+                icon: 'down'
+            };
+
+        case 'plateau': {
+            const target = sugWeight || (lastWeight > 0 ? Math.round(lastWeight * 0.9 * 2) / 2 : 0);
+            return {
+                exercise: exerciseName,
+                type: 'plateau_simple',
+                action: target ? `↓ ${target}kg` : 'Deload',
+                actionDetail: sug.message || 'Plateau détecté — décharge',
+                evidence: `Stagnation 3 séances, pas de RPE`,
+                priority: 2,
+                confidence: 'medium',
+                icon: 'plateau'
+            };
+        }
+
+        case 'range_change':
+            return {
+                exercise: exerciseName,
+                type: 'rep_up',
+                action: '🔄 Recalibrer',
+                actionDetail: sug.message,
+                evidence: `Nouveau range — ajuste poids vs reps`,
+                priority: 4,
+                confidence: 'medium',
+                icon: 'reps'
+            };
+
+        default:
+            return null;
+    }
+}
+
+/**
+ * Reco basée sur le volume hebdo (CoachVolume) — sub-MEV ou over-MRV
+ * sur le muscle primaire de l'exercice.
+ */
+function _checkVolumeContext(exerciseName, volByMuscle) {
+    if (!window.CoachVolume) return null;
+    const muscles = window.CoachVolume.getMusclesForExercise(exerciseName);
+    if (!muscles || !muscles.primary || muscles.primary.length === 0) return null;
+
+    // Premier muscle primaire mappé
+    let groupId = null;
+    for (const m of muscles.primary) {
+        const g = window.CoachVolume.mapMuscleToGroup(m);
+        if (g) { groupId = g; break; }
+    }
+    if (!groupId || !volByMuscle[groupId]) return null;
+
+    const v = volByMuscle[groupId];
+    if (v.status === 'underdosed') {
+        return {
+            exercise: exerciseName,
+            type: 'volume_low',
+            action: `+ ${Math.max(2, Math.round(v.mev - v.sets))} séries / sem`,
+            actionDetail: `${v.label}: sous-stim cette semaine`,
+            evidence: `${v.sets} sets / ${v.mev} MEV — manque ${Math.round((v.mev - v.sets) * 10) / 10} sets`,
+            priority: 4,
+            confidence: 'medium',
+            icon: 'reps'
+        };
+    }
+    if (v.status === 'overload') {
+        return {
+            exercise: exerciseName,
+            type: 'volume_high',
+            action: `Stop — repos`,
+            actionDetail: `${v.label}: surcharge cette semaine`,
+            evidence: `${v.sets} sets / ${v.mrv} MRV dépassé — récup compromise`,
+            priority: 2,
+            confidence: 'high',
+            icon: 'down'
+        };
+    }
+    return null;
 }
 
 // ==================== HEATMAP ANNUELLE ====================
