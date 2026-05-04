@@ -189,6 +189,128 @@ function startFullScreenSession(splitIndex) {
     showSessionPreview(splitIndex);
 }
 
+// ==================== V9 — BUILTIN PROGRAM BRIDGE ====================
+
+/**
+ * V9 : démarre une séance issue d'un programme proven (5/3/1, GZCLP, nSuns,
+ * Stronglifts, PPL JN, Upper/Lower 4j). Construit `fsSession` à la même forme
+ * que startFullScreenSessionWithCustomExercises mais sans dépendre de
+ * `state.wizardResults`. Le hook de progression se fait dans `finishSession`
+ * via `ProgramRunner.completeSession()`.
+ *
+ * @param {Object} next  — sortie de ProgramRunner.getNextSession()
+ *   { programId, programName, cycleNumber, weekNumber, weekLabel, dayIndex,
+ *     dayName, mainLift, isDeload, exercises[] }
+ */
+function startBuiltinSession(next) {
+    if (!next || !Array.isArray(next.exercises) || next.exercises.length === 0) {
+        if (typeof showToast === 'function') showToast('Aucune séance disponible', 'warning');
+        return;
+    }
+
+    // Convertit chaque entrée du runner en exercice fsSession.
+    // Pour les programmes percentage-based (5/3/1, nSuns), chaque "set" est une
+    // entrée séparée avec sets=1 → on les conserve telles quelles, le moteur
+    // gère plusieurs entrées pour le même nom (PR/progressLog par effectiveName).
+    const exercises = next.exercises.map((ex) => {
+        const baseName = ex.name || 'Exercice';
+        return {
+            name: baseName,
+            originalName: baseName,
+            effectiveName: baseName,
+            muscle: ex.muscle || '',
+            sets: ex.sets || 1,
+            reps: ex.reps || 8,
+            // Données builtin (lues par UI/coach pour afficher le contexte)
+            suggestedWeight: ex.suggestedWeight != null ? ex.suggestedWeight : null,
+            intensityLabel: ex.intensityLabel || null,
+            kind: ex.kind || 'standard',
+            amrap: !!ex.amrap,
+            percent: ex.percent || null,
+            setIndex: ex.setIndex || null,
+            totalSets: ex.totalSets || null,
+            mainLift: next.mainLift || null
+        };
+    });
+
+    // Initialiser la fsSession (sessionType 'builtin' → finishSession ne touche
+    // ni à wizardResults, ni à trainingProgress.currentSplitIndex).
+    fsSession = {
+        sessionId: 'builtin-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+        sessionSaved: false,
+        active: true,
+        splitIndex: typeof next.dayIndex === 'number' ? next.dayIndex : 0,
+        splitName: next.dayName || 'Séance',
+        sessionName: `${next.programName || 'Programme'} · ${next.weekLabel || 'S' + (next.weekNumber || '1')}`,
+        sessionType: 'builtin',
+        builtinProgram: {
+            programId: next.programId,
+            programName: next.programName,
+            cycleNumber: next.cycleNumber || 1,
+            week: next.weekNumber || 1,
+            dayIndex: next.dayIndex || 0,
+            dayName: next.dayName || null,
+            mainLift: next.mainLift || null,
+            isDeload: !!next.isDeload
+        },
+        exercises,
+        currentExerciseIndex: 0,
+        currentSetIndex: 0,
+        completedSets: [],
+        startTime: Date.now(),
+        gymId: state.activeGymId || null
+    };
+
+    console.log('🏋️ Builtin session démarrée:', fsSession.sessionId, fsSession.sessionName);
+
+    // Sauvegarde auto
+    if (typeof startAutoSaveFsSession === 'function') startAutoSaveFsSession();
+
+    // Show full-screen UI
+    const fsElement = document.getElementById('fullscreen-session');
+    if (!fsElement) {
+        console.error('❌ Element fullscreen-session introuvable');
+        return;
+    }
+    fsElement.style.display = 'flex';
+    fsElement.offsetHeight;
+    fsElement.classList.remove('animate-in');
+    void fsElement.offsetWidth;
+    fsElement.classList.add('animate-in');
+    if (typeof OverflowManager !== 'undefined' && OverflowManager.lock) OverflowManager.lock();
+
+    if (window.FitGyms?._refreshFsGymChip) window.FitGyms._refreshFsGymChip();
+
+    if (typeof updateHash === 'function') {
+        history.pushState({ section: 'session' }, '', '#session');
+    }
+
+    // Hide nav
+    const nav = document.querySelector('.nav');
+    const mobileNav = document.querySelector('.mobile-nav');
+    if (nav) nav.style.display = 'none';
+    if (mobileNav) mobileNav.style.display = 'none';
+
+    // Periodization (cohérence UI, mais le runner builtin ne dépend pas du cycle wizard)
+    if (typeof initPeriodization === 'function') initPeriodization();
+    if (typeof updateCurrentPhase === 'function') updateCurrentPhase();
+    if (typeof updatePhaseIndicator === 'function') updatePhaseIndicator();
+
+    // Render premier exercice
+    renderCurrentExercise();
+
+    // Swipe inter-exos sur mobile
+    if (window.MobileGestures?.ExerciseSwipeNavigator && window.innerWidth <= 768) {
+        const fsContent = document.querySelector('.fs-content');
+        if (fsContent) {
+            window._exerciseSwipeNav = new MobileGestures.ExerciseSwipeNavigator(fsContent);
+            window._exerciseSwipeNav.init();
+        }
+    }
+}
+
+window.startBuiltinSession = startBuiltinSession;
+
 /**
  * Machine occupée : reporter l'exercice
  */
@@ -2727,10 +2849,15 @@ async function finishSession() {
     // Utiliser la date de DÉBUT de la séance (pas la date de fin)
     // Évite que les séances commencées avant minuit soient datées au lendemain
     const today = new Date(fsSession.startTime).toLocaleDateString('en-CA');
+    // V9 : pour les séances builtin (programmes proven), pas de wizardResults — dédup sur builtinProgram.programId
+    const _isBuiltin = fsSession.sessionType === 'builtin';
+    const _dedupProgramKey = _isBuiltin
+        ? (fsSession.builtinProgram?.programId || null)
+        : (state.wizardResults?.selectedProgram || null);
     const existingSession = state.sessionHistory.find(s =>
         !s.deletedAt &&
         s.date === today &&
-        s.program === state.wizardResults.selectedProgram &&
+        s.program === _dedupProgramKey &&
         s.day === fsSession.splitName &&
         s.sessionId !== fsSession.sessionId
     );
@@ -2864,6 +2991,8 @@ async function finishSession() {
     const caloriesBurned = Math.round(met * userWeight * (durationMinutes / 60));
     
     const isFreeSession = fsSession.sessionType === 'free';
+    const isBuiltinSession = fsSession.sessionType === 'builtin';
+    const isExternalSession = isFreeSession || isBuiltinSession; // ni l'un ni l'autre n'utilise wizardResults
 
     // Save session history
     const newSession = {
@@ -2872,14 +3001,19 @@ async function finishSession() {
         timestamp: fsSession.startTime || Date.now(), // Utiliser le début de la séance
         sessionType: fsSession.sessionType || 'program',
         sessionName: fsSession.sessionName || null,
-        program: isFreeSession ? null : state.wizardResults.selectedProgram,
-        day: isFreeSession ? null : fsSession.splitName,
+        // V9 : pour builtin, on stocke programId du programme proven; sinon wizardResults.selectedProgram
+        program: isFreeSession
+            ? null
+            : (isBuiltinSession ? (fsSession.builtinProgram?.programId || null) : state.wizardResults.selectedProgram),
+        day: isExternalSession ? fsSession.splitName : fsSession.splitName,
         exercises: sessionData,
         duration: durationMinutes,
         totalVolume: Math.round(totalVolume),
         caloriesBurned: caloriesBurned,
         prsCount: newPRs.length, // Nombre de PRs battus pendant la séance
-        gymId: fsSession.gymId || state.activeGymId || null // Salle active au moment de la séance
+        gymId: fsSession.gymId || state.activeGymId || null, // Salle active au moment de la séance
+        // V9 : metadata builtin pour reconstituer le contexte programme (semaine, deload, mainLift...)
+        builtinProgram: isBuiltinSession ? { ...fsSession.builtinProgram } : null
     };
     
     state.sessionHistory.unshift(newSession);
@@ -2898,8 +3032,8 @@ async function finishSession() {
         console.warn('⚠️ Backup session localStorage échoué:', backupErr);
     }
 
-    // Sauvegarder le template si des swaps/variantes ont été faits pendant la séance (programme uniquement)
-    if (!isFreeSession) {
+    // Sauvegarder le template si des swaps/variantes ont été faits pendant la séance (programme wizard uniquement, pas builtin)
+    if (!isExternalSession) {
         const hasSwaps = fsSession.exercises.some(ex => ex.swapped);
         if (hasSwaps) {
             const templateKey = `${state.wizardResults.selectedProgram}-${fsSession.splitIndex}`;
@@ -2920,11 +3054,32 @@ async function finishSession() {
     state.trainingProgress.lastSessionDate = new Date().toISOString();
     state.trainingProgress.totalSessionsCompleted++;
 
-    // Avancer le programme seulement pour les séances du programme
-    if (!isFreeSession) {
+    // Avancer le programme wizard seulement pour les séances du programme wizard (pas free, pas builtin)
+    if (!isExternalSession) {
         const program = trainingPrograms[state.wizardResults.selectedProgram];
         const splits = program.splits[state.wizardResults.frequency];
         state.trainingProgress.currentSplitIndex = (fsSession.splitIndex + 1) % splits.length;
+    }
+
+    // V9 : avancer le programme builtin (5/3/1, GZCLP, etc.) via ProgramRunner
+    // — applique progressionRule (+2.5kg si succès, deload -10% si fail 2x AMRAP, etc.)
+    if (isBuiltinSession && window.ProgramRunner?.completeSession) {
+        try {
+            const completedPayload = {
+                programId: fsSession.builtinProgram?.programId || null,
+                week: fsSession.builtinProgram?.week,
+                dayIndex: fsSession.builtinProgram?.dayIndex,
+                mainLift: fsSession.builtinProgram?.mainLift || null,
+                sessionId: fsSession.sessionId,
+                exercises: sessionData,        // [{ exercise, sets: [{setNumber, weight, reps, ...}] }]
+                completedSets: fsSession.completedSets || [],
+                durationMinutes,
+                totalVolume: Math.round(totalVolume)
+            };
+            window.ProgramRunner.completeSession(completedPayload);
+        } catch (e) {
+            console.warn('⚠️ ProgramRunner.completeSession erreur:', e);
+        }
     }
 
     // Save state (localStorage synchrone + IndexedDB async)
@@ -2947,7 +3102,9 @@ async function finishSession() {
             date: today,
             sessionType: fsSession.sessionType || 'program',
             sessionName: fsSession.sessionName || null,
-            program: isFreeSession ? null : state.wizardResults.selectedProgram,
+            program: isFreeSession
+                ? null
+                : (isBuiltinSession ? (fsSession.builtinProgram?.programId || null) : state.wizardResults.selectedProgram),
             day: isFreeSession ? null : fsSession.splitName,
             dayIndex: !isFreeSession ? fsSession.splitIndex : null,
             exercises: sessionData,
@@ -3134,8 +3291,10 @@ async function finishSession() {
         exercise_count: Object.keys(setsByExercise).length,
         total_sets: fsSession.completedSets.length,
         total_volume: Math.round(totalVolume),
-        session_type: isFreeSession ? 'free' : 'program',
-        program: isFreeSession ? null : (state.wizardResults?.selectedProgram || null),
+        session_type: isFreeSession ? 'free' : (isBuiltinSession ? 'builtin' : 'program'),
+        program: isFreeSession
+            ? null
+            : (isBuiltinSession ? (fsSession.builtinProgram?.programId || null) : (state.wizardResults?.selectedProgram || null)),
         has_pr: newPRs.length > 0,
         pr_count: newPRs.length
     });

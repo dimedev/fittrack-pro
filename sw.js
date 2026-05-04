@@ -3,7 +3,7 @@
 // Stratégie: Cache-first pour assets statiques, Network-first pour API
 // Offline-first avec Background Sync
 
-const CACHE_VERSION = 'repzy-v1.2.9';
+const CACHE_VERSION = 'repzy-v1.3.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -66,6 +66,10 @@ const STATIC_ASSETS_RELATIVE = [
     'js/data/exercises.js',
     'js/data/foods.js',
     'js/data/programs.js',
+    'js/data/builtin-programs.js',
+    // V9 : programmes proven runtime
+    'js/modules/program-runner.js',
+    'js/modules/program-library.js',
     // Icons
     'favicon.ico',
     'favicon.svg',

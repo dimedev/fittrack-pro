@@ -7,6 +7,12 @@ function renderTrainingSection() {
     const container = document.getElementById('training-content');
     if (!container) return;
 
+    // V9 : si un programme proven est actif, il prend la priorité visuelle
+    if (window.ProgramLibrary?.hasActiveProgram?.()) {
+        container.innerHTML = window.ProgramLibrary.renderActiveProgramCard();
+        return;
+    }
+
     // Check if wizard is completed
     if (!state.wizardResults || !state.wizardResults.selectedProgram) {
         renderWizardPrompt(container);
@@ -16,15 +22,35 @@ function renderTrainingSection() {
 }
 
 function renderWizardPrompt(container) {
+    // V9 : si un programme builtin proven est actif, on rend SA carte d'état dédiée
+    if (window.ProgramLibrary?.hasActiveProgram?.()) {
+        container.innerHTML = window.ProgramLibrary.renderActiveProgramCard();
+        return;
+    }
+
     container.innerHTML = `
         <div class="card">
-            <div class="empty-state" style="padding: 60px 20px;">
+            <div class="empty-state" style="padding: 56px 20px 40px;">
                 <div class="empty-state-icon">🎯</div>
                 <div class="empty-state-title">Configure ton programme</div>
-                <p style="margin-bottom: 30px;">Réponds à quelques questions pour obtenir un programme adapté à tes objectifs</p>
+                <p style="margin-bottom: 28px;">Réponds à quelques questions pour obtenir un programme adapté à tes objectifs</p>
                 <button class="btn btn-primary btn-lg" onclick="openProgramWizard()">
                     Créer mon programme
                 </button>
+            </div>
+        </div>
+        <!-- V9 : CTA programmes proven (5/3/1, GZCLP, nSuns, Stronglifts, PPL JN, U/L 4j) -->
+        <div class="training-builtin-cta" onclick="ProgramLibrary.openLibrary()" role="button" tabindex="0"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ProgramLibrary.openLibrary();}"
+             aria-label="Parcourir les programmes éprouvés">
+            <div class="tbc-kicker">PROVEN PROGRAMS · 6 disponibles</div>
+            <div class="tbc-title">Suivre un programme éprouvé</div>
+            <div class="tbc-sub">5/3/1 BBB · GZCLP · nSuns · Stronglifts 5×5 · PPL Jeff Nippard · Upper/Lower 4j</div>
+            <div class="tbc-cta">
+                <span>Parcourir la bibliothèque</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12h14M13 5l7 7-7 7"/>
+                </svg>
             </div>
         </div>
     `;
