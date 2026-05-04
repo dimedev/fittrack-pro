@@ -4711,3 +4711,549 @@ textarea:focus-visible {
     }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   V8-E — SCROLL-ZOOM BULLETPROOF FINAL + INSIGHTS V5 PIT LANE COCKPIT
+   ════════════════════════════════════════════════════════════════════════════
+   Bug persistant rapporté user (avril 2026) : "quand je scroll et que je mets
+   le pouce sur les insights/progression, ça crée un effet de zoom bizarre,
+   ça casse la fluidité du scroll".
+
+   Diagnostic V8-E : V7-PATCH-4 couvrait .card / .session-history-item etc.
+   mais laissait passer :
+     1. iOS Safari `-webkit-text-size-adjust` non-fixé → resize de texte au
+        reflow viewport pendant scroll (URL bar collapse).
+     2. <details> wrapper #dashboard-secondary-panel non scopé → `<summary>`
+        et son sous-arbre interprétaient un long-press scroll comme tap.
+     3. Le wildcard V7-PATCH-3 sur `#progress *` ratait les éléments rendus
+        après coup (nouvelles cards V8 : .volume-telemetry-card grid, etc.)
+        à cause de spécificité competing rules.
+     4. Absence de `pointer-events: none` sur les SVG décoratifs → tap landed
+        on the decorative chevron.
+
+   Solution V8-E : kill-switch FINAL bulletproof + insights v5 redesign.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   V8-E.1 — FIX TEXT-SIZE-ADJUST (iOS reflow zoom artifact)
+   ────────────────────────────────────────────────────────────────────────── */
+html, body {
+    -webkit-text-size-adjust: 100% !important;
+       -moz-text-size-adjust: 100% !important;
+            text-size-adjust: 100% !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   V8-E.2 — KILL TOUCH ARTIFACTS WIDE COVERAGE
+   On élargit le scope V7-PATCH-3 au panel secondaire (details wrapper) +
+   les nouvelles cards V8 + tout descendant éventuellement injecté.
+   ────────────────────────────────────────────────────────────────────────── */
+#dashboard-secondary-panel,
+#dashboard-secondary-panel *,
+.dashboard-secondary,
+.dashboard-secondary *,
+.dash-insights-v4,
+.dash-insights-v4 *,
+.dash-insight-hero,
+.dash-insight-hero *,
+.dash-insight-row,
+.dash-insight-row *,
+.volume-telemetry-card,
+.volume-telemetry-card *,
+.recovery-radar-card,
+.recovery-radar-card * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+}
+
+#dashboard-secondary-panel :not(input):not(textarea):not([contenteditable="true"]),
+.dash-insights-v4 :not(input):not(textarea):not([contenteditable="true"]),
+.dash-insight-hero :not(input):not(textarea):not([contenteditable="true"]),
+.dash-insight-row :not(input):not(textarea):not([contenteditable="true"]),
+.volume-telemetry-card :not(input):not(textarea):not([contenteditable="true"]),
+.recovery-radar-card :not(input):not(textarea):not([contenteditable="true"]) {
+    -webkit-user-select: none !important;
+            user-select: none !important;
+}
+
+/* SVGs décoratifs : aucun event handler. Évite les "tap fantômes" sur icônes. */
+.dash-insights-v4 svg[aria-hidden="true"],
+.volume-telemetry-card svg[aria-hidden="true"],
+.recovery-radar-card svg[aria-hidden="true"],
+.coach-reco-card svg[aria-hidden="true"],
+.dashboard-secondary-toggle svg[aria-hidden="true"] {
+    pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   V8-E.3 — KILL-SWITCH BULLETPROOF SUR TACTILE
+   Tout transform / box-shadow / scale qui réside encore quelque part dans
+   le sous-arbre dashboard secondaire + progression : neutralisé. Aussi
+   forcé en :hover, :active, :focus, :focus-within, :focus-visible.
+   ────────────────────────────────────────────────────────────────────────── */
+@media (hover: none), (pointer: coarse) {
+    /* Section-wide kill : aucun transform sur les sous-arbres concernés */
+    #dashboard-secondary-panel,
+    #dashboard-secondary-panel *,
+    #dashboard-secondary-panel *:hover,
+    #dashboard-secondary-panel *:active,
+    #dashboard-secondary-panel *:focus,
+    #dashboard-secondary-panel *:focus-within,
+    #dashboard-secondary-panel *:focus-visible,
+    .dash-insights-v4,
+    .dash-insights-v4 *,
+    .dash-insights-v4 *:hover,
+    .dash-insights-v4 *:active,
+    .dash-insights-v4 *:focus,
+    .dash-insights-v4 *:focus-visible,
+    #progress,
+    #progress *,
+    #progress *:hover,
+    #progress *:active,
+    #progress *:focus,
+    #progress *:focus-within,
+    #progress *:focus-visible {
+        transform: none !important;
+        -webkit-transform: none !important;
+    }
+
+    /* Box-shadow sur :hover/:active : neutralisé (cause de repaint perçu zoom) */
+    #dashboard-secondary-panel *:hover,
+    #dashboard-secondary-panel *:active,
+    .dash-insights-v4 *:hover,
+    .dash-insights-v4 *:active,
+    #progress *:hover,
+    #progress *:active {
+        /* On préserve les box-shadow de "base" (animation, ::before),
+           on tue uniquement ceux liés au state interactif. */
+        box-shadow: inherit;
+    }
+
+    /* Transitions : restreintes aux props non-painty */
+    #dashboard-secondary-panel *,
+    .dash-insights-v4 *,
+    #progress * {
+        transition-property: color, background-color, border-color, opacity !important;
+        transition-duration: 180ms !important;
+        will-change: auto !important;
+    }
+
+    /* touch-action: manipulation sur tout le sous-arbre interactif. Tue le
+       double-tap zoom natif iOS sans bloquer le pan-y du scroll. */
+    #dashboard-secondary-panel,
+    #dashboard-secondary-panel *,
+    .dashboard-secondary-toggle,
+    .dash-insights-v4,
+    .dash-insights-v4 *,
+    .dash-insight-hero,
+    .dash-insight-row,
+    .dash-insight-link,
+    .dash-insight-link.v4,
+    #progress,
+    #progress *,
+    .volume-telemetry-card,
+    .volume-telemetry-card *,
+    .recovery-radar-card,
+    .recovery-radar-card * {
+        touch-action: manipulation;
+    }
+
+    /* <summary> du dashboard secondaire : prévenir le bounce/scale sur tap */
+    .dashboard-secondary-toggle,
+    .dashboard-secondary-toggle:hover,
+    .dashboard-secondary-toggle:active,
+    .dashboard-secondary-toggle:focus {
+        transform: none !important;
+        -webkit-transform: none !important;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   V8-E — INSIGHTS V5 PIT LANE COCKPIT REDESIGN
+   ════════════════════════════════════════════════════════════════════════════
+   Refonte présentation : V4 était fonctionnel mais "pas très joli" (verdict
+   user). V5 ajoute :
+     - Hero card : sparkline 4 semaines en background décoratif
+     - Glow accent subtil sur la barre de gauche (status-driven)
+     - Trend chip refined avec micro-progress bar
+     - Sub-rows avec hairline diagonal (Pit Lane signature)
+     - Footer link refined avec chevron animé (couleur seulement, no transform)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Container global v5 ── */
+.dash-insights-v4.v5 {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 8px 0 0 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    position: relative;
+}
+
+/* ═══════════════════ HERO V5 ═══════════════════ */
+.dash-insight-hero.v5 {
+    position: relative;
+    display: grid;
+    grid-template-columns: 4px 42px 1fr auto;
+    grid-column-gap: 12px;
+    align-items: center;
+    padding: 18px 16px;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--reco-accent, var(--accent-brand, #ff2d2d)) 8%, transparent),
+            transparent 60%),
+        color-mix(in srgb, #ffffff 2%, transparent);
+    border: 1px solid color-mix(in srgb, var(--reco-accent, var(--accent-brand, #ff2d2d)) 14%, transparent);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 200ms ease, background-color 200ms ease;
+    --reco-accent: var(--accent-brand, #ff2d2d);
+}
+
+.dash-insight-hero.v5[data-status="positive"] {
+    --reco-accent: #4ade80;
+}
+.dash-insight-hero.v5[data-status="alert"] {
+    --reco-accent: var(--accent-brand, #ff2d2d);
+}
+.dash-insight-hero.v5[data-status="neutral"] {
+    --reco-accent: #a3a3a3;
+}
+
+/* Barre verticale accent à gauche */
+.dash-insight-hero.v5 .hero-accent-bar {
+    grid-column: 1;
+    width: 4px;
+    height: 38px;
+    background: var(--reco-accent);
+    border-radius: 2px;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--reco-accent) 50%, transparent);
+}
+
+/* Sparkline en background décoratif (SVG injecté par JS) */
+.dash-insight-hero.v5 .hero-sparkline {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    width: 100%;
+    pointer-events: none;
+    opacity: 0.18;
+    z-index: 0;
+}
+.dash-insight-hero.v5 .hero-sparkline svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+}
+.dash-insight-hero.v5 .hero-sparkline path {
+    stroke: var(--reco-accent);
+    stroke-width: 1.6;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.dash-insight-hero.v5 .hero-sparkline path.fill {
+    fill: var(--reco-accent);
+    fill-opacity: 0.25;
+    stroke: none;
+}
+
+/* Icône hero — chip 42px */
+.dash-insight-hero.v5 .hero-icon {
+    grid-column: 2;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--reco-accent) 12%, transparent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--reco-accent);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+.dash-insight-hero.v5 .hero-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2.2;
+}
+
+/* Body */
+.dash-insight-hero.v5 .hero-body {
+    grid-column: 3;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    position: relative;
+    z-index: 1;
+}
+
+.dash-insight-hero.v5 .hero-kicker {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.6rem;
+    color: var(--text-muted, #a3a3a3);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 500;
+    line-height: 1;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dash-insight-hero.v5 .hero-kicker::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--reco-accent);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--reco-accent) 60%, transparent);
+}
+
+.dash-insight-hero.v5 .hero-value {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    margin: 4px 0 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-insight-hero.v5 .hero-meta {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.7rem;
+    color: var(--text-muted, #a3a3a3);
+    line-height: 1.35;
+    margin: 4px 0 0 0;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* Trend chip refined v5 */
+.dash-insight-hero.v5 .hero-trend {
+    grid-column: 4;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--reco-accent) 12%, transparent);
+    color: var(--reco-accent);
+    border: 1px solid color-mix(in srgb, var(--reco-accent) 28%, transparent);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+.dash-insight-hero.v5 .hero-trend svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2.4;
+}
+
+/* ═══════════════════ SUB-ROWS V5 ═══════════════════ */
+.dash-insights-v4.v5 .dash-row {
+    display: grid;
+    grid-template-columns: 4px 32px 1fr auto;
+    grid-column-gap: 12px;
+    align-items: center;
+    padding: 13px 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid color-mix(in srgb, #ffffff 5%, transparent);
+    position: relative;
+}
+
+.dash-insights-v4.v5 .dash-row:last-of-type {
+    border-bottom: none;
+}
+
+.dash-insights-v4.v5 .dash-row .row-accent {
+    grid-column: 1;
+    width: 2px;
+    height: 24px;
+    background: color-mix(in srgb, #ffffff 8%, transparent);
+    border-radius: 1px;
+}
+.dash-insights-v4.v5 .dash-row[data-status="positive"] .row-accent {
+    background: #4ade80;
+}
+.dash-insights-v4.v5 .dash-row[data-status="alert"] .row-accent {
+    background: var(--accent-brand, #ff2d2d);
+}
+
+.dash-insights-v4.v5 .dash-row .row-icon {
+    grid-column: 2;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: color-mix(in srgb, #ffffff 4%, transparent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted, #a3a3a3);
+    flex-shrink: 0;
+}
+.dash-insights-v4.v5 .dash-row .row-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2.2;
+}
+.dash-insights-v4.v5 .dash-row[data-status="positive"] .row-icon {
+    background: color-mix(in srgb, #4ade80 12%, transparent);
+    color: #4ade80;
+}
+.dash-insights-v4.v5 .dash-row[data-status="alert"] .row-icon {
+    background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 12%, transparent);
+    color: var(--accent-brand, #ff2d2d);
+}
+
+.dash-insights-v4.v5 .dash-row .row-body {
+    grid-column: 3;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dash-insights-v4.v5 .dash-row .row-kicker {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.58rem;
+    color: var(--text-muted, #a3a3a3);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 500;
+    line-height: 1;
+    margin: 0;
+}
+
+.dash-insights-v4.v5 .dash-row .row-value {
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 0.92rem;
+    color: #ffffff;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    font-weight: 600;
+    margin: 3px 0 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-insights-v4.v5 .dash-row .row-side {
+    grid-column: 4;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.78rem;
+    color: var(--text-muted, #a3a3a3);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, #ffffff 4%, transparent);
+}
+.dash-insights-v4.v5 .dash-row[data-status="positive"] .row-side {
+    color: #4ade80;
+    background: color-mix(in srgb, #4ade80 8%, transparent);
+}
+.dash-insights-v4.v5 .dash-row[data-status="alert"] .row-side {
+    color: var(--accent-brand, #ff2d2d);
+    background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 8%, transparent);
+}
+
+/* Hairline divider entre hero et sub-rows */
+.dash-insights-v4.v5 .hero-row-divider {
+    height: 1px;
+    margin: 8px 0;
+    background: linear-gradient(90deg,
+        transparent,
+        color-mix(in srgb, #ffffff 8%, transparent) 50%,
+        transparent);
+}
+
+/* ═══════════════════ FOOTER LINK V5 ═══════════════════ */
+.dash-insights-v4.v5 + .dash-insight-link.v5,
+.dash-insight-link.v5 {
+    margin-top: 12px;
+    padding: 12px 16px;
+    text-align: center;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.62rem;
+    color: var(--text-secondary, #d4d4d4);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    border: 1px solid color-mix(in srgb, #ffffff 8%, transparent);
+    border-radius: 9px;
+    cursor: pointer;
+    background: color-mix(in srgb, #ffffff 1.5%, transparent);
+    transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.dash-insight-link.v5 .link-arrow {
+    display: inline-flex;
+    align-items: center;
+    color: var(--accent-brand, #ff2d2d);
+}
+
+.dash-insight-link.v5 .link-arrow svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2.4;
+}
+
+@media (hover: hover) {
+    .dash-insight-link.v5:hover {
+        color: #ffffff;
+        border-color: color-mix(in srgb, var(--accent-brand, #ff2d2d) 30%, transparent);
+        background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 5%, transparent);
+    }
+}
+
+/* ═══════════════════ MOBILE ═══════════════════ */
+@media (max-width: 480px) {
+    .dash-insight-hero.v5 {
+        padding: 16px 14px;
+        grid-template-columns: 4px 38px 1fr auto;
+        grid-column-gap: 10px;
+    }
+    .dash-insight-hero.v5 .hero-accent-bar { height: 34px; }
+    .dash-insight-hero.v5 .hero-icon { width: 38px; height: 38px; }
+    .dash-insight-hero.v5 .hero-icon svg { width: 19px; height: 19px; }
+    .dash-insight-hero.v5 .hero-value { font-size: 1.45rem; }
+    .dash-insight-hero.v5 .hero-meta { font-size: 0.66rem; }
+    .dash-insight-hero.v5 .hero-trend { font-size: 0.66rem; padding: 5px 9px; }
+    .dash-insights-v4.v5 .dash-row {
+        padding: 11px 10px;
+        grid-template-columns: 3px 30px 1fr auto;
+        grid-column-gap: 10px;
+    }
+    .dash-insights-v4.v5 .dash-row .row-icon { width: 30px; height: 30px; }
+    .dash-insights-v4.v5 .dash-row .row-icon svg { width: 15px; height: 15px; }
+    .dash-insights-v4.v5 .dash-row .row-value { font-size: 0.88rem; }
+    .dash-insights-v4.v5 .dash-row .row-side { font-size: 0.74rem; padding: 3px 7px; }
+}
+

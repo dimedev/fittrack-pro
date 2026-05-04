@@ -3056,12 +3056,90 @@ function countPlateauExercises() {
 }
 
 /**
- * Rend la card Insights sur le Dashboard — V7-PATCH-4 layout magazine refined.
- * Hero row (insight n°1 mis en valeur avec gros chiffre + chip trend) +
- * sub-rows compactes pour les insights secondaires.
+ * V8-E — Compute sparkline data: weekly total volume for the last N weeks.
+ * Returns array of N numbers (oldest → newest). Used as decorative background
+ * of the dashboard insights hero card.
+ */
+function _computeWeeklyVolumeSparkline(numWeeks = 4) {
+    const now = new Date();
+    // Start of current week (Monday)
+    const currentMonday = new Date(now);
+    const dayOfWeek = (now.getDay() + 6) % 7; // Mon=0
+    currentMonday.setDate(now.getDate() - dayOfWeek);
+    currentMonday.setHours(0, 0, 0, 0);
+
+    const buckets = new Array(numWeeks).fill(0);
+
+    (state.sessionHistory || []).forEach(session => {
+        const sessionDate = new Date(session.date);
+        // Compute week index from oldest=0 to newest=numWeeks-1
+        const diffDays = Math.floor((currentMonday - sessionDate) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) {
+            // Future or same week as currentMonday: index = numWeeks - 1
+            buckets[numWeeks - 1] += _sessionVolume(session);
+            return;
+        }
+        const weeksAgo = Math.floor(diffDays / 7);
+        const idx = (numWeeks - 1) - weeksAgo;
+        if (idx >= 0 && idx < numWeeks) {
+            buckets[idx] += _sessionVolume(session);
+        }
+    });
+
+    return buckets;
+}
+
+function _sessionVolume(session) {
+    let v = 0;
+    (session.exercises || []).forEach(ex => {
+        (ex.sets || []).forEach(set => {
+            if (set.completed) v += (set.weight || 0) * (set.reps || 0);
+        });
+    });
+    return v;
+}
+
+/**
+ * V8-E — Build a sparkline SVG path from numeric data.
+ * Returns { line, fill } SVG paths normalized to 0-100 viewBox dimensions.
+ */
+function _buildSparklineSvg(data, width = 100, height = 32) {
+    if (!data || data.length < 2) return null;
+    const maxVal = Math.max(...data, 1);
+    const minVal = Math.min(...data, 0);
+    const range = maxVal - minVal || 1;
+    const stepX = width / (data.length - 1);
+
+    const points = data.map((v, i) => {
+        const x = i * stepX;
+        // Y inversé : haut = grosse valeur. Padding 4px top/bottom.
+        const y = height - 4 - ((v - minVal) / range) * (height - 8);
+        return { x, y };
+    });
+
+    // Smooth line via cubic Bezier (Catmull-Rom-style approximation)
+    let line = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+    for (let i = 1; i < points.length; i++) {
+        const p0 = points[i - 1];
+        const p1 = points[i];
+        const cx1 = p0.x + stepX * 0.4;
+        const cy1 = p0.y;
+        const cx2 = p1.x - stepX * 0.4;
+        const cy2 = p1.y;
+        line += ` C ${cx1.toFixed(2)} ${cy1.toFixed(2)}, ${cx2.toFixed(2)} ${cy2.toFixed(2)}, ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
+    }
+
+    const fill = `${line} L ${width} ${height} L 0 ${height} Z`;
+
+    return { line, fill, width, height };
+}
+
+/**
+ * Rend la card Insights sur le Dashboard — V8-E v5 Pit Lane Cockpit refined.
+ * Hero card avec sparkline 4 semaines en background décoratif + barre accent
+ * verticale + trend chip refined. Sub-rows compactes avec chip side coloré.
  *
- * Hiérarchie : volume mensuel = hero (le plus macro), puis plateaux + best exo
- * en sub-rows compactes.
+ * Hiérarchie : volume 30j = hero (macro), puis plateaux + best exo en rows.
  */
 function renderDashboardInsights() {
     const container = document.getElementById('dashboard-insights-content');
@@ -3111,24 +3189,42 @@ function renderDashboardInsights() {
         heroIcon = SVG_TREND_FLAT;
     }
 
-    const trendChipHtml = heroTrend
-        ? `<span class="dash-trend-chip" data-trend="${heroTrend.dir}">${heroTrend.icon}<span>${heroTrend.label}</span></span>`
+    // ───── SPARKLINE : 4 dernières semaines (background décoratif) ─────
+    const sparkData = _computeWeeklyVolumeSparkline(4);
+    const sparkSvg = _buildSparklineSvg(sparkData);
+    const sparklineHtml = sparkSvg
+        ? `<div class="hero-sparkline" aria-hidden="true">
+                <svg viewBox="0 0 ${sparkSvg.width} ${sparkSvg.height}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <path class="fill" d="${sparkSvg.fill}"/>
+                    <path d="${sparkSvg.line}"/>
+                </svg>
+            </div>`
         : '';
 
-    let html = '<div class="dash-insights-v4">';
+    const trendChipHtml = heroTrend
+        ? `<span class="hero-trend" data-trend="${heroTrend.dir}">${heroTrend.icon}<span>${heroTrend.label}</span></span>`
+        : '';
 
+    let html = '<div class="dash-insights-v4 v5">';
+
+    // ───── HERO V5 ─────
     html += `
-        <div class="dash-insight-hero" data-status="${heroStatus}">
-            <span class="dash-icon" aria-hidden="true">${heroIcon}</span>
-            <div class="dash-body">
-                <div class="dash-kicker">Volume · 30 jours</div>
-                <div class="dash-value">${heroValue}</div>
-                <div class="dash-meta">${heroMeta}</div>
+        <div class="dash-insight-hero v5" data-status="${heroStatus}">
+            ${sparklineHtml}
+            <span class="hero-accent-bar" aria-hidden="true"></span>
+            <span class="hero-icon" aria-hidden="true">${heroIcon}</span>
+            <div class="hero-body">
+                <div class="hero-kicker">Volume · 30 jours</div>
+                <div class="hero-value">${heroValue}</div>
+                <div class="hero-meta">${heroMeta}</div>
             </div>
             ${trendChipHtml}
         </div>`;
 
-    // ───── SUB-ROWS : insights secondaires en compact ─────
+    // ───── DIVIDER ─────
+    html += `<div class="hero-row-divider" aria-hidden="true"></div>`;
+
+    // ───── SUB-ROWS V5 ─────
     // Plateaux détectés
     const plateauStatus = plateauCount > 0 ? 'alert' : 'positive';
     const plateauValue = plateauCount > 0
@@ -3137,13 +3233,14 @@ function renderDashboardInsights() {
     const plateauSide = plateauCount > 0 ? `${plateauCount}` : '✓';
 
     html += `
-        <div class="dash-insight-row" data-status="${plateauStatus}">
-            <span class="dash-icon" aria-hidden="true">${plateauCount > 0 ? SVG_ALERT : SVG_CHECK}</span>
-            <div class="dash-body">
-                <div class="dash-kicker">Plateaux</div>
-                <div class="dash-value">${plateauValue}</div>
+        <div class="dash-row" data-status="${plateauStatus}">
+            <span class="row-accent" aria-hidden="true"></span>
+            <span class="row-icon" aria-hidden="true">${plateauCount > 0 ? SVG_ALERT : SVG_CHECK}</span>
+            <div class="row-body">
+                <div class="row-kicker">Plateaux</div>
+                <div class="row-value">${plateauValue}</div>
             </div>
-            <span class="dash-side">${plateauSide}</span>
+            <span class="row-side">${plateauSide}</span>
         </div>`;
 
     // Meilleur exercice du mois (si dispo)
@@ -3151,20 +3248,22 @@ function renderDashboardInsights() {
         const exoStatus = bestExo.score > 0 ? 'positive' : (bestExo.score < 0 ? 'alert' : 'neutral');
         const exoSign = bestExo.score > 0 ? '+' : '';
         html += `
-            <div class="dash-insight-row" data-status="${exoStatus}">
-                <span class="dash-icon" aria-hidden="true">${SVG_AWARD}</span>
-                <div class="dash-body">
-                    <div class="dash-kicker">Top exercice du mois</div>
-                    <div class="dash-value">${bestExo.name}</div>
+            <div class="dash-row" data-status="${exoStatus}">
+                <span class="row-accent" aria-hidden="true"></span>
+                <span class="row-icon" aria-hidden="true">${SVG_AWARD}</span>
+                <div class="row-body">
+                    <div class="row-kicker">Top exercice du mois</div>
+                    <div class="row-value">${bestExo.name}</div>
                 </div>
-                <span class="dash-side">${exoSign}${bestExo.score}%</span>
+                <span class="row-side">${exoSign}${bestExo.score}%</span>
             </div>`;
     }
 
     html += '</div>';
 
-    // Footer link refined
-    html += `<div class="dash-insight-link v4" role="button" tabindex="0" onclick="if(typeof navigateToSection==='function'){navigateToSection('progress');}">Voir tous les insights <span aria-hidden="true">→</span></div>`;
+    // Footer link v5 — refined Pit Lane chevron arrow
+    const SVG_ARROW = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+    html += `<div class="dash-insight-link v5" role="button" tabindex="0" onclick="if(typeof navigateToSection==='function'){navigateToSection('progress');}">Voir tous les insights <span class="link-arrow" aria-hidden="true">${SVG_ARROW}</span></div>`;
 
     container.innerHTML = html;
 }
