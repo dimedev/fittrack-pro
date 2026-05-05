@@ -7142,3 +7142,267 @@ html, body {
     }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   V11-B · BOUTON REMPLACER DANS LE NAVIGATOR + KICKER CONTEXTUEL SWAP SHEET
+   ════════════════════════════════════════════════════════════════════════════
+   Chaque ligne du navigator (exercice non-terminé) reçoit un bouton
+   "↔ REMPLACER" — pill DM Mono brand-red, hairline border, bg teinté 8%.
+   Le tap ouvre le swap sheet avec un kicker contextuel "REMPLACER · NOM".
+   V7-PATCH-3 doctrine : opacity feedback uniquement, zéro transform sur touch.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Bouton "↔ REMPLACER" sur chaque row du navigator ─── */
+.nav-exercise-replace {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.52rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    color: var(--accent-brand, #ff2d2d);
+    background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff2d2d) 30%, transparent);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    /* Feedback : pas de transition de fond (évite le repaint scroll) */
+    transition: opacity 120ms ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Desktop hover */
+@media (hover: hover) {
+    .nav-exercise-replace:hover {
+        background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 15%, transparent);
+        border-color: color-mix(in srgb, var(--accent-brand, #ff2d2d) 55%, transparent);
+        color: var(--accent-brand, #ff2d2d);
+    }
+}
+
+/* V7-PATCH-3 touch kill-switch : opacity feedback uniquement, zéro transform */
+@media (hover: none), (pointer: coarse) {
+    .nav-exercise-replace {
+        opacity: 0.85;
+    }
+    .nav-exercise-replace:active {
+        opacity: 0.5;
+        transform: none !important;
+        background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 12%, transparent) !important;
+    }
+}
+
+/* ─── Kicker contextuel dans le swap sheet header ─── */
+.swap-replace-kicker {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 600;
+    color: var(--accent-brand, #ff2d2d);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    line-height: 1;
+    /* Glow pulsant (accent dot) */
+}
+
+.swap-replace-kicker::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent-brand, #ff2d2d);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-brand, #ff2d2d) 65%, transparent);
+    flex-shrink: 0;
+    animation: swap-kicker-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes swap-kicker-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px color-mix(in srgb, var(--accent-brand, #ff2d2d) 65%, transparent); }
+    50% { opacity: 0.6; box-shadow: 0 0 14px color-mix(in srgb, var(--accent-brand, #ff2d2d) 40%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .swap-replace-kicker::before { animation: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   V11-C · CSS BUGS DASHBOARD
+   ════════════════════════════════════════════════════════════════════════════
+   #1 — .readiness-score-value : font-size 2rem → 1.65rem pour ne plus
+        déborder du ring SVG (ring intérieur ≈ 94px, baseline d'un 2rem
+        DM Mono 800 dépasse de ~4px en bas). Fixé directement dans
+        premium-components.css (cf. ce même commit).
+   #2 — .meal-result-quickadd-btn "ovale" :
+        Cause : .meal-result-quickadd-btn:hover/.active appliquent
+        transform: translateY(-50%) scale(1.08/0.92). Sur iOS Safari,
+        la composition translateY+scale sur un élément `position:absolute`
+        peut arrondir la hauteur différemment de la largeur → aspect ratio
+        perçu non-carré. Fix : sur touch devices, neutraliser le scale
+        et ne garder que translateY(-50%) pour le centrage vertical.
+        Aussi : parent .meal-result-item:hover translateX(4px) tué sur
+        touch (même doctrine V7-PATCH-3).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+@media (hover: none), (pointer: coarse) {
+    /* Quickadd btn : carré parfait sur tactile, opacity feedback only */
+    .meal-result-quickadd-btn:hover,
+    .meal-result-quickadd-btn:active,
+    .meal-result-quickadd-btn:focus {
+        transform: translateY(-50%) !important;  /* pas de scale */
+        box-shadow: none !important;
+        background: color-mix(in srgb, var(--accent-brand, #ff0000) 18%, transparent) !important;
+        border-color: color-mix(in srgb, var(--accent-brand, #ff0000) 55%, transparent) !important;
+    }
+    .meal-result-quickadd-btn:active {
+        opacity: 0.6;
+    }
+    /* Parent item : tuer le translateX qui décale tout l'item au touch */
+    .meal-result-item:hover,
+    .meal-result-item:active,
+    .meal-habit-item:hover,
+    .meal-habit-item:active,
+    .meal-quick-item:hover,
+    .meal-quick-item:active {
+        transform: none !important;
+    }
+    /* touch-action manipulation pour tuer double-tap-zoom iOS sur les items */
+    .meal-result-item,
+    .meal-habit-item,
+    .meal-quick-item,
+    .meal-result-quickadd-btn {
+        touch-action: manipulation;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   V11-E · FS SETTINGS SHEET — VUE SIMPLE (ZERO-SCROLL)
+   ════════════════════════════════════════════════════════════════════════════
+   Restructuration en 2 niveaux :
+   - ESSENTIEL : 1 toggle GIF uniquement — visible sans scroll
+   - AVANCÉ : 3 toggles masqués par défaut, révélés par "PLUS D'OPTIONS · 3"
+   Aesthetic Pit Lane Cockpit : DM Mono kickers ALL CAPS, brand-red border,
+   chevron animé, bg teinté sur section ESSENTIEL.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Header compact (remplace le h3 inline) ─── */
+.fs-settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.fs-settings-header-kicker {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--text-muted, #a3a3a3);
+    line-height: 1;
+}
+
+.fs-settings-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #a3a3a3);
+    cursor: pointer;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: opacity 120ms ease;
+}
+@media (hover: hover) {
+    .fs-settings-close:hover { opacity: 0.7; color: #ffffff; }
+}
+@media (hover: none), (pointer: coarse) {
+    .fs-settings-close:active { opacity: 0.5; transform: none !important; }
+}
+
+/* ─── Section ESSENTIELLE : toggle GIF avec fond teinté brand-red ─── */
+.fs-settings-essential {
+    background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 4%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff2d2d) 12%, transparent);
+    border-radius: 10px;
+    padding: 2px 0;
+    margin-bottom: 10px;
+}
+
+/* ─── Bouton "PLUS D'OPTIONS · 3" ─── */
+.fs-settings-more-toggle {
+    width: 100%;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, #ffffff 8%, transparent);
+    color: var(--text-secondary, #d4d4d4);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    padding: 11px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: border-color 180ms ease, color 180ms ease;
+    margin-bottom: 0;
+}
+
+@media (hover: hover) {
+    .fs-settings-more-toggle:hover {
+        border-color: color-mix(in srgb, var(--accent-brand, #ff2d2d) 30%, transparent);
+        color: #ffffff;
+    }
+}
+@media (hover: none), (pointer: coarse) {
+    .fs-settings-more-toggle:active {
+        opacity: 0.6;
+        transform: none !important;
+    }
+}
+
+/* Chevron animé lors de l'ouverture */
+.fs-settings-more-chevron {
+    flex-shrink: 0;
+    transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fs-settings-more-toggle.is-open .fs-settings-more-chevron {
+    transform: rotate(180deg);
+}
+
+/* ─── Section AVANCÉE ─── */
+.fs-settings-advanced {
+    margin-top: 10px;
+    border: 1px solid color-mix(in srgb, #ffffff 6%, transparent);
+    border-radius: 10px;
+    padding: 2px 0;
+    overflow: hidden;
+}
+
+/* hidden attr : section masquée */
+.fs-settings-advanced[hidden] {
+    display: none !important;
+}
+
+/* ─── fs-settings-content compact pour zéro scroll ─── */
+.fs-settings-content {
+    padding-bottom: 24px !important; /* overrides session-manager.css 32px */
+}
+

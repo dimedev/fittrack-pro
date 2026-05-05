@@ -363,6 +363,69 @@ function executeSwapWithParams(exerciseId, exerciseName, idx, newSets, newRepsMi
 // ==================== FS EXERCISE SWAP (DURING SESSION) ====================
 
 /**
+ * V11-B — Ouvre le swap sheet pour UN EXERCICE SPÉCIFIQUE depuis le navigator.
+ * Identique à openFsExerciseSwap mais avec un index explicite (pas forcément
+ * l'exercice en cours). Ferme d'abord le navigator, puis ouvre le swap sheet
+ * avec un header contextuel "REMPLACER · {NOM}" en kicker DM Mono brand-red.
+ */
+function openExerciseReplaceFromNav(idx) {
+    if (!fsSession.active) return;
+    const exercise = fsSession.exercises[idx];
+    if (!exercise) return;
+
+    // Fermer le navigator avant d'ouvrir le sheet
+    if (typeof closeExerciseNavigator === 'function') closeExerciseNavigator();
+
+    _fsSwapMode = true;
+
+    const originalExerciseId = getExerciseIdByName(exercise.effectiveName, exercise.muscle);
+    previewSession.currentSwapIndex = idx;  // index explicite (≠ currentExerciseIndex)
+    previewSession.currentSwapExerciseId = originalExerciseId;
+
+    // Nom de l'exo cible dans le champ "exercice actuel"
+    const nameEl = document.getElementById('swap-current-name');
+    if (nameEl) nameEl.textContent = exercise.effectiveName;
+
+    // Kicker contextuel : "REMPLACER · {NOM}"
+    const kickerEl = document.getElementById('swap-replace-context');
+    if (kickerEl) {
+        kickerEl.textContent = `REMPLACER · ${exercise.effectiveName.toUpperCase()}`;
+        kickerEl.style.display = 'flex';
+    }
+    // Titre du sheet allégé (le kicker porte l'info)
+    const titleEl = document.getElementById('swap-sheet-title');
+    if (titleEl) titleEl.textContent = 'Choisir un exercice';
+
+    // Reset recherche
+    const searchInput = document.getElementById('swap-search-input');
+    if (searchInput) searchInput.value = '';
+
+    // Afficher la section variante (cohérent avec openFsExerciseSwap)
+    const variantSection = document.getElementById('swap-variant-section');
+    if (variantSection) variantSection.style.display = 'block';
+    const variantInput = document.getElementById('swap-variant-input');
+    if (variantInput) variantInput.value = '';
+
+    // Équivalents + même muscle
+    const favoriteExercises = state.wizardResults?.favoriteExercises || [];
+    const exerciseData = getEquivalentExercises(originalExerciseId, favoriteExercises);
+    previewSession.swapExerciseData = exerciseData;
+    renderSwapSections(exerciseData.equivalents, exerciseData.sameMuscle, []);
+
+    // Ouvrir le sheet
+    const sheet = document.getElementById('swap-bottom-sheet');
+    if (sheet) {
+        if (window.ModalManager) ModalManager.lock('swap-bottom-sheet');
+        sheet.style.display = 'flex';
+        sheet.offsetHeight;
+        sheet.classList.remove('animate-in');
+        void sheet.offsetWidth;
+        sheet.classList.add('animate-in');
+        initSwapSheetSwipe();
+    }
+}
+
+/**
  * Ouvre le swap bottom sheet pour l'exercice en cours dans le full-screen session.
  * Réutilise le même bottom sheet que le preview, avec un flag pour le callback.
  */
@@ -382,6 +445,12 @@ function openFsExerciseSwap() {
     // Nom actuel
     const nameEl = document.getElementById('swap-current-name');
     if (nameEl) nameEl.textContent = exercise.effectiveName;
+
+    // Cacher le kicker nav-replace (on arrive du bouton courant, pas du navigator)
+    const kickerEl = document.getElementById('swap-replace-context');
+    if (kickerEl) kickerEl.style.display = 'none';
+    const titleEl = document.getElementById('swap-sheet-title');
+    if (titleEl) titleEl.textContent = 'Remplacer l\'exercice';
 
     // Réinitialiser la recherche
     const searchInput = document.getElementById('swap-search-input');
@@ -459,8 +528,17 @@ function createExerciseVariant() {
  * Remplace le nom de l'exercice, conserve les séries déjà faites.
  */
 function applyFsExerciseSwap(exerciseId, exerciseName) {
-    const idx = fsSession.currentExerciseIndex;
+    // V11-B : utilise previewSession.currentSwapIndex (défini à l'ouverture du sheet)
+    // — couvre le cas normal (exo courant) ET le cas nav-replace (exo arbitraire).
+    const idx = (previewSession.currentSwapIndex != null)
+        ? previewSession.currentSwapIndex
+        : fsSession.currentExerciseIndex;
     const old = fsSession.exercises[idx];
+
+    // Compter les séries déjà logguées pour le toast
+    const doneSets = (typeof getCompletedSetsForExercise === 'function')
+        ? getCompletedSetsForExercise(idx)
+        : 0;
 
     fsSession.exercises[idx] = {
         ...old,
@@ -470,9 +548,19 @@ function applyFsExerciseSwap(exerciseId, exerciseName) {
         swapped: true
     };
 
+    // Cacher le kicker contextuel nav-replace
+    const kickerEl = document.getElementById('swap-replace-context');
+    if (kickerEl) kickerEl.style.display = 'none';
+    const titleEl = document.getElementById('swap-sheet-title');
+    if (titleEl) titleEl.textContent = 'Remplacer l\'exercice';
+
     closeBottomSheet();
     renderCurrentExercise();
-    showToast(`Exercice changé : ${exerciseName}`, 'success');
+
+    const setsMsg = doneSets > 0
+        ? ` · ${doneSets} série${doneSets > 1 ? 's' : ''} conservée${doneSets > 1 ? 's' : ''}`
+        : '';
+    showToast(`↔ Remplacé : ${exerciseName}${setsMsg}`, 'success');
 }
 
 /**
@@ -627,6 +715,7 @@ window.closeParamsConfirmationSheet = closeParamsConfirmationSheet;
 window.applySwapWithSuggestedParams = applySwapWithSuggestedParams;
 window.applySwapKeepParams = applySwapKeepParams;
 window.openFsExerciseSwap = openFsExerciseSwap;
+window.openExerciseReplaceFromNav = openExerciseReplaceFromNav; // V11-B
 window.createExerciseVariant = createExerciseVariant;
 window.applyFsExerciseSwap = applyFsExerciseSwap;
 

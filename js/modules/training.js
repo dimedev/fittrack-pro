@@ -4086,6 +4086,14 @@ function toggleFsSettings() {
         else ModalManager.lock('fs-settings-sheet');
     }
 
+    // V11-E : refermer la section avancée à chaque ouverture (vue simple par défaut)
+    if (!isOpen) {
+        const advPanel = document.getElementById('fs-settings-advanced-panel');
+        const advBtn   = document.getElementById('fs-settings-more-btn');
+        if (advPanel) advPanel.hidden = true;
+        if (advBtn) { advBtn.setAttribute('aria-expanded', 'false'); advBtn.classList.remove('is-open'); }
+    }
+
     // Sync toggle states with current visibility
     if (!isOpen) {
         const gifEl = document.getElementById('fs-gif-container');
@@ -4103,6 +4111,24 @@ function toggleFsSettings() {
         if (advancedToggle) advancedToggle.checked = advancedEl && advancedEl.style.display !== 'none';
         if (autoToggle) autoToggle.checked = autoEl && autoEl.style.display !== 'none';
     }
+}
+
+/**
+ * V11-E — Bascule la section avancée des settings.
+ * Repliée par défaut à chaque ouverture du sheet (pas de persistance volontaire :
+ * le user voit "simple" d'abord à chaque séance).
+ */
+function toggleFsSettingsAdvanced() {
+    const panel = document.getElementById('fs-settings-advanced-panel');
+    const btn   = document.getElementById('fs-settings-more-btn');
+    if (!panel || !btn) return;
+
+    const isOpen = !panel.hidden;
+    panel.hidden = isOpen;
+    btn.setAttribute('aria-expanded', String(!isOpen));
+
+    // Rotation chevron via classe CSS
+    btn.classList.toggle('is-open', !isOpen);
 }
 
 function toggleFsSetting(setting) {
@@ -4463,6 +4489,13 @@ function renderExerciseNavigator() {
         const setsText = setsCompleted > 0 ? `${setsCompleted}/${totalSets} séries` : `0/${totalSets} séries`;
         const canNavigate = !isCompleted;
 
+        // V11-B : bouton REMPLACER sur chaque exercice non-terminé
+        const replaceBtn = canNavigate
+            ? `<button class="nav-exercise-replace" type="button"
+                   onclick="event.stopPropagation(); openExerciseReplaceFromNav(${idx})"
+                   aria-label="Remplacer ${ex.effectiveName}">↔ REMPLACER</button>`
+            : '';
+
         return `
             <div class="nav-exercise-item ${statusClass} ${isCurrent ? 'nav-active' : ''}"
                  data-exercise-index="${idx}"
@@ -4473,7 +4506,7 @@ function renderExerciseNavigator() {
                     <span class="nav-exercise-name">${ex.effectiveName}</span>
                     <span class="nav-exercise-sets">${setsText}</span>
                 </div>
-                ${canNavigate && !isCurrent ? '<span class="nav-exercise-go">›</span>' : ''}
+                ${replaceBtn}
                 ${canNavigate ? '<span class="nav-drag-handle">⠿</span>' : ''}
             </div>
         `;
@@ -4651,6 +4684,7 @@ window.toggleFsGifVisibility = toggleFsGifVisibility;
 window.toggleGifPlayback = toggleGifPlayback;
 window.toggleFsSettings = toggleFsSettings;
 window.toggleFsSetting = toggleFsSetting;
+window.toggleFsSettingsAdvanced = toggleFsSettingsAdvanced; // V11-E
 window.toggleRestTimerFullscreen = toggleRestTimerFullscreen;
 
 // Exercise tips

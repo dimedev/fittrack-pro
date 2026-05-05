@@ -34,12 +34,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Critical: design system + mobile base (render-blocking) -->
-    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=63">
+    <link rel="stylesheet" href="css/style-nike-shadcn.css?v=64">
     <link rel="stylesheet" href="css/mobile-premium.css?v=6">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=67">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=69">
     <!-- Deferred: loaded async, applied when ready -->
     <link rel="stylesheet" href="css/session-manager.css?v=46" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="css/premium-components.css?v=26" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/premium-components.css?v=27" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=10" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/icons.css?v=1" media="print" onload="this.media='all'">
@@ -2609,7 +2609,9 @@
         <div class="bottom-sheet swap-sheet-premium" onclick="event.stopPropagation()">
             <div class="bottom-sheet-header">
                 <div class="bottom-sheet-handle"></div>
-                <h3 class="bottom-sheet-title">Remplacer l'exercice</h3>
+                <!-- V11-B : kicker contextuel affiché seulement depuis le navigator -->
+                <div id="swap-replace-context" class="swap-replace-kicker" style="display:none;" aria-live="polite"></div>
+                <h3 class="bottom-sheet-title" id="swap-sheet-title">Remplacer l'exercice</h3>
             </div>
             <div class="bottom-sheet-content swap-sheet-content">
                 <!-- Header sticky (exercice + recherche) -->
@@ -3601,31 +3603,59 @@
         </div>
 
         <!-- Settings Bottom Sheet -->
+        <!-- V11-E : Settings "Simple" view — scroll zéro par défaut.
+             Section ESSENTIEL (GIF) toujours visible.
+             Section AVANCÉ (Phase + Techniques + Autoreg) masquée par défaut,
+             révélée par "PLUS D'OPTIONS · 3". -->
         <div class="fs-settings-sheet" id="fs-settings-sheet" style="display: none;">
             <div class="fs-settings-overlay" onclick="toggleFsSettings()"></div>
             <div class="fs-settings-content">
                 <div class="fs-settings-handle"></div>
-                <h3 style="margin: 0 0 16px; font-size: 16px;">Paramètres</h3>
-                <label class="fs-setting-toggle">
-                    <span>Afficher le GIF</span>
-                    <input type="checkbox" id="fs-setting-gif" onchange="toggleFsSetting('gif')">
-                    <span class="toggle-slider"></span>
-                </label>
-                <label class="fs-setting-toggle">
-                    <span>Phase de périodisation</span>
-                    <input type="checkbox" id="fs-setting-phase" onchange="toggleFsSetting('phase')">
-                    <span class="toggle-slider"></span>
-                </label>
-                <label class="fs-setting-toggle">
-                    <span>Techniques avancées</span>
-                    <input type="checkbox" id="fs-setting-advanced" onchange="toggleFsSetting('advanced')">
-                    <span class="toggle-slider"></span>
-                </label>
-                <label class="fs-setting-toggle">
-                    <span>Autoregulation (RPE/RIR)</span>
-                    <input type="checkbox" id="fs-setting-autoregulation" onchange="toggleFsSetting('autoregulation')">
-                    <span class="toggle-slider"></span>
-                </label>
+
+                <!-- Header compact -->
+                <div class="fs-settings-header">
+                    <span class="fs-settings-header-kicker">PARAMÈTRES</span>
+                    <button class="fs-settings-close" onclick="toggleFsSettings()" aria-label="Fermer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <!-- SECTION ESSENTIELLE : toujours visible, zéro scroll requis -->
+                <section class="fs-settings-essential" aria-label="Paramètre essentiel">
+                    <label class="fs-setting-toggle">
+                        <span>Afficher le GIF</span>
+                        <input type="checkbox" id="fs-setting-gif" onchange="toggleFsSetting('gif')">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </section>
+
+                <!-- BOUTON "PLUS D'OPTIONS" -->
+                <button class="fs-settings-more-toggle" id="fs-settings-more-btn"
+                        onclick="toggleFsSettingsAdvanced()"
+                        aria-expanded="false"
+                        aria-controls="fs-settings-advanced-panel">
+                    <span>PLUS D'OPTIONS · 3</span>
+                    <svg class="fs-settings-more-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+
+                <!-- SECTION AVANCÉE : masquée par défaut -->
+                <section class="fs-settings-advanced" id="fs-settings-advanced-panel" aria-label="Options avancées" hidden>
+                    <label class="fs-setting-toggle">
+                        <span>Phase de périodisation</span>
+                        <input type="checkbox" id="fs-setting-phase" onchange="toggleFsSetting('phase')">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <label class="fs-setting-toggle">
+                        <span>Techniques avancées</span>
+                        <input type="checkbox" id="fs-setting-advanced" onchange="toggleFsSetting('advanced')">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <label class="fs-setting-toggle">
+                        <span>Autoregulation (RPE/RIR)</span>
+                        <input type="checkbox" id="fs-setting-autoregulation" onchange="toggleFsSetting('autoregulation')">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </section>
             </div>
         </div>
 
@@ -4117,9 +4147,9 @@
     <script src="js/modules/training-shared.js?v=2"></script>
     <script src="js/modules/training-periodization.js?v=1"></script>
     <script src="js/modules/training-wizard.js?v=2"></script>
-    <script src="js/modules/training-swap.js?v=2"></script>
+    <script src="js/modules/training-swap.js?v=3"></script>
     <script src="js/modules/training-builder.js?v=3"></script>
-    <script src="js/modules/training.js?v=54"></script>
+    <script src="js/modules/training.js?v=56"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=10"></script>
     <script src="js/modules/progress.js?v=38"></script>
