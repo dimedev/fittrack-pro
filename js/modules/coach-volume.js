@@ -102,7 +102,7 @@
      * effectiveName. Utilise findExerciseByName(window) si dispo, sinon scan defaultExercises.
      */
     function getMusclesForExercise(exerciseName) {
-        if (!exerciseName) return { primary: [], secondary: [] };
+        if (!exerciseName) return { primary: [], secondary: [], directGroupId: null };
 
         let exData = null;
         // Path 1 (canonical) : helper centralisé fourni par training-shared.js.
@@ -119,11 +119,27 @@
                 (e.id && e.id.toLowerCase() === lower)
             );
         }
-        if (!exData) return { primary: [], secondary: [] };
+        if (!exData) return { primary: [], secondary: [], directGroupId: null };
 
+        // Chemin riche : l'exercice a primaryMuscles en français → mapMuscleToGroup.
+        // C'est le cas pour tous les exercices "complets" de exercises.js.
+        if (Array.isArray(exData.primaryMuscles) && exData.primaryMuscles.length > 0) {
+            return {
+                primary: exData.primaryMuscles,
+                secondary: exData.secondaryMuscles || [],
+                directGroupId: null
+            };
+        }
+
+        // Chemin léger (fallback V11-P2) : l'exercice n'a pas primaryMuscles mais a
+        // le champ `muscle` (groupId anglais comme 'chest', 'back', etc.).
+        // On retourne directGroupId pour que _addToVolume contourne mapMuscleToGroup.
+        // Couvre tous les exercices "sparse" de exercises.js (seulement id/name/muscle/muscleTargets).
+        const directGroupId = (exData.muscle && MUSCLE_GROUPS[exData.muscle]) ? exData.muscle : null;
         return {
-            primary: exData.primaryMuscles || [],
-            secondary: exData.secondaryMuscles || []
+            primary: [],
+            secondary: exData.secondaryMuscles || [],
+            directGroupId
         };
     }
 
@@ -160,7 +176,8 @@
                     ? sets.filter(s => !s.isWarmup && (s.completed !== false)).length
                     : 0;
                 if (workingSetsCount === 0) return;
-                _addToVolume(counts, exName, workingSetsCount);
+                // Passe ex.muscle (stocké par V11-A) comme fallback ultime
+                _addToVolume(counts, exName, workingSetsCount, ex.muscle);
             });
         });
 
@@ -197,15 +214,29 @@
         return 0;
     }
 
-    function _addToVolume(counts, exerciseName, setCount) {
+    // V11-P2 : sessionMuscle = ex.muscle sauvé par finishSession (groupId anglais).
+    // Triple fallback : primaryMuscles (riche) → directGroupId (sparse) → sessionMuscle (session).
+    function _addToVolume(counts, exerciseName, setCount, sessionMuscle) {
         const muscles = getMusclesForExercise(exerciseName);
         const primaryGroups = new Set();
         const secondaryGroups = new Set();
 
+        // Fallback 1 : primaryMuscles en français → mapMuscleToGroup
         muscles.primary.forEach(m => {
             const g = mapMuscleToGroup(m);
             if (g) primaryGroups.add(g);
         });
+
+        // Fallback 2 : exercice sans primaryMuscles mais avec champ muscle (groupId direct)
+        if (primaryGroups.size === 0 && muscles.directGroupId) {
+            primaryGroups.add(muscles.directGroupId);
+        }
+
+        // Fallback 3 : muscle stocké sur l'entrée session par V11-A finishSession
+        if (primaryGroups.size === 0 && sessionMuscle && MUSCLE_GROUPS[sessionMuscle]) {
+            primaryGroups.add(sessionMuscle);
+        }
+
         muscles.secondary.forEach(m => {
             const g = mapMuscleToGroup(m);
             if (g && !primaryGroups.has(g)) secondaryGroups.add(g);
@@ -319,6 +350,13 @@
                     const g = mapMuscleToGroup(m);
                     if (g) primaryGroups.add(g);
                 });
+                // Fallback 2+3 : exercice sparse ou session pré-V11 hydratée
+                if (primaryGroups.size === 0 && muscles.directGroupId) {
+                    primaryGroups.add(muscles.directGroupId);
+                }
+                if (primaryGroups.size === 0 && ex.muscle && MUSCLE_GROUPS[ex.muscle]) {
+                    primaryGroups.add(ex.muscle);
+                }
 
                 if (primaryGroups.has(groupId)) {
                     const sets = (ex.sets || ex.setsDetail || []).filter(
