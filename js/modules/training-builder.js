@@ -701,10 +701,24 @@ async function deduplicateSessions() {
 /**
  * Lance la déduplication périodiquement
  * S'exécute au chargement puis toutes les 5 minutes
+ *
+ * V10 : protection contre re-init multiple (audit P1#8) — sans guard, chaque
+ * appel empilait un setInterval supplémentaire (re-auth Supabase, hot reload,
+ * etc.) → battery drain + requêtes IndexedDB/Supabase ×N.
  */
+let _autoDedupeIntervalId = null;
+let _autoDedupeBootTimeoutId = null;
+
 function autoDeduplicatePeriodic() {
+    // Re-init guard : si déjà actif, on no-op
+    if (_autoDedupeIntervalId !== null || _autoDedupeBootTimeoutId !== null) {
+        console.log('🔁 autoDeduplicatePeriodic déjà actif, skip');
+        return;
+    }
+
     // Première exécution 2 secondes après le chargement
-    setTimeout(async () => {
+    _autoDedupeBootTimeoutId = setTimeout(async () => {
+        _autoDedupeBootTimeoutId = null;
         const result = await deduplicateSessions();
         if (result.removed > 0) {
             // Recalculer les stats
@@ -717,7 +731,7 @@ function autoDeduplicatePeriodic() {
         }
 
         // Ensuite toutes les 5 minutes (en arrière-plan)
-        setInterval(async () => {
+        _autoDedupeIntervalId = setInterval(async () => {
             const periodicResult = await deduplicateSessions();
             if (periodicResult.removed > 0) {
                 console.log('🔄 Déduplication périodique:', periodicResult.removed, 'supprimées');
@@ -725,6 +739,26 @@ function autoDeduplicatePeriodic() {
             }
         }, 5 * 60 * 1000); // 5 minutes
     }, 2000);
+}
+
+/**
+ * V10 : cleanup explicite (appelé sur beforeunload + sur teardown explicite)
+ */
+function stopAutoDeduplicate() {
+    if (_autoDedupeBootTimeoutId !== null) {
+        clearTimeout(_autoDedupeBootTimeoutId);
+        _autoDedupeBootTimeoutId = null;
+    }
+    if (_autoDedupeIntervalId !== null) {
+        clearInterval(_autoDedupeIntervalId);
+        _autoDedupeIntervalId = null;
+    }
+}
+
+// Auto-cleanup à la fermeture de la PWA
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', stopAutoDeduplicate);
+    window.stopAutoDeduplicate = stopAutoDeduplicate;
 }
 
 // ==================== TEMPLATES PERSONNALISABLES ====================

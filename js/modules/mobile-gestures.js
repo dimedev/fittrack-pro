@@ -4,6 +4,41 @@
 (function() {
     'use strict';
 
+    // V10 : tracker pour cleanup propre des MutationObserver et listeners
+    // (audit P1#7 : observer créé sans disconnect au teardown → fuite mémoire long-running)
+    const _activeObservers = [];
+    const _activeIntervals = [];
+    const _activeListeners = []; // { target, type, handler, options }
+    let _gesturesInitialized = false;
+
+    function _trackObserver(obs) { _activeObservers.push(obs); return obs; }
+    function _trackInterval(id) { _activeIntervals.push(id); return id; }
+    function _trackListener(target, type, handler, options) {
+        target.addEventListener(type, handler, options);
+        _activeListeners.push({ target, type, handler, options });
+    }
+
+    function teardownMobileGestures() {
+        // Disconnect tous les MutationObserver
+        _activeObservers.forEach(obs => { try { obs.disconnect(); } catch (e) {} });
+        _activeObservers.length = 0;
+        // Clear tous les setInterval
+        _activeIntervals.forEach(id => { try { clearInterval(id); } catch (e) {} });
+        _activeIntervals.length = 0;
+        // Détacher tous les listeners trackés
+        _activeListeners.forEach(({ target, type, handler, options }) => {
+            try { target.removeEventListener(type, handler, options); } catch (e) {}
+        });
+        _activeListeners.length = 0;
+        _gesturesInitialized = false;
+        console.log('🧹 MobileGestures teardown — observers/intervals/listeners cleaned');
+    }
+
+    // Auto-cleanup à la sortie de la page (PWA standalone, refresh, fermeture onglet)
+    window.addEventListener('beforeunload', teardownMobileGestures);
+    // Auto-cleanup quand la PWA passe en background (mobile)
+    window.addEventListener('pagehide', teardownMobileGestures);
+
     // ==================== HAPTIC FEEDBACK ====================
     // Gate: vibrate() requires prior user gesture (Chrome intervention fix)
     let _userActive = false;
@@ -738,7 +773,7 @@
         });
 
         // Observer for dynamically added/shown modals
-        const modalObserver = new MutationObserver((mutations) => {
+        const modalObserver = _trackObserver(new MutationObserver((mutations) => {
             mutations.forEach(mutation => {
                 // Check for new modals
                 mutation.addedNodes.forEach(node => {
@@ -775,7 +810,7 @@
                     }
                 }
             });
-        });
+        }));
 
         modalObserver.observe(document.body, {
             childList: true,
@@ -791,12 +826,20 @@
     function initMobileGestures() {
         // Ne s'exécute que sur mobile
         if (window.innerWidth > 768) return;
-        
+
+        // V10 : guard anti-re-init multiple (re-auth Supabase, hot-reload, etc.)
+        // Sans ce guard, on empilait observers + intervals à chaque appel → leaks.
+        if (_gesturesInitialized) {
+            console.log('📱 Mobile gestures déjà init, skip');
+            return;
+        }
+        _gesturesInitialized = true;
+
         // Initialiser le feedback tactile
         initTapFeedback();
-        
+
         // Observer les nouveaux éléments du journal pour le swipe to delete
-        const journalObserver = new MutationObserver((mutations) => {
+        const journalObserver = _trackObserver(new MutationObserver((mutations) => {
             mutations.forEach(mutation => {
                 mutation.addedNodes.forEach(node => {
                     if (node.classList?.contains('journal-entry')) {
@@ -812,7 +855,7 @@
                     }
                 });
             });
-        });
+        }));
         
         const journalEntries = document.getElementById('journal-entries');
         if (journalEntries) {
@@ -1023,6 +1066,7 @@
         ExerciseSwipeNavigator,
         Haptics,
         init: initMobileGestures,
+        teardown: teardownMobileGestures, // V10 : cleanup explicit pour tests/re-auth
         initSwipeToDismissModals
     };
 

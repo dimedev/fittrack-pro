@@ -10,13 +10,22 @@
     <meta name="theme-color" content="#000000">
     <meta name="color-scheme" content="dark">
     <meta name="robots" content="index,follow">
+    <meta name="keywords" content="musculation, fitness, nutrition, coach, programme, 5/3/1, GZCLP, suivi entraînement, PWA, gym tracker">
+    <meta name="author" content="Repzy">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Repzy — Coach fitness & nutrition">
-    <meta property="og:description" content="Coach intelligent, programmes proven, séances en pleine page, sync multi-appareils. Hors ligne, RGPD.">
+    <meta property="og:description" content="Coach intelligent, programmes proven (5/3/1, GZCLP, nSuns…), séances en pleine page, sync multi-appareils. Hors ligne, RGPD.">
     <meta property="og:locale" content="fr_FR">
+    <meta property="og:site_name" content="Repzy">
+    <meta property="og:image" content="web-app-manifest-512x512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="Logo Repzy — Coach fitness & nutrition">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Repzy — Coach fitness & nutrition">
-    <meta name="twitter:description" content="Coach intelligent, programmes proven, séances en pleine page, sync multi-appareils.">
+    <meta name="twitter:description" content="Coach intelligent, programmes proven (5/3/1, GZCLP, nSuns…), séances en pleine page, sync multi-appareils.">
+    <meta name="twitter:image" content="web-app-manifest-512x512.png">
+    <meta name="twitter:image:alt" content="Logo Repzy">
     <link rel="canonical" href="/">
     <!-- Lien légal RGPD (utilisé par certains scrapers + plugins navigateurs) -->
     <link rel="privacy-policy" href="privacy.html">
@@ -27,7 +36,7 @@
     <!-- Critical: design system + mobile base (render-blocking) -->
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=63">
     <link rel="stylesheet" href="css/mobile-premium.css?v=6">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=65">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=66">
     <!-- Deferred: loaded async, applied when ready -->
     <link rel="stylesheet" href="css/session-manager.css?v=46" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=26" media="print" onload="this.media='all'">
@@ -1290,6 +1299,13 @@
                                 <path d="M7 17L17 7"/><path d="M7 7h10v10"/>
                             </svg>
                         </a>
+                        <!-- V10 : export CSV (séances + stats hebdo + nutrition) — Web Share API mobile, fallback download -->
+                        <button type="button" class="btn btn-ghost" onclick="DataExport.openExportSheet()" style="justify-content: flex-start; gap: 10px;" aria-label="Exporter mes données en CSV">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                            </svg>
+                            Exporter mes données (CSV)
+                        </button>
                         <button type="button" class="btn btn-ghost" onclick="signOut()" style="justify-content: flex-start; gap: 10px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
@@ -4110,7 +4126,9 @@
     <!-- V9 : program runner + library bottom sheet (6 builtin programs proven) -->
     <script src="js/modules/program-runner.js?v=1"></script>
     <script src="js/modules/program-library.js?v=1"></script>
-    <script src="js/modules/achievements.js?v=2"></script>
+    <!-- V10 : export CSV (sessions, stats hebdo, nutrition) avec navigator.share -->
+    <script src="js/modules/data-export.js?v=1"></script>
+    <script src="js/modules/achievements.js?v=3"></script>
     <!-- coach-engine.js : fusion SmartTraining + AIInsights + façade CoachEngine (S3.5) -->
     <script src="js/modules/coach-engine.js?v=4"></script>
     <!-- V8-A : MEV/MAV/MRV per muscle group (Renaissance Periodization) -->

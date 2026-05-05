@@ -1,0 +1,38 @@
+# Repzy — robots.txt
+# Generated 2026-05-04 (V10 store-readiness)
+
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /privacy.html
+Allow: /web-app-manifest-512x512.png
+Allow: /web-app-manifest-192x192.png
+Allow: /apple-touch-icon.png
+Allow: /favicon.svg
+
+# Empêcher l'indexation des assets internes (cache PWA, état runtime)
+Disallow: /sw.js
+Disallow: /node_modules/
+Disallow: /supabase/
+Disallow: /.git/
+Disallow: /js/data/
+Disallow: /js/modules/
+
+# Block AI training crawlers (opt-out RGPD-friendly)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+# Sitemap
+Sitemap: /sitemap.xml

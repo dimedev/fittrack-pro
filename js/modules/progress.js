@@ -345,8 +345,17 @@ function filterProgressChart(period) {
 function renderAchievements() {
     const container = document.getElementById('achievements-container');
     if (!container || typeof Achievements === 'undefined') return;
-    
-    container.innerHTML = Achievements.render();
+
+    // V10 : Milestones gym-real (Pit Lane Cockpit) en TÊTE
+    // → bench/squat/DL relatifs au poids corps, semaines consec, tonnage cumulé.
+    // Les badges legacy "10/50/100 séances" pokemon-style restent dessous pour
+    // les casual users (gamification douce).
+    let html = '';
+    if (typeof Achievements.renderMilestones === 'function') {
+        html += Achievements.renderMilestones();
+    }
+    html += Achievements.render();
+    container.innerHTML = html;
 }
 
 // ==================== PERSONAL RECORDS (PRs) ====================
