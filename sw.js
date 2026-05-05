@@ -3,7 +3,7 @@
 // Stratégie: Cache-first pour assets statiques, Network-first pour API
 // Offline-first avec Background Sync
 
-const CACHE_VERSION = 'repzy-v1.3.1';
+const CACHE_VERSION = 'repzy-v1.3.2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -74,6 +74,8 @@ const STATIC_ASSETS_RELATIVE = [
     'js/modules/data-export.js',
     'robots.txt',
     'sitemap.xml',
+    // V11-A : backfill `muscle` field sur sessions historiques pre-V11
+    'js/modules/session-hydration.js',
     // Icons
     'favicon.ico',
     'favicon.svg',

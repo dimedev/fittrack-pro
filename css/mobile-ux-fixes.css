@@ -6722,3 +6722,423 @@ html, body {
     .export-csv-btn { touch-action: manipulation; }
     .export-csv-btn:active { opacity: 0.78; transition: opacity 100ms ease-out !important; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   V11-G · ZOOM-AU-SCROLL BULLETPROOF FINAL FIX (#progress + dash insights)
+   ════════════════════════════════════════════════════════════════════════════
+   Diagnostic V11 : malgré V7-PATCH-3, V7-PATCH-4 et V8-E.3, l'utilisateur
+   ressent toujours un effet de "zoom" sur le scroll dans :
+     1. Les insights dashboard (#dashboard-insights-content / .dash-insights-v4)
+     2. L'onglet progression (#progress, toutes ses cards)
+
+   Root cause identifié : ce n'est PAS un transform résiduel. Les transitions
+   `border-color`, `background-color` (4910 et autres) déclenchent un repaint
+   GPU pendant le scroll fling — ce repaint asynchrone du frame de scroll
+   crée une perception de stutter/zoom. Le `linear-gradient` background du
+   hero change subtilement de teinte quand `:active` fait basculer la couleur
+   --reco-accent par cascade : repaint heavy.
+
+   Doctrine V11-G : pendant un scroll tactile, AUCUN repaint sur les cards
+   du sous-arbre #progress ni #dashboard-insights-content. Toutes transitions
+   dépendantes de l'état interactif : éliminées. `touch-action: pan-y` strict
+   sur les conteneurs (pas `manipulation`, qui autorise encore le tap-delay).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+@media (hover: none), (pointer: coarse) {
+    /* ─── 1. Touch action strict : pan-y bloque tout sauf scroll vertical ─── */
+    #progress,
+    #dashboard,
+    #dashboard-secondary-panel,
+    #dashboard-insights-content,
+    .dash-insights-v4 {
+        touch-action: pan-y !important;
+    }
+
+    /* ─── 2. Kill toutes les transitions dépendantes du state interactif ───
+       Sur les sous-arbres concernés, on n'autorise QUE l'opacity (compositor-
+       only, zéro repaint) et le color (peint sans recalc layout). Background-
+       color, border-color, box-shadow, transform : tous bannis. */
+    #progress *,
+    #dashboard-secondary-panel *,
+    #dashboard-insights-content *,
+    .dash-insights-v4 * {
+        transition-property: opacity, color !important;
+        transition-duration: 150ms !important;
+        animation-play-state: running;
+        will-change: auto !important;
+    }
+
+    /* ─── 3. État :active/:hover/:focus → aucun repaint, opacity uniquement ─── */
+    #progress *:hover,
+    #progress *:active,
+    #progress *:focus,
+    #progress *:focus-visible,
+    #progress *:focus-within,
+    #dashboard-secondary-panel *:hover,
+    #dashboard-secondary-panel *:active,
+    #dashboard-insights-content *:hover,
+    #dashboard-insights-content *:active,
+    .dash-insights-v4 *:hover,
+    .dash-insights-v4 *:active {
+        transform: none !important;
+        -webkit-transform: none !important;
+        box-shadow: none !important;
+        /* Préserve les couleurs de base : pas de bascule background-color */
+        background-color: revert-layer !important;
+        border-color: revert-layer !important;
+    }
+
+    /* ─── 4. Pointer-events : seuls les éléments réellement actionnables
+       reçoivent le tap. Les cards-conteneurs (hero, rows) deviennent inertes. */
+    .dash-insight-hero,
+    .dash-insight-hero.v5,
+    .dash-insights-v4 .dash-row,
+    .dash-insight-row,
+    .recovery-radar-card,
+    .volume-telemetry-card,
+    .training-week-card,
+    .heatmap-card,
+    .coach-card,
+    .progress-hero {
+        pointer-events: none !important;
+    }
+
+    /* Mais les liens/boutons à l'intérieur restent interactifs */
+    .dash-insight-hero a,
+    .dash-insight-hero button,
+    .dash-insight-hero [role="button"],
+    .dash-insights-v4 a,
+    .dash-insights-v4 button,
+    .dash-insights-v4 [role="button"],
+    .dash-insight-link,
+    .dash-insight-link.v5,
+    .recovery-radar-card .rr-cta,
+    .recovery-radar-card a,
+    .recovery-radar-card button,
+    .heatmap-card a,
+    .heatmap-card button,
+    #progress button,
+    #progress a,
+    #progress .filter-btn,
+    #progress .form-select,
+    #progress canvas,
+    #progress input,
+    #progress .tab,
+    #progress .pr-card[onclick],
+    #progress .photo-card[onclick] {
+        pointer-events: auto !important;
+    }
+
+    /* ─── 5. Tap-highlight transparent sur tout le sous-arbre ─── */
+    #progress,
+    #progress *,
+    #dashboard-secondary-panel,
+    #dashboard-secondary-panel *,
+    #dashboard-insights-content,
+    #dashboard-insights-content * {
+        -webkit-tap-highlight-color: transparent !important;
+        -webkit-touch-callout: none !important;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   V11-G · INSIGHTS DASHBOARD — REFINEMENT v6 (PUREFORM)
+   ════════════════════════════════════════════════════════════════════════════
+   Refonte de la présentation V5 : moins de bruit visuel, plus de respiration,
+   meilleure hiérarchie. Suppression de la sparkline background (chargée),
+   suppression de la barre accent verticale (redondante avec icon-chip).
+   Hero : grande valeur DM Mono qui domine, kicker discret au-dessus, trend
+   chip aligné à droite. Sub-rows : hairlines purs, pas de chip background
+   sur le side. Footer link : pill outline brand-red discret.
+
+   Aesthetic : "Pit Lane Editorial" — typographie magazine, generous white
+   space, un seul accent par card, restraint sur les couleurs. Le BLANC est
+   le sujet, le ROUGE/VERT n'apparait que pour signaler le trend.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Container : layout vertical + spacing aérien ─── */
+.dash-insights-v4.v5 {
+    gap: 0;
+    margin: 6px 0 0;
+}
+
+/* ─── HERO REFINED ─── */
+.dash-insight-hero.v5 {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+        "kicker trend"
+        "value  trend"
+        "meta   meta";
+    grid-column-gap: 14px;
+    grid-row-gap: 4px;
+    padding: 18px 16px 16px;
+    background:
+        linear-gradient(160deg,
+            color-mix(in srgb, var(--reco-accent, var(--accent-brand, #ff2d2d)) 6%, transparent) 0%,
+            transparent 55%),
+        rgba(255, 255, 255, 0.018);
+    border: 1px solid color-mix(in srgb, var(--reco-accent, var(--accent-brand, #ff2d2d)) 16%, transparent);
+    border-radius: 14px;
+    overflow: hidden;
+    /* Aucune transition de bg/border : élimine la cause de repaint au touch */
+    transition: none;
+}
+
+/* Hide the now-redundant decorative elements */
+.dash-insight-hero.v5 .hero-accent-bar,
+.dash-insight-hero.v5 .hero-sparkline,
+.dash-insight-hero.v5 .hero-icon {
+    display: none !important;
+}
+
+.dash-insight-hero.v5 .hero-body {
+    grid-area: kicker / kicker / value / value;
+    display: contents;
+}
+
+.dash-insight-hero.v5 .hero-kicker {
+    grid-area: kicker;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.62rem;
+    color: var(--text-muted, #a3a3a3);
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-weight: 500;
+    line-height: 1;
+    margin: 0 0 2px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.dash-insight-hero.v5 .hero-kicker::before {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--reco-accent, var(--accent-brand, #ff2d2d));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--reco-accent, var(--accent-brand, #ff2d2d)) 70%, transparent);
+}
+
+.dash-insight-hero.v5 .hero-value {
+    grid-area: value;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    margin: 6px 0 0;
+}
+
+.dash-insight-hero.v5 .hero-meta {
+    grid-area: meta;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.7rem;
+    color: var(--text-muted, #a3a3a3);
+    line-height: 1.4;
+    margin: 10px 0 0;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* Trend chip refined : compact, mono, aligné top-right */
+.dash-insight-hero.v5 .hero-trend {
+    grid-area: trend;
+    align-self: start;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--reco-accent, var(--accent-brand, #ff2d2d)) 14%, transparent);
+    color: var(--reco-accent, var(--accent-brand, #ff2d2d));
+    border: 1px solid color-mix(in srgb, var(--reco-accent, var(--accent-brand, #ff2d2d)) 30%, transparent);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+}
+.dash-insight-hero.v5 .hero-trend svg {
+    width: 11px;
+    height: 11px;
+    stroke-width: 2.4;
+}
+
+/* ─── SUB-ROWS REFINED : hairline rows, pas de chip background ─── */
+.dash-insights-v4.v5 .hero-row-divider {
+    margin: 14px 0 4px;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        color-mix(in srgb, #ffffff 8%, transparent) 18%,
+        color-mix(in srgb, #ffffff 8%, transparent) 82%,
+        transparent 100%);
+}
+
+.dash-insights-v4.v5 .dash-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "kicker side"
+        "value  side";
+    grid-column-gap: 14px;
+    grid-row-gap: 2px;
+    padding: 12px 4px;
+    border-bottom: 1px solid color-mix(in srgb, #ffffff 4%, transparent);
+}
+.dash-insights-v4.v5 .dash-row:last-of-type {
+    border-bottom: none;
+}
+
+/* Hide row icon and accent — pure typography rows */
+.dash-insights-v4.v5 .dash-row .row-icon,
+.dash-insights-v4.v5 .dash-row .row-accent {
+    display: none !important;
+}
+
+.dash-insights-v4.v5 .dash-row .row-body {
+    grid-area: kicker / kicker / value / value;
+    display: contents;
+}
+
+.dash-insights-v4.v5 .dash-row .row-kicker {
+    grid-area: kicker;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.56rem;
+    color: var(--text-muted, #a3a3a3);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 500;
+    line-height: 1;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Status dot before kicker */
+.dash-insights-v4.v5 .dash-row[data-status="positive"] .row-kicker::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #4ade80;
+    flex-shrink: 0;
+}
+.dash-insights-v4.v5 .dash-row[data-status="alert"] .row-kicker::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent-brand, #ff2d2d);
+    flex-shrink: 0;
+}
+
+.dash-insights-v4.v5 .dash-row .row-value {
+    grid-area: value;
+    font-family: var(--font-sans, 'Outfit', sans-serif);
+    font-size: 0.95rem;
+    color: #ffffff;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    font-weight: 600;
+    margin: 4px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Side : texte coloré, plus de chip background */
+.dash-insights-v4.v5 .dash-row .row-side {
+    grid-area: side;
+    align-self: center;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+    color: var(--text-secondary, #d4d4d4);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    padding: 0;
+    border-radius: 0;
+    background: transparent !important;
+    border: none !important;
+}
+.dash-insights-v4.v5 .dash-row[data-status="positive"] .row-side {
+    color: #4ade80;
+    background: transparent !important;
+}
+.dash-insights-v4.v5 .dash-row[data-status="alert"] .row-side {
+    color: var(--accent-brand, #ff2d2d);
+    background: transparent !important;
+}
+
+/* ─── FOOTER LINK : pill outlined, hairline brand-red ─── */
+.dash-insight-link.v5 {
+    margin-top: 14px;
+    padding: 13px 16px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, #ffffff 7%, transparent);
+    color: var(--text-secondary, #d4d4d4);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 10px;
+    /* Aucune transition : pas de repaint sur scroll */
+    transition: opacity 150ms ease;
+}
+
+@media (hover: hover) {
+    .dash-insight-link.v5:hover {
+        opacity: 0.75;
+        background: transparent;
+        border-color: color-mix(in srgb, var(--accent-brand, #ff2d2d) 25%, transparent);
+        color: #ffffff;
+    }
+}
+
+/* ─── MOBILE COMPACT V11-G ─── */
+@media (max-width: 480px) {
+    .dash-insight-hero.v5 {
+        padding: 16px 14px 14px;
+        grid-template-columns: 1fr auto;
+    }
+    .dash-insight-hero.v5 .hero-value {
+        font-size: 2rem;
+    }
+    .dash-insight-hero.v5 .hero-meta {
+        font-size: 0.66rem;
+        margin-top: 8px;
+    }
+    .dash-insight-hero.v5 .hero-trend {
+        font-size: 0.62rem;
+        padding: 4px 7px;
+    }
+    .dash-insights-v4.v5 .dash-row {
+        padding: 11px 4px;
+        grid-template-columns: 1fr auto;
+        grid-column-gap: 10px;
+    }
+    .dash-insights-v4.v5 .dash-row .row-value {
+        font-size: 0.9rem;
+    }
+    .dash-insights-v4.v5 .dash-row .row-side {
+        font-size: 0.88rem;
+    }
+}
+
+/* ─── REDUCED MOTION ─── */
+@media (prefers-reduced-motion: reduce) {
+    .dash-insight-hero.v5,
+    .dash-insights-v4.v5 .dash-row,
+    .dash-insight-link.v5 {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+

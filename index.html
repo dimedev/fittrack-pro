@@ -36,7 +36,7 @@
     <!-- Critical: design system + mobile base (render-blocking) -->
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=63">
     <link rel="stylesheet" href="css/mobile-premium.css?v=6">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=66">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=67">
     <!-- Deferred: loaded async, applied when ready -->
     <link rel="stylesheet" href="css/session-manager.css?v=46" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=26" media="print" onload="this.media='all'">
@@ -4119,7 +4119,7 @@
     <script src="js/modules/training-wizard.js?v=2"></script>
     <script src="js/modules/training-swap.js?v=2"></script>
     <script src="js/modules/training-builder.js?v=3"></script>
-    <script src="js/modules/training.js?v=53"></script>
+    <script src="js/modules/training.js?v=54"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=10"></script>
     <script src="js/modules/progress.js?v=38"></script>
@@ -4128,9 +4128,11 @@
     <script src="js/modules/program-library.js?v=1"></script>
     <!-- V10 : export CSV (sessions, stats hebdo, nutrition) avec navigator.share -->
     <script src="js/modules/data-export.js?v=1"></script>
+    <!-- V11-A : backfill `muscle` field sur sessions historiques pre-V11 -->
+    <script src="js/modules/session-hydration.js?v=1"></script>
     <script src="js/modules/achievements.js?v=3"></script>
     <!-- coach-engine.js : fusion SmartTraining + AIInsights + façade CoachEngine (S3.5) -->
-    <script src="js/modules/coach-engine.js?v=4"></script>
+    <script src="js/modules/coach-engine.js?v=5"></script>
     <!-- V8-A : MEV/MAV/MRV per muscle group (Renaissance Periodization) -->
     <script src="js/modules/coach-volume.js?v=2"></script>
     <script src="js/modules/health-integration.js?v=2"></script>

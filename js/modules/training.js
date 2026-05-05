@@ -2963,8 +2963,13 @@ async function finishSession() {
             gymId: fsSession.gymId || state.activeGymId || null
         });
 
+        // V11-A : stocker le muscle pour que coach-engine.calculateMuscleRecovery
+        // (et autres modules : coach-volume, insights "muscles oubliés") fonctionnent.
+        // Avant V11, ce champ était `undefined` → muscle lookup échouait → tous les
+        // muscles restaient marqués 100% recovered, suggestions wrong, stim à 0%.
         sessionData.push({
             exercise: exerciseName,
+            muscle: exercise.muscle || null,
             sets: setsData
         });
     });

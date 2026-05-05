@@ -899,8 +899,24 @@
             
             // Analyser chaque exercice de la séance
             (session.exercises || []).forEach(ex => {
-                const muscle = ex.muscle?.toLowerCase() || 'other';
-                if (!MUSCLE_GROUPS[muscle]) return;
+                // V11-A : defense-in-depth — si `muscle` est absent (sessions pre-V11
+                // pas encore hydratées par session-hydration.js), tenter un lookup à
+                // la volée via findExerciseByName(name).
+                let muscle = ex.muscle?.toLowerCase();
+                if (!muscle) {
+                    const exName = ex.exercise || ex.name || ex.effectiveName;
+                    const found = (typeof findExerciseByName === 'function')
+                        ? findExerciseByName(exName)
+                        : (typeof window !== 'undefined' && typeof window.findExerciseByName === 'function'
+                            ? window.findExerciseByName(exName)
+                            : null);
+                    if (found && found.muscle) {
+                        muscle = found.muscle.toLowerCase();
+                        // Hydrate le champ pour les calculs suivants (in-memory uniquement)
+                        ex.muscle = found.muscle;
+                    }
+                }
+                if (!muscle || !MUSCLE_GROUPS[muscle]) return;
                 
                 const muscleData = MUSCLE_GROUPS[muscle];
                 const recoveryDays = muscleData.recoveryDays;
