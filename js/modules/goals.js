@@ -1332,7 +1332,22 @@ function getInsightSvg(emoji) {
 }
 
 /**
- * Affiche les insights sur le dashboard
+ * V11-P3 — kicker DM Mono ALL CAPS par type d'insight (Pit Lane Cockpit).
+ * Affiché au-dessus du headline pour signaler immédiatement la nature du signal.
+ */
+const INSIGHT_KICKER_BY_TYPE = {
+    volume:      'VOLUME · HEBDO',
+    progression: 'PROGRESSION · PR',
+    recovery:    'RECOVERY · MUSCLE',
+    nutrition:   'NUTRITION · MACROS',
+    streak:      'STREAK · CONSTANCE',
+};
+
+/**
+ * Affiche les insights sur le dashboard.
+ * V11-P3 : refonte structure markup → accent-bar + icon-chip + kicker DM Mono
+ *          + headline Outfit semi-bold + detail muted. Tous les transforms
+ *          tués via mobile-ux-fixes.css V11-P3 (pas de zoom au scroll).
  */
 function renderInsightsWidget() {
     const container = document.getElementById('insights-container');
@@ -1344,21 +1359,26 @@ function renderInsightsWidget() {
         container.innerHTML = `
             <div class="insights-empty">
                 <span class="insights-empty-icon">${getInsightSvg('📊')}</span>
-                <p>Entraînez-vous et loguez vos repas pour voir vos insights personnalisés.</p>
+                <p>Entraîne-toi et logue tes repas pour voir tes insights personnalisés.</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = insights.slice(0, 4).map(insight => `
-        <div class="insight-item insight-${insight.type}">
-            <span class="insight-icon">${getInsightSvg(insight.icon)}</span>
-            <div class="insight-content">
-                <div class="insight-title">${insight.title}</div>
-                <div class="insight-message">${insight.message}</div>
+    container.innerHTML = insights.slice(0, 4).map(insight => {
+        const kicker = INSIGHT_KICKER_BY_TYPE[insight.type] || (insight.type || 'INSIGHT').toUpperCase();
+        return `
+            <div class="insight-item insight-${insight.type}">
+                <span class="insight-accent-bar" aria-hidden="true"></span>
+                <span class="insight-icon-chip insight-icon" aria-hidden="true">${getInsightSvg(insight.icon)}</span>
+                <div class="insight-content">
+                    <span class="insight-kicker">${kicker}</span>
+                    <span class="insight-headline">${insight.title}</span>
+                    <span class="insight-detail">${insight.message}</span>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // ==================== SMART INSIGHTS ====================

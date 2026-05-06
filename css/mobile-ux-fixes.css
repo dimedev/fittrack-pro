@@ -7406,3 +7406,340 @@ html, body {
     padding-bottom: 24px !important; /* overrides session-manager.css 32px */
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   V11-P3 — ZOOM-AU-SCROLL KILL BULLETPROOF (insights weekly + progression)
+   ════════════════════════════════════════════════════════════════════════════
+   Bug rapporté user (mai 2026, post-V11) : "quand je scroll et que je mets
+   le pouce sur les insights du dashboard, ça crée un effet de zoom bizarre,
+   ça casse la fluidité du scroll. Idem sur tout l'onglet progression."
+
+   Diagnostic : V11-G ciblait #dashboard-secondary-panel et #progress mais
+   les `.insight-item` rendus dans #insights-container par renderInsightsWidget
+   gardaient :
+     1. transition: all 0.2s ease (prem-comp:2659) → animait transform pendant
+        le scroll fling iOS, perçu comme "zoom".
+     2. .insight-item:hover { transform: translateX(2px) } (prem-comp:2664)
+        → fired sur sticky :hover iOS = micro shift pendant scroll.
+     3. .card:active { transform: scale(0.98) } phase 3A (mobile-ux:2090)
+        → la card parente .card.card--compact :active scalait toute l'aire
+        dès que le pouce y restait posé un instant.
+
+   Fix V11-P3 : kill-switch SECTION-WIDE bulletproof — `transform: none` et
+   `transition` réduit aux props compositor-safe (opacity, color) sur tout
+   le sous-arbre `#insights-container`, plus la card parente. Pas de zoom
+   possible, scroll fluide garanti.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── 1) BASE : tap-highlight transparent + user-select kill (sauf inputs) ─── */
+#insights-container,
+#insights-container *,
+.insight-item,
+.insight-item *,
+#dashboard .card:has(#insights-container),
+#dashboard .card:has(#insights-container) * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+}
+
+#insights-container :not(input):not(textarea):not([contenteditable="true"]),
+.insight-item :not(input):not(textarea):not([contenteditable="true"]) {
+    -webkit-user-select: none !important;
+            user-select: none !important;
+}
+
+/* ─── 2) TRANSITIONS RESTRICTED : compositor-safe props uniquement ───
+   Empêche tout repaint synchrone pendant le scroll. transform/box-shadow
+   ne sont JAMAIS animés sur ces surfaces (les vraies transitions visibles
+   restent celles d'opacity/color qui ne déclenchent pas de layout). */
+#insights-container *,
+.insight-item,
+.insight-item *,
+#dashboard .card:has(#insights-container) {
+    transition-property: opacity, color, background-color, border-color !important;
+    transition-duration: 180ms !important;
+    will-change: auto !important;
+}
+
+/* ─── 3) TOUCH ONLY : kill-switch transform/box-shadow sur états interactifs ─── */
+@media (hover: none), (pointer: coarse) {
+    #insights-container,
+    #insights-container *,
+    #insights-container *:hover,
+    #insights-container *:active,
+    #insights-container *:focus,
+    #insights-container *:focus-visible,
+    #insights-container *:focus-within,
+    .insight-item,
+    .insight-item *,
+    .insight-item:hover,
+    .insight-item:active,
+    .insight-item *:hover,
+    .insight-item *:active,
+    /* La card parente (.card.card--compact qui contient #insights-container) */
+    #dashboard .card:has(#insights-container),
+    #dashboard .card:has(#insights-container):hover,
+    #dashboard .card:has(#insights-container):active {
+        transform: none !important;
+        -webkit-transform: none !important;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
+    }
+
+    /* Touch-action : pan-y strict (autorise scroll vertical, bloque tout le reste) */
+    #insights-container,
+    .insight-item,
+    #dashboard .card:has(#insights-container) {
+        touch-action: pan-y !important;
+    }
+}
+
+/* ─── 4) SVG décoratifs : pointer-events:none → "tap fantôme" éliminé ─── */
+#insights-container svg[aria-hidden="true"],
+.insight-item svg[aria-hidden="true"] {
+    pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   V11-P3 — REDESIGN INSIGHTS WEEKLY (Pit Lane Cockpit)
+   ════════════════════════════════════════════════════════════════════════════
+   Ancien design `.insight-item` (premium-components.css:2529) trop générique :
+   border-left mince, icône emoji-sized, titre 0.8rem qui se perd, pas de
+   hiérarchie typo. User : "ça fait pas très joli, revoir la présentation".
+
+   Refonte Pit Lane Cockpit : accent-bar 4px (status-coloré + glow), icon-chip
+   tinted (32×32, status-coloré bg/fg), kicker DM Mono ALL CAPS, headline
+   Outfit semi-bold, detail muted. Hairline borders. Aucun transform.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+#insights-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 4px 0 !important;
+}
+
+/* La nouvelle structure markup utilise .insight-accent-bar + .insight-icon-chip
+   + .insight-content > (.insight-kicker, .insight-headline, .insight-detail).
+   Override total des règles legacy `.insight-item` avec spécificité ID. */
+#insights-container .insight-item {
+    position: relative !important;
+    display: grid !important;
+    grid-template-columns: 4px 36px 1fr !important;
+    align-items: start !important;
+    column-gap: 12px !important;
+    padding: 14px 14px 14px 0 !important;
+    background: color-mix(in srgb, #fff 2.8%, transparent) !important;
+    border: 1px solid color-mix(in srgb, #fff 6%, transparent) !important;
+    border-left: none !important;  /* override legacy .insight-item border-left */
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+}
+
+#insights-container .insight-item .insight-accent-bar {
+    grid-column: 1;
+    align-self: stretch;
+    width: 4px;
+    background: var(--accent-brand, #ff2d2d);
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-brand, #ff2d2d) 38%, transparent);
+}
+
+#insights-container .insight-item .insight-icon-chip {
+    grid-column: 2;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-brand, #ff2d2d) 16%, transparent);
+    border-radius: 9px;
+    color: var(--accent-brand, #ff2d2d);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+#insights-container .insight-item .insight-icon-chip svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+#insights-container .insight-item .insight-content {
+    grid-column: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding-right: 14px;
+    padding-top: 1px;
+}
+
+#insights-container .insight-item .insight-kicker {
+    font-family: var(--font-mono, 'DM Mono', 'SF Mono', 'Monaco', monospace);
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted, #a3a3a3);
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#insights-container .insight-item .insight-kicker::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.65;
+}
+
+#insights-container .insight-item .insight-headline {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary, #fafafa);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    margin: 0 !important;
+}
+
+#insights-container .insight-item .insight-detail {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--text-secondary, #a3a09c);
+    line-height: 1.4;
+    margin: 0 !important;
+}
+
+/* Tabular nums sur tout chiffre dans le detail (pour les +24%, 3 jours, etc.) */
+#insights-container .insight-item .insight-detail {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── Per-type status accents : accent-bar + icon-chip status-coloré ─── */
+
+/* Progression — vert success (PR, gains) */
+#insights-container .insight-item.insight-progression .insight-accent-bar {
+    background: #22c55e;
+    box-shadow: 0 0 14px color-mix(in srgb, #22c55e 38%, transparent);
+}
+#insights-container .insight-item.insight-progression .insight-icon-chip {
+    background: color-mix(in srgb, #22c55e 11%, transparent);
+    border-color: color-mix(in srgb, #22c55e 18%, transparent);
+    color: #22c55e;
+}
+#insights-container .insight-item.insight-progression .insight-kicker {
+    color: color-mix(in srgb, #22c55e 78%, white);
+}
+
+/* Volume — bleu info (data-driven) */
+#insights-container .insight-item.insight-volume .insight-accent-bar {
+    background: #3b82f6;
+    box-shadow: 0 0 14px color-mix(in srgb, #3b82f6 38%, transparent);
+}
+#insights-container .insight-item.insight-volume .insight-icon-chip {
+    background: color-mix(in srgb, #3b82f6 11%, transparent);
+    border-color: color-mix(in srgb, #3b82f6 18%, transparent);
+    color: #3b82f6;
+}
+#insights-container .insight-item.insight-volume .insight-kicker {
+    color: color-mix(in srgb, #3b82f6 78%, white);
+}
+
+/* Recovery — amber warning */
+#insights-container .insight-item.insight-recovery .insight-accent-bar {
+    background: #f59e0b;
+    box-shadow: 0 0 14px color-mix(in srgb, #f59e0b 38%, transparent);
+}
+#insights-container .insight-item.insight-recovery .insight-icon-chip {
+    background: color-mix(in srgb, #f59e0b 11%, transparent);
+    border-color: color-mix(in srgb, #f59e0b 18%, transparent);
+    color: #f59e0b;
+}
+#insights-container .insight-item.insight-recovery .insight-kicker {
+    color: color-mix(in srgb, #f59e0b 78%, white);
+}
+
+/* Nutrition — brand red */
+#insights-container .insight-item.insight-nutrition .insight-accent-bar {
+    background: var(--accent-brand, #ff2d2d);
+}
+#insights-container .insight-item.insight-nutrition .insight-icon-chip {
+    background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 11%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff2d2d) 18%, transparent);
+    color: var(--accent-brand, #ff2d2d);
+}
+#insights-container .insight-item.insight-nutrition .insight-kicker {
+    color: color-mix(in srgb, var(--accent-brand, #ff2d2d) 78%, white);
+}
+
+/* Streak — brand red (constance, on insiste) */
+#insights-container .insight-item.insight-streak .insight-accent-bar {
+    background: var(--accent-brand, #ff2d2d);
+}
+#insights-container .insight-item.insight-streak .insight-icon-chip {
+    background: color-mix(in srgb, var(--accent-brand, #ff2d2d) 11%, transparent);
+    border-color: color-mix(in srgb, var(--accent-brand, #ff2d2d) 18%, transparent);
+    color: var(--accent-brand, #ff2d2d);
+}
+#insights-container .insight-item.insight-streak .insight-kicker {
+    color: color-mix(in srgb, var(--accent-brand, #ff2d2d) 78%, white);
+}
+
+/* ─── Empty state (pas d'insights encore) ─── */
+#insights-container .insights-empty {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px 16px !important;
+    text-align: center !important;
+    background: color-mix(in srgb, #fff 1.5%, transparent) !important;
+    border: 1px dashed color-mix(in srgb, #fff 8%, transparent) !important;
+    border-radius: 12px !important;
+}
+
+#insights-container .insights-empty-icon {
+    color: var(--text-muted, #a3a3a3) !important;
+    opacity: 0.55 !important;
+    margin-bottom: 10px !important;
+}
+
+#insights-container .insights-empty p {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 0.78rem !important;
+    color: var(--text-muted, #a3a3a3) !important;
+    line-height: 1.45 !important;
+    margin: 0 !important;
+    max-width: 240px !important;
+}
+
+/* ─── Mobile compact ─── */
+@media (max-width: 480px) {
+    #insights-container .insight-item {
+        grid-template-columns: 4px 32px 1fr !important;
+        padding: 12px 12px 12px 0 !important;
+        column-gap: 10px !important;
+    }
+    #insights-container .insight-item .insight-icon-chip {
+        width: 32px;
+        height: 32px;
+    }
+    #insights-container .insight-item .insight-icon-chip svg {
+        width: 16px;
+        height: 16px;
+    }
+    #insights-container .insight-item .insight-headline {
+        font-size: 0.85rem;
+    }
+    #insights-container .insight-item .insight-detail {
+        font-size: 0.74rem;
+    }
+}
+
