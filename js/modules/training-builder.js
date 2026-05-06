@@ -171,6 +171,37 @@ async function closeSessionPreview() {
 }
 
 /**
+ * V11-P4 — SVG Pit Lane Cockpit pour le Session Brief / Coach Recap.
+ * Mapping kebab-case → SVG monochromes (currentColor). Stroke 2.2, viewBox 24×24.
+ * Remplace tous les emojis 💪🏋️🧘➡️📈📉🔄⚠️🆕⚖️⏱️🎯🛡️🔧 dans la preview de séance.
+ */
+const BRIEF_SVG = {
+    // Phases
+    'flex':       `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>`,
+    'dumbbell':   `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>`,
+    'leaf':       `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>`,
+    // Progression actions
+    'arrow-right':`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+    'trend-up':   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+    'trend-down': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`,
+    'refresh':    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>`,
+    'alert':      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    'sparkle':    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>`,
+    'dumbbell-sm':`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>`,
+    // Summary
+    'scale':      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>`,
+    'clock':      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    'target':     `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+    // Adaptation badges
+    'shield':     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>`,
+    'wrench':     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+    'check':      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`,
+    // Action buttons
+    'info':       `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
+    'swap':       `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
+};
+
+/**
  * Render l'UI de l'aperçu
  */
 function renderSessionPreviewUI() {
@@ -202,13 +233,13 @@ function renderSessionPreviewUI() {
         const safeDisplayName = window.DomSafe ? DomSafe.escape(displayName) : displayName;
         const safeJsName = window.DomSafe ? DomSafe.jsString(displayName) : displayName.replace(/'/g, "\\'");
 
-        // Badge selon le type de modification
+        // Badge selon le type de modification (V11-P4 : SVG Pit Lane)
         let badge = '';
         if (isAutoAdapted) {
-            const reasonLabel = ex.adaptReason === 'sensibilité' ? '🛡️ Adapté' : '🔧 Adapté';
-            badge = `<span class="preview-exercise-adapted-badge">${reasonLabel}</span>`;
+            const adaptIcon = ex.adaptReason === 'sensibilité' ? BRIEF_SVG['shield'] : BRIEF_SVG['wrench'];
+            badge = `<span class="preview-exercise-adapted-badge">${adaptIcon}<span>Adapté</span></span>`;
         } else if (isModified) {
-            badge = '<span class="preview-exercise-modified-badge">✓ Modifié</span>';
+            badge = `<span class="preview-exercise-modified-badge">${BRIEF_SVG['check']}<span>Modifié</span></span>`;
         }
 
         return `
@@ -221,11 +252,11 @@ function renderSessionPreviewUI() {
                     <span class="preview-exercise-meta">${ex.sets} séries × ${ex.reps} reps</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="exercise-info-btn" onclick="openExerciseTips('${safeJsName}')" title="Informations">
-                        ⓘ
+                    <button class="exercise-info-btn" onclick="openExerciseTips('${safeJsName}')" title="Informations" aria-label="Informations">
+                        ${BRIEF_SVG['info']}
                     </button>
-                    <button class="preview-exercise-edit" onclick="openExerciseSwapSheet(${idx})" title="Changer l'exercice">
-                        ⇄
+                    <button class="preview-exercise-edit" onclick="openExerciseSwapSheet(${idx})" title="Changer l'exercice" aria-label="Changer l'exercice">
+                        ${BRIEF_SVG['swap']}
                     </button>
                 </div>
             </div>
@@ -267,22 +298,22 @@ function generateSessionBrief() {
     const cycle = state.periodization?.currentCycle || 1;
     const phaseAdjustments = getPhaseAdjustments();
 
-    // Phase badge
+    // Phase badge (V11-P4 : SVG Pit Lane Cockpit, plus d'emojis)
     const phaseConfig = {
-        hypertrophy: { icon: '💪', name: 'Hypertrophie', color: '#3b82f6', desc: 'Focus volume (8-12 reps)' },
-        strength: { icon: '🏋️', name: 'Force', color: '#ef4444', desc: 'Focus intensité (4-6 reps)' },
-        deload: { icon: '🧘', name: 'Deload', color: '#22c55e', desc: 'Récupération active (-30%)' }
+        hypertrophy: { iconKey: 'flex',     name: 'Hypertrophie', color: '#3b82f6', desc: 'Focus volume (8-12 reps)' },
+        strength:    { iconKey: 'dumbbell', name: 'Force',        color: '#ef4444', desc: 'Focus intensité (4-6 reps)' },
+        deload:      { iconKey: 'leaf',     name: 'Deload',       color: '#22c55e', desc: 'Récupération active (-30%)' }
     };
     const phaseCfg = phaseConfig[phase] || phaseConfig.hypertrophy;
 
     phaseEl.innerHTML = `
         <div class="brief-phase-badge" style="border-color: ${phaseCfg.color}; background: ${phaseCfg.color}15;">
-            <span class="brief-phase-icon">${phaseCfg.icon}</span>
+            <span class="brief-phase-icon" style="color: ${phaseCfg.color};">${BRIEF_SVG[phaseCfg.iconKey]}</span>
             <div class="brief-phase-info">
                 <span class="brief-phase-name">${phaseCfg.name}</span>
                 <span class="brief-phase-desc">${phaseCfg.desc}</span>
             </div>
-            <span class="brief-phase-week">W${week}/4 • C${cycle}</span>
+            <span class="brief-phase-week">W${week}/4 · C${cycle}</span>
         </div>
     `;
 
@@ -337,41 +368,41 @@ function generateSessionBrief() {
         }
         totalSets += adjustedSets;
 
-        // Déterminer l'indicateur de progression basé sur l'ACTION
-        let progressionIcon = '➡️';
+        // Déterminer l'indicateur de progression (V11-P4 : SVG Pit Lane)
+        let progressionIcon = BRIEF_SVG['arrow-right'];
         let progressionClass = 'maintain';
 
         switch (progressionAction) {
             case 'weight_up':
-                progressionIcon = '🏋️';
+                progressionIcon = BRIEF_SVG['dumbbell-sm'];
                 progressionClass = 'up';
                 break;
             case 'reps_up':
-                progressionIcon = '📈';
+                progressionIcon = BRIEF_SVG['trend-up'];
                 progressionClass = 'up';
                 break;
             case 'weight_down':
-                progressionIcon = '📉';
+                progressionIcon = BRIEF_SVG['trend-down'];
                 progressionClass = 'down';
                 break;
             case 'deload':
-                progressionIcon = '🔄';
+                progressionIcon = BRIEF_SVG['refresh'];
                 progressionClass = 'down';
                 break;
             case 'plateau':
-                progressionIcon = '⚠️';
+                progressionIcon = BRIEF_SVG['alert'];
                 progressionClass = 'warning';
                 break;
             case 'new':
-                progressionIcon = '🆕';
+                progressionIcon = BRIEF_SVG['sparkle'];
                 progressionClass = 'new';
                 break;
             case 'range_change':
-                progressionIcon = '🔄';
+                progressionIcon = BRIEF_SVG['refresh'];
                 progressionClass = 'adapt';
                 break;
             default:
-                progressionIcon = '➡️';
+                progressionIcon = BRIEF_SVG['arrow-right'];
                 progressionClass = 'maintain';
         }
 
@@ -411,7 +442,7 @@ function generateSessionBrief() {
                             <span class="brief-exercise-name" title="${exerciseName}">${exerciseName}</span>
                         </div>
                         <div class="brief-exercise-progression new">
-                            <span class="brief-progression-icon">🆕</span>
+                            <span class="brief-progression-icon">${BRIEF_SVG['sparkle']}</span>
                         </div>
                     </div>
                     <!-- Ligne 2: Poids placeholder -->
@@ -435,17 +466,17 @@ function generateSessionBrief() {
 
     summaryEl.innerHTML = `
         <div class="brief-summary-item">
-            <span class="brief-summary-icon">⚖️</span>
+            <span class="brief-summary-icon">${BRIEF_SVG['scale']}</span>
             <span class="brief-summary-label">Volume estimé</span>
             <span class="brief-summary-value">${totalEstimatedVolume > 0 ? formatVolume(totalEstimatedVolume) : '—'}</span>
         </div>
         <div class="brief-summary-item">
-            <span class="brief-summary-icon">⏱️</span>
+            <span class="brief-summary-icon">${BRIEF_SVG['clock']}</span>
             <span class="brief-summary-label">Durée estimée</span>
             <span class="brief-summary-value">~${estimatedDuration} min</span>
         </div>
         <div class="brief-summary-item">
-            <span class="brief-summary-icon">🎯</span>
+            <span class="brief-summary-icon">${BRIEF_SVG['target']}</span>
             <span class="brief-summary-label">RPE cible</span>
             <span class="brief-summary-value">${phaseAdjustments.targetRPE}/10</span>
         </div>
