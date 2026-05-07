@@ -1307,9 +1307,15 @@ function renderCaloriesChart(days = 7) {
     const ctx = document.getElementById('calories-chart');
     if (!ctx) return;
 
+    // V12-PATCH-1 — guard contre Chart non chargé (CSP block / lazy-load failure)
+    if (typeof Chart === 'undefined') {
+        console.warn('[V12-PATCH-1] Chart.js non chargé — calories chart skippé');
+        return;
+    }
+
     // Détruire le graphique existant
     if (caloriesChart) {
-        caloriesChart.destroy();
+        try { caloriesChart.destroy(); } catch (_) {}
         caloriesChart = null;
     }
 

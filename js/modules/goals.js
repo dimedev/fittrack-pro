@@ -680,12 +680,18 @@ let currentWeightChartPeriod = 30; // jours par défaut
 function updateBodyWeightChart() {
     const ctx = document.getElementById('bodyweight-chart');
     if (!ctx) return;
-    
+
+    // V12-PATCH-1 — guard contre Chart non chargé
+    if (typeof Chart === 'undefined') {
+        console.warn('[V12-PATCH-1] Chart.js non chargé — bodyweight chart skippé');
+        return;
+    }
+
     const logs = state.bodyWeightLog || [];
-    
+
     // Détruire le graphique existant
     if (bodyWeightChart) {
-        bodyWeightChart.destroy();
+        try { bodyWeightChart.destroy(); } catch (_) {}
         bodyWeightChart = null;
     }
     

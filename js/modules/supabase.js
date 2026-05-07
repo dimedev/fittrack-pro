@@ -1053,7 +1053,13 @@ function initSupabase() {
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             console.log('✅ Supabase initialisé');
         } else {
-            console.error('❌ Supabase SDK non trouvé');
+            // V12-PATCH-1 — SDK absent (CSP block, offline, CDN down). Mode dégradé local-only.
+            // On ne crash PAS l'app : flag global pour que les autres modules sachent skip Supabase.
+            console.error('❌ Supabase SDK non trouvé — mode local-only activé');
+            if (typeof state !== 'undefined') state._supabaseUnavailable = true;
+            if (typeof showToast === 'function') {
+                showToast('Mode hors-ligne — synchronisation indisponible', 'warning', 5000);
+            }
             return;
         }
         
@@ -1393,7 +1399,14 @@ let _loadQueuedSilent = null;
 // Charger toutes les données depuis Supabase
 async function loadAllDataFromSupabase(silent = false) {
     if (!currentUser) return;
-    
+
+    // V12-PATCH-1 — mode dégradé : si SDK absent, on garde la donnée locale telle quelle.
+    // Surtout NE PAS écraser state.progressLog ni state.sessionHistory.
+    if (!supabaseClient || (typeof state !== 'undefined' && state._supabaseUnavailable)) {
+        console.warn('[V12-PATCH-1] loadAllDataFromSupabase skippé — SDK indisponible, mode local-only');
+        return;
+    }
+
     if (_isLoadingFromSupabase) {
         console.log('⏳ loadAllDataFromSupabase déjà en cours — appel ignoré');
         _loadQueuedSilent = silent;

@@ -1843,12 +1843,20 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
     position: relative;
     width: 140px;
     height: 140px;
+    /* V12-PATCH-1 — garantir cercle parfait sous flex parent (timer fullscreen).
+       Sans aspect-ratio + min-* explicites, flex-shrink peut écraser un axe. */
+    aspect-ratio: 1 / 1;
+    min-width: 140px;
+    min-height: 140px;
+    flex-shrink: 0;
 }
 
 .rest-timer-circle {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
+    /* V12-PATCH-1 — preserve aspect ratio du SVG si le container est forcé à se déformer */
+    display: block;
 }
 
 .rest-timer-track {

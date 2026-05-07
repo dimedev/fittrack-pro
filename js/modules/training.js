@@ -392,6 +392,87 @@ async function postponeCurrentExercise(skipConfirm = false) {
 }
 
 /**
+ * V12-PATCH-1 — Supprime DÉFINITIVEMENT l'exercice courant de la séance.
+ * Différent de postpone (qui reporte en fin) et de swap (qui remplace).
+ * Les sets déjà loggés pour cet exercice sont également retirés.
+ * Le navigator gagne un bouton "SUPPRIMER" pour invoquer cette fonction par exo.
+ * @param {number|null} targetIndex — si fourni, supprime l'exo à cet index (depuis navigator).
+ *                                    Si null, supprime l'exo courant.
+ */
+async function removeCurrentExercise(targetIndex = null) {
+    if (!fsSession.active) return;
+    if (fsSession.exercises.length <= 1) {
+        showToast('Impossible de supprimer le dernier exercice de la séance', 'warning');
+        return;
+    }
+
+    const idx = (targetIndex !== null && targetIndex !== undefined)
+        ? targetIndex
+        : fsSession.currentExerciseIndex;
+    const exercise = fsSession.exercises[idx];
+    if (!exercise) return;
+
+    // Compter les sets déjà loggés pour avertir l'user
+    const loggedSets = (fsSession.completedSets || []).filter(
+        s => s.exerciseIndex === idx && !s.isWarmup
+    ).length;
+
+    const trashIconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+
+    const message = loggedSets > 0
+        ? `"${exercise.effectiveName}" : ${loggedSets} série(s) déjà loggée(s) seront retirées de la séance. Action définitive.`
+        : `"${exercise.effectiveName}" sera retiré de la séance. Action définitive.`;
+
+    const confirmed = await showConfirmModal({
+        title: 'Supprimer cet exercice ?',
+        message,
+        iconSvg: trashIconSvg,
+        confirmType: 'danger',
+        confirmLabel: 'Supprimer',
+        cancelLabel: 'Annuler'
+    });
+    if (!confirmed) return;
+
+    // Splice l'exo
+    fsSession.exercises.splice(idx, 1);
+
+    // Reindex completedSets : retirer ceux à idx, décaler les > idx
+    fsSession.completedSets = (fsSession.completedSets || []).filter(s => s.exerciseIndex !== idx);
+    fsSession.completedSets.forEach(s => {
+        if (s.exerciseIndex > idx) s.exerciseIndex--;
+    });
+
+    // Reindex supersets : invalider ceux qui référencent idx, décaler les > idx
+    fsSession.supersets = (fsSession.supersets || []).filter(ss => {
+        return ss.exercise1Index !== idx && ss.exercise2Index !== idx;
+    });
+    fsSession.supersets.forEach(ss => {
+        if (ss.exercise1Index > idx) ss.exercise1Index--;
+        if (ss.exercise2Index > idx) ss.exercise2Index--;
+    });
+
+    // Ajuster currentExerciseIndex
+    if (fsSession.currentExerciseIndex >= fsSession.exercises.length) {
+        fsSession.currentExerciseIndex = Math.max(0, fsSession.exercises.length - 1);
+    } else if (fsSession.currentExerciseIndex > idx) {
+        fsSession.currentExerciseIndex--;
+    }
+    // Si on a supprimé l'exo courant, l'exo suivant prend sa place naturellement (pas de décrément)
+
+    fsSession.currentSetIndex = getCompletedSetsForExercise(fsSession.currentExerciseIndex);
+
+    // Sauvegarder immédiatement
+    saveFsSessionToStorage();
+
+    // Re-render
+    renderCurrentExercise();
+    if (typeof updateExerciseNavigator === 'function') updateExerciseNavigator();
+
+    if (window.HapticFeedback) window.HapticFeedback.light();
+    showToast(`"${exercise.effectiveName}" retiré de la séance`, 'info');
+}
+
+/**
  * Minimise la séance en cours (garde en arrière-plan)
  */
 function minimizeSession() {
@@ -3279,23 +3360,27 @@ async function finishSession() {
         }
     }
 
-    // Update streak
-    if (typeof updateStreak === 'function') updateStreak();
-    
-    // Update PRs section
-    if (typeof renderPRsSection === 'function') renderPRsSection();
-    
-    // Update weekly volume chart
-    if (typeof renderWeeklyVolumeChart === 'function') renderWeeklyVolumeChart();
-    
-    // Update coach recommendations
-    if (typeof renderCoachRecommendations === 'function') renderCoachRecommendations();
-    
-    // Update progress feed
-    if (typeof renderProgressFeed === 'function') renderProgressFeed();
-    
-    // Update session history
-    if (typeof updateSessionHistory === 'function') updateSessionHistory();
+    // V12-PATCH-1 — chaque update UI post-save doit être isolé en try/catch.
+    // La séance EST déjà sauvée à ce stade (ligne ~3106 saveState() + backup localStorage).
+    // Si un render crash (ex: Chart undefined), le toast d'erreur ne doit PAS faire croire
+    // à l'utilisateur que sa séance n'est pas enregistrée.
+    try { if (typeof updateStreak === 'function') updateStreak(); }
+    catch (e) { console.warn('[V12-PATCH-1] updateStreak failed:', e); }
+
+    try { if (typeof renderPRsSection === 'function') renderPRsSection(); }
+    catch (e) { console.warn('[V12-PATCH-1] renderPRsSection failed:', e); }
+
+    try { if (typeof renderWeeklyVolumeChart === 'function') renderWeeklyVolumeChart(); }
+    catch (e) { console.warn('[V12-PATCH-1] renderWeeklyVolumeChart failed:', e); }
+
+    try { if (typeof renderCoachRecommendations === 'function') renderCoachRecommendations(); }
+    catch (e) { console.warn('[V12-PATCH-1] renderCoachRecommendations failed:', e); }
+
+    try { if (typeof renderProgressFeed === 'function') renderProgressFeed(); }
+    catch (e) { console.warn('[V12-PATCH-1] renderProgressFeed failed:', e); }
+
+    try { if (typeof updateSessionHistory === 'function') updateSessionHistory(); }
+    catch (e) { console.warn('[V12-PATCH-1] updateSessionHistory failed:', e); }
 
     // Réactiver le bouton (en cas de navigation)
     const finishBtnRestore = document.querySelector('.fs-finish-btn');
@@ -4532,6 +4617,17 @@ function renderExerciseNavigator() {
                    aria-label="Remplacer ${ex.effectiveName}">↔ REMPLACER</button>`
             : '';
 
+        // V12-PATCH-1 : bouton SUPPRIMER (uniquement si plus d'1 exo et exo non-terminé)
+        const removeBtn = (canNavigate && fsSession.exercises.length > 1)
+            ? `<button class="nav-exercise-remove" type="button"
+                   onclick="event.stopPropagation(); removeCurrentExercise(${idx})"
+                   aria-label="Supprimer ${ex.effectiveName}"
+                   title="Supprimer cet exercice de la séance">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                   SUPPRIMER
+               </button>`
+            : '';
+
         return `
             <div class="nav-exercise-item ${statusClass} ${isCurrent ? 'nav-active' : ''}"
                  data-exercise-index="${idx}"
@@ -4543,6 +4639,7 @@ function renderExerciseNavigator() {
                     <span class="nav-exercise-sets">${setsText}</span>
                 </div>
                 ${replaceBtn}
+                ${removeBtn}
                 ${canNavigate ? '<span class="nav-drag-handle">⠿</span>' : ''}
             </div>
         `;
@@ -4696,6 +4793,7 @@ window.closeSettingsSheet = closeSettingsSheet;
 window.adjustRestTime = adjustRestTime;
 window.machineOccupied = machineOccupied;
 window.postponeCurrentExercise = postponeCurrentExercise;
+window.removeCurrentExercise = removeCurrentExercise;
 
 // Advanced techniques
 window.startDropSet = startDropSet;

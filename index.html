@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- V12-CSP — Content-Security-Policy (defense-in-depth XSS / injection)
+    <!-- V12-PATCH-1 CSP — Content-Security-Policy (defense-in-depth XSS / injection)
          'unsafe-inline' requis pour scripts inline (theme detector, PostHog/Sentry
-         loaders) et styles dynamiques (style="..." setters JS). Refactor vers nonces
-         hors scope V12. CSP couvre Supabase, PostHog EU, Sentry CDN, Google Fonts. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.supabase.co https://js.sentry-cdn.com https://browser.sentry-cdn.com https://eu.i.posthog.com https://app.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://eu.i.posthog.com https://app.posthog.com https://*.sentry.io https://*.ingest.sentry.io; img-src 'self' data: blob: https:; media-src 'self' data: blob:; worker-src 'self' blob:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+         loaders) et styles dynamiques (style="..." setters JS). cdn.jsdelivr.net
+         requis pour Supabase SDK, Dexie, Chart.js et Quagga (lazy-loads).
+         frame-ancestors retiré (ignoré via meta — doit être header HTTP). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.supabase.co https://js.sentry-cdn.com https://browser.sentry-cdn.com https://eu.i.posthog.com https://app.posthog.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://eu.i.posthog.com https://app.posthog.com https://*.sentry.io https://*.ingest.sentry.io; img-src 'self' data: blob: https:; media-src 'self' data: blob:; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self';">
 
     <!-- V6.3 STORE — SEO + social (Play Store / App Store / partage Twitter, etc.) -->
     <title>Repzy — Coach fitness & nutrition</title>
@@ -42,9 +43,9 @@
     <!-- Critical: design system + mobile base (render-blocking) -->
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=64">
     <link rel="stylesheet" href="css/mobile-premium.css?v=6">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=72">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=73">
     <!-- Deferred: loaded async, applied when ready -->
-    <link rel="stylesheet" href="css/session-manager.css?v=47" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/session-manager.css?v=48" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=28" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=10" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
@@ -3348,7 +3349,7 @@
             </button>
 
             <div class="rest-timer-circle-container" id="rest-timer-circle-container">
-                <svg class="rest-timer-circle" viewBox="0 0 120 120">
+                <svg class="rest-timer-circle" viewBox="0 0 120 120" preserveAspectRatio="xMidYMid meet">
                     <circle class="rest-timer-track" cx="60" cy="60" r="54" />
                     <circle class="rest-timer-progress" id="rest-timer-progress" cx="60" cy="60" r="54" />
                 </svg>
@@ -3381,7 +3382,7 @@
                 <h2 class="fs-exercise-name" id="fs-exercise-name">Développé Couché Barre</h2>
                 <div class="fs-exercise-actions" id="fs-exercise-actions">
                     <button class="exercise-info-btn" id="fs-info-btn" title="Informations" aria-label="Informations sur l'exercice">
-                        ⓘ
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                     </button>
                     <button class="fs-swap-btn" id="fs-swap-btn" onclick="openFsExerciseSwap()" title="Changer d'exercice" aria-label="Remplacer l'exercice">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
@@ -3486,18 +3487,8 @@
                 </div>
             </div>
 
-            <!-- RPE Quick Picker (dernière série uniquement) -->
-            <div class="fs-rpe-quick" id="fs-rpe-quick" style="display: none;">
-                <span class="fs-rpe-quick-label">Difficulté ressentie ?</span>
-                <div class="fs-rpe-quick-buttons">
-                    <button class="fs-rpe-btn" data-rpe="6" onclick="selectQuickRpe(6)">6</button>
-                    <button class="fs-rpe-btn" data-rpe="7" onclick="selectQuickRpe(7)">7</button>
-                    <button class="fs-rpe-btn" data-rpe="8" onclick="selectQuickRpe(8)">8</button>
-                    <button class="fs-rpe-btn" data-rpe="9" onclick="selectQuickRpe(9)">9</button>
-                    <button class="fs-rpe-btn" data-rpe="10" onclick="selectQuickRpe(10)">10</button>
-                </div>
-                <span class="fs-rpe-quick-hint" id="fs-rpe-quick-hint"></span>
-            </div>
+            <!-- V12-PATCH-1 — RPE Quick Picker retiré (doublon avec fs-autoregulation-section
+                 ci-dessus qui couvre RPE+RIR, plus complet et moins agressif visuellement). -->
 
             <!-- Validate Button -->
             <button class="fs-validate-btn" id="fs-validate-btn" onclick="validateCurrentSet()">
@@ -4145,10 +4136,10 @@
     <script src="js/modules/meal-history.js?v=7"></script>
     <script src="js/modules/recipes.js?v=7"></script>
     <script src="js/modules/icons.js?v=1"></script>
-    <script src="js/modules/supabase.js?v=47"></script>
+    <script src="js/modules/supabase.js?v=48"></script>
     <script src="js/modules/profile.js?v=32"></script>
     <script src="js/modules/nutrition-core.js?v=4"></script>
-    <script src="js/modules/nutrition-ui.js?v=6"></script>
+    <script src="js/modules/nutrition-ui.js?v=7"></script>
     <script src="js/modules/nutrition.js?v=39"></script>
     <script src="js/modules/food-api.js?v=1"></script>
     <script src="js/modules/nutrition-suggestions.js?v=3"></script>
@@ -4161,10 +4152,10 @@
     <script src="js/modules/training-wizard.js?v=2"></script>
     <script src="js/modules/training-swap.js?v=3"></script>
     <script src="js/modules/training-builder.js?v=4"></script>
-    <script src="js/modules/training.js?v=57"></script>
+    <script src="js/modules/training.js?v=58"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=10"></script>
-    <script src="js/modules/progress.js?v=38"></script>
+    <script src="js/modules/progress.js?v=39"></script>
     <!-- V9 : program runner + library bottom sheet (6 builtin programs proven) -->
     <script src="js/modules/program-runner.js?v=1"></script>
     <script src="js/modules/program-library.js?v=1"></script>
@@ -4181,7 +4172,7 @@
     <script src="js/modules/audio-feedback.js?v=1"></script>
     <script src="js/modules/timer.js?v=7"></script>
     <script src="js/modules/ui.js?v=20"></script>
-    <script src="js/modules/goals.js?v=10"></script>
+    <script src="js/modules/goals.js?v=11"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=6"></script>
     <script src="js/modules/plate-calculator.js?v=1"></script>

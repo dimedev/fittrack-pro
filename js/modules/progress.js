@@ -684,9 +684,15 @@ function updateProgressChart() {
     const exercise = document.getElementById('progress-exercise').value;
     const ctx = document.getElementById('progress-chart').getContext('2d');
 
+    // V12-PATCH-1 — guard contre Chart non chargé
+    if (typeof Chart === 'undefined') {
+        console.warn('[V12-PATCH-1] Chart.js non chargé — progress chart skippé');
+        return;
+    }
+
     // Détruire le graphique existant
     if (progressChart) {
-        progressChart.destroy();
+        try { progressChart.destroy(); } catch (_) {}
         progressChart = null;
     }
 
@@ -1681,10 +1687,17 @@ let volumeChart = null;
 function renderWeeklyVolumeChart() {
     const ctx = document.getElementById('volume-chart');
     if (!ctx) return;
-    
+
+    // V12-PATCH-1 — guard contre Chart non chargé (CSP block, lazy-load failed,
+    // offline). Ne JAMAIS crasher l'appelant (finishSession dépend de cette fonction).
+    if (typeof Chart === 'undefined') {
+        console.warn('[V12-PATCH-1] Chart.js non chargé — graphique volume hebdo skippé');
+        return;
+    }
+
     // Détruire le graphique existant
     if (volumeChart) {
-        volumeChart.destroy();
+        try { volumeChart.destroy(); } catch (_) {}
         volumeChart = null;
     }
     
@@ -1807,10 +1820,16 @@ function renderWeeklyVolumeChart() {
 function renderMuscleVolumeChart() {
     const ctx = document.getElementById('muscle-volume-chart');
     if (!ctx) return;
-    
+
+    // V12-PATCH-1 — guard contre Chart non chargé
+    if (typeof Chart === 'undefined') {
+        console.warn('[V12-PATCH-1] Chart.js non chargé — muscle volume chart skippé');
+        return;
+    }
+
     // Détruire le graphique existant
     if (muscleVolumeChart) {
-        muscleVolumeChart.destroy();
+        try { muscleVolumeChart.destroy(); } catch (_) {}
         muscleVolumeChart = null;
     }
     
@@ -1916,10 +1935,16 @@ function renderMuscleVolumeChart() {
 function renderFrequencyChart() {
     const ctx = document.getElementById('frequency-chart');
     if (!ctx) return;
-    
+
+    // V12-PATCH-1 — guard contre Chart non chargé
+    if (typeof Chart === 'undefined') {
+        console.warn('[V12-PATCH-1] Chart.js non chargé — frequency chart skippé');
+        return;
+    }
+
     // Détruire le graphique existant
     if (frequencyChart) {
-        frequencyChart.destroy();
+        try { frequencyChart.destroy(); } catch (_) {}
         frequencyChart = null;
     }
     
@@ -2003,10 +2028,16 @@ function renderFrequencyChart() {
 function renderMonthlyComparisonChart() {
     const ctx = document.getElementById('monthly-comparison-chart');
     if (!ctx) return;
-    
+
+    // V12-PATCH-1 — guard contre Chart non chargé
+    if (typeof Chart === 'undefined') {
+        console.warn('[V12-PATCH-1] Chart.js non chargé — monthly comparison chart skippé');
+        return;
+    }
+
     // Détruire le graphique existant
     if (monthlyComparisonChart) {
-        monthlyComparisonChart.destroy();
+        try { monthlyComparisonChart.destroy(); } catch (_) {}
         monthlyComparisonChart = null;
     }
     

@@ -7197,6 +7197,55 @@ html, body {
     }
 }
 
+/* ─── V12-PATCH-1 — Bouton SUPPRIMER navigator (action destructrice) ─── */
+.nav-exercise-remove {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 0.52rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    color: #ff8080;
+    background: rgba(255, 60, 60, 0.06);
+    border: 1px solid rgba(255, 60, 60, 0.22);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: opacity 120ms ease, background 120ms ease, border-color 120ms ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    margin-left: 4px;
+}
+
+.nav-exercise-remove svg {
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+@media (hover: hover) {
+    .nav-exercise-remove:hover {
+        background: rgba(255, 60, 60, 0.14);
+        border-color: rgba(255, 60, 60, 0.45);
+        color: #ff5050;
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .nav-exercise-remove {
+        opacity: 0.82;
+    }
+    .nav-exercise-remove:active {
+        opacity: 0.45;
+        transform: none !important;
+        background: rgba(255, 60, 60, 0.14) !important;
+    }
+}
+
 /* ─── Kicker contextuel dans le swap sheet header ─── */
 .swap-replace-kicker {
     font-family: var(--font-mono, 'DM Mono', monospace);
