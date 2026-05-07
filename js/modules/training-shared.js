@@ -450,10 +450,13 @@ function tryRestorePendingSession() {
     // Proposer à l'utilisateur de restaurer
     var elapsedMinutes = Math.floor((Date.now() - savedSession.startTime) / 60000);
 
+    // V12-EMOJIS / V12-RESUME : icon SVG refresh-rotate (Pit Lane currentColor).
+    var resumeIconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
     return (typeof showConfirmModal === 'function' ? showConfirmModal({
         title: 'Séance en cours',
         message: 'Tu as une séance "' + savedSession.splitName + '" en cours (' + elapsedMinutes + ' min). Reprendre ?',
-        icon: '🔄',
+        iconSvg: resumeIconSvg,
+        confirmType: 'primary',
         confirmLabel: 'Reprendre',
         cancelLabel: 'Supprimer'
     }) : Promise.resolve(false)).then(function(confirmed) {

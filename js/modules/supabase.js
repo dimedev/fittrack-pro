@@ -1638,11 +1638,14 @@ async function loadAllDataFromSupabase(silent = false) {
                 if (!localEntries) return;
                 
                 localEntries.forEach(localEntry => {
-                    // Vérifier si l'entrée est déjà dans Supabase
+                    // V12-DATA : dedup foodJournal — on inclut mealType + on tighten la
+                    // tolerance à 500ms pour éviter de fusionner deux entrées légitimes
+                    // (ex: 2 bananes ajoutées rapidement à 2 repas différents).
                     const existsInSupabase = supabaseJournal[date]?.some(sEntry =>
                         sEntry.foodId === localEntry.foodId &&
                         sEntry.quantity === localEntry.quantity &&
-                        Math.abs(sEntry.addedAt - localEntry.addedAt) < 2000 // 2 secondes de tolérance
+                        (sEntry.mealType || 'snack') === (localEntry.mealType || 'snack') &&
+                        Math.abs(sEntry.addedAt - localEntry.addedAt) < 500
                     );
                     
                     if (!existsInSupabase && !localEntry.supabaseId) {
@@ -1856,12 +1859,23 @@ async function loadAllDataFromSupabase(silent = false) {
                 const supabaseLogs = state.progressLog[exerciseName] || [];
                 
                 localLogs.forEach(localLog => {
-                    // Vérifier si ce log existe déjà dans Supabase (même date, même poids)
-                    const exists = supabaseLogs.some(sLog => 
-                        sLog.date === localLog.date && 
-                        sLog.weight === localLog.weight &&
-                        sLog.achievedReps === localLog.achievedReps
-                    );
+                    // V12-DATA : dedup progressLog — on inclut sets count + sessionId
+                    // pour préserver la granularité multi-sets. Avant, deux logs avec
+                    // mêmes (date, weight, reps) mais setsDetail différents fusionnaient
+                    // en un, perdant les données set-level.
+                    const localSid = localLog.sessionId || null;
+                    const localSets = (localLog.setsDetail && localLog.setsDetail.length) || localLog.sets || 0;
+                    const exists = supabaseLogs.some(sLog => {
+                        const sSid = sLog.sessionId || null;
+                        const sSets = (sLog.setsDetail && sLog.setsDetail.length) || sLog.sets || 0;
+                        // Match strict si les deux ont un sessionId
+                        if (localSid && sSid) return localSid === sSid;
+                        // Sinon fallback (legacy) : date + weight + reps + sets count
+                        return sLog.date === localLog.date &&
+                            sLog.weight === localLog.weight &&
+                            sLog.achievedReps === localLog.achievedReps &&
+                            sSets === localSets;
+                    });
                     
                     if (!exists && !localLog.synced) {
                         // Log local non synchronisé, le garder et tenter de le sync
@@ -1936,22 +1950,28 @@ async function loadAllDataFromSupabase(silent = false) {
             // ETAPE 3 : Construire le Set des sessionIds Supabase pour lookup rapide
             const supabaseIds = new Set(supabaseSessions.map(s => s.sessionId));
             
-            // ETAPE 4 : Re-injecter les sessions locales non presentes dans Supabase
+            // V12-DATA : ETAPE 4 — Re-injecter les sessions locales non présentes dans Supabase
+            // Suppression du fallback timestamp ±5s (P0-B audit) — risque de fusion de
+            // sessions étrangères. Toute session sans sessionId reçoit un ID déterministe
+            // marqué `_legacy_no_id: true` puis est forcée en sync.
             const merged = [...supabaseSessions];
             unsyncedLocal.forEach(localSession => {
-                const localId = localSession.sessionId || localSession.id;
-                if (localId && supabaseIds.has(localId)) return;
-                // Fallback timestamp pour legacy
+                let localId = localSession.sessionId || localSession.id;
+                // Backfill : générer un sessionId stable pour les sessions legacy sans ID.
                 if (!localId) {
-                    const existsByTimestamp = supabaseSessions.some(ss =>
-                        ss.date === localSession.date && Math.abs(ss.timestamp - localSession.timestamp) < 5000
-                    );
-                    if (existsByTimestamp) return;
+                    localId = 'legacy-' + (localSession.timestamp || Date.now()) + '-' + Math.random().toString(36).substr(2, 9);
+                    localSession.sessionId = localId;
+                    localSession._legacy_no_id = true;
+                    console.warn('🔧 [V12-DATA] Session legacy sans sessionId, ID généré:', localId);
+                    if (typeof criticalLog === 'function') {
+                        criticalLog('legacy_session_id_backfilled', { generatedId: localId, date: localSession.date });
+                    }
                 }
+                if (supabaseIds.has(localId)) return;
                 merged.push(localSession);
-                // Tenter sync en arriere-plan
+                // Tenter sync en arrière-plan avec le sessionId garanti
                 saveWorkoutSessionToSupabase({
-                    sessionId: localId || ('local-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5)),
+                    sessionId: localId,
                     date: localSession.date,
                     sessionType: localSession.sessionType || 'program',
                     sessionName: localSession.sessionName || null,
@@ -1965,21 +1985,33 @@ async function loadAllDataFromSupabase(silent = false) {
                     if (ok) { localSession.synced = true; saveState(); }
                 }).catch(err => {
                     console.warn('⚠️ Sync session locale échouée, ajout à la queue:', err?.message || err);
-                    // Ajouter à la syncQueue pour retry au lieu de perdre silencieusement
-                    addToSyncQueue('workout_session', 'upsert', {
-                        sessionId: localSession.sessionId || localSession.id,
-                        date: localSession.date,
-                        sessionType: localSession.sessionType || 'program',
-                        program: localSession.program,
-                        day: localSession.day,
-                        exercises: localSession.exercises,
-                        duration: localSession.duration || 0,
-                        totalVolume: localSession.totalVolume || 0,
-                        caloriesBurned: localSession.caloriesBurned || 0
-                    });
+                    // V12-DATA : ne JAMAIS perdre silencieusement. addToSyncQueue est
+                    // wrappée dans try/catch — si elle jette aussi (quota IndexedDB),
+                    // on log un événement critique.
+                    try {
+                        addToSyncQueue('workout_session', 'upsert', {
+                            sessionId: localId,
+                            date: localSession.date,
+                            sessionType: localSession.sessionType || 'program',
+                            program: localSession.program,
+                            day: localSession.day,
+                            exercises: localSession.exercises,
+                            duration: localSession.duration || 0,
+                            totalVolume: localSession.totalVolume || 0,
+                            caloriesBurned: localSession.caloriesBurned || 0
+                        });
+                    } catch (queueErr) {
+                        console.error('🚨 [V12-DATA] addToSyncQueue a échoué — session orpheline:', localId, queueErr);
+                        if (typeof criticalLog === 'function') {
+                            criticalLog('sync_queue_failed', {
+                                sessionId: localId,
+                                error: String(queueErr?.message || queueErr)
+                            });
+                        }
+                    }
                 });
             });
-            
+
             // ETAPE 5 : Supprimer les sessions soft-deleted localement
             const deletedLocal = (state.sessionHistory || []).filter(s => s.deletedAt);
             deletedLocal.forEach(s => {
@@ -1988,9 +2020,36 @@ async function loadAllDataFromSupabase(silent = false) {
                     console.warn('⚠️ Suppression Supabase échouée pour session:', sid, err?.message || err);
                 });
             });
-            
-            // ETAPE 6 : Assigner et trier (SANS limiter — toutes les sessions sont conservées)
-            state.sessionHistory = merged.sort((a, b) => b.timestamp - a.timestamp);
+
+            // V12-DATA : ETAPE 6 — Checksum guard. Si le merge produit un set
+            // étrangement plus petit que pre-merge (hors deletedLocal attendu), on
+            // alerte ET on conserve l'union prudente plutôt que la version réduite.
+            const preMergeCount = (state.sessionHistory || []).filter(s => !s.deletedAt).length;
+            const postMergeCount = merged.length;
+            const expectedDelta = -deletedLocal.length;
+            const actualDelta = postMergeCount - preMergeCount;
+            if (actualDelta < expectedDelta - 1) {
+                // On a perdu des sessions inexplicablement → log critique + ne pas écraser
+                console.error(`🚨 [V12-DATA] Checksum anomaly: pre=${preMergeCount}, post=${postMergeCount}, expectedDelta=${expectedDelta}, actualDelta=${actualDelta}`);
+                if (typeof criticalLog === 'function') {
+                    criticalLog('session_merge_checksum_fail', {
+                        pre: preMergeCount, post: postMergeCount,
+                        expectedDelta, actualDelta
+                    });
+                }
+                // Politique safe : on union local + remote pour ne perdre AUCUNE session
+                const safeUnion = [...merged];
+                const mergedIds = new Set(merged.map(s => s.sessionId || s.id));
+                (state.sessionHistory || []).forEach(localS => {
+                    const lid = localS.sessionId || localS.id;
+                    if (lid && !mergedIds.has(lid) && !localS.deletedAt) {
+                        safeUnion.push(localS);
+                    }
+                });
+                state.sessionHistory = safeUnion.sort((a, b) => b.timestamp - a.timestamp);
+            } else {
+                state.sessionHistory = merged.sort((a, b) => b.timestamp - a.timestamp);
+            }
         }
         
         if (!silent) {

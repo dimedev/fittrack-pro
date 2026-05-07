@@ -1096,7 +1096,8 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .fs-exercise-actions .exercise-info-btn,
-.fs-exercise-actions .fs-swap-btn {
+.fs-exercise-actions .fs-swap-btn,
+.fs-exercise-actions .fs-busy-btn {
     width: 34px;
     height: 34px;
     min-width: 34px;
@@ -1121,8 +1122,15 @@ body:has(.fullscreen-session[style*="display: flex"]) .main {
 }
 
 .fs-exercise-actions .exercise-info-btn:active,
-.fs-exercise-actions .fs-swap-btn:active {
+.fs-exercise-actions .fs-swap-btn:active,
+.fs-exercise-actions .fs-busy-btn:active {
     background: var(--bg-hover, rgba(255,255,255,0.08));
+}
+
+/* V12-MACHINE-BUSY: bouton "Machine occupée" — variante chaud/avertissement */
+.fs-exercise-actions .fs-busy-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
 }
 
 /* Objectif exercice (compact, sous les actions) */

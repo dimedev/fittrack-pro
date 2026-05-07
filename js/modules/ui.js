@@ -1145,6 +1145,7 @@ function showConfirmModal(config) {
             title = 'Confirmer',
             message = 'Êtes-vous sûr ?',
             icon = '⚠️',
+            iconSvg = null,
             confirmLabel = 'Confirmer',
             cancelLabel = 'Annuler',
             confirmType = 'danger',
@@ -1166,7 +1167,10 @@ function showConfirmModal(config) {
         const safeTitle = _esc(title);
         const safeMessage = _esc(message);
         const safePreview = _esc(preview);
-        const safeIcon = _esc(icon);
+        // V12-EMOJIS : iconSvg accepte du SVG raw (developer-trusted, jamais user).
+        // Si iconSvg fourni, il prend priorité et n'est PAS échappé.
+        // Sinon icon (emoji ou texte) est échappé pour défendre input user.
+        const safeIcon = iconSvg ? String(iconSvg) : _esc(icon);
         const safeConfirmLabel = _esc(confirmLabel);
         const safeCancelLabel = _esc(cancelLabel);
 

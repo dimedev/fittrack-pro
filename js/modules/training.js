@@ -320,10 +320,11 @@ async function machineOccupied() {
     const currentExercise = fsSession.exercises[fsSession.currentExerciseIndex];
     if (!currentExercise) return;
 
+    const busyIconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>';
     const confirmed = await showConfirmModal({
         title: 'Machine occupée',
         message: `Reporter "${currentExercise.effectiveName}" et passer au suivant ?`,
-        icon: '⏳',
+        iconSvg: busyIconSvg,
         confirmLabel: 'Reporter',
         cancelLabel: 'Annuler'
     });
@@ -336,7 +337,7 @@ async function machineOccupied() {
             window.HapticFeedback.warning();
         }
 
-        showToast('⏳ Machine occupée - Exercice reporté', 'info', 3000);
+        showToast('Machine occupée — exercice reporté en fin de séance', 'info', 3000);
     }
 }
 
@@ -353,10 +354,11 @@ async function postponeCurrentExercise(skipConfirm = false) {
     const currentExercise = fsSession.exercises[fsSession.currentExerciseIndex];
 
     if (!skipConfirm) {
+        const postponeIconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
         const confirmed = await showConfirmModal({
             title: 'Reporter cet exercice ?',
             message: `"${currentExercise.effectiveName}" sera déplacé à la fin de la séance.`,
-            icon: '🔄',
+            iconSvg: postponeIconSvg,
             confirmLabel: 'Reporter',
             cancelLabel: 'Annuler'
         });
@@ -534,15 +536,28 @@ function renderCurrentExercise() {
     document.getElementById('fs-session-progress').textContent = splits ? `Jour ${fsSession.splitIndex + 1}/${splits.length}` : 'Jour 1';
 
     // Update exercise info — nom centré seul, boutons séparés en dessous
+    // V12-XSS : exercise.effectiveName peut dériver d'input user (exo custom) →
+    // textContent + appendChild pour éviter injection. Les badges (postponed,
+    // superset) embarquent des SVG hardcodés (safe, aucune variable).
+    // V12-EMOJIS : ⏭️ et ⚡ remplacés par SVG monochrome currentColor (Pit Lane).
     const exerciseNameEl = document.getElementById('fs-exercise-name');
-    let nameHTML = exercise.effectiveName;
+    exerciseNameEl.textContent = exercise.effectiveName;
     if (exercise.postponed) {
-        nameHTML += ' <span style="color: var(--warning); font-size: 0.8rem;">⏭️</span>';
+        const postponedBadge = document.createElement('span');
+        postponedBadge.className = 'fs-exercise-postponed';
+        postponedBadge.setAttribute('aria-label', 'Exercice reporté');
+        postponedBadge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>';
+        exerciseNameEl.appendChild(postponedBadge);
     }
     if (supersetLabel) {
-        nameHTML += `<span class="superset-badge">⚡ ${supersetLabel}</span>`;
+        const supersetBadge = document.createElement('span');
+        supersetBadge.className = 'superset-badge';
+        supersetBadge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+        // supersetLabel est hardcodé (' A (Superset)' ou ' B (Superset)') — pas de XSS,
+        // mais on passe par textNode par hygiène (defense in depth).
+        supersetBadge.appendChild(document.createTextNode(supersetLabel));
+        exerciseNameEl.appendChild(supersetBadge);
     }
-    exerciseNameEl.innerHTML = nameHTML;
 
     // Mettre à jour le bouton info séparément
     const infoBtn = document.getElementById('fs-info-btn');
@@ -3220,14 +3235,33 @@ async function finishSession() {
                 }
             }
 
-            if (!sessionAlreadyInDB) {
-                for (const exData of sessionData) {
-                    const logs = state.progressLog[exData.exercise];
-                    if (logs && logs.length > 0) {
-                        const lastLog = logs[logs.length - 1];
-                        if (typeof saveProgressLogToSupabase === 'function') {
-                            try { await saveProgressLogToSupabase(exData.exercise, lastLog); }
-                            catch (err) { console.warn('Sync progression en attente:', exData.exercise); }
+            // V12-DATA : on tente TOUJOURS la phase progress_logs, même si la session
+            // existe déjà en DB (couvre le scénario "session insérée mais progress_logs
+            // ratés à la retry précédente"). saveProgressLogToSupabase doit être
+            // idempotent côté serveur (ON CONFLICT DO NOTHING ou équivalent via RLS).
+            for (const exData of sessionData) {
+                const logs = state.progressLog[exData.exercise];
+                if (logs && logs.length > 0) {
+                    const lastLog = logs[logs.length - 1];
+                    // Skip si déjà marqué synced localement (évite le double-call inutile)
+                    if (lastLog.synced) continue;
+                    if (typeof saveProgressLogToSupabase === 'function') {
+                        try {
+                            await saveProgressLogToSupabase(exData.exercise, lastLog);
+                        } catch (err) {
+                            console.warn('Sync progression en attente:', exData.exercise);
+                            // V12-DATA : queue pour retry plutôt qu'oublier
+                            if (typeof addToSyncQueue === 'function') {
+                                try {
+                                    addToSyncQueue('progress_log', 'upsert', {
+                                        exerciseName: exData.exercise,
+                                        log: lastLog,
+                                        sessionId: sessionToSave.sessionId
+                                    });
+                                } catch (qErr) {
+                                    console.error('🚨 [V12-DATA] addToSyncQueue progress_log échec:', qErr);
+                                }
+                            }
                         }
                     }
                 }
@@ -4182,7 +4216,9 @@ function updateActionButton() {
 
     if (willFinishSession) {
         // Dernière série de TOUTE la séance → CTA spécial
-        label.textContent = 'Terminer la séance 🎉';
+        // V12-EMOJIS : 🎉 → SVG sparkle currentColor. label est <span> hardcodé,
+        // innerHTML safe (aucune variable user). Pit Lane discipline conservée.
+        label.innerHTML = 'Terminer la séance <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px;margin-left:6px;"><path d="M12 2l1.6 5.4L19 8.6 14.2 11l-2.2 5.4L9.8 11 5 8.6l5.4-1.2L12 2z"/></svg>';
         btn.classList.add('btn-finish-session');
         void btn.offsetWidth;
         if (window.HapticFeedback) HapticFeedback.warning();
@@ -4476,7 +4512,7 @@ function renderExerciseNavigator() {
             statusIcon = '<span class="nav-dot nav-dot-current"></span>';
             statusClass = 'nav-current';
         } else if (isPostponed) {
-            statusIcon = '⏭️';
+            statusIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="opacity:0.85;"><polygon points="5 4 15 12 5 20 5 4"/><rect x="17" y="4" width="2" height="16"/></svg>';
             statusClass = 'nav-postponed';
         } else if (setsCompleted > 0) {
             statusIcon = '<span class="nav-dot nav-dot-partial"></span>';

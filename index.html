@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- V12-CSP — Content-Security-Policy (defense-in-depth XSS / injection)
+         'unsafe-inline' requis pour scripts inline (theme detector, PostHog/Sentry
+         loaders) et styles dynamiques (style="..." setters JS). Refactor vers nonces
+         hors scope V12. CSP couvre Supabase, PostHog EU, Sentry CDN, Google Fonts. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.supabase.co https://js.sentry-cdn.com https://browser.sentry-cdn.com https://eu.i.posthog.com https://app.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://eu.i.posthog.com https://app.posthog.com https://*.sentry.io https://*.ingest.sentry.io; img-src 'self' data: blob: https:; media-src 'self' data: blob:; worker-src 'self' blob:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+
     <!-- V6.3 STORE — SEO + social (Play Store / App Store / partage Twitter, etc.) -->
     <title>Repzy — Coach fitness & nutrition</title>
     <meta name="description" content="Repzy : suivi musculation et nutrition premium. Coach intelligent, programmes proven, séances en mode pleine page, sync multi-appareils. Hors ligne, RGPD.">
@@ -36,9 +42,9 @@
     <!-- Critical: design system + mobile base (render-blocking) -->
     <link rel="stylesheet" href="css/style-nike-shadcn.css?v=64">
     <link rel="stylesheet" href="css/mobile-premium.css?v=6">
-    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=71">
+    <link rel="stylesheet" href="css/mobile-ux-fixes.css?v=72">
     <!-- Deferred: loaded async, applied when ready -->
-    <link rel="stylesheet" href="css/session-manager.css?v=46" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/session-manager.css?v=47" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/premium-components.css?v=28" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/nutrition-premium.css?v=10" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/journal-macros.css?v=11" media="print" onload="this.media='all'">
@@ -3380,6 +3386,10 @@
                     <button class="fs-swap-btn" id="fs-swap-btn" onclick="openFsExerciseSwap()" title="Changer d'exercice" aria-label="Remplacer l'exercice">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
                     </button>
+                    <!-- V12-MACHINE-BUSY: bouton "Machine occupée" — reporte l'exo en fin de séance -->
+                    <button class="fs-busy-btn" id="fs-busy-btn" onclick="machineOccupied()" title="Machine occupée" aria-label="Machine occupée — reporter en fin de séance">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
+                    </button>
                 </div>
                 <div class="fs-exercise-objective" id="fs-exercise-objective" style="display: none;">
                     <span class="fs-objective-text" id="fs-objective-text"></span>
@@ -4129,13 +4139,13 @@
     <!-- V9 : 6 programmes proven (5/3/1 BBB, nSuns, GZCLP, Stronglifts, PPL JN, U/L 4j) -->
     <script src="js/data/builtin-programs.js?v=1"></script>
     <script src="js/modules/database.js?v=1"></script>
-    <script src="js/modules/state.js?v=32"></script>
+    <script src="js/modules/state.js?v=33"></script>
     <script src="js/modules/haptic.js?v=1"></script>
     <script src="js/modules/barcode-scanner.js?v=5"></script>
     <script src="js/modules/meal-history.js?v=7"></script>
     <script src="js/modules/recipes.js?v=7"></script>
     <script src="js/modules/icons.js?v=1"></script>
-    <script src="js/modules/supabase.js?v=46"></script>
+    <script src="js/modules/supabase.js?v=47"></script>
     <script src="js/modules/profile.js?v=32"></script>
     <script src="js/modules/nutrition-core.js?v=4"></script>
     <script src="js/modules/nutrition-ui.js?v=6"></script>
@@ -4146,12 +4156,12 @@
     <script src="js/modules/cardio.js?v=1"></script>
     <script src="js/modules/gyms.js?v=1"></script>
     <script src="js/modules/exercise-media.js?v=2"></script>
-    <script src="js/modules/training-shared.js?v=2"></script>
+    <script src="js/modules/training-shared.js?v=3"></script>
     <script src="js/modules/training-periodization.js?v=1"></script>
     <script src="js/modules/training-wizard.js?v=2"></script>
     <script src="js/modules/training-swap.js?v=3"></script>
     <script src="js/modules/training-builder.js?v=4"></script>
-    <script src="js/modules/training.js?v=56"></script>
+    <script src="js/modules/training.js?v=57"></script>
     <script src="js/modules/session-manager.js?v=7"></script>
     <script src="js/modules/session-ui.js?v=10"></script>
     <script src="js/modules/progress.js?v=38"></script>
@@ -4170,12 +4180,12 @@
     <script src="js/modules/health-integration.js?v=2"></script>
     <script src="js/modules/audio-feedback.js?v=1"></script>
     <script src="js/modules/timer.js?v=7"></script>
-    <script src="js/modules/ui.js?v=19"></script>
+    <script src="js/modules/ui.js?v=20"></script>
     <script src="js/modules/goals.js?v=10"></script>
     <script src="js/modules/photos.js?v=6"></script>
     <script src="js/modules/premium-ui.js?v=6"></script>
     <script src="js/modules/plate-calculator.js?v=1"></script>
-    <script src="js/modules/mobile-gestures.js?v=13"></script>
+    <script src="js/modules/mobile-gestures.js?v=14"></script>
     <script src="js/modules/theme.js?v=6"></script>
     <script src="js/modules/onboarding.js?v=1"></script>
     <script src="js/app.js?v=34"></script>

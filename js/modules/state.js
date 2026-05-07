@@ -1533,30 +1533,65 @@ window.RepzyState = {
     getAll: () => ({ ...state })
 };
 
-// ── Cross-tab sync : detecter les changements localStorage depuis un autre onglet ──
+// ── V12-DATA : Cross-tab sync hardening ──────────────────────────────────────
+// Detecter les changements localStorage depuis un autre onglet, mais avec :
+//   1) timestamp _lastSaved STRICTEMENT monotonique (rejet si <=) — empêche
+//      qu'un onglet en retard écrase un onglet plus récent.
+//   2) checksum sessionHistory.length — si l'onglet externe annonce une
+//      sessionHistory plus courte ET qu'on en a une plus complète localement,
+//      on prend l'UNION (politique safe : ne JAMAIS perdre une session).
+//   3) Préservation IndexedDB-only collections (progressLog, sessionHistory)
+//      quand le slim state ne les contient pas.
 window.addEventListener('storage', (e) => {
     if (e.key === 'fittrack-state' && e.newValue) {
         try {
             const externalState = JSON.parse(e.newValue);
-            // Merger seulement si les donnees externes sont plus recentes
-            if (externalState._lastSaved && externalState._lastSaved > (state._lastSaved || 0)) {
-                // Preserver les collections qui sont dans IndexedDB
-                const preserveProgressLog = state.progressLog;
-                const preserveSessionHistory = state.sessionHistory;
-                Object.assign(state, externalState);
-                // Restaurer les collections completes (slim state n'a pas ces donnees)
-                if (!externalState.progressLog && preserveProgressLog) {
-                    state.progressLog = preserveProgressLog;
-                }
-                if (!externalState.sessionHistory && preserveSessionHistory) {
-                    state.sessionHistory = preserveSessionHistory;
-                }
-                if (typeof showToast === 'function') {
-                    showToast('Données mises à jour depuis un autre onglet', 'info');
-                }
-                // Refresh UI si disponible
-                if (typeof updateDashboard === 'function') updateDashboard();
+            const externalLastSaved = externalState._lastSaved || 0;
+            const localLastSaved = state._lastSaved || 0;
+            // V12-DATA : guard monotonique strict — rejet si <= (avant : >)
+            if (externalLastSaved <= localLastSaved) {
+                return;
             }
+            // Préserver les collections IndexedDB-only AVANT merge.
+            const preserveProgressLog = state.progressLog;
+            const preserveSessionHistory = state.sessionHistory;
+            const preLocalSessionCount = (preserveSessionHistory || []).length;
+
+            Object.assign(state, externalState);
+
+            // Restaurer les collections complètes (slim state n'a pas ces données).
+            if (!externalState.progressLog && preserveProgressLog) {
+                state.progressLog = preserveProgressLog;
+            }
+            if (!externalState.sessionHistory && preserveSessionHistory) {
+                state.sessionHistory = preserveSessionHistory;
+            }
+
+            // V12-DATA : checksum sessionHistory — si l'externe a < sessions que
+            // le local pre-merge, on union pour ne perdre aucune session (le
+            // scénario typique : Tab A finit une session, Tab B charge Supabase
+            // avec un état antérieur). Politique : safe union, dédup par sessionId.
+            if (Array.isArray(state.sessionHistory) && Array.isArray(preserveSessionHistory)) {
+                const postCount = state.sessionHistory.length;
+                if (postCount < preLocalSessionCount) {
+                    console.warn(`🛡️ [V12-DATA cross-tab] Sessions externe=${postCount} < local=${preLocalSessionCount}, union safe.`);
+                    const seenIds = new Set(state.sessionHistory.map(s => s.sessionId || s.id).filter(Boolean));
+                    preserveSessionHistory.forEach(localS => {
+                        const sid = localS.sessionId || localS.id;
+                        if (sid && !seenIds.has(sid) && !localS.deletedAt) {
+                            state.sessionHistory.push(localS);
+                            seenIds.add(sid);
+                        }
+                    });
+                    // Re-tri par timestamp décroissant
+                    state.sessionHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                }
+            }
+
+            if (typeof showToast === 'function') {
+                showToast('Données mises à jour depuis un autre onglet', 'info');
+            }
+            if (typeof updateDashboard === 'function') updateDashboard();
         } catch (err) {
             console.warn('Cross-tab merge error:', err);
         }
